@@ -443,6 +443,7 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .qvhint{font-size:12px;color:var(--muted);margin:0}
 .poster.sel .art{outline:3px solid var(--tungsten);outline-offset:2px}
 @keyframes qvIn{from{opacity:0;transform:translateY(-6px)}}
+.strip .qv,.grid .qv{grid-column:1/-1}           /* a full-width card inside a wrapped grid */
 @media (max-width:760px){.qv{grid-template-columns:1fr}.qvart{min-height:170px}}
 
 /* Keshet 12 (mako) tab */
@@ -799,7 +800,11 @@ function lazyBg(root){
 new MutationObserver(muts => {
   for(const m of muts) for(const n of m.addedNodes) if(n.nodeType === 1) lazyBg(n.matches('[data-bg]') ? n.parentNode : n);
 }).observe(document.body, {childList: true, subtree: true});
-const isTvLayout = () => typeof settings !== 'undefined' && settings.layout === 'tv';
+/* Remote-driven mode. The app says whether this is a television; every layout must navigate
+   with the D-pad there - the TV *layout* is only the ten-foot skin. (In a desktop browser,
+   choosing the TV layout still turns this on, which is how it is tested.) */
+const IS_TV_DEVICE = (() => { try{ return !!window.BoothAndroid?.isTv?.(); }catch(e){ return false; } })();
+const isTvLayout = () => IS_TV_DEVICE || (typeof settings !== 'undefined' && settings.layout === 'tv');
 const rowMax = () => isTvLayout() ? 24 : 40;
 
 /* ---------- which streaming service a title is on (from the Streaming Catalogs add-on) ---------- */
@@ -1276,7 +1281,26 @@ function qvPlayLabel(metaId){
     const left = Math.max(1, Math.round((w.d - w.t) / 60));
     return `▶ המשך צפייה · נותרו ${left} דק׳`;
   }
-  return '▶ צפייה ואפשרויות';
+  return '▶ נגן כעת';
+}
+
+/** All the playable sources one id has, across the stream add-ons (no rendering). */
+async function gatherStreams(type, videoId){
+  const all = [];
+  await Promise.all(addons.filter(a => supports(a.manifest, 'stream', type, videoId)).map(async a => {
+    try{
+      const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`);
+      for(const st of d.streams || []) all.push(parseStream(st, a.manifest.name, all.length));
+    }catch(e){}
+  }));
+  return all;
+}
+
+/** The sensible default: 1080p when its file is small enough to stream, else the best-ranked. */
+function bestForNow(list){
+  const ok = list.filter(x => x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a));
+  const fits = x => !x.size || x.size < 8 * GB;               // big enough files stall when streamed
+  return ok.find(x => x.q === '1080p' && fits(x)) || ok.find(fits) || ok[0] || null;
 }
 
 let qvHref = null;
@@ -1297,12 +1321,38 @@ async function openQuickView(card){
   box.className = 'qv';
   box.innerHTML = `<div class="qvart"></div><div class="qvbody"><div class="qvclose"><button class="qvx" aria-label="סגור">✕</button></div>
       <h3 dir="auto">${esc(name)}</h3><div class="facts"></div><p class="qvdesc note">טוען תקציר…</p>
-      <div class="qvact"><a class="btn primary" href="${esc(href)}">${qvPlayLabel(id)}</a></div>
+      <div class="qvact">${type === 'movie'
+        ? `<button class="btn primary" id="qvplay">${qvPlayLabel(id)}</button>`
+        : `<a class="btn primary" href="${esc(href)}">▶ לפרקים ולצפייה</a>`}
+        <a class="btn ghost" href="${esc(href)}">עוד אפשרויות</a></div>
       <p class="qvhint">${card.classList.contains('nosrc') ? 'לא נמצאו מקורות לכותר הזה כרגע' : `לחיצה נוספת על הפוסטר פותחת את ה${type === 'series' ? 'סדרה' : 'סרט'}`}</p></div>`;
-  // right under the row (or the grid) the poster sits in
+  // in a horizontal strip the card goes right under the strip; in a wrapped grid it slides in
+  // under the clicked poster's own visual row, pushing the rows below it down
   const anchor = card.closest('.strip') || card.closest('.grid');
-  anchor.after(box);
+  if(getComputedStyle(anchor).display === 'grid'){
+    const top = card.getBoundingClientRect().top;
+    const rowEnd = [...anchor.children].filter(el => Math.abs(el.getBoundingClientRect().top - top) < 4).pop();
+    (rowEnd || card).after(box);
+  } else anchor.after(box);
   box.querySelector('.qvx').onclick = closeQuickView;
+  const playBtn = box.querySelector('#qvplay');
+  if(playBtn) playBtn.onclick = async () => {
+    playBtn.disabled = true;
+    playBtn.textContent = 'מחפש מקור…';
+    const m = await fetchMeta(type, id).catch(() => null);
+    const videoId = m?.behaviorHints?.defaultVideoId || id;
+    const list = await gatherStreams(type, videoId);
+    const pick = bestForNow(list);
+    if(!pick){
+      playBtn.textContent = 'לא נמצא מקור - עוד אפשרויות';
+      playBtn.disabled = false;
+      playBtn.onclick = () => { location.hash = href; };
+      return;
+    }
+    playBtn.textContent = qvPlayLabel(id);
+    playBtn.disabled = false;
+    playStream(pick.s, m?.name || name, {videoId, type, meta: m || {id, name}});
+  };
   box.scrollIntoView({block: 'nearest', behavior: 'smooth'});
 
   const meta = await fetchMeta(type, id);
@@ -1567,7 +1617,7 @@ async function viewHome(){
     if(rows.length < 8) rows.push({a, c, title: catalogHe(c.name) || c.id});
   }
   const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
-  renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, hero: false});
+  renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, hero: settings.layout === 'cinema'});
 }
 
 function viewCategory(id){
