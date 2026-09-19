@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>המקרן</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=Rubik:wght@500;700;800&family=Heebo:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<link media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=Rubik:wght@500;700;800&family=Heebo:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
 // Apply saved skin/layout before first paint (Settings page). TV devices default to the TV layout.
 try{
@@ -403,8 +402,27 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 /* ---------- storage ---------- */
 const store = {
   get(k, d){ try{ const v = localStorage.getItem('booth:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
-  set(k, v){ try{ localStorage.setItem('booth:'+k, JSON.stringify(v)); }catch(e){} }
+  set(k, v){
+    try{ localStorage.setItem('booth:'+k, JSON.stringify(v)); }
+    catch(e){ store.prune(); try{ localStorage.setItem('booth:'+k, JSON.stringify(v)); }catch(e2){} }
+  },
+  // big caches are written at most once a second, off the scrolling path
+  dirty: {},
+  lazy(k, v){ store.dirty[k] = v; clearTimeout(store.timer); store.timer = setTimeout(store.flush, 1000); },
+  flush(){ const d = store.dirty; store.dirty = {}; for(const k in d) store.set(k, d[k]); },
+  /** Storage is full: drop the rebuildable caches, never the library/progress/settings. */
+  prune(){
+    for(const k of ['heMeta', 'avail', 'svcMap']) try{ localStorage.removeItem('booth:' + k); }catch(e){}
+  },
 };
+addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') store.flush(); });
+/** Keep a plain object cache under a size limit (oldest-inserted entries go first). */
+function capMap(obj, max){
+  const keys = Object.keys(obj);
+  if(keys.length <= max) return obj;
+  for(const k of keys.slice(0, keys.length - max)) delete obj[k];
+  return obj;
+}
 const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json';
 const TORRENTIO = 'https://torrentio.strem.fun/manifest.json';
 // Netflix, Apple TV+, Disney+, Prime, HBO Max, Paramount+, Curiosity Stream, MagellanTV (Israel region).
@@ -428,8 +446,16 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const normUrl = u => u.trim().replace(/^stremio:\/\//, 'https://');
 const baseOf = u => normUrl(u).replace(/\/manifest\.json(\?.*)?$/, '');
-async function getJSON(url){
-  const r = await fetch(url);
+/** fetch with a deadline: a hung socket must not leave a screen "loading" forever. */
+async function fetchTimed(url, ms, opts){
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try{ return await fetch(url, {...opts, signal: ctl.signal}); }
+  catch(e){ throw new Error(e.name === 'AbortError' ? 'אין תגובה' : e.message); }
+  finally{ clearTimeout(timer); }
+}
+async function getJSON(url, ms = 9000){
+  const r = await fetchTimed(url, ms);
   if(!r.ok) throw new Error(r.status + ' from ' + new URL(url).host);
   return r.json();
 }
@@ -502,7 +528,7 @@ async function heLookup(ids){
     const d = await getJSON(`${WDAPI}action=wbgetentities&props=labels|sitelinks&languages=he&sitefilter=hewiki&ids=${qs.slice(i, i + 50).join('|')}`);
     for(const [q, e] of Object.entries(d.entities || {})) heCache[byItem[q]] = {t: heClean(e.labels?.he?.value), w: hewiki(e)};
   }
-  store.set('heMeta', heCache);
+  store.lazy('heMeta', capMap(heCache, 4000));
 }
 
 /** Queue ids for a Hebrew title lookup (batched; the page is updated in place). */
@@ -535,6 +561,10 @@ const heObserver = new IntersectionObserver(entries => {
   for(const en of entries) if(en.isIntersecting){ heObserver.unobserve(en.target); ids.push(en.target.dataset.heid); }
   if(ids.length) hebrewize(ids);
 }, {rootMargin: '300px'});
+function armHeAndAvail(root){
+  if(hebrewOn()) root.querySelectorAll?.('[data-heid]').forEach(el => { if(!(el.dataset.heid in heCache)) heObserver.observe(el); });
+  root.querySelectorAll?.('[data-avail]').forEach(el => { if(!availKnown(el.dataset.avail)) availObserver.observe(el); });
+}
 new MutationObserver(muts => {
   if(!hebrewOn()) return;
   for(const m of muts) for(const n of m.addedNodes){
@@ -699,8 +729,11 @@ async function loadServices(){
 }
 
 /* ---------- cards ---------- */
+let progressIdx = new Map();
+function indexProgress(){ progressIdx = new Map(Object.values(progress).map(x => [x.metaId, x])); }
+indexProgress();
 function card(m){
-  const p = Object.values(progress).find(x => x.metaId === m.id);
+  const p = progressIdx.get(m.id);
   const pct = p && p.d ? Math.min(100, p.t / p.d * 100) : 0;
   const art = m.poster
     ? `<div class="art" data-bg="${esc(m.poster)}">${pct?`<div class="prog" style="width:${pct}%"></div>`:''}${svcBadge(m.id)}</div>`
@@ -879,14 +912,18 @@ async function r13row(kind){
   return r13list(`(and asset_type='${R13_EPISODE}')`, 'CREATE_DATE_DESC', 30);
 }
 /** Reshet 13 live channels (main channel, comedy, reality, holiday) with playable HLS URLs. */
+let r13chanCache = null;
 async function r13channels(){
+  if(r13chanCache && Date.now() - r13chanCache.at < 3e5) return r13chanCache.list;
   const chans = (await r13list(`(and asset_type='${R13_CHANNEL}')`, 'NAME_ASC', 20)).filter(o => !/test|בדיקה|kaltura|cnn/i.test(o.name));
   const out = await Promise.all(chans.map(async o => {
     try{ const {url} = await r13source(o.id, true);
       return {name: /שידור חי/.test(o.name) ? 'רשת 13' : `${o.name} (13)`, group: 'רשת 13', url, logo: r13img(o, '1x1', 120, 120)}; }
     catch(e){ return null; }
   }));
-  return out.filter(Boolean);
+  const list = out.filter(Boolean);
+  r13chanCache = {at: Date.now(), list};
+  return list;
 }
 
 async function viewR13Series(sid, title){
@@ -973,7 +1010,8 @@ async function viewKanProgram(path, title){
     const doc = await kanDoc(KAN + path);
     $('#kdesc').textContent = doc.querySelector('meta[name="description"]')?.content || '';
     // seasons: /p-XXXX/sN/ links (newest first); without seasons the programme page lists the episodes itself
-    const seasons = [...new Set([...doc.querySelectorAll('a[href]')].map(a => (a.getAttribute('href').match(new RegExp(path.replace(/[/-]/g, m => '\\' + m) + '(s\\d+)/?$')) || [])[1]).filter(Boolean))]
+    const seasonRe = new RegExp(path.replace(/[/-]/g, m => '\\' + m) + '(s\\d+)/?$');
+    const seasons = [...new Set([...doc.querySelectorAll('a[href]')].map(a => (a.getAttribute('href').match(seasonRe) || [])[1]).filter(Boolean))]
       .sort((a, b) => +b.slice(1) - +a.slice(1));
     const load = async sn => {
       $('#eps').innerHTML = '<p class="note">טוען פרקים…</p>';
@@ -1054,6 +1092,7 @@ const metaCache = {};
 async function fetchMeta(type, id){
   const key = type + ':' + id;
   if(metaCache[key]) return metaCache[key];
+  capMap(metaCache, 30);                                     // metas of long series are big
   for(const a of addons.filter(a => supports(a.manifest, 'meta', type, id))){
     try{ const m = (await getJSON(`${a.base}/meta/${type}/${encodeURIComponent(id)}.json`)).meta; if(m) return metaCache[key] = m; }catch(e){}
   }
@@ -1121,9 +1160,12 @@ const MAKO_GENRES = [['הכל', ''], ['ריאליטי', 'genre&vcmId=4f9dbac9806
   ['החדשות', 'provider&vcmId=ee06c13070733210VgnVCM2000002a0c10acRCRD']];
 const makoCache = {};
 function nextData(html){
-  const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
-  if(!m) throw new Error('לא ניתן לקרוא את העמוד');
-  return JSON.parse(m[1]).props.pageProps;
+  // slice by index instead of running a lazy regex over ~1MB of HTML
+  const start = html.indexOf('<script id="__NEXT_DATA__"');
+  const from = start < 0 ? -1 : html.indexOf('>', start) + 1;
+  const to = from > 0 ? html.indexOf('<\/script>', from) : -1;
+  if(to < 0) throw new Error('לא ניתן לקרוא את העמוד');
+  return JSON.parse(html.slice(from, to)).props.pageProps;
 }
 async function makoPrograms(filter){
   if(makoCache['idx' + filter]) return makoCache['idx' + filter];
@@ -1412,8 +1454,7 @@ async function viewDetail(type, id){
   const app = $('#app');
   app.innerHTML = `<div class="backdrop skel"></div>`;
   const src = addons.filter(a => supports(a.manifest, 'meta', type, id));
-  let meta = null;
-  for(const a of src){ try{ meta = (await getJSON(`${a.base}/meta/${type}/${encodeURIComponent(id)}.json`)).meta; if(meta) break; }catch(e){} }
+  const meta = await fetchMeta(type, id);
   if(!meta){ app.innerHTML = `<div class="page"><h1>הכותר לא נמצא</h1><p class="note">אף תוסף לא החזיר פרטים על הכותר הזה.</p></div>`; return; }
   const saved = !!library[meta.id];
   if(hebrewOn() && /^tt\d+$/.test(meta.id)) hebrewPlot(meta.id).then(plot => {
@@ -1447,10 +1488,14 @@ async function viewDetail(type, id){
       <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>צפייה</h3><div id="streams"><p class="note">${seasons.length ? 'בחר פרק כדי לראות מקורות.' : 'טוען…'}</p></div></div>
     </div>`;
 
-  $('#lib').onclick = () => {
+  $('#lib').onclick = e => {
+    const b = e.currentTarget;
     if(library[meta.id]) delete library[meta.id];
     else library[meta.id] = {id: meta.id, type, name: meta.name, poster: meta.poster, releaseInfo: yearOf(meta), added: Date.now()};
-    store.set('library', library); viewDetail(type, id);
+    store.set('library', library);
+    const saved = !!library[meta.id];                        // update the button in place, no reload
+    b.textContent = saved ? 'בספרייה שלך' : 'הוסף לספרייה';
+    b.classList.toggle('saved', saved);
   };
   if($('#trailer')) $('#trailer').onclick = () => openPlayer({ytId: meta.trailers[0].source}, 'טריילר: ' + heTitle(meta.id, meta.name));
 
@@ -1597,7 +1642,7 @@ const availKnown = k => { const e = avail[k]; if(!e) return false; const age = D
 function setAvail(key, ok){
   const prev = avail[key];
   avail[key] = ok ? [true, Date.now(), 0] : [false, Date.now(), prev && !prev[0] ? (prev[2] || 1) + 1 : 1];
-  store.set('avail', avail);
+  store.lazy('avail', capMap(avail, 2000));
   const none = isNoSrc(avail[key]);
   document.querySelectorAll(`[data-avail="${key}"]`).forEach(el => el.classList.toggle('nosrc', none));
 }
@@ -1612,8 +1657,12 @@ async function hasSources(key){
   }
   return false;
 }
+let availScreen = 0;                                          // how many probes this screen already used
+addEventListener('hashchange', () => { availPending.clear(); availScreen = 0; });
 function queueAvail(keys){
   if(isTvLayout()) return;                                   // TV boxes: skip background source checks
+  if(availScreen > 40) return;                               // and never turn a screen into a request storm
+  availScreen += keys.length;
   for(const k of keys) if(!availKnown(k)) availPending.add(k);
   if(!availBusy) availFlush();
 }
@@ -1674,7 +1723,7 @@ function fetchText(url){
     nativeCallbacks[id] = {res, rej};
     BoothAndroid.fetchText(url, id);
   });
-  return fetch(url).then(r => { if(!r.ok) throw new Error(r.status + ' from ' + new URL(url).host); return r.text(); });
+  return fetchTimed(url, 15000).then(r => { if(!r.ok) throw new Error(r.status + ' from ' + new URL(url).host); return r.text(); });
 }
 
 function parseM3U(text){
@@ -1888,11 +1937,14 @@ async function viewLive(){
   if(lastIdx >= 0) $('#goLast').onclick = () => watchChannel(chans, lastIdx, sel);
 
   const initials = c => esc(c.name.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 2));
+  const numbers = new Map(chans.map((c, i) => [c, i + 1]));   // channel number without scanning the list per row
+  let nowIo = null;
   const draw = () => {
+    nowIo?.disconnect();
     const q = $('#lq').value.trim().toLowerCase(), g = $('#lg').hidden ? '' : $('#lg').value;
     const list = chans.filter(c => (!g || c.group === g) && (!q || c.name.toLowerCase().includes(q)));
     $('#chs').innerHTML = list.length ? `<div class="chlist">${list.map((c, i) => `<div class="chrow">
-        <button class="chmain" data-i="${i}"><span class="chnum">${chans.indexOf(c) + 1}</span>
+        <button class="chmain" data-i="${i}"><span class="chnum">${numbers.get(c)}</span>
           <span class="chlogo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials(c)}'}))">` : `<span>${initials(c)}</span>`}</span>
           <span class="chinfo"><b>${esc(c.name)}</b><small data-now="${i}">${c.epg ? '' : esc(c.group || '')}</small></span></button>
         ${c.rec ? `<button class="chback" data-back="${i}" aria-label="צפייה אחורה ב${esc(c.name)}" title="צפייה אחורה (${c.rec} ימים)">⟲</button>` : ''}
@@ -1919,16 +1971,17 @@ async function viewLive(){
       el.textContent = `${p.name} · ${hhmm(p.t)}–${hhmm(p.to)}`;
       el.insertAdjacentHTML('afterend', `<span class="bar"><i style="width:${pct.toFixed(0)}%"></i></span>`);
     };
-    const io = new IntersectionObserver(entries => {
-      for(const en of entries) if(en.isIntersecting){ io.unobserve(en.target); showNow(en.target); }
+    nowIo = new IntersectionObserver(entries => {
+      for(const en of entries) if(en.isIntersecting){ nowIo.unobserve(en.target); showNow(en.target); }
     }, {rootMargin: '200px'});
     list.forEach((c, i) => {
       if(!c.epg) return;
       const el = $('#chs').querySelector(`[data-now="${i}"]`);
-      if(i < 12) showNow(el); else io.observe(el);
+      if(i < 12) showNow(el); else nowIo.observe(el);
     });
   };
-  $('#lq').oninput = draw;
+  let typing = null;
+  $('#lq').oninput = () => { clearTimeout(typing); typing = setTimeout(draw, 200); };   // playlists can hold thousands
   $('#lg').onchange = () => { store.set('liveGroup', $('#lg').value); draw(); };
   draw();
 }
@@ -1999,7 +2052,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.21.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.22.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -2073,6 +2126,16 @@ function viewAddons(msg){
 
 /* ---------- player ---------- */
 let hls = null;
+/** hls.js is only needed by the in-page player (the Android player handles HLS itself). */
+let hlsLoading = null;
+const loadHls = () => window.Hls ? Promise.resolve(window.Hls) : (hlsLoading ||= new Promise(res => {
+  const tag = document.createElement('script');
+  tag.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js';
+  tag.onload = () => res(window.Hls);
+  tag.onerror = () => res(null);
+  document.head.appendChild(tag);
+}));
+
 function openPlayer(s, title, ctx){
   $('#ptitle').textContent = title;
   const body = $('#pbody');
@@ -2081,7 +2144,9 @@ function openPlayer(s, title, ctx){
   } else {
     body.innerHTML = `<video id="vid" controls autoplay playsinline></video>`;
     const v = $('#vid');
-    if(/\.m3u8(\?|$)/.test(s.url) && window.Hls && Hls.isSupported()){ hls = new Hls(); hls.loadSource(s.url); hls.attachMedia(v); }
+    if(/\.m3u8(\?|$)/.test(s.url)){
+      loadHls().then(Hls => { if(Hls?.isSupported()){ hls?.destroy(); hls = new Hls(); hls.loadSource(s.url); hls.attachMedia(v); } else v.src = s.url; });
+    }
     else v.src = s.url;
     if(ctx){
       const saved = progress[ctx.videoId];
@@ -2091,6 +2156,7 @@ function openPlayer(s, title, ctx){
         if(Math.abs(v.currentTime - last) < 5) return; last = v.currentTime;
         progress[ctx.videoId] = {t: v.currentTime, d: v.duration, at: Date.now(), metaId: ctx.meta.id, type: ctx.type, name: ctx.meta.name, poster: ctx.meta.poster};
         store.set('progress', progress);
+        indexProgress();
       });
       v.addEventListener('error', () => body.insertAdjacentHTML('afterbegin', `<p class="err" style="position:absolute;top:70px;right:20px">הדפדפן לא יכול לנגן את הפורמט הזה. נסה מקור אחר.</p>`));
     }
@@ -2106,7 +2172,17 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 
 /* ---------- router ---------- */
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
+/** Let go of the previous screen's observers; the MutationObserver re-arms whatever the new one renders. */
+function resetObservers(){
+  for(const o of [bgObserver, heObserver, availObserver]) o.disconnect();
+  document.querySelectorAll('[data-bgw]').forEach(el => { if(!el.style.backgroundImage) delete el.dataset.bgw; });
+  requestAnimationFrame(() => { lazyBg(document); armHeAndAvail(document); });
+}
+
+let routed = false;
 async function route(){
+  routed = true;
+  resetObservers();
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['show', 'r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
   scrollTo(0, 0);
@@ -2150,6 +2226,7 @@ window.boothProgress = json => {
       if(progress[videoId].t > progress[videoId].d - 60) delete progress[videoId];      // finished
     }
     store.set('progress', progress);
+    indexProgress();
     if(['', '#/', '#'].includes(location.hash)) route();
   }catch(e){}
 };
@@ -2262,7 +2339,11 @@ function tvFocus(){
 }
 setTimeout(tvFocus, 2500);
 if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');
-loadAddons().then(() => { route(); setTimeout(loadServices, 3000); });
+// Render as soon as the add-ons answer, but never wait longer than 6s for a slow one.
+const withTimeout = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(r, ms))]);
+const addonsReady = loadAddons();
+withTimeout(addonsReady, 6000).then(() => route());
+addonsReady.then(() => { if(!routed) route(); setTimeout(loadServices, 3000); });
 </script>
 <div id="tstatus" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:10000;max-width:calc(100vw - 32px);padding:12px 14px 12px 18px;border-radius:12px;background:var(--raise);border:1px solid var(--line);color:var(--light);font:14px/1.4 var(--body);box-shadow:0 8px 28px #0008;align-items:center;gap:14px">
   <span id="tstatusMsg"></span>
