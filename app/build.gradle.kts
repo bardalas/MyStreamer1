@@ -11,8 +11,8 @@ android {
         applicationId = "com.booth.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 503
-        versionName = "0.5.3"
+        versionCode = 504
+        versionName = "0.5.4"
     }
     signingConfigs {
         create("release") {

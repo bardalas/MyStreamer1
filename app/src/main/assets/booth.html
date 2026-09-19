@@ -93,13 +93,29 @@ main{padding:0 28px 60px}
 .ep .n{font-family:var(--display);font-weight:700;color:var(--tungsten)}
 .ep .d{font-size:12px;color:var(--muted)}
 
-/* streams as tickets */
-.src{font-size:13px;color:var(--muted);margin:14px 0 6px}
-.ticket{display:flex;width:100%;text-align:left;border:0;background:var(--raise);border-radius:8px;margin-bottom:8px;cursor:pointer;overflow:hidden;color:var(--light)}
-.ticket .stub{flex:0 0 92px;padding:12px;font-family:var(--display);font-weight:700;font-size:14px;line-height:1.15;border-right:2px dashed var(--night);white-space:pre-line}
-.ticket .body{padding:12px;font-size:13px;white-space:pre-line;color:#d4cdb9;min-width:0;overflow-wrap:anywhere}
-.ticket:hover .stub{color:var(--tungsten)}
-.ticket.off{opacity:.55;cursor:default}
+/* streams: grouped by quality, with filters */
+.panel,#streams{min-width:0}
+.sfilter{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 8px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--night);font-weight:600}
+.chip .c{margin-left:6px;opacity:.7;font-variant-numeric:tabular-nums}
+.sfilter select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+.sfsum{font-size:13px;margin:0 0 10px}
+.qgroup{background:var(--raise);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.qgroup>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+.qgroup>summary::-webkit-details-marker{display:none}
+.qgroup>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+.qgroup[open]>summary::before{transform:rotate(90deg)}
+.qname{font-family:var(--display);font-weight:700;font-size:16px;min-width:52px}
+.qmeta{flex:1;min-width:0;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.qbest{flex:none;border:0;border-radius:999px;background:var(--tungsten);color:var(--night);font-weight:600;font-size:13px;padding:6px 12px;cursor:pointer}
+.srow{display:flex;gap:12px;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;color:var(--light);padding:10px 14px;cursor:pointer}
+.srow:hover,.srow:focus-visible{background:var(--surface)}
+.srow .seeds{flex:0 0 64px;font-size:13px;font-weight:600;color:var(--tungsten);font-variant-numeric:tabular-nums}
+.srow .info{display:flex;flex-direction:column;min-width:0;gap:2px}
+.srow .t{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .m{font-size:12px;color:var(--muted)}
+.more{display:block;width:100%;border:0;border-top:1px solid var(--line);background:none;color:var(--tungsten);font-size:13px;font-weight:600;padding:10px;cursor:pointer}
 .note{color:var(--muted);font-size:14px}
 .err{color:#ff9d8a;font-size:14px}
 
@@ -131,7 +147,7 @@ main{padding:0 28px 60px}
 }
 </style>
 </head>
-<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.5.3</div>
+<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.5.4</div>
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
@@ -338,33 +354,148 @@ async function viewDetail(type, id){
   }
 }
 
+/* ---------- streams: grouped by quality, with filters ---------- */
+const QUALS = ['4K', '1080p', '720p', 'SD', 'CAM', 'Other'];
+const GB = 1024 ** 3;
+const PREVIEW = 5;
+let streamFilter = Object.assign({quals: {CAM: false}, minSeeds: 0, maxGB: 0, sort: 'seeds'}, store.get('streamFilter', {}));
+let streamsToken = 0;
+const openGroups = new Set(), expandedGroups = new Set();
+let groupsTouched = false;
+
+const fmtSize = b => b >= GB ? (b / GB).toFixed(1) + ' GB' : Math.round(b / 1024 ** 2) + ' MB';
+const score = x => x.direct ? Infinity : (x.seeds ?? -1);
+
+/** Pull quality, seeders, size, provider and tags out of a Stremio stream (Torrentio format, with fallbacks). */
+function parseStream(s, addon, i){
+  const title = s.title || s.description || '';
+  const text = `${s.name || ''}\n${title}\n${s.behaviorHints?.filename || ''}`.toLowerCase();
+  const q = /\b(hd)?cam(rip)?\b|\b(hd)?ts\b|telesync|\bscr\b|screener|\btc\b|telecine/.test(text) ? 'CAM'
+    : /2160p|\b4k\b|\buhd\b/.test(text) ? '4K'
+    : /1080p/.test(text) ? '1080p'
+    : /720p/.test(text) ? '720p'
+    : /480p|576p|360p|\bsd\b|dvdrip|xvid/.test(text) ? 'SD' : 'Other';
+  const seeds = title.match(/👤\s*(\d+)/)?.[1];
+  const sm = title.match(/💾\s*([\d.,]+)\s*([KMGT])i?B/i);
+  const size = sm ? parseFloat(sm[1].replace(',', '.')) * 1024 ** ('KMGT'.indexOf(sm[2].toUpperCase()) + 1)
+                  : (s.behaviorHints?.videoSize || null);
+  const tags = [[/\b(dv|dovi|dolby.?vision)\b/, 'DV'], [/\bhdr(10\+?)?(?![a-z])/, 'HDR'], [/x265|hevc|h\.?265/, 'HEVC'],
+                [/remux/, 'REMUX'], [/\b3d\b/, '3D']].filter(([re]) => re.test(text)).map(([, t]) => t);
+  return {
+    s, addon, i, q, size, tags,
+    seeds: seeds != null ? +seeds : null,
+    provider: (title.match(/⚙️\s*([^\n]+)/)?.[1] || '').trim(),
+    flags: title.match(/[\u{1F1E6}-\u{1F1FF}]{2}/gu) || [],
+    name: (title.split('\n')[0] || s.name || addon).trim(),
+    direct: !!(s.url || s.externalUrl || s.ytId),
+  };
+}
+
+function passes(x){
+  const f = streamFilter;
+  return f.quals[x.q] !== false
+    && (x.direct || (x.seeds ?? 0) >= f.minSeeds)
+    && (!f.maxGB || !x.size || x.size <= f.maxGB * GB);
+}
+
+function playStream(s, label, ctx){
+  if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label);
+  else if(s.url || s.ytId) openPlayer(s, label, ctx);
+  else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label);
+  else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
+  else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []));
+  else alert('Torrent sources play in the Booth Android app.');
+}
+
+function renderStreams(box, all, pending, errors, label, ctx){
+  const f = streamFilter;
+  const counts = Object.fromEntries(QUALS.map(q => [q, all.filter(x => x.q === q).length]));
+  const sorters = {
+    seeds: (a, b) => (score(b) - score(a)) || 0,
+    small: (a, b) => (a.size ?? Infinity) - (b.size ?? Infinity) || 0,
+    large: (a, b) => (b.size ?? 0) - (a.size ?? 0),
+  };
+  const shown = all.filter(passes).sort(sorters[f.sort] || sorters.seeds);
+  const groups = QUALS.map(q => [q, shown.filter(x => x.q === q)]).filter(([, xs]) => xs.length);
+  if(!groupsTouched && !openGroups.size && groups.length) openGroups.add(groups[0][0]);
+
+  const opt = (v, text) => `<option value="${v}">${text}</option>`;
+  const row = x => `<button class="srow" data-i="${x.i}">
+      <span class="seeds">${x.direct ? 'Direct' : x.seeds != null ? '👤 ' + x.seeds : '—'}</span>
+      <span class="info"><span class="t">${esc(x.name)}</span>
+      <span class="m">${esc([x.size && fmtSize(x.size), x.provider || x.addon, ...x.tags].filter(Boolean).join(' · '))} ${x.flags.join(' ')}</span></span>
+    </button>`;
+  const group = ([q, xs]) => {
+    const seeds = xs.map(x => x.seeds).filter(n => n != null);
+    const sizes = xs.map(x => x.size).filter(Boolean);
+    const meta = [`${xs.length} source${xs.length > 1 ? 's' : ''}`,
+                  seeds.length && `best 👤 ${Math.max(...seeds)}`,
+                  sizes.length && [...new Set([fmtSize(Math.min(...sizes)), fmtSize(Math.max(...sizes))])].join(' – ')].filter(Boolean).join(' · ');
+    const list = expandedGroups.has(q) ? xs : xs.slice(0, PREVIEW);
+    return `<details class="qgroup" data-q="${q}" ${openGroups.has(q) ? 'open' : ''}>
+      <summary><span class="qname">${q}</span><span class="qmeta">${meta}</span><button class="qbest" data-q="${q}" aria-label="Play best ${q} source">▶ Best</button></summary>
+      ${list.map(row).join('')}
+      ${list.length < xs.length ? `<button class="more" data-q="${q}">Show all ${xs.length}</button>` : ''}
+    </details>`;
+  };
+
+  // Re-rendering replaces the controls; keep D-pad/keyboard focus on the same one.
+  const a = document.activeElement;
+  const focusKey = a && box.contains(a) ? (a.id ? '#' + a.id : a.dataset.q ? `.${a.className.split(' ')[0]}[data-q="${a.dataset.q}"]` : null) : null;
+
+  box.innerHTML = `
+    <div class="sfilter" role="group" aria-label="Filter streams">
+      ${QUALS.filter(q => counts[q]).map(q => `<button class="chip ${f.quals[q] !== false ? 'on' : ''}" data-q="${q}" aria-pressed="${f.quals[q] !== false}">${q}<span class="c">${counts[q]}</span></button>`).join('')}
+      <select id="fSeeds" aria-label="Minimum seeders">${[0, 5, 20, 100].map(n => opt(n, n ? `👤 ${n}+` : 'Any seeders')).join('')}</select>
+      <select id="fSize" aria-label="Maximum size">${[0, 2, 5, 10, 20].map(n => opt(n, n ? `≤ ${n} GB` : 'Any size')).join('')}</select>
+      <select id="fSort" aria-label="Sort">${opt('seeds', 'Most seeders')}${opt('small', 'Smallest first')}${opt('large', 'Largest first')}</select>
+    </div>
+    <p class="note sfsum">${all.length ? `${shown.length} of ${all.length} sources` : ''}${pending ? (all.length ? ' · ' : '') + 'Loading sources…' : ''}</p>
+    ${groups.map(group).join('')}
+    ${!pending && all.length && !shown.length ? '<p class="note">No sources match these filters.</p>' : ''}
+    ${!pending && !all.length && !errors.length ? '<p class="note">No streams found for this title.</p>' : ''}
+    ${errors.map(e => `<p class="err">${esc(e)}</p>`).join('')}`;
+
+  $('#fSeeds').value = f.minSeeds; $('#fSize').value = f.maxGB; $('#fSort').value = f.sort;
+  if(focusKey) box.querySelector(focusKey)?.focus();
+
+  const rerender = () => { store.set('streamFilter', streamFilter); renderStreams(box, all, pending, errors, label, ctx); };
+  box.querySelectorAll('.chip').forEach(b => b.onclick = () => { f.quals[b.dataset.q] = f.quals[b.dataset.q] === false; rerender(); });
+  $('#fSeeds').onchange = e => { f.minSeeds = +e.target.value; rerender(); };
+  $('#fSize').onchange = e => { f.maxGB = +e.target.value; rerender(); };
+  $('#fSort').onchange = e => { f.sort = e.target.value; rerender(); };
+  box.querySelectorAll('.qgroup').forEach(d => d.ontoggle = () => {
+    groupsTouched = true;
+    d.open ? openGroups.add(d.dataset.q) : openGroups.delete(d.dataset.q);
+  });
+  box.querySelectorAll('.qbest').forEach(b => b.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    const best = shown.filter(x => x.q === b.dataset.q).reduce((m, x) => score(x) > score(m) ? x : m);
+    playStream(best.s, label, ctx);
+  });
+  box.querySelectorAll('.more').forEach(b => b.onclick = () => { expandedGroups.add(b.dataset.q); rerender(); });
+  box.querySelectorAll('.srow').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx));
+}
+
 async function loadStreams({type, meta}, videoId, label){
   const box = $('#streams');
   const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
   if(!src.length){ box.innerHTML = `<p class="note">No stream add-on is installed for this title. Add one with the manifest link on the <a href="#/addons">Add-ons</a> page.</p>`; return; }
-  box.innerHTML = src.map((a,i) => `<div class="src">${esc(a.manifest.name)}</div><div id="st${i}"><p class="note">Loading…</p></div>`).join('');
-  src.forEach(async (a, i) => {
-    const el = $('#st'+i);
+  const token = ++streamsToken;
+  const ctx = {videoId, type, meta};
+  const all = [], errors = [];
+  let pending = src.length;
+  openGroups.clear(); expandedGroups.clear(); groupsTouched = false;
+  const render = () => { if(token === streamsToken && box.isConnected) renderStreams(box, all, pending > 0, errors, label, ctx); };
+  render();
+  await Promise.all(src.map(async a => {
     try{
       const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`);
-      const streams = d.streams || [];
-      if(!streams.length){ el.innerHTML = '<p class="note">No streams from this add-on.</p>'; return; }
-      el.innerHTML = streams.map((s, j) => {
-        const playable = s.url || s.ytId || s.externalUrl;
-        const body = (s.title || s.description || '') + (!playable && s.infoHash && !window.BoothAndroid ? '\nNeeds the Stremio streaming server. Opens in Stremio.' : '');
-        return `<button class="ticket" data-j="${j}"><span class="stub">${esc(s.name || a.manifest.name)}</span><span class="body">${esc(body)}</span></button>`;
-      }).join('');
-      el.querySelectorAll('.ticket').forEach(b => b.onclick = () => {
-        const s = streams[b.dataset.j];
-        if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label);
-        else if(s.url || s.ytId) openPlayer(s, label, {videoId, type, meta});
-        else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label);
-        else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
-        else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []));
-        else alert('This source requires the Android torrent engine.');
-      });
-    }catch(e){ el.innerHTML = `<p class="err">This add-on did not respond (${esc(e.message)}).</p>`; }
-  });
+      for(const s of d.streams || []) all.push(parseStream(s, a.manifest.name, all.length));
+    }catch(e){ errors.push(`${a.manifest.name} did not respond (${e.message}).`); }
+    pending--;
+    render();
+  }));
 }
 
 function viewLibrary(){

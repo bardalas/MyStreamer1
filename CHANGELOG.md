@@ -1,5 +1,11 @@
 # Booth Android changelog
 
+## 0.5.4 — 2026-09-19
+- Sources grouped by quality (4K / 1080p / 720p / SD / CAM / Other), collapsed, each showing
+  source count, best seeders and size range, with a "▶ Best" button that plays the top-seeded source.
+- Filters: quality chips (CAM off by default), minimum seeders, maximum size, sort order; remembered.
+- Each group previews its top 5 sources with "Show all"; rows show seeders, size, provider, HDR/DV/HEVC tags, languages.
+
 ## 0.5.3 — 2026-09-19
 - Torrents now **stream**: playback starts after ~8 MB is buffered instead of after the full download.
   A local HTTP server feeds the player while downloading; seeking re-prioritises the needed pieces.
