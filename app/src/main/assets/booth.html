@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<style>
+:root{
+  --night:#14161f; --surface:#1d2130; --raise:#272c3f; --line:#323850;
+  --light:#efe6cf; --muted:#8e93a8; --tungsten:#f0b429; --velvet:#a3384b;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"Figtree",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--night);color:var(--light);font-family:var(--body);font-size:15px;line-height:1.5}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+img{max-width:100%;display:block}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;padding:14px 28px;background:linear-gradient(var(--night) 60%,transparent)}
+.logo{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo i{width:14px;height:14px;border-radius:50%;background:var(--tungsten);box-shadow:0 0 18px 4px rgba(240,180,41,.45)}
+.nav{display:flex;gap:4px}
+.nav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--muted);font-weight:500}
+.nav a.on{color:var(--night);background:var(--light)}
+.search{margin-left:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 4px 4px 16px;width:min(340px,40vw)}
+.search input{flex:1;background:none;border:0;outline:0;min-width:0}
+.search button{background:var(--tungsten);color:var(--night);border:0;border-radius:999px;padding:6px 14px;font-weight:600;cursor:pointer}
+
+main{padding:0 28px 60px}
+
+/* hero: projector beam */
+.hero{position:relative;margin:0 -28px 36px;min-height:62vh;display:flex;align-items:flex-end;overflow:hidden}
+.hero .bg{position:absolute;inset:0;background-size:cover;background-position:center 25%;filter:saturate(.85)}
+.hero::before{content:"";position:absolute;inset:0;z-index:1;background:
+  linear-gradient(90deg,var(--night) 8%,rgba(20,22,31,.55) 45%,transparent 75%),
+  linear-gradient(0deg,var(--night) 2%,transparent 45%)}
+.hero .beam{position:absolute;z-index:1;right:-10%;top:-30%;width:70%;height:160%;background:conic-gradient(from 200deg at 100% 0%,transparent 0deg,rgba(240,180,41,.13) 14deg,transparent 30deg);pointer-events:none}
+.hero .copy{position:relative;z-index:2;padding:0 28px 48px;max-width:760px}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(44px,8vw,104px);line-height:.9;letter-spacing:-.035em;margin:0 0 16px}
+.hero p{color:#cfc8b4;max-width:56ch;margin:0 0 22px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--tungsten);color:var(--night)}
+.btn.ghost{background:rgba(239,230,207,.1);color:var(--light)}
+.btn.ghost.saved{background:var(--velvet)}
+
+/* rows and posters */
+.row{margin-bottom:34px}
+.row h2,.page h1{font-family:var(--display);font-weight:700;letter-spacing:-.02em;margin:0 0 12px}
+.row h2{font-size:22px}
+.row h2 small{font-family:var(--body);font-weight:500;font-size:13px;color:var(--muted);margin-left:8px}
+.strip{display:flex;gap:16px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x proximity}
+.strip::-webkit-scrollbar{height:6px}.strip::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:22px 16px}
+.poster{flex:0 0 150px;scroll-snap-align:start;text-decoration:none;display:block}
+.poster .art{aspect-ratio:2/3;border-radius:6px;background:var(--surface) center/cover;position:relative;overflow:hidden;transition:transform .2s}
+.poster:hover .art,.poster:focus-visible .art{transform:translateY(-4px);box-shadow:0 10px 28px -8px rgba(240,180,41,.35)}
+.poster .t{margin-top:8px;font-weight:600;font-size:14px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.poster .y{color:var(--muted);font-size:13px}
+.poster .prog{position:absolute;left:0;bottom:0;height:4px;background:var(--tungsten)}
+.noart{display:flex;align-items:center;justify-content:center;padding:12px;text-align:center;font-family:var(--display);color:var(--muted)}
+
+/* page filters */
+.page{padding-top:12px}
+.page h1{font-size:40px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 24px}
+.filters select,.field{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.more{margin:28px auto 0;display:block}
+
+/* detail */
+.detail{display:grid;grid-template-columns:260px 1fr;gap:40px;position:relative;z-index:2;margin-top:-30vh;padding-top:12px}
+.detail .poster-lg{border-radius:8px;aspect-ratio:2/3;background:var(--surface) center/cover;box-shadow:0 20px 50px -10px #000}
+.detail h1{font-family:var(--display);font-weight:800;font-size:clamp(36px,5vw,64px);line-height:.95;letter-spacing:-.03em;margin:0 0 12px}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.facts span{background:var(--raise);border-radius:4px;padding:3px 9px;font-size:13px;color:#d8d1bd}
+.facts .imdb{background:var(--tungsten);color:var(--night);font-weight:700}
+.desc{max-width:68ch;color:#d4cdb9}
+.people{color:var(--muted);font-size:14px;margin:12px 0 22px;max-width:68ch}
+.people b{color:var(--light);font-weight:500}
+.backdrop{height:62vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative}
+.backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night) 12%,rgba(20,22,31,.5) 60%,rgba(20,22,31,.2))}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:28px}
+.panel{background:var(--surface);border-radius:10px;padding:18px}
+.panel h3{margin:0 0 12px;font-family:var(--display);font-size:19px}
+.eps{max-height:520px;overflow:auto;display:flex;flex-direction:column;gap:4px}
+.ep{display:grid;grid-template-columns:34px 1fr;gap:10px;text-align:left;background:none;border:0;border-radius:6px;padding:8px;cursor:pointer}
+.ep:hover{background:var(--raise)} .ep.on{background:var(--raise);box-shadow:inset 3px 0 var(--tungsten)}
+.ep .n{font-family:var(--display);font-weight:700;color:var(--tungsten)}
+.ep .d{font-size:12px;color:var(--muted)}
+
+/* streams as tickets */
+.src{font-size:13px;color:var(--muted);margin:14px 0 6px}
+.ticket{display:flex;width:100%;text-align:left;border:0;background:var(--raise);border-radius:8px;margin-bottom:8px;cursor:pointer;overflow:hidden;color:var(--light)}
+.ticket .stub{flex:0 0 92px;padding:12px;font-family:var(--display);font-weight:700;font-size:14px;line-height:1.15;border-right:2px dashed var(--night);white-space:pre-line}
+.ticket .body{padding:12px;font-size:13px;white-space:pre-line;color:#d4cdb9;min-width:0;overflow-wrap:anywhere}
+.ticket:hover .stub{color:var(--tungsten)}
+.ticket.off{opacity:.55;cursor:default}
+.note{color:var(--muted);font-size:14px}
+.err{color:#ff9d8a;font-size:14px}
+
+/* addons */
+.addon{display:grid;grid-template-columns:56px 1fr auto;gap:16px;align-items:center;background:var(--surface);border-radius:10px;padding:14px;margin-bottom:10px;max-width:820px}
+.addon img,.addon .ph{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--raise)}
+.addon h3{margin:0;font-size:16px}
+.addon p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.add{display:flex;gap:10px;max-width:820px;margin:0 0 24px}
+.add input{flex:1}
+.danger{background:none;border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;color:var(--muted)}
+
+/* player */
+.player{position:fixed;inset:0;z-index:50;background:#000;display:none;flex-direction:column}
+.player.open{display:flex}
+.player header{display:flex;align-items:center;gap:14px;padding:12px 18px;background:#000}
+.player header b{font-family:var(--display);font-size:18px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player video,.player iframe{flex:1;width:100%;border:0;background:#000;min-height:0}
+
+.skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:760px){
+  .bar{flex-wrap:wrap;padding:12px 16px}.search{width:100%;order:3}
+  main{padding:0 16px 50px}.hero,.backdrop{margin:0 -16px 28px}
+  .detail{grid-template-columns:1fr;margin-top:-22vh}.detail .poster-lg{width:150px}
+  .cols{grid-template-columns:1fr}.poster{flex-basis:120px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+</style>
+</head>
+<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.5.0</div>
+<div class="bar">
+  <a class="logo" href="#/"><i></i>Booth</a>
+  <nav class="nav">
+    <a href="#/" data-r="home">Home</a>
+    <a href="#/discover/movie" data-r="discover">Discover</a>
+    <a href="#/library" data-r="library">Library</a>
+    <a href="#/addons" data-r="addons">Add-ons</a>
+  </nav>
+  <form class="search" id="sf"><input id="q" placeholder="Search movies and series" aria-label="Search"><button>Search</button></form>
+</div>
+<main id="app"></main>
+
+<div class="player" id="player">
+  <header><button class="btn ghost" id="close">Close</button><b id="ptitle"></b></header>
+  <div id="pbody" style="flex:1;display:flex;min-height:0"></div>
+</div>
+
+<script>
+/* ---------- storage ---------- */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('booth:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('booth:'+k, JSON.stringify(v)); }catch(e){} }
+};
+const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json';
+const TORRENTIO = 'https://torrentio.strem.fun/manifest.json';
+let addonUrls = store.get('addons', [CINEMETA, TORRENTIO]);
+let library = store.get('library', {});
+let progress = store.get('progress', {});
+let addons = [];   // {url, base, manifest}
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normUrl = u => u.trim().replace(/^stremio:\/\//, 'https://');
+const baseOf = u => normUrl(u).replace(/\/manifest\.json(\?.*)?$/, '');
+async function getJSON(url){
+  const r = await fetch(url);
+  if(!r.ok) throw new Error(r.status + ' from ' + new URL(url).host);
+  return r.json();
+}
+function supports(m, resource, type, id){
+  for(const r of m.resources || []){
+    const name = typeof r === 'string' ? r : r.name;
+    if(name !== resource) continue;
+    const types = (typeof r === 'object' && r.types) || m.types || [];
+    const pref = (typeof r === 'object' && r.idPrefixes) || m.idPrefixes;
+    if(type && !types.includes(type)) continue;
+    if(id && pref && pref.length && !pref.some(p => id.startsWith(p))) continue;
+    return true;
+  }
+  return false;
+}
+const yearOf = m => m.releaseInfo || (m.year ?? '') || (m.released ? m.released.slice(0,4) : '');
+
+async function loadAddons(){
+  const res = await Promise.allSettled(addonUrls.map(async url => ({url, base: baseOf(url), manifest: await getJSON(normUrl(url))})));
+  addons = res.filter(r => r.status === 'fulfilled').map(r => r.value);
+}
+
+/* ---------- cards ---------- */
+function card(m){
+  const p = Object.values(progress).find(x => x.metaId === m.id);
+  const pct = p && p.d ? Math.min(100, p.t / p.d * 100) : 0;
+  const art = m.poster
+    ? `<div class="art" style="background-image:url('${esc(m.poster)}')">${pct?`<div class="prog" style="width:${pct}%"></div>`:''}</div>`
+    : `<div class="art noart">${esc(m.name)}</div>`;
+  return `<a class="poster" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t">${esc(m.name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
+}
+const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
+
+/* ---------- views ---------- */
+async function viewHome(){
+  const app = $('#app');
+  const cats = [];
+  for(const a of addons) for(const c of a.manifest.catalogs || []){
+    if((c.extra||[]).some(e => e.isRequired) || (c.extraRequired||[]).length) continue;
+    cats.push({a, c});
+  }
+  const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
+  app.innerHTML = `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>
+    ${cont.length ? `<div class="row"><h2>Continue watching</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
+    ${cats.slice(0, 8).map((x,i) => `<div class="row"><h2>${esc(x.c.name || x.c.id)} <small>${esc(x.c.type)}</small></h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${!cats.length ? `<p class="note">No catalogs yet. Install an add-on that has catalogs on the <a href="#/addons">Add-ons</a> page.</p>` : ''}`;
+  let heroDone = false;
+  cats.slice(0, 8).forEach(async (x, i) => {
+    const el = $('#row'+i);
+    try{
+      const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}.json`);
+      const metas = d.metas || [];
+      if(el) el.innerHTML = metas.map(card).join('') || '<p class="note">This catalog is empty.</p>';
+      if(!heroDone && metas.length){ heroDone = true; renderHero(metas.find(m => m.background) || metas[0]); }
+    }catch(e){ if(el) el.innerHTML = `<p class="err">Could not load this catalog (${esc(e.message)}).</p>`; }
+  });
+}
+function renderHero(m){
+  const h = $('#hero'); if(!h) return;
+  h.innerHTML = `<div class="bg" style="background-image:url('${esc(m.background || m.poster)}')"></div><div class="beam"></div>
+    <div class="copy"><h1>${esc(m.name)}</h1><p>${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
+    <a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">View details</a></div>`;
+}
+
+async function viewDiscover(type, catKey, genre){
+  const app = $('#app');
+  const types = [...new Set(addons.flatMap(a => (a.manifest.catalogs||[]).map(c => c.type)))];
+  type = type || types[0] || 'movie';
+  const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => c.type === type && !(c.extra||[]).some(e => e.isRequired && e.name !== 'genre')).map(c => ({a, c, key: a.manifest.id + '|' + c.id})));
+  const cur = cats.find(x => x.key === catKey) || cats[0];
+  const genreExtra = cur && (cur.c.extra||[]).find(e => e.name === 'genre');
+  const genres = (genreExtra && genreExtra.options) || cur?.c.genres || [];
+  const go = (t, k, g) => location.hash = `#/discover/${t}/${encodeURIComponent(k||'')}/${encodeURIComponent(g||'')}`;
+  app.innerHTML = `<div class="page"><h1>Discover</h1><div class="filters">
+    <select id="ft" aria-label="Type">${types.map(t => `<option ${t===type?'selected':''}>${esc(t)}</option>`).join('')}</select>
+    <select id="fc" aria-label="Catalog">${cats.map(x => `<option value="${esc(x.key)}" ${x===cur?'selected':''}>${esc(x.c.name||x.c.id)} (${esc(x.a.manifest.name)})</option>`).join('')}</select>
+    ${genres.length ? `<select id="fg" aria-label="Genre"><option value="">All genres</option>${genres.map(g => `<option ${g===genre?'selected':''}>${esc(g)}</option>`).join('')}</select>` : ''}
+  </div><div class="grid" id="grid">${skeletons(18)}</div><button class="btn ghost more" id="more" hidden>Load more</button></div>`;
+  $('#ft').onchange = e => go(e.target.value);
+  $('#fc').onchange = e => go(type, e.target.value);
+  if($('#fg')) $('#fg').onchange = e => go(type, cur.key, e.target.value);
+  if(!cur){ $('#grid').innerHTML = '<p class="note">No catalogs for this type.</p>'; return; }
+  let skip = 0;
+  const load = async () => {
+    const extra = [genre && `genre=${encodeURIComponent(genre)}`, skip && `skip=${skip}`].filter(Boolean).join('&');
+    try{
+      const d = await getJSON(`${cur.a.base}/catalog/${type}/${cur.c.id}${extra ? '/' + extra : ''}.json`);
+      const metas = d.metas || [];
+      const g = $('#grid'); if(!g) return;
+      if(!skip) g.innerHTML = '';
+      g.insertAdjacentHTML('beforeend', metas.map(card).join(''));
+      skip += metas.length;
+      $('#more').hidden = metas.length < 20;
+      if(!skip) g.innerHTML = '<p class="note">Nothing here. Try another genre.</p>';
+    }catch(e){ $('#grid').innerHTML = `<p class="err">Could not load the catalog (${esc(e.message)}).</p>`; }
+  };
+  $('#more').onclick = load;
+  load();
+}
+
+async function viewSearch(q){
+  $('#q').value = q;
+  const app = $('#app');
+  const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => (c.extra||[]).some(e => e.name === 'search') || (c.extraSupported||[]).includes('search')).map(c => ({a, c})));
+  app.innerHTML = `<div class="page"><h1>Results for “${esc(q)}”</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(x.c.type)} <small>${esc(x.a.manifest.name)}</small></h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || '<p class="note">None of your add-ons support search.</p>'}</div>`;
+  cats.forEach(async (x, i) => {
+    try{
+      const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}/search=${encodeURIComponent(q)}.json`);
+      $('#s'+i).innerHTML = (d.metas||[]).map(card).join('') || '<p class="note">No matches.</p>';
+    }catch(e){ $('#s'+i).innerHTML = `<p class="err">Search failed (${esc(e.message)}).</p>`; }
+  });
+}
+
+async function viewDetail(type, id){
+  const app = $('#app');
+  app.innerHTML = `<div class="backdrop skel"></div>`;
+  const src = addons.filter(a => supports(a.manifest, 'meta', type, id));
+  let meta = null;
+  for(const a of src){ try{ meta = (await getJSON(`${a.base}/meta/${type}/${encodeURIComponent(id)}.json`)).meta; if(meta) break; }catch(e){} }
+  if(!meta){ app.innerHTML = `<div class="page"><h1>Title not found</h1><p class="note">None of your add-ons returned details for this title.</p></div>`; return; }
+  const saved = !!library[meta.id];
+  const videos = (meta.videos || []).filter(v => v.season !== undefined || type !== 'movie');
+  const seasons = [...new Set(videos.map(v => v.season ?? 0))].sort((a,b) => (a===0) - (b===0) || a - b);
+  app.innerHTML = `<div class="backdrop" style="background-image:url('${esc(meta.background || meta.poster)}')"></div>
+    <div class="detail">
+      <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
+      <div>
+        <h1>${esc(meta.name)}</h1>
+        <div class="facts">${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(g)}</span>`).join('')}</div>
+        <p class="desc">${esc(meta.description)}</p>
+        <div class="people">${meta.director?.length ? `<div><b>Director</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>Cast</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
+        <button class="btn ghost ${saved?'saved':''}" id="lib">${saved ? 'In your library' : 'Add to library'}</button>
+        ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">Watch trailer</button>` : ''}
+      </div>
+    </div>
+    <div class="cols">
+      ${seasons.length ? `<div class="panel"><h3>Episodes</h3><select class="field" id="season" aria-label="Season" style="margin-bottom:10px">${seasons.map(s => `<option value="${s}">${s === 0 ? 'Specials' : 'Season ' + s}</option>`).join('')}</select><div class="eps" id="eps"></div></div>` : ''}
+      <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>Streams</h3><div id="streams"><p class="note">${seasons.length ? 'Pick an episode to see streams.' : 'Loading…'}</p></div></div>
+    </div>`;
+
+  $('#lib').onclick = () => {
+    if(library[meta.id]) delete library[meta.id];
+    else library[meta.id] = {id: meta.id, type, name: meta.name, poster: meta.poster, releaseInfo: yearOf(meta), added: Date.now()};
+    store.set('library', library); viewDetail(type, id);
+  };
+  if($('#trailer')) $('#trailer').onclick = () => openPlayer({ytId: meta.trailers[0].source}, meta.name + ' trailer');
+
+  const ctx = {type, meta};
+  if(seasons.length){
+    const renderEps = s => {
+      $('#eps').innerHTML = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0)).map(v => {
+        const n = v.episode ?? v.number ?? '';
+        const seen = progress[v.id];
+        return `<button class="ep" data-id="${esc(v.id)}"><span class="n">${esc(n)}</span><span><div>${esc(v.name || v.title || 'Episode ' + n)}${seen ? ' ·' : ''}</div><div class="d">${v.released ? esc(new Date(v.released).toLocaleDateString()) : ''}</div></span></button>`;
+      }).join('');
+      $('#eps').querySelectorAll('.ep').forEach(b => b.onclick = () => {
+        $('#eps').querySelectorAll('.ep').forEach(x => x.classList.remove('on')); b.classList.add('on');
+        const v = videos.find(x => x.id === b.dataset.id);
+        loadStreams(ctx, v.id, `${meta.name} S${v.season}E${v.episode ?? v.number}`);
+      });
+    };
+    const first = seasons.find(s => s !== 0) ?? seasons[0];
+    $('#season').value = first; renderEps(first);
+    $('#season').onchange = e => renderEps(e.target.value);
+  } else {
+    loadStreams(ctx, meta.behaviorHints?.defaultVideoId || meta.id, meta.name);
+  }
+}
+
+async function loadStreams({type, meta}, videoId, label){
+  const box = $('#streams');
+  const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
+  if(!src.length){ box.innerHTML = `<p class="note">No stream add-on is installed for this title. Add one with the manifest link on the <a href="#/addons">Add-ons</a> page.</p>`; return; }
+  box.innerHTML = src.map((a,i) => `<div class="src">${esc(a.manifest.name)}</div><div id="st${i}"><p class="note">Loading…</p></div>`).join('');
+  src.forEach(async (a, i) => {
+    const el = $('#st'+i);
+    try{
+      const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`);
+      const streams = d.streams || [];
+      if(!streams.length){ el.innerHTML = '<p class="note">No streams from this add-on.</p>'; return; }
+      el.innerHTML = streams.map((s, j) => {
+        const playable = s.url || s.ytId || s.externalUrl;
+        const body = (s.title || s.description || '') + (!playable && s.infoHash ? '\nNeeds the Stremio streaming server. Opens in Stremio.' : '');
+        return `<button class="ticket" data-j="${j}"><span class="stub">${esc(s.name || a.manifest.name)}</span><span class="body">${esc(body)}</span></button>`;
+      }).join('');
+      el.querySelectorAll('.ticket').forEach(b => b.onclick = () => {
+        const s = streams[b.dataset.j];
+        if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label);
+        else if(s.url || s.ytId) openPlayer(s, label, {videoId, type, meta});
+        else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label);
+        else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
+        else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label);
+        else alert('This source requires the Android torrent engine.');
+      });
+    }catch(e){ el.innerHTML = `<p class="err">This add-on did not respond (${esc(e.message)}).</p>`; }
+  });
+}
+
+function viewLibrary(){
+  const items = Object.values(library).sort((a,b) => b.added - a.added);
+  $('#app').innerHTML = `<div class="page"><h1>Library</h1>${items.length ? `<div class="grid">${items.map(card).join('')}</div>` : `<p class="note">Your library is empty. Open any title and choose “Add to library”.</p>`}</div>`;
+}
+
+function viewAddons(msg){
+  $('#app').innerHTML = `<div class="page"><h1>Add-ons</h1>
+    <p class="note" style="max-width:68ch">Paste the manifest link of any Stremio-compatible add-on. Catalogs, details and streams all come from the add-ons you install here.</p>
+    <form class="add" id="addf"><input class="field" id="aurl" placeholder="https://…/manifest.json" aria-label="Manifest link"><button class="btn primary">Install</button></form>
+    ${msg ? `<p class="${msg.err?'err':'note'}">${esc(msg.text)}</p>` : ''}
+    ${addons.map(a => `<div class="addon">${a.manifest.logo ? `<img src="${esc(a.manifest.logo)}" alt="">` : '<div class="ph"></div>'}
+      <div><h3>${esc(a.manifest.name)} <span class="note">v${esc(a.manifest.version)}</span></h3><p>${esc(a.manifest.description)}</p><p>${esc((a.manifest.resources||[]).map(r => r.name||r).join(', '))}</p></div>
+      <button class="danger" data-u="${esc(a.url)}">Remove</button></div>`).join('')}
+    ${addonUrls.length > addons.length ? `<p class="err">${addonUrls.length - addons.length} add-on(s) could not be reached and are hidden.</p>` : ''}</div>`;
+  $('#addf').onsubmit = async e => {
+    e.preventDefault();
+    const url = $('#aurl').value.trim(); if(!url) return;
+    if(addonUrls.includes(url)) return viewAddons({text:'That add-on is already installed.'});
+    try{
+      const m = await getJSON(normUrl(url));
+      if(!m.id || !m.resources) throw new Error('not a valid manifest');
+      addonUrls.push(url); store.set('addons', addonUrls); await loadAddons();
+      viewAddons({text:`Installed ${m.name}.`});
+    }catch(err){ viewAddons({text:`Could not install: ${err.message}. Check the link ends with manifest.json.`, err:true}); }
+  };
+  document.querySelectorAll('.danger').forEach(b => b.onclick = async () => {
+    addonUrls = addonUrls.filter(u => u !== b.dataset.u); store.set('addons', addonUrls); await loadAddons(); viewAddons({text:'Removed.'});
+  });
+}
+
+/* ---------- player ---------- */
+let hls = null;
+function openPlayer(s, title, ctx){
+  $('#ptitle').textContent = title;
+  const body = $('#pbody');
+  if(s.ytId){
+    body.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(s.ytId)}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else {
+    body.innerHTML = `<video id="vid" controls autoplay playsinline></video>`;
+    const v = $('#vid');
+    if(/\.m3u8(\?|$)/.test(s.url) && window.Hls && Hls.isSupported()){ hls = new Hls(); hls.loadSource(s.url); hls.attachMedia(v); }
+    else v.src = s.url;
+    if(ctx){
+      const saved = progress[ctx.videoId];
+      if(saved) v.addEventListener('loadedmetadata', () => { if(saved.t < v.duration - 30) v.currentTime = saved.t; }, {once:true});
+      let last = 0;
+      v.addEventListener('timeupdate', () => {
+        if(Math.abs(v.currentTime - last) < 5) return; last = v.currentTime;
+        progress[ctx.videoId] = {t: v.currentTime, d: v.duration, at: Date.now(), metaId: ctx.meta.id, type: ctx.type, name: ctx.meta.name, poster: ctx.meta.poster};
+        store.set('progress', progress);
+      });
+      v.addEventListener('error', () => body.insertAdjacentHTML('afterbegin', `<p class="err" style="position:absolute;top:70px;left:20px">The browser can't play this format. Try another stream.</p>`));
+    }
+  }
+  $('#player').classList.add('open');
+}
+function closePlayer(){
+  if(hls){ hls.destroy(); hls = null; }
+  $('#pbody').innerHTML = ''; $('#player').classList.remove('open');
+}
+$('#close').onclick = closePlayer;
+addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
+
+/* ---------- router ---------- */
+$('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
+async function route(){
+  const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (r || 'home')));
+  scrollTo(0, 0);
+  if(r === 'discover') viewDiscover(a, b, c);
+  else if(r === 'search') viewSearch(a);
+  else if(r === 'detail') viewDetail(a, b);
+  else if(r === 'library') viewLibrary();
+  else if(r === 'addons') viewAddons();
+  else viewHome();
+}
+addEventListener('hashchange', route);
+loadAddons().then(route);
+</script>
+</body>
+</html>

@@ -1,43 +1,41 @@
-name: Build MyStreamer APK
+name: Build Android APK
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract MyStreamer
-        run: |
-          rm -rf source
-          mkdir source
-          unzip MyStreamer-Android-v0.4.0-alpha-GitHub.zip -d source
-          ls -la source
-
-      - name: Setup Gradle
+      - name: Set up Gradle 9.6.0
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.6.0'
 
-      - name: Build APK
-        working-directory: source
-        run: gradle assembleDebug --stacktrace
+      - name: Build debug APK
+        run: gradle --no-daemon :app:assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk MyStreamer-v0.5.0-alpha-debug.apk
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyStreamer-v0.4.0-alpha-APK
-          path: source/app/build/outputs/apk/debug/app-debug.apk
+          name: MyStreamer-v0.5.0-alpha-debug
+          path: MyStreamer-v0.5.0-alpha-debug.apk
           if-no-files-found: error
+          retention-days: 30

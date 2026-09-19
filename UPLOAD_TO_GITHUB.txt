@@ -1,0 +1,20 @@
+MYStreamer v0.5.0-alpha - GitHub upload
+
+Repository:
+https://github.com/bardalas/MyStreamer1
+
+Upload ALL files and folders from this ZIP to the ROOT of the repository.
+Important: include the hidden .github folder.
+
+On GitHub mobile/web:
+1. Open MyStreamer1.
+2. Add file -> Upload files.
+3. Extract this ZIP locally first; upload the CONTENTS, not the ZIP itself.
+4. Commit to main.
+5. Open the Actions tab.
+6. Select "Build Android APK".
+7. If it did not start automatically, choose "Run workflow".
+8. When the run is green, open it and download artifact:
+   MyStreamer-v0.5.0-alpha-debug
+
+That artifact contains the installable APK.
