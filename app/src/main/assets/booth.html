@@ -147,7 +147,7 @@ main{padding:0 28px 60px}
 }
 </style>
 </head>
-<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.5.4</div>
+<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.6.0</div>
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
@@ -399,11 +399,14 @@ function passes(x){
 }
 
 function playStream(s, label, ctx){
-  if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label);
+  // Release/file name lets the app pick Hebrew subtitles timed for this exact release.
+  const release = s.behaviorHints?.filename || (s.title || s.description || '').split('\n')[0] || '';
+  const vid = ctx.videoId || '';
+  if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label, vid, release);
   else if(s.url || s.ytId) openPlayer(s, label, ctx);
-  else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label);
+  else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label, vid, release);
   else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
-  else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []));
+  else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release);
   else alert('Torrent sources play in the Booth Android app.');
 }
 

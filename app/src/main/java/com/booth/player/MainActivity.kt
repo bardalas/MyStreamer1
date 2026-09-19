@@ -35,7 +35,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class Bridge {
-        @JavascriptInterface fun playUrl(url: String, title: String) {
+        /** [videoId]/[release] drive the Hebrew subtitle lookup (Stremio id and release/file name). */
+        @JavascriptInterface fun playUrl(url: String, title: String, videoId: String, release: String) {
+            Subtitles.prefetch(applicationContext, videoId, release)
             runOnUiThread {
                 startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
                     .putExtra("url", url).putExtra("title", title))
@@ -43,7 +45,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         /** [sourcesJson]: the Stremio stream's `sources` array, e.g. ["tracker:udp://…", "dht:…"]. */
-        @JavascriptInterface fun playTorrent(infoHash: String, fileIdx: Int, title: String, sourcesJson: String) {
+        @JavascriptInterface fun playTorrent(
+            infoHash: String, fileIdx: Int, title: String, sourcesJson: String, videoId: String, release: String
+        ) {
+            Subtitles.prefetch(applicationContext, videoId, release)
             val sources = runCatching {
                 JSONArray(sourcesJson).let { a -> List(a.length()) { a.getString(it) } }
             }.getOrDefault(emptyList())

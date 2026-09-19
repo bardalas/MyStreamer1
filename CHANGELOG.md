@@ -1,5 +1,12 @@
 # Booth Android changelog
 
+## 0.6.0 — 2026-09-19
+- Hebrew subtitles added automatically to every movie and episode.
+  Sources: Wizdom and OpenSubtitles; the 3 subtitles whose release name best matches the
+  chosen video are downloaded (so timing fits), and the best one is turned on by default.
+- Other matches (and embedded Hebrew tracks) selectable from the player's subtitles button.
+- Larger outlined subtitle text for readability; UTF-8 and Windows-1255 Hebrew files supported.
+
 ## 0.5.4 — 2026-09-19
 - Sources grouped by quality (4K / 1080p / 720p / SD / CAM / Other), collapsed, each showing
   source count, best seeders and size range, with a "▶ Best" button that plays the top-seeded source.
