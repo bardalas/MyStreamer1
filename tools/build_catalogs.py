@@ -22,6 +22,13 @@ LIMIT = 100
 
 HEBREW, ARABIC = "Q9288", "Q13955"
 FILM, SERIES = "Q11424", "Q5398426"
+# Country of origin (P495). Language alone is not enough: Hollywood films with a few lines of
+# Hebrew or Arabic dialogue list those as original languages too.
+COUNTRIES = {
+    HEBREW: ["Q801"],  # Israel
+    ARABIC: ["Q79", "Q822", "Q858", "Q851", "Q810", "Q1028", "Q948", "Q262", "Q796", "Q878", "Q219060",
+             "Q817", "Q846", "Q1049", "Q1016", "Q805", "Q842", "Q398", "Q1025"],  # Arab League states
+}
 
 CATALOGS = [
     # id, type, name, language, class, order
@@ -35,8 +42,10 @@ CATALOGS = [
 
 
 def query(lang, cls, retries=4):
+    countries = " ".join(f"wd:{c}" for c in COUNTRIES[lang])
     sparql = f"""SELECT ?imdb ?links ?date ?he ?en ?ar WHERE {{
-  ?item wdt:P364 wd:{lang}; wdt:P31 wd:{cls}; wdt:P345 ?imdb; wikibase:sitelinks ?links.
+  VALUES ?country {{ {countries} }}
+  ?item wdt:P364 wd:{lang}; wdt:P495 ?country; wdt:P31 wd:{cls}; wdt:P345 ?imdb; wikibase:sitelinks ?links.
   OPTIONAL {{ ?item wdt:P577 ?date. }}
   OPTIONAL {{ ?item rdfs:label ?he FILTER(LANG(?he) = "he") }}
   OPTIONAL {{ ?item rdfs:label ?en FILTER(LANG(?en) = "en") }}
