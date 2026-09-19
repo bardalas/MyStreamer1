@@ -122,7 +122,7 @@ main{padding:0 28px 60px}
 .playbtn{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;min-width:180px;border:0;border-radius:10px;padding:11px 20px;background:var(--tungsten);color:var(--on-accent);font-size:15px;font-weight:600;cursor:pointer}
 .playbtn small{font-weight:400;font-size:12px;opacity:.75}
 .playbtn:disabled{background:var(--raise);color:var(--muted);cursor:default}
-[data-layout="tv"] .playbtn{align-self:stretch;width:100%;justify-content:center;font-size:18px;padding:14px 20px}
+[data-layout="tv"] .playbtn{font-size:16px;padding:12px 24px}   /* a clear target, not a banner */
 .quals{display:flex;flex-wrap:wrap;gap:8px}
 .quals button{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer}
 .quals button:hover,.quals button:focus-visible{border-color:var(--tungsten)}
@@ -278,9 +278,9 @@ main{padding:0 28px 60px}
 [data-layout="tv"] .detail .facts{margin-bottom:8px}
 [data-layout="tv"] .desc{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:64ch;margin:0 0 12px}
 [data-layout="tv"] .detail .people{display:none}
-[data-layout="tv"] .cols{margin-top:16px;gap:20px}
+[data-layout="tv"] .cols{margin-top:16px;gap:16px;grid-template-columns:1fr}   /* one column: Down reaches everything */
 [data-layout="tv"] .cols .panel:last-child{order:-1}      /* watching comes before the episode list */
-[data-layout="tv"] .eps{max-height:27vh}
+[data-layout="tv"] .eps{max-height:36vh}
 [data-layout="tv"] .panel{padding:14px 16px}
 [data-layout="tv"] .panel h3{font-size:21px;margin-bottom:8px}
 
@@ -341,6 +341,14 @@ main{padding:0 28px 60px}
 [data-layout="tv"] .sgrid{grid-template-columns:270px 1fr}
 @media(max-width:760px){.sgrid{grid-template-columns:1fr}.stabs{flex-direction:row;overflow-x:auto;position:static;scrollbar-width:none}
   .stabs::-webkit-scrollbar{height:0}.stabs button{white-space:nowrap;box-shadow:none}.stabs button.on{box-shadow:inset 0 -3px var(--tungsten)}}
+/* the title card: banner on top, synopsis, actions - a modest sheet, never a full page */
+.titleSheet>div{max-height:92vh}
+.tc-banner{height:min(30vh,220px);background:var(--surface) center 20%/cover}
+.titleSheet .facts{display:flex;flex-wrap:wrap;gap:8px}
+.titleSheet .qvdesc{max-height:24vh;overflow:auto;margin:0;color:var(--text2)}
+.titleSheet .qvdesc[dir="rtl"]{font-size:15px;line-height:1.7}
+.qvact{display:flex;flex-wrap:wrap;gap:10px}
+
 /* RaspberryTV: access key form and catch-up sheet */
 .keyform{display:flex;gap:10px;flex-wrap:wrap;align-items:center;max-width:560px;margin:4px 0 8px}
 .keyform input{width:160px;letter-spacing:.15em;text-align:center;font-variant-numeric:tabular-nums}
@@ -431,21 +439,7 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 [data-layout="tv"] .bctabs a{font-size:20px;padding:12px 24px}
 
 /* quick view: first tap on a poster */
-.qv{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);margin:4px 0 20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);animation:qvIn .18s ease-out}
-.qvart{min-height:230px;background:var(--raise) center/cover}
-.qvbody{position:relative;padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.qvclose{position:absolute;top:8px;inset-inline-end:10px}
-.qvx{background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
-.qvbody h3{margin:0;padding-inline-end:28px;font-family:var(--display);font-size:22px;line-height:1.2}
-.qvbody h3 small{display:block;font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted);margin-top:2px}
-.qvbody .facts{margin:0}
-.qvdesc{margin:0;color:var(--text2);font-size:14px;line-height:1.65;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
-.qvact{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto}
-.qvhint{font-size:12px;color:var(--muted);margin:0}
-.poster.sel .art{outline:3px solid var(--tungsten);outline-offset:2px}
-@keyframes qvIn{from{opacity:0;transform:translateY(-6px)}}
-.strip .qv,.grid .qv{grid-column:1/-1}           /* a full-width card inside a wrapped grid */
-@media (max-width:760px){.qv{grid-template-columns:1fr}.qvart{min-height:170px}}
+
 
 /* Keshet 12 (mako) tab */
 .mkbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
@@ -1304,84 +1298,84 @@ function bestForNow(list){
   return ok.find(x => x.q === '1080p' && fits(x)) || ok.find(fits) || ok[0] || null;
 }
 
-let qvHref = null;
-function closeQuickView(){
-  document.querySelector('.qv')?.remove();
-  document.querySelectorAll('.poster.sel').forEach(x => x.classList.remove('sel'));
-  qvHref = null;
-}
+
+
+/* ---------- the title card ----------
+   One click on a poster raises a modest card over the screen: the banner, the Hebrew synopsis
+   and the actions. The list stays put behind it; Back or ✕ closes it, "פרטים מלאים" opens the
+   full page (episodes, all sources). It is a .sheet, so the remote is trapped inside it. */
+function closeQuickView(){ document.querySelector('.sheet.titleSheet')?.remove(); }
+
 async function openQuickView(card){
-  closeQuickView();
+  document.querySelector('.sheet')?.remove();
   const href = card.getAttribute('href');
   const [, , type, idEnc] = href.split('/');
   const id = decodeURIComponent(idEnc);
-  qvHref = href;
-  card.classList.add('sel');
   const name = card.querySelector('.t')?.textContent || '';
-  const box = document.createElement('div');
-  box.className = 'qv';
-  box.innerHTML = `<div class="qvart"></div><div class="qvbody"><div class="qvclose"><button class="qvx" aria-label="סגור">✕</button></div>
-      <h3 dir="auto">${esc(name)}</h3><div class="facts"></div><p class="qvdesc note">טוען תקציר…</p>
-      <div class="qvact">${type === 'movie'
-        ? `<button class="btn primary" id="qvplay">${qvPlayLabel(id)}</button>`
-        : `<a class="btn primary" href="${esc(href)}">▶ לפרקים ולצפייה</a>`}
-        <a class="btn ghost" href="${esc(href)}">עוד אפשרויות</a></div>
-      <p class="qvhint">${card.classList.contains('nosrc') ? 'לא נמצאו מקורות לכותר הזה כרגע' : `לחיצה נוספת על הפוסטר פותחת את ה${type === 'series' ? 'סדרה' : 'סרט'}`}</p></div>`;
-  // in a horizontal strip the card goes right under the strip; in a wrapped grid it slides in
-  // under the clicked poster's own visual row, pushing the rows below it down
-  const anchor = card.closest('.strip') || card.closest('.grid');
-  if(getComputedStyle(anchor).display === 'grid'){
-    const top = card.getBoundingClientRect().top;
-    const rowEnd = [...anchor.children].filter(el => Math.abs(el.getBoundingClientRect().top - top) < 4).pop();
-    (rowEnd || card).after(box);
-  } else anchor.after(box);
-  box.querySelector('.qvx').onclick = closeQuickView;
-  const playBtn = box.querySelector('#qvplay');
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet titleSheet';
+  sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(name)}">
+      <header><b dir="auto">${esc(name)}</b><button aria-label="סגור">✕</button></header>
+      <div class="tc-banner"></div>
+      <div class="body">
+        <div class="facts"></div>
+        <p class="qvdesc note" dir="auto">טוען תקציר…</p>
+        <div class="qvact">${type === 'movie'
+          ? `<button class="btn primary" id="qvplay">${qvPlayLabel(id)}</button>`
+          : `<button class="btn primary" id="qveps">▶ לפרקים ולצפייה</button>`}
+          <button class="btn ghost" id="qvmore">פרטים מלאים</button></div>
+      </div></div>`;
+  document.body.appendChild(sheet);
+  const close = () => sheet.remove();
+  sheet.querySelector('header button').onclick = close;
+  sheet.onclick = e => { if(e.target === sheet) close(); };
+  const goFull = () => { close(); location.hash = href; };
+  sheet.querySelector('#qvmore').onclick = goFull;
+  const epsBtn = sheet.querySelector('#qveps');
+  if(epsBtn) epsBtn.onclick = goFull;
+  const playBtn = sheet.querySelector('#qvplay');
   if(playBtn) playBtn.onclick = async () => {
     playBtn.disabled = true;
     playBtn.textContent = 'מחפש מקור…';
     const m = await fetchMeta(type, id).catch(() => null);
     const videoId = m?.behaviorHints?.defaultVideoId || id;
-    const list = await gatherStreams(type, videoId);
-    const pick = bestForNow(list);
+    const pick = bestForNow(await gatherStreams(type, videoId));
     if(!pick){
-      playBtn.textContent = 'לא נמצא מקור - עוד אפשרויות';
+      playBtn.textContent = 'לא נמצא מקור - לעמוד המלא';
       playBtn.disabled = false;
-      playBtn.onclick = () => { location.hash = href; };
+      playBtn.onclick = goFull;
       return;
     }
     playBtn.textContent = qvPlayLabel(id);
     playBtn.disabled = false;
+    close();
     playStream(pick.s, m?.name || name, {videoId, type, meta: m || {id, name}});
   };
-  box.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  (playBtn || epsBtn).focus();
 
-  const meta = await fetchMeta(type, id);
-  if(qvHref !== href || !box.isConnected) return;
+  const meta = await fetchMeta(type, id).catch(() => null);
+  if(!sheet.isConnected) return;
   if(meta){
-    box.querySelector('.qvart').style.backgroundImage = `url('${(meta.background || meta.poster || '').replace(/'/g, '%27')}')`;
-    const heName = heTitle(meta.id, meta.name);
-    box.querySelector('h3').innerHTML = `${esc(heName)}${heName !== meta.name ? `<small dir="ltr">${esc(meta.name)}</small>` : ''}`;
-    box.querySelector('.facts').innerHTML = svcFacts(id) + [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`, yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`,
-      meta.runtime && `<span>${esc(meta.runtime)}</span>`, ...(meta.genres || meta.genre || []).slice(0, 3).map(g => `<span>${esc(genreHe(g))}</span>`)].filter(Boolean).join('');
+    sheet.querySelector('.tc-banner').style.backgroundImage = `url('${(meta.background || meta.poster || '').replace(/'/g, '%27')}')`;
+    sheet.querySelector('header b').textContent = heTitle(meta.id, meta.name);
+    sheet.querySelector('.facts').innerHTML = svcFacts(id) + [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`,
+      yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`, meta.runtime && `<span>${esc(meta.runtime)}</span>`,
+      ...(meta.genres || meta.genre || []).slice(0, 3).map(g => `<span>${esc(genreHe(g))}</span>`)].filter(Boolean).join('');
   }
-  const desc = box.querySelector('.qvdesc');
+  const desc = sheet.querySelector('.qvdesc');
   desc.classList.remove('note');
-  desc.dir = 'auto';
   desc.textContent = meta?.description || 'אין תקציר.';
   if(hebrewOn() && /^tt\d+$/.test(id)){
     const plot = await hebrewPlot(id).catch(() => null);
-    if(plot && qvHref === href && box.isConnected){ desc.dir = 'rtl'; desc.textContent = plot.text; }
+    if(plot && sheet.isConnected){ desc.dir = 'rtl'; desc.textContent = plot.text; }
   }
 }
 document.addEventListener('click', e => {
   const card = e.target.closest('a.poster[href^="#/detail/"]');
   if(!card || !card.closest('.strip, .grid')) return;
-  if(qvHref === card.getAttribute('href')){ closeQuickView(); return; }   // second tap: open the title
   e.preventDefault();
   openQuickView(card);
 });
-addEventListener('hashchange', () => { qvHref = null; });
 
 /* ---------- Keshet 12 (mako.co.il): catalogue from the site's public pages; episodes play on
    mako's own page and player, in an in-app window (their player handles their protection) ---------- */
@@ -2681,7 +2675,7 @@ const ROWS_SEL = [
   '.bctabs', '.strip', '.grid', '.genres', '.sopts', '.seg', '.sgroup',    // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.detact', '.seasonbar', '.seasons', '.eps', '.eplist',         // a title: text, actions, episodes
-  '.qvclose', '.qvact', '.playrow', '.quals', '.altlist',                  // quick view + sources panel
+  '.qvact', '.playrow', '.quals', '.altlist',                              // title card + sources panel
   '.live-top', '#cont', '#bchead', '.chrow',                        // live TV
   '.days', '.progs', '.guide', '.keypad', '.keyform',                      // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update',                    // sheets and floating cards
@@ -2695,7 +2689,11 @@ const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0
 const tvScope = () => document.querySelector('.sheet') || document;
 const tvRows = () => {
   const all = [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
-  return all.filter(r => !all.some(o => o !== r && r.contains(o)));    // keep only the innermost row
+  // Only the innermost match is a row, and rows are ordered by where they are ON SCREEN - CSS can
+  // reorder panels (the title page puts "watching" above the episodes with order:-1), and "the row
+  // below" has to mean the one the viewer sees below, not the next one in the markup.
+  return all.filter(r => !all.some(o => o !== r && r.contains(o)))
+            .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
 };
 const itemsOf = row => [...row.querySelectorAll(FOCUSABLE)].filter(visible);
 const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
@@ -2822,7 +2820,6 @@ window.boothBack = () => {
   if(status && getComputedStyle(status).display !== 'none'){ $('#tstatusBtn').click(); return true; }
   const sheet = document.querySelector('.sheet');
   if(sheet){ sheet.remove(); return true; }
-  if(document.querySelector('.qv')){ closeQuickView(); return true; }
   const a = document.activeElement;
   if(a && a.tagName === 'INPUT' && !a.readOnly && isTvLayout()){ a.blur(); return true; }
   const up = parentHash();
