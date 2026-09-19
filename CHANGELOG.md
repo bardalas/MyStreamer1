@@ -1,5 +1,13 @@
 # Booth Android changelog
 
+## 0.19.0 — 2026-09-19
+- Keshet 12 from mako.co.il instead of YouTube: all 654 programmes with genre chips (reality, docu,
+  drama, comedy, cooking, news) and search; programme pages with seasons and sections
+  (episodes / specials / sketches). Episodes open on mako's own page and player in an in-app window.
+- In-app site window (full-screen video, DRM via WebView) — also offered for Kan BOX when Kan's
+  site turns the app's requests away, instead of YouTube.
+- YouTube removed from the Channels area and the kids category.
+
 ## 0.18.1 — 2026-09-19
 - Fix: Keshet 12 and Kan (YouTube fallback) showed no shows on phones. YouTube sent its mobile site to
   the app's phone user-agent; YouTube requests now ask for the desktop page, and the parser also

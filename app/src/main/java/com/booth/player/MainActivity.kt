@@ -106,6 +106,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** A broadcaster's own web page (its player plays the video) in an in-app window. */
+        @JavascriptInterface fun openSite(url: String) {
+            runOnUiThread { startActivity(BrowserActivity.intent(this@MainActivity, url)) }
+        }
+
         /** Live TV with channel zapping: [channelsJson] = [{name, url, ua, referer}], starting at [index]. */
         @JavascriptInterface fun playChannels(channelsJson: String, index: Int) {
             runOnUiThread {

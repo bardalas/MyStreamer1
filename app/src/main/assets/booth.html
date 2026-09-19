@@ -349,6 +349,11 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 @keyframes qvIn{from{opacity:0;transform:translateY(-6px)}}
 @media (max-width:760px){.qv{grid-template-columns:1fr}.qvart{min-height:170px}}
 
+/* Keshet 12 (mako) tab */
+.mkbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+.mkbar input{flex:1;min-width:160px;max-width:320px;padding:7px 12px}
+.openbtn{display:inline-flex;align-items:center;gap:8px}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -663,8 +668,7 @@ const CATEGORIES = [
     [BOOTH_ID, 'booth.he.comedy.series'], [BOOTH_ID, 'booth.he.movies.new']]},
   {id: 'comedy', name: 'קומדיה', rows: [[CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [CINEMETA_ID, 'imdbRating', 'genre=Comedy', 'הקומדיות הכי טובות']]},
-  {id: 'kids', name: 'ילדים', rows: [yt('latest', 'kankids', 'חדש בכאן חינוכית'), [CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'],
-    [CINEMETA_ID, 'top', 'genre=Family', 'לכל המשפחה'], yt('playlists', 'kankids', 'סדרות כאן חינוכית')]},
+  {id: 'kids', name: 'ילדים', rows: [[CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'], [CINEMETA_ID, 'top', 'genre=Family', 'לכל המשפחה']]},
   {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
   {id: 'netflix', name: 'Netflix', rows: [[SC_ID, /^netflix-top10/], [SC_ID, 'nfx']]},
   {id: 'apple', name: 'Apple TV+', rows: [[SC_ID, 'atp']]},
@@ -958,26 +962,27 @@ async function viewTv(which){
   const tabs = `<div class="page" style="padding-bottom:0"><h1>ערוצים</h1><nav class="bctabs" aria-label="ערוצי שידור">${BC_TABS.map(b =>
     `<a href="#/tv/${b.id}" class="${b.id === bc.id ? 'on' : ''}" style="--bc:${b.color}">${esc(b.name)}</a>`).join('')}</nav>
     <div class="bchead" style="--bc:${bc.color}" id="bchead"></div></div>`;
-  let rows = [], note = '';
+  let rows = [], note = '', kanSite = false;
   if(bc.id === 'reshet'){
     rows = [{r13: 'recent', title: 'שודר לאחרונה'}, {r13: 'series', title: 'כל התוכניות'}];
   }else if(bc.id === 'keshet'){
-    rows = [yt('latest', 'keshet', 'חדש בערוץ'), yt('playlists', 'keshet', 'תוכניות')];
-    note = 'התוכן של קשת 12 מגיע מערוץ היוטיוב הרשמי ומתנגן באפליקציית YouTube.';
+    return viewMakoTab(tabs + `<div class="page" style="padding-top:0"><p class="note" style="margin:0 0 12px">הפרקים מתנגנים בנגן של mako, בתוך האפליקציה.</p></div>`);
   }else{
     try{
       const secs = await kanBox();
       rows = secs.map(sec => ({kan: new RegExp('^' + sec.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), title: sec.title}));
     }catch(e){
-      // Kan's site sometimes turns automated requests away (403); show its official YouTube channel instead.
-      rows = [yt('latest', 'kan', 'חדש בערוץ'), yt('playlists', 'kan', 'תוכניות')];
-      note = `האתר של כאן לא זמין כרגע לאפליקציה (${e.message}); מוצג התוכן מערוץ היוטיוב הרשמי.`;
+      // Kan's site sometimes turns the app's requests away (403): offer Kan BOX itself in the in-app window.
+      rows = [];
+      note = `לא ניתן לטעון את הקטלוג של כאן לתוך האפליקציה (${e.message}).`;
+      kanSite = true;
     }
   }
   renderRows(rows, {hero: false, top: tabs});
   // live button for the broadcaster (Kan 11 and Reshet 13 have official streams)
   const head = $('#bchead');
-  head.innerHTML = note ? `<p class="note">${esc(note)}</p>` : '';
+  head.innerHTML = (note ? `<p class="note">${esc(note)}</p>` : '') +
+    (kanSite ? `<button class="btn primary openbtn" data-site="${KAN}/lobby/kan-box/">פתח את כאן BOX בתוך האפליקציה</button>` : '');
   const live = bc.id === 'kan' ? IL_CHANNELS.find(c => c.name === 'Kan 11') : bc.id === 'reshet' ? (await r13channels().catch(() => [])).find(c => c.name === 'רשת 13') : null;
   if(live && head.isConnected){
     head.insertAdjacentHTML('afterbegin', `<button class="livebtn" id="bclive">▶ שידור חי · ${esc(bc.name)}</button>`);
@@ -1047,6 +1052,106 @@ document.addEventListener('click', e => {
   openQuickView(card);
 });
 addEventListener('hashchange', () => { qvHref = null; });
+
+/* ---------- Keshet 12 (mako.co.il): catalogue from the site's public pages; episodes play on
+   mako's own page and player, in an in-app window (their player handles their protection) ---------- */
+const MAKO = 'https://www.mako.co.il';
+const MAKO_GENRES = [['הכל', ''], ['ריאליטי', 'genre&vcmId=4f9dbac980653210VgnVCM2000002a0c10acRCRD'],
+  ['דוקומנטרי', 'genre&vcmId=8e8abac980653210VgnVCM2000002a0c10acRCRD'], ['דרמה', 'genre&vcmId=05fcbac980653210VgnVCM2000002a0c10acRCRD'],
+  ['קומדיה', 'genre&vcmId=fe2dbac980653210VgnVCM2000002a0c10acRCRD'], ['בישול', 'genre&vcmId=5d738481c9674210VgnVCM2000002a0c10acRCRD'],
+  ['החדשות', 'provider&vcmId=ee06c13070733210VgnVCM2000002a0c10acRCRD']];
+const makoCache = {};
+function nextData(html){
+  const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if(!m) throw new Error('לא ניתן לקרוא את העמוד');
+  return JSON.parse(m[1]).props.pageProps;
+}
+async function makoPrograms(filter){
+  if(makoCache['idx' + filter]) return makoCache['idx' + filter];
+  const pp = nextData(await fetchText(`${MAKO}/mako-vod-index${filter ? '?filter=' + filter : ''}`));
+  return makoCache['idx' + filter] = (pp.programs?.items || []).map(i => ({name: i.title, path: i.pageUrl, img: i.pic}));
+}
+const makoPic = v => Array.isArray(v) ? v[0]?.picUrl : (String(v || '').match(/picUrl['"]?\s*:\s*['"]([^'"]+)/) || [])[1] || '';
+function openSite(url){
+  if(window.BoothAndroid && BoothAndroid.openSite) BoothAndroid.openSite(url);
+  else window.open(url, '_blank', 'noopener');
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-site]'); if(b){ e.preventDefault(); openSite(b.dataset.site); } });
+function makoCard(x){
+  return `<a class="poster" href="#/mako/${encodeURIComponent(x.path)}/${encodeURIComponent(x.name)}">
+    <div class="art" style="background-image:url('${esc(x.img)}')"></div><div class="t" dir="auto">${esc(x.name)}</div></a>`;
+}
+
+async function viewMakoTab(top){
+  const app = $('#app');
+  let filter = store.get('mkGenre', '');
+  app.innerHTML = `${top}<div class="page" style="padding-top:0"><div class="mkbar" id="mkg"></div>
+    <div class="mkbar"><input class="field" id="mkq" type="search" placeholder="חיפוש תוכנית" aria-label="חיפוש תוכנית"></div>
+    <div class="grid" id="mkgrid">${skeletons(12)}</div></div>`;
+  const load = async () => {
+    $('#mkg').innerHTML = MAKO_GENRES.map(([n, f]) => `<button class="chip ${f === filter ? 'on' : ''}" data-f="${esc(f)}">${n}</button>`).join('');
+    $('#mkg').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; store.set('mkGenre', filter); load(); });
+    $('#mkgrid').innerHTML = skeletons(12);
+    try{
+      const all = await makoPrograms(filter);
+      const draw = () => {
+        const q = $('#mkq').value.trim();
+        const list = all.filter(x => !q || x.name.includes(q));
+        $('#mkgrid').innerHTML = list.map(makoCard).join('') || '<p class="note">לא נמצאו תוכניות.</p>';
+      };
+      $('#mkq').oninput = draw;
+      draw();
+    }catch(e){
+      $('#mkgrid').innerHTML = `<p class="note">לא ניתן לטעון את הקטלוג של mako כרגע (${esc(e.message)}).</p>
+        <button class="btn primary openbtn" data-site="${MAKO}/mako-vod">פתח את mako בתוך האפליקציה</button>`;
+    }
+  };
+  load();
+}
+
+async function viewMakoProgram(path, title){
+  renderCats(null);
+  $('#app').innerHTML = `<div class="page"><div class="showhead"><div><h1 dir="auto">${esc(title || '')}</h1><p id="mdesc"></p></div></div>
+    <div class="seasons" id="mseasons"></div><div class="seasons" id="msections"></div><div class="eplist" id="eps"><p class="note">טוען פרקים…</p></div></div>`;
+  const page = async p => (makoCache['p' + p] ||= nextData(await fetchText(MAKO + p)).data);
+  const showEps = vods => {
+    $('#eps').innerHTML = (vods || []).length ? vods.map(v => {
+      const [ep, date] = String(v.extraInfo || '').split('@');
+      return `<button class="eprow" data-site="${esc(MAKO + v.pageUrl)}"><img src="${esc(makoPic(v.pics))}" alt="" loading="lazy">
+        <span><b dir="auto">${esc(v.title || '')}</b><small>${esc([ep, date].filter(Boolean).join(' · '))}</small></span></button>`;
+    }).join('') : '<p class="note">אין פרקים כאן.</p>';
+  };
+  const drawSeason = async seasonPath => {
+    $('#eps').innerHTML = '<p class="note">טוען פרקים…</p>';
+    const d = await page(seasonPath);
+    const sections = (d.menu || []).filter(m => m.pageUrl && m.id !== 'credits');
+    let cur = sections.find(m => (m.vods || []).length) || sections[0];
+    const drawSection = async () => {
+      $('#msections').innerHTML = sections.length > 1 ? sections.map(m => `<button class="chip ${m === cur ? 'on' : ''}" data-sec="${esc(m.id)}">${esc(m.buttonText)}</button>`).join('') : '';
+      $('#msections').querySelectorAll('[data-sec]').forEach(b => b.onclick = () => { cur = sections.find(m => m.id === b.dataset.sec); drawSection(); });
+      if(!cur) return showEps([]);
+      if(!cur.vods){ $('#eps').innerHTML = '<p class="note">טוען…</p>'; const sd = await page(cur.pageUrl); cur.vods = (sd.menu || []).find(m => (m.vods || []).length)?.vods || []; }
+      showEps(cur.vods);
+    };
+    drawSection();
+  };
+  try{
+    const d = await page(path);
+    $('#mdesc').textContent = d.hero?.description || '';
+    const seasons = (d.seasons || []).slice().reverse();          // newest first
+    let curSeason = (seasons.find(x => x.current) || seasons[0])?.pageUrl || path;
+    $('#mseasons').innerHTML = seasons.length > 1 ? seasons.map(x => `<button class="chip ${x.pageUrl === curSeason ? 'on' : ''}" data-sp="${esc(x.pageUrl)}">${esc(x.seasonTitle)}</button>`).join('') : '';
+    $('#mseasons').querySelectorAll('[data-sp]').forEach(b => b.onclick = () => {
+      curSeason = b.dataset.sp;
+      $('#mseasons').querySelectorAll('[data-sp]').forEach(x => x.classList.toggle('on', x === b));
+      drawSeason(curSeason).catch(e => { $('#eps').innerHTML = `<p class="err">${esc(e.message)}</p>`; });
+    });
+    await drawSeason(seasons.length ? curSeason : path);
+  }catch(e){
+    $('#eps').innerHTML = `<p class="note">לא ניתן לטעון את התוכנית (${esc(e.message)}).</p>
+      <button class="btn primary openbtn" data-site="${esc(MAKO + path)}">פתח את התוכנית ב־mako</button>`;
+  }
+}
 
 /* ---------- genres page ---------- */
 const GENRE_TILES = [['Comedy', '😂'], ['Action', '💥'], ['Drama', '🎭'], ['Thriller', '🔪'], ['Horror', '👻'], ['Sci-Fi', '🚀'],
@@ -1803,7 +1908,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.18.1</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.19.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -1912,7 +2017,7 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
 async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['show', 'r13', 'kan'].includes(r) ? 'tv' : r)));
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['show', 'r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
   scrollTo(0, 0);
   if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
@@ -1922,6 +2027,7 @@ async function route(){
   else if(r === 'r13') viewR13Series(a, b);
   else if(r === 'kan') viewKanProgram(a, b);
   else if(r === 'tv') viewTv(a);
+  else if(r === 'mako') viewMakoProgram(a, b);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'live') viewLive();
   else if(r === 'search') viewSearch(a);
