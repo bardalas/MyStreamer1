@@ -1,9 +1,10 @@
 # MyStreamer Android
 
-Current release: **v0.6.0-alpha** (`versionCode 600`).
+Current release: **v0.7.0-alpha** (`versionCode 700`).
 
 Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 
+- Settings: 5 skins, 4 layouts (Cinema, Poster wall, List, TV) and poster size.
 - Hebrew subtitles are added automatically (Wizdom + OpenSubtitles, matched to the release).
 - Direct HTTP/HLS sources open in the native Media3/ExoPlayer player.
 - Torrentio sources stream: playback starts after a few MB are buffered; the rest downloads ahead of the playhead.

@@ -2,6 +2,7 @@ package com.booth.player
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -35,6 +36,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class Bridge {
+        /** True on Android TV; the page then defaults to its TV (10-foot) layout. */
+        @JavascriptInterface fun isTv(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+
         /** [videoId]/[release] drive the Hebrew subtitle lookup (Stremio id and release/file name). */
         @JavascriptInterface fun playUrl(url: String, title: String, videoId: String, release: String) {
             Subtitles.prefetch(applicationContext, videoId, release)

@@ -1,5 +1,14 @@
 # Booth Android changelog
 
+## 0.7.0 — 2026-09-19
+- New Settings page (top menu), applied instantly and remembered:
+  - Skins: Tungsten, Midnight (OLED black), Velvet, Forest, Daylight (light).
+  - Layouts: Cinema (banner + rows), Poster wall, List (compact, for phones), TV (10-foot, remote-friendly).
+  - Poster size: small / medium / large.
+- Android TV devices default to the TV layout.
+- Fix: Discover's "Load more" button was restyled by the sources list (class clash).
+- Fix: top bar overflowed on tablet-width screens; search now wraps to its own row.
+
 ## 0.6.0 — 2026-09-19
 - Hebrew subtitles added automatically to every movie and episode.
   Sources: Wizdom and OpenSubtitles; the 3 subtitles whose release name best matches the
