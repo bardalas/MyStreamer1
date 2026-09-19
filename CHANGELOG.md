@@ -1,5 +1,10 @@
 # Booth Android changelog
 
+## 0.5.1 — 2026-09-19
+- Release builds are signed with a permanent key, so new versions install over old ones (no uninstall).
+- Tagged versions are published as GitHub Releases; phones can auto-update via Obtainium.
+- Fix: returning to the player from Home/another app no longer shows a black screen; playback resumes where it left off.
+
 ## 0.5.0 — 2026-09-19
 - Native BitTorrent download/playback via FrostWire jlibtorrent 2.0.12.9.
 - Torrentio infoHash sources fetch metadata, pick the requested (or largest video) file, and download it sequentially.

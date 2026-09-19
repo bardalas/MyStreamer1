@@ -1,6 +1,8 @@
-MyStreamer Android v0.5.0-alpha
-versionCode: 500
+MyStreamer Android v0.5.1-alpha
+versionCode: 501
 applicationId: com.booth.player
 
-Adds native BitTorrent download/playback via FrostWire jlibtorrent 2.0.12.9.
-Torrentio infoHash sources now fetch metadata, select the requested video file, download it sequentially, and open it in the internal Media3 player when complete.
+Versioning policy:
+0.x.y = development releases
+1.0.0 = first stable release
+versionCode = major*10000 + minor*100 + patch   (0.5.1 -> 501, 1.0.0 -> 10000)

@@ -1,22 +1,26 @@
 # MyStreamer Android
 
-Current release: **v0.5.0-alpha** (`versionCode 500`).
+Current release: **v0.5.1-alpha** (`versionCode 501`).
 
-Android frontend for Stremio-compatible add-ons with native Android Media3 playback.
+Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 
-## v0.5.0-alpha
-- Native BitTorrent engine (FrostWire jlibtorrent 2.0.12.9).
-- Torrentio infoHash sources fetch metadata, select the requested video file, download it sequentially, and open it in the internal Media3 player once the download completes.
 - Direct HTTP/HLS sources open in the native Media3/ExoPlayer player.
-- Android TV launcher declaration is present; full D-pad/10-foot UI optimization is planned for a later release.
+- Torrentio sources: fetches metadata, downloads the selected file sequentially, then plays it (playback starts once the download finishes).
 
-## Build APK with GitHub Actions
-1. Push to `main` (or a `v*` tag), or open **Actions > Build Android APK** and choose **Run workflow**.
-2. When the run is green, download the artifact named `MyStreamer-v0.5.0-alpha-debug`.
+## Install on your phone & get automatic updates
+1. Install **[Obtainium](https://github.com/ImranR98/Obtainium/releases/latest)** (free, open source).
+2. In Obtainium tap **Add App**, paste `https://github.com/bardalas/MyStreamer1`, tap **Add**, then **Install**.
+3. Obtainium checks for new releases in the background and installs them (silently on Android 12+).
 
-The workflow uses JDK 17, the runner's preinstalled Android SDK, and Gradle 9.6.0.
+Or download the APK manually from [Releases](https://github.com/bardalas/MyStreamer1/releases/latest).
 
-## Upgrade identity
-The application ID is intentionally kept as `com.booth.player`. Do not change it after installing builds if you want Android to treat later releases as updates to the same app.
+## Releasing a new version
+1. Bump `versionCode` / `versionName` in `app/build.gradle.kts` (versionCode = major*10000 + minor*100 + patch) and add a `CHANGELOG.md` entry.
+2. Commit, then tag and push: `git tag v0.5.2 && git push origin main v0.5.2`.
+3. GitHub Actions builds a signed APK and publishes the Release; phones pick it up automatically.
 
-For reliable upgrades between CI-built APKs, a later release should use a persistent release signing key stored in GitHub Actions secrets. Debug builds are for initial testing.
+Pushes to `main` without a tag build a signed test APK as a workflow artifact only.
+
+## Signing
+Release builds are signed in CI from these repository secrets: `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`.
+**Keep a backup of the keystore** — Android only accepts updates signed with the same key. The application ID `com.booth.player` must also never change.

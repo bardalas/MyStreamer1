@@ -5,3 +5,8 @@ local.properties
 **/build/
 *.iml
 .DS_Store
+
+# Signing keys - never commit
+*.p12
+*.jks
+*.keystore

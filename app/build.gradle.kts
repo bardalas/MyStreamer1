@@ -1,5 +1,9 @@
 plugins { id("com.android.application") }
 
+// Release signing comes from CI secrets (see .github/workflows/build-apk.yml).
+// Never commit the keystore — installs can only be updated by APKs signed with the same key.
+val signingKeystore: String? = System.getenv("SIGNING_KEYSTORE_PATH")
+
 android {
     namespace = "com.booth.player"
     compileSdk = 36
@@ -7,8 +11,25 @@ android {
         applicationId = "com.booth.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 500
-        versionName = "0.5.0"
+        versionCode = 501
+        versionName = "0.5.1"
+    }
+    signingConfigs {
+        create("release") {
+            if (signingKeystore != null) {
+                storeFile = file(signingKeystore)
+                storeType = "pkcs12"
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_STORE_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            if (signingKeystore != null) signingConfig = signingConfigs.getByName("release")
+        }
     }
 }
 
