@@ -239,6 +239,13 @@ main{padding:0 28px 60px}
 .hint code{background:var(--raise);padding:1px 6px;border-radius:4px;font-size:12px}
 @media (max-width:760px){.cats{top:104px;padding:4px 16px 10px}.addpl{grid-template-columns:1fr}}
 
+/* Hebrew metadata */
+.desc[dir="rtl"]{font-size:16px;line-height:1.7}
+.desc .src{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
+.desc .src a{color:var(--muted)}
+.readmore{background:none;border:0;color:var(--tungsten);font-weight:600;cursor:pointer;padding:0 4px}
+.orig{display:block;font-family:var(--body);font-size:15px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:6px}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -254,7 +261,7 @@ main{padding:0 28px 60px}
 }
 </style>
 </head>
-<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.8.0</div>
+<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.9.0</div>
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
@@ -324,6 +331,130 @@ async function loadAddons(){
   addons = res.filter(r => r.status === 'fulfilled').map(r => r.value);
 }
 
+/* ---------- Hebrew titles & plots ----------
+   Titles: a map precomputed daily on GitHub (addon/he.json, see tools/build_catalogs.py) for every
+   catalog title; anything missing is looked up on Wikidata in small batches and cached.
+   Plots: the "עלילה" section of the title's Hebrew Wikipedia article. */
+const WDQS = 'https://query.wikidata.org/sparql?format=json&query=';
+const HE_TITLES = 'https://raw.githubusercontent.com/bardalas/MyStreamer1/main/addon/he.json';
+const WDAPI = 'https://www.wikidata.org/w/api.php?format=json&origin=*&';
+let heCache = store.get('heMeta', {});             // tt -> {t: Hebrew title, w: hewiki article}
+const hePending = new Set();
+let heTimer = null, heBusy = false;
+let heReady = Promise.resolve();                     // resolves once the precomputed map is loaded
+const hebrewOn = () => (typeof settings === 'undefined' || settings.lang !== 'en');
+const hasHebrew = s => /[\u0590-\u05FF]/.test(s || '');
+const heTitle = (id, fallback) => (hebrewOn() && heCache[id]?.t) || fallback;
+
+/** Queue ids for a Hebrew title lookup; lookups are batched and the page updated in place. */
+function hebrewize(ids){
+  if(!hebrewOn()) return;
+  for(const id of ids) if(/^tt\d+$/.test(id) && !(id in heCache)) hePending.add(id);
+  if(hePending.size){ clearTimeout(heTimer); heTimer = setTimeout(heFlush, 300); }
+}
+async function heLookup(ids){
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  const q = `SELECT ?imdb ?he ?wp WHERE { VALUES ?imdb { ${ids.map(i => `"${i}"`).join(' ')} } ?item wdt:P345 ?imdb.
+    OPTIONAL { ?item rdfs:label ?he FILTER(LANG(?he) = "he") }
+    OPTIONAL { ?wp schema:about ?item; schema:isPartOf <https://he.wikipedia.org/> } }`;
+  const r = await fetch(WDQS + encodeURIComponent(q), {signal: ctl.signal}).finally(() => clearTimeout(timer));
+  if(!r.ok) throw new Error(r.status);
+  const d = await r.json();
+  for(const id of ids) heCache[id] ||= {t: '', w: ''};
+  for(const b of d.results.bindings){
+    const e = heCache[b.imdb.value];
+    if(b.he) e.t ||= b.he.value;
+    if(b.wp) e.w ||= decodeURIComponent(b.wp.value.split('/wiki/')[1] || '');
+  }
+  store.set('heMeta', heCache);
+}
+async function heFlush(){
+  if(heBusy || !hePending.size) return;
+  heBusy = true;
+  await heReady;
+  for(const id of [...hePending]) if(id in heCache) hePending.delete(id);
+  if(!hePending.size){ heBusy = false; return; }
+  const batch = [...hePending].slice(0, 50);
+  batch.forEach(id => hePending.delete(id));
+  try{
+    await heLookup(batch);
+    for(const id of batch){
+      const t = heCache[id]?.t; if(!t) continue;
+      document.querySelectorAll(`[data-heid="${id}"]`).forEach(el => { el.textContent = t; el.dir = 'rtl'; });
+    }
+  }catch(e){ /* rate-limited or offline: these ids are retried when shown again */ }
+  heBusy = false;
+  if(hePending.size) heTimer = setTimeout(heFlush, 2500);   // Wikidata rate-limits bursts
+}
+
+function applyHebrew(){
+  document.querySelectorAll('[data-heid]').forEach(el => {
+    const t = heCache[el.dataset.heid]?.t;
+    if(t && el.textContent !== t){ el.textContent = t; el.dir = 'rtl'; }
+  });
+}
+
+/** Precomputed Hebrew titles (refreshed daily); ids in it are never looked up from the phone. */
+async function loadHebrewTitles(){
+  if(!hebrewOn()) return;
+  try{
+    const d = await getJSON(HE_TITLES);
+    for(const [id, v] of Object.entries(d)) heCache[id] = v ? {t: v[0] || '', w: v[1] || ''} : {t: '', w: ''};
+    for(const id of [...hePending]) if(id in heCache) hePending.delete(id);
+    store.set('heMeta', heCache);
+    applyHebrew();
+  }catch(e){ /* offline: keep the cached copy */ }
+}
+
+/** Fast single-title lookup through the Wikidata API (used by the details page). */
+async function heLookupOne(id){
+  const s = await getJSON(`${WDAPI}action=query&list=search&srsearch=haswbstatement:P345=${id}&srlimit=1`);
+  const q = s.query?.search?.[0]?.title;
+  heCache[id] = {t: '', w: ''};
+  if(q){
+    const e = (await getJSON(`${WDAPI}action=wbgetentities&ids=${q}&props=labels|sitelinks&languages=he&sitefilter=hewiki`)).entities?.[q];
+    heCache[id] = {t: e?.labels?.he?.value || '', w: (e?.sitelinks?.hewiki?.title || '').replace(/ /g, '_')};
+  }
+  store.set('heMeta', heCache);
+}
+
+const plotCache = {};
+/** Hebrew plot for an IMDb id from Hebrew Wikipedia: the plot section, else the lead. */
+async function hebrewPlot(id){
+  if(id in plotCache) return plotCache[id];
+  if(!(id in heCache)) await heLookupOne(id);
+  const article = heCache[id]?.w;
+  if(!article) return plotCache[id] = null;
+  const d = await getJSON(`https://he.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=wiki&redirects=1&format=json&origin=*&titles=${encodeURIComponent(article)}`);
+  const text = Object.values(d.query.pages)[0]?.extract || '';
+  const plot = text.match(/^==\s*(?:עלילה|עלילת הסרט|עלילת הסדרה|תקציר העלילה|תקציר הסדרה|תקציר|תקציר עלילה)\s*==\s*$([\s\S]*?)(?=^==[^=]|$(?![\s\S]))/m);
+  const body = (plot ? plot[1] : text.split(/^==/m)[0]).replace(/^===.*===$/gm, '').replace(/\n{2,}/g, '\n').trim();
+  return plotCache[id] = body ? {text: body, article} : null;
+}
+
+/** Hebrew search: Wikidata full-text search, keeping films and series that have an IMDb id. */
+async function hebrewSearch(q){
+  const s = await getJSON(`https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q + ' haswbstatement:P345')}&srlimit=30&format=json&origin=*`);
+  const qids = (s.query?.search || []).map(r => r.title).filter(t => /^Q\d+$/.test(t));
+  if(!qids.length) return [];
+  const sp = `SELECT ?item ?imdb ?he ?en ?date ?series WHERE { VALUES ?item { ${qids.map(x => 'wd:' + x).join(' ')} } ?item wdt:P345 ?imdb.
+    { ?item wdt:P31/wdt:P279* wd:Q11424 } UNION { ?item wdt:P31/wdt:P279* wd:Q5398426 BIND(true AS ?series) }
+    OPTIONAL { ?item rdfs:label ?he FILTER(LANG(?he) = "he") } OPTIONAL { ?item rdfs:label ?en FILTER(LANG(?en) = "en") }
+    OPTIONAL { ?item wdt:P577 ?date } }`;
+  const rows = (await getJSON(WDQS + encodeURIComponent(sp))).results.bindings;
+  const byItem = new Map();
+  for(const b of rows){
+    const id = b.imdb.value; if(!id.startsWith('tt')) continue;
+    const m = byItem.get(b.item.value) || {id, type: 'movie', name: '', poster: `https://images.metahub.space/poster/medium/${id}/img`};
+    if(b.series) m.type = 'series';
+    m.name ||= b.he?.value || b.en?.value || id;
+    const y = b.date?.value.slice(0, 4); if(y && (!m.releaseInfo || y < m.releaseInfo)) m.releaseInfo = y;
+    byItem.set(b.item.value, m);
+  }
+  return qids.map(q => byItem.get('http://www.wikidata.org/entity/' + q)).filter(Boolean);
+}
+
 /* ---------- cards ---------- */
 function card(m){
   const p = Object.values(progress).find(x => x.metaId === m.id);
@@ -331,7 +462,9 @@ function card(m){
   const art = m.poster
     ? `<div class="art" style="background-image:url('${esc(m.poster)}')">${pct?`<div class="prog" style="width:${pct}%"></div>`:''}</div>`
     : `<div class="art noart">${esc(m.name)}</div>`;
-  return `<a class="poster" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t">${esc(m.name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
+  hebrewize([m.id]);
+  const name = heTitle(m.id, m.name);
+  return `<a class="poster" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
@@ -420,7 +553,7 @@ function viewCategory(id){
 function renderHero(m){
   const h = $('#hero'); if(!h) return;
   h.innerHTML = `<div class="bg" style="background-image:url('${esc(m.background || m.poster)}')"></div><div class="beam"></div>
-    <div class="copy"><h1>${esc(m.name)}</h1><p>${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
+    <div class="copy"><h1 data-heid="${esc(m.id)}" dir="auto">${esc(heTitle(m.id, m.name))}</h1><p>${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
     <a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">View details</a></div>`;
 }
 
@@ -465,6 +598,11 @@ async function viewSearch(q){
   const app = $('#app');
   const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => (c.extra||[]).some(e => e.name === 'search') || (c.extraSupported||[]).includes('search')).map(c => ({a, c})));
   app.innerHTML = `<div class="page"><h1>Results for “${esc(q)}”</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(x.c.type)} <small>${esc(x.a.manifest.name)}</small></h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || '<p class="note">None of your add-ons support search.</p>'}</div>`;
+  if(hasHebrew(q)){
+    app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>בעברית <small>Wikidata</small></h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
+    hebrewSearch(q).then(ms => { $('#sHe').innerHTML = ms.map(card).join('') || '<p class="note">לא נמצאו תוצאות.</p>'; })
+      .catch(e => { $('#sHe').innerHTML = `<p class="err">Hebrew search failed (${esc(e.message)}).</p>`; });
+  }
   cats.forEach(async (x, i) => {
     try{
       const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}/search=${encodeURIComponent(q)}.json`);
@@ -481,15 +619,27 @@ async function viewDetail(type, id){
   for(const a of src){ try{ meta = (await getJSON(`${a.base}/meta/${type}/${encodeURIComponent(id)}.json`)).meta; if(meta) break; }catch(e){} }
   if(!meta){ app.innerHTML = `<div class="page"><h1>Title not found</h1><p class="note">None of your add-ons returned details for this title.</p></div>`; return; }
   const saved = !!library[meta.id];
+  if(hebrewOn() && /^tt\d+$/.test(meta.id)) hebrewPlot(meta.id).then(plot => {
+    const el = $('#desc');
+    if(!plot || !el) return;
+    const PREVIEW = 650;
+    const short = plot.text.length > PREVIEW ? plot.text.slice(0, plot.text.lastIndexOf(' ', PREVIEW)) + '…' : plot.text;
+    const src = `<span class="src">מתוך <a href="https://he.wikipedia.org/wiki/${encodeURIComponent(plot.article)}" target="_blank" rel="noopener">ויקיפדיה העברית</a> · CC BY-SA</span>`;
+    el.dir = 'rtl';
+    el.innerHTML = esc(short).replace(/\n/g, '<br>') + (short !== plot.text ? ' <button class="readmore" id="rm">קרא עוד</button>' : '') + src;
+    if($('#rm')) $('#rm').onclick = () => { el.innerHTML = esc(plot.text).replace(/\n/g, '<br>') + src; };
+    const h = app.querySelector('.detail h1');
+    if(h && heCache[meta.id]?.t && !h.querySelector('.orig')) h.innerHTML = `${esc(heCache[meta.id].t)}<span class="orig" dir="ltr">${esc(meta.name)}</span>`;
+  }).catch(() => {});
   const videos = (meta.videos || []).filter(v => v.season !== undefined || type !== 'movie');
   const seasons = [...new Set(videos.map(v => v.season ?? 0))].sort((a,b) => (a===0) - (b===0) || a - b);
   app.innerHTML = `<div class="backdrop" style="background-image:url('${esc(meta.background || meta.poster)}')"></div>
     <div class="detail">
       <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
       <div>
-        <h1>${esc(meta.name)}</h1>
+        <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig" dir="ltr">${esc(meta.name)}</span>` : ''}</h1>
         <div class="facts">${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(g)}</span>`).join('')}</div>
-        <p class="desc">${esc(meta.description)}</p>
+        <p class="desc" id="desc">${esc(meta.description)}</p>
         <div class="people">${meta.director?.length ? `<div><b>Director</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>Cast</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
         <button class="btn ghost ${saved?'saved':''}" id="lib">${saved ? 'In your library' : 'Add to library'}</button>
         ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">Watch trailer</button>` : ''}
@@ -818,7 +968,7 @@ const LAYOUTS = [
 ];
 const POSTER_SIZES = [{id: 's', name: 'Small'}, {id: 'm', name: 'Medium'}, {id: 'l', name: 'Large'}];
 const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm'}, store.get('settings', {}));
+let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he'}, store.get('settings', {}));
 function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster;
@@ -836,6 +986,9 @@ function viewSettings(){
     <section class="sset"><h2>Layout</h2><div class="sopts">${LAYOUTS.map(o => card('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>
     <section class="sset"><h2>Poster size</h2><div class="seg" role="group" aria-label="Poster size">${POSTER_SIZES.map(o =>
       `<button class="${settings.poster === o.id ? 'on' : ''}" data-g="poster" data-v="${o.id}" aria-pressed="${settings.poster === o.id}">${o.name}</button>`).join('')}</div></section>
+    <section class="sset"><h2>Titles &amp; plots</h2><div class="seg" role="group" aria-label="Titles and plots language">${[{id: 'he', name: 'עברית'}, {id: 'en', name: 'English'}].map(o =>
+      `<button class="${settings.lang === o.id ? 'on' : ''}" data-g="lang" data-v="${o.id}" aria-pressed="${settings.lang === o.id}">${o.name}</button>`).join('')}</div>
+      <p class="note" style="margin:8px 0 0">Hebrew titles come from Wikidata and plots from Hebrew Wikipedia; titles without a Hebrew entry stay in English.</p></section>
     <section class="sset"><h2>Subtitles</h2><p class="note" style="margin:0">Hebrew subtitles are added automatically to every movie and episode (Wizdom and OpenSubtitles), matched to the release you pick. Switch or turn them off with the subtitles button in the player.</p></section>
     <p><button class="danger" id="sreset">Reset to defaults</button></p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
@@ -843,7 +996,7 @@ function viewSettings(){
     store.set('settings', settings); applySettings(); viewSettings();
   });
   $('#sreset').onclick = () => {
-    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm'};
+    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he'};
     store.set('settings', settings); applySettings(); viewSettings();
   };
   if(focusKey) $('#app').querySelector(focusKey)?.focus();
@@ -925,6 +1078,7 @@ async function route(){
   else viewHome();
 }
 addEventListener('hashchange', route);
+heReady = loadHebrewTitles();
 loadAddons().then(route);
 </script>
 <div id="tstatus" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:10000;max-width:calc(100vw - 32px);padding:12px 14px 12px 18px;border-radius:12px;background:var(--raise);border:1px solid var(--line);color:var(--light);font:14px/1.4 var(--body);box-shadow:0 8px 28px #0008;align-items:center;gap:14px">

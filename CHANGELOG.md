@@ -1,5 +1,13 @@
 # Booth Android changelog
 
+## 0.9.0 — 2026-09-19
+- Hebrew titles on posters, banners and details pages (Wikidata), with the original title shown under it.
+- Hebrew plot on the details page, from the "עלילה" section of Hebrew Wikipedia (with "קרא עוד" and attribution).
+- Hebrew search: queries in Hebrew also search Wikidata (e.g. "חומות של תקווה", "פאודה").
+- Hebrew titles for all catalog titles are precomputed daily on GitHub (addon/he.json);
+  other titles are looked up on demand and cached on the phone.
+- Settings: "Titles & plots" language (עברית / English).
+
 ## 0.8.0 — 2026-09-19
 - Category bar on Home: All, Netflix, Apple TV+, Disney+, Prime Video, HBO Max, Paramount+,
   Documentaries (Curiosity Stream, MagellanTV, popular documentaries), Israeli, Arabic, Live TV.
