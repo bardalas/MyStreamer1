@@ -266,6 +266,35 @@ main{padding:0 28px 60px}
 .prog.now{color:var(--tungsten)}
 .prog.future{opacity:.4;cursor:default}
 
+/* live tv: channel list */
+.live-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
+.live-top .field{padding:7px 12px}
+.live-top #lq{flex:1;min-width:160px;max-width:320px}
+.continue{display:flex;align-items:center;gap:10px;width:100%;max-width:900px;border:1px solid var(--line);background:var(--surface);color:var(--light);border-radius:10px;padding:12px 16px;margin:0 0 14px;cursor:pointer;font-size:15px;text-align:start}
+.continue:hover,.continue:focus-visible{border-color:var(--tungsten)}
+.continue span{color:var(--tungsten);font-weight:700}
+.chlist{display:flex;flex-direction:column;max-width:900px}
+.chrow{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
+.chmain{flex:1;display:flex;align-items:center;gap:14px;background:none;border:0;color:var(--light);padding:10px 6px;text-align:start;cursor:pointer;min-width:0}
+.chmain:hover,.chmain:focus-visible{background:var(--raise)}
+.chnum{flex:none;width:28px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:center;font-size:14px}
+.chlogo{flex:none;width:64px;height:40px;display:flex;align-items:center;justify-content:center}
+.chlogo img{max-width:64px;max-height:40px;object-fit:contain}
+.chlogo span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--raise);color:var(--tungsten);font-weight:700}
+.chinfo{display:flex;flex-direction:column;min-width:0;gap:3px}
+.chinfo b{font-weight:600;font-size:15px}
+.chinfo small{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chinfo .bar{display:block;height:3px;width:160px;max-width:100%;background:var(--line);border-radius:2px;overflow:hidden}
+.chinfo .bar i{display:block;height:100%;background:var(--tungsten)}
+.chback{flex:none;width:56px;background:none;border:0;border-inline-start:1px solid var(--line);color:var(--muted);font-size:20px;cursor:pointer}
+.chback:hover,.chback:focus-visible{color:var(--light);background:var(--raise)}
+[data-layout="tv"] .chinfo b{font-size:19px}
+[data-layout="tv"] .chlogo{width:84px;height:52px}
+[data-layout="tv"] .chlogo img{max-width:84px;max-height:52px}
+.plrow{display:flex;align-items:center;gap:10px;max-width:760px;padding:8px 0;border-bottom:1px solid var(--line)}
+.plrow b{flex:1;font-weight:500}
+.plrow code{color:var(--muted);font-size:12px;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -285,10 +314,9 @@ main{padding:0 28px 60px}
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
-    <a href="#/" data-r="home">בית</a>
-    <a href="#/discover/movie" data-r="discover">גלה</a>
+    <a href="#/" data-r="home">סרטים וסדרות</a>
+    <a href="#/live" data-r="live">שידור חי</a>
     <a href="#/library" data-r="library">הספרייה</a>
-    <a href="#/addons" data-r="addons">תוספים</a>
     <a href="#/settings" data-r="settings">הגדרות</a>
   </nav>
   <form class="search" id="sf"><input id="q" placeholder="חיפוש סרטים וסדרות" aria-label="חיפוש"><button>חפש</button></form>
@@ -367,6 +395,13 @@ const hasHebrew = s => /[\u0590-\u05FF]/.test(s || '');
 const heClean = t => (t || '').replace(/\s*\((?:סרט|סדרה|סדרת|מיני-סדרה|מיני סדרה|תוכנית|סרטון)[^)]*\)\s*$/, '').trim();
 const heTitle = (id, fallback) => (hebrewOn() && heCache[id]?.t) || fallback;
 for(const e of Object.values(heCache)) if(e?.t) e.t = heClean(e.t);   // titles cached by 0.9/0.10 weren't cleaned
+// 0.11/0.12 could cache "no Hebrew entry" when Wikidata answered with an error; forget those once,
+// and let negative answers expire after a week.
+if(store.get('heRev', 0) < 1){
+  for(const [id, e] of Object.entries(heCache)) if(!e?.t && !e?.w) delete heCache[id];
+  store.set('heMeta', heCache); store.set('heRev', 1);
+}
+for(const [id, e] of Object.entries(heCache)) if(!e?.t && !e?.w && (!e.n || Date.now() - e.n > 7 * 864e5)) delete heCache[id];
 
 const claim = (e, p) => e?.claims?.[p]?.[0]?.mainsnak?.datavalue?.value;
 const claimIds = (e, p) => (e?.claims?.[p] || []).map(c => c.mainsnak?.datavalue?.value?.id).filter(Boolean);
@@ -387,7 +422,9 @@ async function heLookup(ids){
     try{
       const s = await getJSON(`${WDAPI}action=query&list=search&srlimit=1&srprop=&srsearch=haswbstatement:P345=${id}`);
       const q = s.query?.search?.[0]?.title;
-      if(q) byItem[q] = id; else heCache[id] = {t: '', w: ''};   // not on Wikidata
+      if(q) byItem[q] = id;
+      else if(Array.isArray(s.query?.search)) heCache[id] = {t: '', w: '', n: Date.now()};   // really not on Wikidata
+      // anything else (rate-limit or error JSON): leave uncached and try again later
     }catch(e){ /* network error: try again next time it is shown */ }
   });
   const qs = Object.keys(byItem);
@@ -546,7 +583,7 @@ function card(m){
     : `<div class="art noart">${esc(m.name)}</div>`;
   const name = heTitle(m.id, m.name);
   const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';
-  const none = key && typeof avail !== 'undefined' && avail[key] && !avail[key][0];
+  const none = key && typeof avail !== 'undefined' && isNoSrc(avail[key]);
   return `<a class="poster${none ? ' nosrc' : ''}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
@@ -585,7 +622,7 @@ function renderCats(active){
   const avail = CATEGORIES.filter(c => rowsFor(c).length);
   nav.innerHTML = [`<a href="#/" class="${active === 'home' ? 'on' : ''}">הכל</a>`,
     ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}"><bdi>${esc(c.name)}</bdi></a>`),
-    `<a href="#/live" class="${active === 'live' ? 'on' : ''}">📺 שידור חי</a>`].join('');
+    `<a href="#/discover/movie" class="">ז׳אנרים</a>`].join('');
   nav.querySelector('.on')?.scrollIntoView({inline: 'center', block: 'nearest'});
 }
 
@@ -814,10 +851,16 @@ function playStream(s, label, ctx){
   else alert('מקורות טורנט מתנגנים באפליקציית Booth לאנדרואיד.');
 }
 
-function renderStreams(box, all, pending, label, ctx){
+function renderStreams(box, all, pending, label, ctx, errors = [], retry){
   const list = all.filter(x => x.q !== 'CAM' && rank(x) >= 0).sort((a, b) => rank(b) - rank(a));
   const best = list[0];
   if(!best){
+    if(!pending && errors.length){
+      box.innerHTML = `<div class="play"><button class="playbtn" disabled>לא ניתן לטעון מקורות</button>
+        <p class="err" style="margin:0">${errors.map(esc).join('<br>')}</p><button class="btn ghost" id="sretry">נסה שוב</button></div>`;
+      $('#sretry').onclick = retry;
+      return;
+    }
     box.innerHTML = `<div class="play"><button class="playbtn" disabled>${pending ? 'מחפש מקורות…' : 'אין מקורות זמינים כרגע'}</button></div>`;
     return;
   }
@@ -840,31 +883,41 @@ async function loadStreams({type, meta}, videoId, label){
   if(!src.length){ box.innerHTML = `<p class="note">לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.</p>`; return; }
   const token = ++streamsToken;
   const ctx = {videoId, type, meta};
-  const all = [];
+  const all = [], errors = [];
   let pending = src.length;
-  const render = () => { if(token === streamsToken && box.isConnected) renderStreams(box, all, pending > 0, label, ctx); };
+  const retry = () => loadStreams({type, meta}, videoId, label);
+  const render = () => { if(token === streamsToken && box.isConnected) renderStreams(box, all, pending > 0, label, ctx, errors, retry); };
   render();
   await Promise.all(src.map(async a => {
+    const url = `${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`;
     try{
-      const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`);
+      let d;
+      try{ d = await getJSON(url); }
+      catch(e){ await new Promise(r => setTimeout(r, 1500)); d = await getJSON(url); }   // one quiet retry
       for(const s of d.streams || []) all.push(parseStream(s, a.manifest.name, all.length));
-    }catch(e){ /* one add-on failing shouldn't block the others */ }
+    }catch(e){ errors.push(`${a.manifest.name}: ${e.message || 'אין תגובה'}`); }
     pending--;
     render();
   }));
-  if(type === 'movie') setAvail(`${type}:${meta.id}`, all.some(x => x.q !== 'CAM' && rank(x) >= 0));
+  if(type === 'movie' && !errors.length) setAvail(`${type}:${meta.id}`, all.some(x => x.q !== 'CAM' && rank(x) >= 0));
 }
 
 /* ---------- which titles have sources (greys out / hides the rest) ---------- */
-let avail = store.get('avail', {});                 // "type:tt…" -> [ok, checkedAt]
-const AVAIL_TTL = 864e5;
+let avail = store.get('avail', {});                 // "type:tt…" -> [ok, checkedAt, emptyAnswers]
+if(store.get('availRev', 0) < 1){ avail = {}; store.set('avail', avail); store.set('availRev', 1); }   // 0.11/0.12 results may be wrong
+const AVAIL_TTL = 3 * 864e5;
 const availPending = new Set();
 let availBusy = false;
-const availKnown = k => avail[k] && Date.now() - avail[k][1] < AVAIL_TTL;
+const isNoSrc = e => e && !e[0] && (e[2] || 0) >= 2;
+// known = available (fresh), or confirmed empty twice (fresh); a single empty answer is re-checked after 10 minutes
+const availKnown = k => { const e = avail[k]; if(!e) return false; const age = Date.now() - e[1];
+  return e[0] || isNoSrc(e) ? age < AVAIL_TTL : age < 6e5; };
 function setAvail(key, ok){
-  avail[key] = [ok, Date.now()];
+  const prev = avail[key];
+  avail[key] = ok ? [true, Date.now(), 0] : [false, Date.now(), prev && !prev[0] ? (prev[2] || 1) + 1 : 1];
   store.set('avail', avail);
-  document.querySelectorAll(`[data-avail="${key}"]`).forEach(el => el.classList.toggle('nosrc', !ok));
+  const none = isNoSrc(avail[key]);
+  document.querySelectorAll(`[data-avail="${key}"]`).forEach(el => el.classList.toggle('nosrc', none));
 }
 async function hasSources(key){
   const [type, id] = key.split(':');
@@ -884,9 +937,10 @@ function queueAvail(keys){
 async function availFlush(){
   availBusy = true;
   while(availPending.size){
-    const batch = [...availPending].slice(0, 4);
+    const batch = [...availPending].slice(0, 2);          // gentle on the stream add-on
     batch.forEach(k => availPending.delete(k));
     await Promise.all(batch.map(async k => { const ok = await hasSources(k); if(ok !== null) setAvail(k, ok); }));
+    await new Promise(r => setTimeout(r, 300));
   }
   availBusy = false;
 }
@@ -901,7 +955,7 @@ new MutationObserver(muts => {
     if(n.nodeType !== 1) continue;
     for(const el of n.matches('[data-avail]') ? [n] : n.querySelectorAll('[data-avail]')){
       if(availKnown(el.dataset.avail)) continue;
-      if([...el.parentNode.children].indexOf(el) < 10) now.push(el.dataset.avail); else availObserver.observe(el);
+      if([...el.parentNode.children].indexOf(el) < 6) now.push(el.dataset.avail); else availObserver.observe(el);
     }
   }
   if(now.length) queueAvail(now);
@@ -981,24 +1035,28 @@ async function loadRtv(){
   if(rtvCache) return rtvCache;
   const chans = parseM3U(await fetchText(RTV_PLAYLIST(key)));
   for(const c of chans){
-    // http://server:80/<path>/<token>/<channel>.m3u8 -> server, token, channel id
-    const parts = c.url.split('/');
-    if(parts.length > 5){
-      c.server = parts[2].split(':')[0];
-      c.token = parts[4];
-      c.cid = parts[5].split('.')[0];
-      c.url = `http://${c.server}:80/${c.cid}/index.m3u8?token=${c.token}`;
-    }
+    // Live plays the playlist URL exactly as given. For catch-up, recognise the service's
+    // http://server:port/<path>/<token>/<channel>.m3u8 layout (as OTT-Play does).
+    const m = c.url.match(/^https?:\/\/([^/:]+)(?::\d+)?\/[^/]+\/([^/]+)\/([^/.?]+)\.m3u8/);
+    if(m){ c.server = m[1]; c.token = m[2]; c.cid = m[3]; }
+    c.ua ||= BROWSER_UA;                      // some IPTV servers turn away the player's default agent
   }
   if(!chans.length) throw new Error('הרשימה ריקה. ודא שהמנוי פעיל ושהקוד נכון');
   return rtvCache = chans;
 }
 
+const BROWSER_UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36';
+
+/** Flussonic-style catch-up URL: timeshift for the last minutes, otherwise a start+duration window. */
 function rtvArchiveUrl(c, start, end){
   const now = Date.now() / 1000;
-  if(start > now - 600) return `http://${c.server}:80/${c.cid}/timeshift_abs-${Math.floor(start)}.m3u8?token=${c.token}`;
+  start = Math.floor(start);
   if(!end || end <= start) end = now + 600;
-  return `http://${c.server}:80/${c.cid}/index-${Math.floor(start)}-${Math.floor(end - start)}.m3u8?token=${c.token}`;
+  const file = start > now - 600 ? `timeshift_abs-${start}.m3u8` : `index-${start}-${Math.floor(end - start)}.m3u8`;
+  if(c.cid) return `http://${c.server}:80/${c.cid}/${file}?token=${c.token}`;
+  // otherwise swap the file name of the live URL (…/<channel>/index.m3u8?token=… style)
+  const [path, query] = c.url.split('?');
+  return path.replace(/[^/]+$/, file) + (query ? '?' + query : '');
 }
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -1074,76 +1132,103 @@ function playLive(ch){
   else openPlayer({url: ch.url}, ch.name, null);
 }
 
-async function viewLive(msg){
-  renderCats('live');
+/** "Now playing" for RaspberryTV channels (programme guide), cached for a few minutes. */
+const nowCache = {};
+async function nowPlaying(c){
+  if(!c.epg) return null;
+  const hit = nowCache[c.epg];
+  if(hit && Date.now() - hit.at < 3e5) return hit.p;
+  let p = null;
+  try{
+    const d = JSON.parse(await fetchText(`http://protected-api.com/epg/current/${encodeURIComponent(c.epg)}?num=1`));
+    const list = (Array.isArray(d) ? d : d ? [d] : []).map(g => ({t: +g.time, to: +g.time_to, name: g.name || ''}));
+    const now = Date.now() / 1000;
+    p = list.find(g => g.t <= now && g.to > now) || list[0] || null;
+  }catch(e){}
+  nowCache[c.epg] = {at: Date.now(), p};
+  return p;
+}
+
+/** Everything the Live TV page can show: RaspberryTV (if a key is set), official channels, own playlists. */
+function liveSources(){
+  return [...(store.get('rtvKey', '') ? [{key: 'rtv', name: 'RaspberryTV'}] : []),
+          {key: 'il', name: 'ערוצים ישראליים'}, ...playlists.map(p => ({key: p.url, name: p.name}))];
+}
+async function liveChannels(key){
+  if(key === 'il') return IL_CHANNELS;
+  if(key === 'rtv') return loadRtv();
+  return playlistCache[key] ||= parseM3U(await fetchText(key));
+}
+
+/** Play a channel full screen, with the rest of the list available for zapping. */
+function watchChannel(list, i, sourceKey){
+  store.set('lastChannel', {src: sourceKey, name: list[i].name});
+  if(window.BoothAndroid && BoothAndroid.playChannels)
+    BoothAndroid.playChannels(JSON.stringify(list.map(c => ({name: c.name, url: c.url, ua: c.ua || '', referer: c.referer || ''}))), i);
+  else playLive(list[i]);
+}
+
+async function viewLive(){
   const app = $('#app');
-  const sources = [{key: 'il', name: 'ערוצים ישראליים'}, {key: 'rtv', name: 'RaspberryTV'}, ...playlists.map(p => ({key: p.url, name: p.name}))];
-  let sel = store.get('livePl', 'il');
-  if(!sources.some(x => x.key === sel)) sel = 'il';
-  const liveGroup = store.get('liveGroup', '');
+  const sources = liveSources();
+  let sel = store.get('livePl', sources[0].key);
+  if(!sources.some(x => x.key === sel)) sel = sources[0].key;
   app.innerHTML = `<div class="page"><h1>שידור חי</h1>
-    <div class="ltabs" role="group" aria-label="פלייליסטים">${sources.map(x => `<button class="chip ${x.key === sel ? 'on' : ''}" data-pl="${esc(x.key)}">${esc(x.name)}</button>`).join('')}</div>
-    <div class="ltools"><input class="field" id="lq" placeholder="סינון ערוצים" aria-label="סינון ערוצים"><select class="field" id="lg" aria-label="קבוצה"></select>
-      ${sel === 'rtv' && store.get('rtvKey', '') ? `<button class="danger" id="rtvOut">החלף קוד גישה</button>` : ''}
-      ${sel !== 'il' && sel !== 'rtv' ? `<button class="danger" id="lrm">הסר את הפלייליסט</button>` : ''}</div>
+    <div class="live-top">
+      ${sources.length > 1 ? sources.map(x => `<button class="chip ${x.key === sel ? 'on' : ''}" data-pl="${esc(x.key)}">${esc(x.name)}</button>`).join('') : ''}
+      <input class="field" id="lq" type="search" placeholder="חיפוש ערוץ" aria-label="חיפוש ערוץ">
+      <select class="field" id="lg" aria-label="קבוצה" hidden></select>
+    </div>
+    <div id="cont"></div>
     <div id="chs"><p class="note">טוען ערוצים…</p></div>
-    <h2 style="font-family:var(--display);font-size:20px;margin:34px 0 4px">הוספת פלייליסט</h2>
-    <form class="addpl" id="plf"><input class="field" id="pln" placeholder="שם (למשל RaspberryTV)" aria-label="שם הפלייליסט">
-      <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="קישור לפלייליסט (M3U)" dir="ltr"><button class="btn primary">הוסף</button></form>
-    ${msg ? `<p class="${msg.err ? 'err' : 'note'}">${esc(msg.text)}</p>` : ''}
-    <p class="hint">כל פלייליסט M3U עובד. ב־Raspberry Pi: <b>TVHeadend</b> <code>http://&lt;pi-ip&gt;:9981/playlist/channels.m3u</code> (אם נדרשת התחברות, הוסף <code>user:pass@</code> לפני כתובת ה־IP) ·
-      <b>Threadfin / xTeVe</b> <code>http://&lt;pi-ip&gt;:34400/m3u/threadfin.m3u</code> · <b>Jellyfin</b> <code>http://&lt;pi-ip&gt;:8096/LiveTv/Tuners/…/m3u</code>.</p></div>`;
-
+    ${store.get('rtvKey', '') ? '' : `<p class="note" style="margin-top:24px">מנוי RaspberryTV? הזן את קוד הגישה פעם אחת ב<a href="#/settings">הגדרות</a>.</p>`}</div>`;
   app.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { store.set('livePl', b.dataset.pl); store.set('liveGroup', ''); viewLive(); });
-  $('#plf').onsubmit = async e => {
-    e.preventDefault();
-    const url = $('#plu').value.trim(), name = $('#pln').value.trim() || 'הפלייליסט שלי';
-    if(!url) return;
-    try{
-      const chans = parseM3U(await fetchText(url));
-      if(!chans.length) throw new Error('לא נמצאו ערוצים בפלייליסט');
-      playlistCache[url] = chans;
-      playlists = playlists.filter(p => p.url !== url).concat({name, url});
-      store.set('playlists', playlists); store.set('livePl', url);
-      viewLive({text: `נוסף „${name}” עם ${chans.length} ערוצים.`});
-    }catch(err){ viewLive({err: true, text: `לא ניתן לטעון את הפלייליסט (${err.message}).`}); }
-  };
-  if($('#lrm')) $('#lrm').onclick = () => {
-    playlists = playlists.filter(p => p.url !== sel); store.set('playlists', playlists); store.set('livePl', 'il'); viewLive();
-  };
-
-  if($('#rtvOut')) $('#rtvOut').onclick = () => { store.set('rtvKey', ''); rtvCache = null; viewLive(); };
-
-  if(sel === 'rtv' && !store.get('rtvKey', '')){
-    $('.ltools').hidden = true;
-    $('#chs').innerHTML = `<p class="note" style="margin:0 0 6px">הזן את קוד הגישה לאפליקציות (8 תווים) מחשבון RaspberryTV שלך: הגדרות החבילה בחשבון.
-        הקוד נשמר רק במכשיר הזה.</p>
-      <form class="keyform" id="rtvf"><input class="field" id="rtvk" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" aria-label="קוד גישה">
-        <button class="btn primary">התחבר</button></form>`;
-    $('#rtvf').onsubmit = e => {
-      e.preventDefault();
-      const k = $('#rtvk').value.trim();
-      if(k.length !== 8) return alert('קוד הגישה צריך להיות באורך 8 תווים.');
-      store.set('rtvKey', k); rtvCache = null; viewLive();
-    };
-    return;
-  }
 
   let chans;
-  try{
-    chans = sel === 'il' ? IL_CHANNELS : sel === 'rtv' ? await loadRtv() : (playlistCache[sel] ||= parseM3U(await fetchText(sel)));
-  }catch(err){ $('#chs').innerHTML = `<p class="err">לא ניתן לטעון את הערוצים (${esc(err.message)}).</p>`; return; }
+  try{ chans = await liveChannels(sel); }
+  catch(err){ $('#chs').innerHTML = `<p class="err">לא ניתן לטעון את הערוצים (${esc(err.message)}).</p>`; return; }
 
   const groups = [...new Set(chans.map(c => c.group))];
-  $('#lg').innerHTML = `<option value="">כל הקבוצות (${chans.length})</option>` + groups.map(g => `<option ${g === liveGroup ? 'selected' : ''}>${esc(g)}</option>`).join('');
-  $('#lg').hidden = groups.length < 2;
+  const liveGroup = store.get('liveGroup', '');
+  if(groups.length > 1){
+    $('#lg').hidden = false;
+    $('#lg').innerHTML = `<option value="">כל הערוצים (${chans.length})</option>` + groups.map(g => `<option ${g === liveGroup ? 'selected' : ''}>${esc(g)}</option>`).join('');
+  }
+
+  const last = store.get('lastChannel', null);
+  const lastIdx = last && last.src === sel ? chans.findIndex(c => c.name === last.name) : -1;
+  $('#cont').innerHTML = lastIdx >= 0 ? `<button class="continue" id="goLast">▶ המשך לצפות · <span>${esc(chans[lastIdx].name)}</span></button>` : '';
+  if(lastIdx >= 0) $('#goLast').onclick = () => watchChannel(chans, lastIdx, sel);
+
+  const initials = c => esc(c.name.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 2));
   const draw = () => {
-    const q = $('#lq').value.trim().toLowerCase(), g = $('#lg').value;
+    const q = $('#lq').value.trim().toLowerCase(), g = $('#lg').hidden ? '' : $('#lg').value;
     const list = chans.filter(c => (!g || c.group === g) && (!q || c.name.toLowerCase().includes(q)));
-    $('#chs').innerHTML = list.length ? `<div class="channels">${list.map(c => `<button class="chan" data-i="${chans.indexOf(c)}">
-        <span class="logo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:${esc(JSON.stringify(c.name.slice(0, 2)))}}))">` : `<span>${esc(c.name.slice(0, 2))}</span>`}</span>
-        <b>${esc(c.name)}</b><small>${esc(c.group)}</small>${c.rec ? `<span class="rec">⟲ ${c.rec} ימים אחורה</span>` : ''}</button>`).join('')}</div>` : '<p class="note">אין ערוצים שמתאימים.</p>';
-    $('#chs').querySelectorAll('.chan').forEach(b => b.onclick = () => { const c = chans[b.dataset.i]; c.rec ? openChannel(c) : playLive(c); });
+    $('#chs').innerHTML = list.length ? `<div class="chlist">${list.map((c, i) => `<div class="chrow">
+        <button class="chmain" data-i="${i}"><span class="chnum">${chans.indexOf(c) + 1}</span>
+          <span class="chlogo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials(c)}'}))">` : `<span>${initials(c)}</span>`}</span>
+          <span class="chinfo"><b>${esc(c.name)}</b><small data-now="${i}">${c.epg ? '' : esc(c.group || '')}</small></span></button>
+        ${c.rec ? `<button class="chback" data-back="${i}" aria-label="צפייה אחורה ב${esc(c.name)}" title="צפייה אחורה (${c.rec} ימים)">⟲</button>` : ''}
+      </div>`).join('')}</div>` : '<p class="note">אין ערוצים שמתאימים.</p>';
+    $('#chs').querySelectorAll('[data-i]').forEach(b => b.onclick = () => watchChannel(list, +b.dataset.i, sel));
+    $('#chs').querySelectorAll('[data-back]').forEach(b => b.onclick = () => openChannel(list[b.dataset.back]));
+    // "now playing" line for visible channels
+    const showNow = async el => {
+      const p = await nowPlaying(list[el.dataset.now]);
+      if(!p || !el.isConnected || el.dataset.done) return;
+      el.dataset.done = 1;
+      const pct = Math.max(0, Math.min(100, (Date.now() / 1000 - p.t) / (p.to - p.t) * 100));
+      el.textContent = `${p.name} · ${hhmm(p.t)}–${hhmm(p.to)}`;
+      el.insertAdjacentHTML('afterend', `<span class="bar"><i style="width:${pct.toFixed(0)}%"></i></span>`);
+    };
+    const io = new IntersectionObserver(entries => {
+      for(const en of entries) if(en.isIntersecting){ io.unobserve(en.target); showNow(en.target); }
+    }, {rootMargin: '200px'});
+    list.forEach((c, i) => {
+      if(!c.epg) return;
+      const el = $('#chs').querySelector(`[data-now="${i}"]`);
+      if(i < 12) showNow(el); else io.observe(el);
+    });
   };
   $('#lq').oninput = draw;
   $('#lg').onchange = () => { store.set('liveGroup', $('#lg').value); draw(); };
@@ -1193,12 +1278,48 @@ function viewSettings(){
       <p class="note" style="margin:8px 0 0">השמות בעברית מגיעים מ־Wikidata והתקצירים מוויקיפדיה העברית. כותרים בלי ערך בעברית נשארים באנגלית.</p></section>
     <section class="sset"><h2>כותרים בלי מקורות</h2><div class="seg" role="group" aria-label="כותרים בלי מקורות">${[{id: 'grey', name: 'להאפיר'}, {id: 'hide', name: 'להסתיר'}].map(o =>
       `<button class="${settings.nosrc === o.id ? 'on' : ''}" data-g="nosrc" data-v="${o.id}" aria-pressed="${settings.nosrc === o.id}">${o.name}</button>`).join('')}</div></section>
+    <section class="sset"><h2>שידור חי · RaspberryTV</h2>
+      ${store.get('rtvKey', '') ? `<p class="note" style="margin:0 0 8px">מחובר עם קוד <b dir="ltr">${esc(store.get('rtvKey', '').slice(0, 2))}••••••</b>. הערוצים נמצאים ב<a href="#/live">שידור חי</a> ← RaspberryTV.</p>
+        <button class="danger" id="rtvClear">הסר את קוד הגישה</button>`
+      : `<p class="note" style="margin:0 0 8px">קוד הגישה לאפליקציות (8 תווים) נמצא בחשבון RaspberryTV, תחת "Access key for applications". הוא נשמר רק במכשיר הזה.</p>
+        <form class="keyform" id="rtvSet"><input class="field" id="rtvKeyIn" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" aria-label="קוד גישה ל־RaspberryTV">
+        <button class="btn primary">שמור</button></form>`}</section>
+    <section class="sset"><h2>פלייליסטים (M3U)</h2>
+      ${playlists.map(p => `<div class="plrow"><b>${esc(p.name)}</b><code dir="ltr">${esc(p.url)}</code><button class="danger" data-plrm="${esc(p.url)}">הסר</button></div>`).join('')}
+      <form class="addpl" id="plf"><input class="field" id="pln" placeholder="שם" aria-label="שם הפלייליסט">
+        <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="קישור לפלייליסט (M3U)" dir="ltr"><button class="btn primary">הוסף</button></form>
+      <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
+    <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.12.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.13.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
   });
+  if($('#rtvSet')) $('#rtvSet').onsubmit = e => {
+    e.preventDefault();
+    const k = $('#rtvKeyIn').value.trim();
+    if(k.length !== 8) return alert('קוד הגישה צריך להיות באורך 8 תווים.');
+    store.set('rtvKey', k); rtvCache = null; store.set('livePl', 'rtv'); location.hash = '#/live';
+  };
+  $('#app').querySelectorAll('[data-plrm]').forEach(b => b.onclick = () => {
+    playlists = playlists.filter(p => p.url !== b.dataset.plrm); store.set('playlists', playlists); viewSettings();
+  });
+  $('#plf').onsubmit = async e => {
+    e.preventDefault();
+    const url = $('#plu').value.trim(), name = $('#pln').value.trim() || 'הפלייליסט שלי';
+    if(!url) return;
+    try{
+      const chans = parseM3U(await fetchText(url));
+      if(!chans.length) throw new Error('לא נמצאו ערוצים בפלייליסט');
+      playlistCache[url] = chans;
+      playlists = playlists.filter(p => p.url !== url).concat({name, url});
+      store.set('playlists', playlists);
+      alert(`נוסף „${name}” עם ${chans.length} ערוצים.`);
+      viewSettings();
+    }catch(err){ alert(`לא ניתן לטעון את הפלייליסט (${err.message}).`); }
+  };
+  if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); rtvCache = null; viewSettings(); };
   $('#sreset').onclick = () => {
     settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey'};
     store.set('settings', settings); applySettings(); viewSettings();
@@ -1268,9 +1389,9 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
 async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (r || 'home')));
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search'].includes(r) ? 'home' : r)));
   scrollTo(0, 0);
-  if(!['', 'cat', 'live'].includes(r)) renderCats(null);
+  if(!['', 'cat'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'live') viewLive();

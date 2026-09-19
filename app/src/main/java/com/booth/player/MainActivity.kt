@@ -79,6 +79,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** Live TV with channel zapping: [channelsJson] = [{name, url, ua, referer}], starting at [index]. */
+        @JavascriptInterface fun playChannels(channelsJson: String, index: Int) {
+            runOnUiThread {
+                startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
+                    .putExtra("channels", channelsJson).putExtra("index", index).putExtra("live", true))
+            }
+        }
+
         /**
          * Fetches text (M3U playlists) natively: no CORS limits and it reaches LAN devices such as
          * a Raspberry Pi. Supports user:pass@host URLs. Result goes to window.boothFetchDone(id, ok, body).

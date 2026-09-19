@@ -1,6 +1,6 @@
 # MyStreamer Android
 
-Current release: **v0.12.0-alpha** (`versionCode 1200`).
+Current release: **v0.13.0-alpha** (`versionCode 1300`).
 
 Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 

@@ -1,5 +1,19 @@
 # Booth Android changelog
 
+## 0.13.0 — 2026-09-19
+- Simple Live TV mode: top menu is now סרטים וסדרות | שידור חי | הספרייה | הגדרות.
+  Live TV is a channel list (number, logo, name, what's on now + progress) with
+  "▶ המשך לצפות" for the last channel and a ⟲ button for catch-up.
+- Channel zapping in the player: ▲/▼ buttons, swipe up/down, remote up/down and CH+/CH-,
+  with the channel name shown on switch.
+- RaspberryTV: live plays the playlist URL exactly as given (fixes channels not playing), with a
+  browser User-Agent; catch-up URLs derived for both URL layouts. Access key and M3U playlists
+  are managed once in Settings.
+- Player shows the reason when a stream can't be played.
+- Fix: Hebrew plots/titles missing after Wikidata error responses were cached as "no entry".
+- Fix: popular titles wrongly showing no sources — details page now shows load errors with a
+  retry, availability checks are gentler and grey out only after two empty answers.
+
 ## 0.12.0 — 2026-09-19
 - RaspberryTV in Live TV: enter your 8-character access key (stored only on the device) to get
   your channel list, as in OTT-Play.

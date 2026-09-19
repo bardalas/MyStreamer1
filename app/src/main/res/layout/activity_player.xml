@@ -1,4 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.media3.ui.PlayerView xmlns:android="http://schemas.android.com/apk/res/android"
- android:id="@+id/playerView" android:layout_width="match_parent" android:layout_height="match_parent"
- android:background="#000000"/>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="#000000">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
+        android:layout_width="match_parent" android:layout_height="match_parent" />
+
+    <!-- Live TV: channel name shown briefly after switching -->
+    <TextView
+        android:id="@+id/osd"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="top|end" android:layout_margin="20dp"
+        android:background="#B3000000" android:paddingHorizontal="16dp" android:paddingVertical="8dp"
+        android:textColor="#FFFFFF" android:textSize="20sp" android:visibility="gone" />
+
+    <!-- Live TV: channel up / down, shown together with the player controls -->
+    <LinearLayout
+        android:id="@+id/zap"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|start" android:layout_marginStart="16dp"
+        android:orientation="vertical" android:visibility="gone">
+        <Button
+            android:id="@+id/chUp" android:layout_width="64dp" android:layout_height="64dp"
+            android:text="▲" android:textSize="22sp" android:contentDescription="ערוץ קודם" />
+        <Button
+            android:id="@+id/chDown" android:layout_width="64dp" android:layout_height="64dp"
+            android:layout_marginTop="12dp"
+            android:text="▼" android:textSize="22sp" android:contentDescription="ערוץ הבא" />
+    </LinearLayout>
+</FrameLayout>

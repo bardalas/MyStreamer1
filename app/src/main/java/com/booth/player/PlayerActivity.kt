@@ -3,12 +3,21 @@ package com.booth.player
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.GestureDetector
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -18,31 +27,58 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.SubtitleView
+import org.json.JSONArray
+import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
+    /** One playable item. Live TV passes a whole channel list so the viewer can zap through it. */
+    private data class Source(val name: String, val url: String, val ua: String, val referer: String)
+
     private var player: ExoPlayer? = null
     private var resumePosition = 0L
     private var started = false
     /** Hebrew subtitles for this video; null until the lookup started at play time has finished. */
     private var subs: List<Subtitles.Sub>? = null
 
+    private var sources: List<Source> = emptyList()
+    private var index = 0
+    private val live get() = intent.getBooleanExtra("live", false) || sources.size > 1
+    private val handler = Handler(Looper.getMainLooper())
+
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
-        if (intent.getStringExtra("url") == null) { finish(); return }
+
+        sources = intent.getStringExtra("channels")?.let { json ->
+            val a = JSONArray(json)
+            List(a.length()) { i ->
+                a.getJSONObject(i).run { Source(optString("name"), optString("url"), optString("ua"), optString("referer")) }
+            }
+        } ?: listOfNotNull(intent.getStringExtra("url")?.let {
+            Source(intent.getStringExtra("title") ?: "", it, intent.getStringExtra("ua") ?: "", intent.getStringExtra("referer") ?: "")
+        })
+        if (sources.isEmpty()) { finish(); return }
+        index = (savedInstanceState?.getInt("index") ?: intent.getIntExtra("index", 0)).coerceIn(0, sources.size - 1)
         resumePosition = savedInstanceState?.getLong("pos") ?: 0L
 
         val view = findViewById<PlayerView>(R.id.playerView)
-        view.setShowSubtitleButton(true)
+        view.setShowSubtitleButton(!live)
         view.subtitleView?.apply {
             setStyle(CaptionStyleCompat(Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT,
                 CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, null))
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.25f)
         }
 
+        if (sources.size > 1) {
+            val zap = findViewById<View>(R.id.zap)
+            view.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { zap.visibility = it })
+            findViewById<View>(R.id.chUp).setOnClickListener { zapBy(-1) }
+            findViewById<View>(R.id.chDown).setOnClickListener { zapBy(1) }
+        }
+
         // Live TV has no subtitle lookup.
-        if (intent.getBooleanExtra("live", false)) { subs = emptyList(); return }
+        if (live) { subs = emptyList(); showOsd(); return }
 
         // Wait (briefly) for the Hebrew subtitle lookup before building the player,
         // because side-loaded subtitles must be part of the MediaItem.
@@ -69,7 +105,8 @@ class PlayerActivity : AppCompatActivity() {
     @OptIn(UnstableApi::class)
     private fun buildPlayer() {
         if (player != null) return
-        val url = intent.getStringExtra("url") ?: return
+        val src = sources[index]
+        val url = src.url
         // Torrent streams are served from localhost and a read can wait while the next
         // piece downloads, so allow long read timeouts and a larger forward buffer.
         val http = DefaultHttpDataSource.Factory()
@@ -77,14 +114,14 @@ class PlayerActivity : AppCompatActivity() {
             .setReadTimeoutMs(120_000)
             .setAllowCrossProtocolRedirects(true)
         // Per-channel headers from IPTV playlists, and user:pass@host logins (e.g. TVHeadend).
-        intent.getStringExtra("ua")?.takeIf { it.isNotBlank() }?.let { http.setUserAgent(it) }
+        src.ua.takeIf { it.isNotBlank() }?.let { http.setUserAgent(it) }
         val headers = buildMap {
-            intent.getStringExtra("referer")?.takeIf { it.isNotBlank() }?.let { put("Referer", it) }
+            src.referer.takeIf { it.isNotBlank() }?.let { put("Referer", it) }
             basicAuth(url)?.let { put("Authorization", it) }
         }
         if (headers.isNotEmpty()) http.setDefaultRequestProperties(headers)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(30_000, 120_000, 2_500, 5_000)
+            .setBufferDurationsMs(if (live) 8_000 else 30_000, 120_000, if (live) 1_500 else 2_500, 5_000)
             .build()
 
         val subtitleConfigs = subs.orEmpty().mapIndexed { i, s ->
@@ -97,7 +134,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         val item = MediaItem.Builder().setUri(url).setSubtitleConfigurations(subtitleConfigs)
             // IPTV HLS links often carry tokens/query strings, which stop ExoPlayer inferring the type.
-            .apply { if (url.contains(".m3u8") || url.contains("m3u8?")) setMimeType(MimeTypes.APPLICATION_M3U8) }
+            .apply { if (url.contains(".m3u8")) setMimeType(MimeTypes.APPLICATION_M3U8) }
             .build()
 
         player = ExoPlayer.Builder(this)
@@ -108,12 +145,72 @@ class PlayerActivity : AppCompatActivity() {
                 it.trackSelectionParameters = it.trackSelectionParameters.buildUpon()
                     .setPreferredTextLanguage("he")
                     .build()
+                it.addListener(object : Player.Listener {
+                    override fun onPlayerError(error: PlaybackException) {
+                        val why = generateSequence(error.cause) { c -> c.cause }.mapNotNull { c -> c.message }.firstOrNull()
+                        Toast.makeText(this@PlayerActivity,
+                            "לא ניתן לנגן (${error.errorCodeName})" + (why?.let { m -> "\n$m" } ?: ""), Toast.LENGTH_LONG).show()
+                    }
+                })
                 findViewById<PlayerView>(R.id.playerView).player = it
                 it.setMediaItem(item)
-                if (!intent.getBooleanExtra("live", false)) it.seekTo(resumePosition)
+                if (!live) it.seekTo(resumePosition)
                 it.prepare()
                 it.playWhenReady = true
             }
+    }
+
+    /** Live TV: switch to the previous/next channel in the list (wraps around). */
+    private fun zapBy(step: Int) {
+        if (sources.size < 2) return
+        index = (index + step + sources.size) % sources.size
+        player?.release()
+        player = null
+        if (started) buildPlayer()
+        showOsd()
+    }
+
+    private fun showOsd() {
+        val osd = findViewById<TextView>(R.id.osd)
+        osd.text = if (sources.size > 1) "${index + 1} · ${sources[index].name}" else sources[index].name
+        osd.visibility = if (osd.text.isNullOrBlank()) View.GONE else View.VISIBLE
+        handler.removeCallbacksAndMessages(null)
+        handler.postDelayed({ osd.visibility = View.GONE }, 3_000)
+    }
+
+    // Remote: channel keys always zap; up/down zap while the controls are hidden.
+    @OptIn(UnstableApi::class)
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (sources.size > 1 && event.action == KeyEvent.ACTION_DOWN) {
+            val controls = findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_CHANNEL_UP -> { zapBy(-1); return true }
+                KeyEvent.KEYCODE_CHANNEL_DOWN -> { zapBy(1); return true }
+                KeyEvent.KEYCODE_DPAD_UP -> if (!controls) { zapBy(-1); return true }
+                KeyEvent.KEYCODE_DPAD_DOWN -> if (!controls) { zapBy(1); return true }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    // Touch: swipe up = next channel, swipe down = previous.
+    private val swipe by lazy {
+        GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (sources.size < 2 || e1 == null) return false
+                val dy = e2.y - e1.y
+                if (abs(dy) > 150 && abs(dy) > 2 * abs(e2.x - e1.x) && abs(velocityY) > 800) {
+                    zapBy(if (dy < 0) 1 else -1)
+                    return true
+                }
+                return false
+            }
+        })
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        swipe.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
     }
 
     override fun onStop() {
@@ -125,6 +222,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        handler.removeCallbacksAndMessages(null)
         // Leaving the player ends the torrent stream and frees its downloaded data.
         if (isFinishing && intent.getBooleanExtra("torrent", false)) {
             Thread { TorrentEngine.stopCurrent() }.start()
@@ -142,5 +240,6 @@ class PlayerActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putLong("pos", player?.currentPosition ?: resumePosition)
+        outState.putInt("index", index)
     }
 }
