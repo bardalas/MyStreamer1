@@ -66,7 +66,7 @@ main{padding:0 28px 60px}
 .row h2{font-size:22px}
 .row h2 small{font-family:var(--body);font-weight:500;font-size:13px;color:var(--muted);margin-inline-start:8px}
 .strip{display:flex;gap:16px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x proximity}
-.strip::-webkit-scrollbar{height:6px}.strip::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.strip{scrollbar-width:none} .strip::-webkit-scrollbar{width:0;height:0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr));gap:22px 16px}
 .poster{flex:0 0 var(--poster-w);scroll-snap-align:start;text-decoration:none;display:block}
 .poster .art{aspect-ratio:2/3;border-radius:6px;background:var(--surface) center/cover;position:relative;overflow:hidden;transition:transform .2s}
@@ -256,6 +256,27 @@ main{padding:0 28px 60px}
 .readmore{background:none;border:0;color:var(--tungsten);font-weight:600;cursor:pointer;padding:0 4px}
 .orig{display:block;font-family:var(--body);font-size:15px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:6px}
 
+/* opening a source: the card sits over the middle of the screen, with its own way out */
+.tstat{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;
+  flex-direction:column;align-items:center;gap:16px;min-width:min(420px,calc(100vw - 48px));padding:26px 28px;
+  border-radius:16px;background:var(--raise);border:1px solid var(--line);color:var(--light);
+  font:16px/1.5 var(--body);text-align:center;box-shadow:0 24px 60px #000b}
+.tstat.bad{border-color:var(--velvet)}
+.tstat button{background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:11px 26px;font:600 16px var(--body);cursor:pointer}
+[data-layout="tv"] .tstat{font-size:20px} [data-layout="tv"] .tstat button{font-size:19px;padding:14px 32px}
+
+/* settings: categories in a side menu, one page at a time */
+.sgrid{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start}
+.stabs{display:flex;flex-direction:column;gap:6px;position:sticky;top:84px}
+.stabs button{text-align:start;background:none;border:0;border-radius:10px;padding:12px 15px;color:var(--muted);font:inherit;cursor:pointer}
+.stabs button.on{background:var(--raise);color:var(--light);box-shadow:inset -3px 0 var(--tungsten)}
+.stabs button:hover{color:var(--light)}
+.spane{min-width:0}
+.spane .sset:first-child{margin-top:0}
+[data-layout="tv"] .stabs button{font-size:19px;padding:15px 18px}
+[data-layout="tv"] .sgrid{grid-template-columns:270px 1fr}
+@media(max-width:760px){.sgrid{grid-template-columns:1fr}.stabs{flex-direction:row;overflow-x:auto;position:static;scrollbar-width:none}
+  .stabs::-webkit-scrollbar{height:0}.stabs button{white-space:nowrap;box-shadow:none}.stabs button.on{box-shadow:inset 0 -3px var(--tungsten)}}
 /* RaspberryTV: access key form and catch-up sheet */
 .keyform{display:flex;gap:10px;flex-wrap:wrap;align-items:center;max-width:560px;margin:4px 0 8px}
 .keyform input{width:160px;letter-spacing:.15em;text-align:center;font-variant-numeric:tabular-nums}
@@ -366,6 +387,9 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 
 /* TV: no animations or smooth scrolling (weak GPUs), no scroll snapping while moving with the remote */
 [data-layout="tv"] *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+[data-layout="tv"]{scrollbar-width:none}
+[data-layout="tv"] ::-webkit-scrollbar{width:0;height:0}
+[data-layout="tv"] .art{contain:paint}                      /* keep a focus move from repainting the row */
 [data-layout="tv"] .strip{scroll-snap-type:none}
 [data-layout="tv"] input[readonly]{caret-color:transparent;cursor:pointer}
 
@@ -2056,49 +2080,104 @@ function applySettings(){
 }
 applySettings();
 
-function viewSettings(){
-  const card = (g, o, preview) => `<button class="setopt ${settings[g] === o.id ? 'on' : ''}" data-g="${g}" data-v="${o.id}" aria-pressed="${settings[g] === o.id}">
-      ${preview}<span class="sn">${esc(o.name)}</span><span class="sd">${esc(o.note)}</span></button>`;
-  const swatch = o => `<span class="swatch" style="background:${o.c[0]}" aria-hidden="true"><i style="background:${o.c[1]}"></i><i style="background:${o.c[2]}"></i><b style="color:${o.c[3]}">Aa</b></span>`;
+/* Settings: one page per subject, chosen from the menu on the side. Nothing is more than
+   two moves away with the remote, and every screen fits without scrolling. */
+const SETTINGS_TABS = [
+  ['start',  'פתיחה וצפייה'],
+  ['look',   'עיצוב ותצוגה'],
+  ['home',   'מסך הבית'],
+  ['live',   'שידור חי ופלייליסטים'],
+  ['addons', 'תוספים וכתוביות'],
+  ['about',  'איפוס ומידע'],
+];
+let setTab = 'start';
+
+function viewSettings(tab){
+  setTab = SETTINGS_TABS.some(([id]) => id === tab) ? tab : setTab;
+  $('#app').innerHTML = `<div class="page"><h1>הגדרות</h1>
+    <div class="sgrid">
+      <nav class="stabs" role="tablist" aria-label="נושאי ההגדרות">${SETTINGS_TABS.map(([id, name]) =>
+        `<button role="tab" data-tab="${id}" class="${setTab === id ? 'on' : ''}" aria-selected="${setTab === id}">${name}</button>`).join('')}</nav>
+      <div class="spane" id="spane" role="tabpanel"></div>
+    </div></div>`;
+  $('.stabs').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+    if(setTab === b.dataset.tab) return;
+    setTab = b.dataset.tab;
+    $('.stabs').querySelectorAll('[data-tab]').forEach(x => {
+      x.classList.toggle('on', x.dataset.tab === setTab);
+      x.setAttribute('aria-selected', x.dataset.tab === setTab);
+    });
+    paintSettings();
+  });
+  paintSettings();
+}
+
+/** Draw the chosen subject into the pane (the menu keeps its focus). */
+function paintSettings(){
+  const pane = $('#spane');
+  if(!pane) return;
   const a = document.activeElement;
   const focusKey = a?.dataset?.g ? `[data-g="${a.dataset.g}"][data-v="${a.dataset.v}"]` : null;
-  const seg = (g, label, opts) => `<section class="sset"><h2>${label}</h2><div class="seg" role="group" aria-label="${label}">${opts.map(([v, n]) =>
-    `<button class="${settings[g] === v ? 'on' : ''}" data-g="${g}" data-v="${v}" aria-pressed="${settings[g] === v}">${n}</button>`).join('')}</div></section>`;
+  const seg = (g, label, opts, note = '') => `<section class="sset"><h2>${label}</h2>
+    <div class="seg" role="group" aria-label="${esc(label)}">${opts.map(([v, n]) =>
+      `<button class="${settings[g] === v ? 'on' : ''}" data-g="${g}" data-v="${v}" aria-pressed="${settings[g] === v}">${n}</button>`).join('')}</div>
+    ${note ? `<p class="note" style="margin:8px 0 0">${note}</p>` : ''}</section>`;
+  const optCard = (g, o, preview) => `<button class="setopt ${settings[g] === o.id ? 'on' : ''}" data-g="${g}" data-v="${o.id}" aria-pressed="${settings[g] === o.id}">
+      ${preview}<span class="sn">${esc(o.name)}</span><span class="sd">${esc(o.note)}</span></button>`;
+  const swatch = o => `<span class="swatch" style="background:${o.c[0]}" aria-hidden="true"><i style="background:${o.c[1]}"></i><i style="background:${o.c[2]}"></i><b style="color:${o.c[3]}">Aa</b></span>`;
   const hidden = new Set(settings.hiddenCats || []);
   const ordered = [...(settings.cats || []), ...CATEGORIES.map(c => c.id).filter(id => !(settings.cats || []).includes(id))]
     .map(id => CATEGORIES.find(c => c.id === id)).filter(Boolean);
-  $('#app').innerHTML = `<div class="page"><h1>הגדרות</h1>
-    ${seg('start', 'מסך פתיחה', [['vod', 'סרטים וסדרות'], ['live', 'שידור חי']])}
-    ${seg('kids', 'מצב ילדים', [['off', 'כבוי'], ['on', 'פעיל']])}
-    <section class="sset"><h2>קטגוריות במסך הבית</h2><div class="catorder">${ordered.map((c, i) => `<div>
+  const rtv = store.get('rtvKey', '');
+
+  const panes = {
+    start: () => seg('start', 'מסך פתיחה', [['vod', 'סרטים וסדרות'], ['live', 'שידור חי']],
+        'מה נפתח כשמדליקים את המקרן.')
+      + seg('kids', 'מצב ילדים', [['off', 'כבוי'], ['on', 'פעיל']],
+        'במצב ילדים מסך הבית מציג רק תכני ילדים.')
+      + seg('lang', 'שמות ותקצירים', [['he', 'עברית'], ['en', 'English']],
+        'השמות בעברית מגיעים מ־Wikidata והתקצירים מוויקיפדיה העברית. כותרים בלי ערך בעברית נשארים באנגלית.'),
+
+    look: () => `<section class="sset"><h2>ערכת עיצוב</h2><div class="sopts">${SKINS.map(o => optCard('skin', o, swatch(o))).join('')}</div></section>
+      <section class="sset"><h2>פריסה</h2><div class="sopts">${LAYOUTS.map(o => optCard('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>`
+      + seg('poster', 'גודל פוסטרים', POSTER_SIZES.map(o => [o.id, esc(o.name)]))
+      + seg('nosrc', 'כותרים בלי מקורות', [['grey', 'להאפיר'], ['hide', 'להסתיר']],
+        'כותר שאין לו כרגע מקור צפייה — להשאיר אותו מעומעם, או להוציא אותו מהמסך.'),
+
+    home: () => `<section class="sset"><h2>קטגוריות במסך הבית</h2>
+      <p class="note" style="margin:0 0 10px">סמן מה יוצג, והזז למעלה או למטה כדי לקבוע את הסדר.</p>
+      <div class="catorder">${ordered.map((c, i) => `<div>
         <label><input type="checkbox" data-cat="${c.id}" ${hidden.has(c.id) ? '' : 'checked'}><bdi>${esc(c.name)}</bdi></label>
-        <button data-up="${i}" aria-label="הזז למעלה" ${i ? '' : 'disabled'}>▲</button><button data-down="${i}" aria-label="הזז למטה" ${i < ordered.length - 1 ? '' : 'disabled'}>▼</button></div>`).join('')}</div></section>
-    <section class="sset"><h2>ערכת עיצוב</h2><div class="sopts">${SKINS.map(o => card('skin', o, swatch(o))).join('')}</div></section>
-    <section class="sset"><h2>פריסה</h2><div class="sopts">${LAYOUTS.map(o => card('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>
-    <section class="sset"><h2>גודל פוסטרים</h2><div class="seg" role="group" aria-label="גודל פוסטרים">${POSTER_SIZES.map(o =>
-      `<button class="${settings.poster === o.id ? 'on' : ''}" data-g="poster" data-v="${o.id}" aria-pressed="${settings.poster === o.id}">${o.name}</button>`).join('')}</div></section>
-    <section class="sset"><h2>שמות ותקצירים</h2><div class="seg" role="group" aria-label="שפת השמות והתקצירים">${[{id: 'he', name: 'עברית'}, {id: 'en', name: 'English'}].map(o =>
-      `<button class="${settings.lang === o.id ? 'on' : ''}" data-g="lang" data-v="${o.id}" aria-pressed="${settings.lang === o.id}">${o.name}</button>`).join('')}</div>
-      <p class="note" style="margin:8px 0 0">השמות בעברית מגיעים מ־Wikidata והתקצירים מוויקיפדיה העברית. כותרים בלי ערך בעברית נשארים באנגלית.</p></section>
-    <section class="sset"><h2>כותרים בלי מקורות</h2><div class="seg" role="group" aria-label="כותרים בלי מקורות">${[{id: 'grey', name: 'להאפיר'}, {id: 'hide', name: 'להסתיר'}].map(o =>
-      `<button class="${settings.nosrc === o.id ? 'on' : ''}" data-g="nosrc" data-v="${o.id}" aria-pressed="${settings.nosrc === o.id}">${o.name}</button>`).join('')}</div></section>
-    <section class="sset"><h2>שידור חי · RaspberryTV</h2>
-      ${store.get('rtvKey', '') ? `<p class="note" style="margin:0 0 8px">מחובר עם קוד <b dir="ltr">${esc(store.get('rtvKey', '').slice(0, 2))}••••••</b>. הערוצים נמצאים ב<a href="#/live">שידור חי</a> ← RaspberryTV.</p>
+        <button data-up="${i}" aria-label="הזז למעלה" ${i ? '' : 'disabled'}>▲</button><button data-down="${i}" aria-label="הזז למטה" ${i < ordered.length - 1 ? '' : 'disabled'}>▼</button></div>`).join('')}</div></section>`,
+
+    live: () => `<section class="sset"><h2>RaspberryTV</h2>
+      ${rtv ? `<p class="note" style="margin:0 0 10px">מחובר עם קוד <b dir="ltr">${esc(rtv.slice(0, 2))}••••••</b>. הערוצים נמצאים ב<a href="#/live">שידור חי</a> ← RaspberryTV.</p>
         <button class="danger" id="rtvClear">הסר את קוד הגישה</button>`
-      : `<p class="note" style="margin:0 0 8px">קוד הגישה לאפליקציות (8 תווים) נמצא בחשבון RaspberryTV, תחת "Access key for applications". הוא נשמר רק במכשיר הזה.</p>
-        <form class="keyform" id="rtvSet"><input class="field" id="rtvKeyIn" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" aria-label="קוד גישה ל־RaspberryTV">
+      : `<p class="note" style="margin:0 0 10px">קוד הגישה לאפליקציות (8 תווים) נמצא בחשבון RaspberryTV, תחת "Access key for applications". הוא נשמר רק במכשיר הזה.</p>
+        <form class="keyform" id="rtvSet"><input class="field" id="rtvKeyIn" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="8 תווים" aria-label="קוד גישה ל־RaspberryTV">
         <button class="btn primary">שמור</button></form>`}</section>
-    <section class="sset"><h2>פלייליסטים (M3U)</h2>
+      <section class="sset"><h2>פלייליסטים (M3U)</h2>
       ${playlists.map(p => `<div class="plrow"><b>${esc(p.name)}</b><code dir="ltr">${esc(p.url)}</code><button class="danger" data-plrm="${esc(p.url)}">הסר</button></div>`).join('')}
       <form class="addpl" id="plf"><input class="field" id="pln" placeholder="שם" aria-label="שם הפלייליסט">
         <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="קישור לפלייליסט (M3U)" dir="ltr"><button class="btn primary">הוסף</button></form>
-      <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
-    <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
-    <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.22.0</p></div>`;
-  $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
+      <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>`,
+
+    addons: () => `<section class="sset"><h2>תוספים</h2>
+      <p class="note" style="margin:0 0 10px">מקורות הקטלוג והצפייה של המקרן.</p>
+      <div class="keyform"><a class="btn primary" href="#/addons">ניהול תוספים</a></div></section>
+      <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>`,
+
+    about: () => `<section class="sset"><h2>איפוס</h2>
+      <p class="note" style="margin:0 0 10px">מחזיר את כל ההגדרות לברירת המחדל. הספרייה, היסטוריית הצפייה וקוד ה־RaspberryTV נשמרים.</p>
+      <div class="keyform"><button class="danger" id="sreset">איפוס לברירת המחדל</button></div></section>
+      <section class="sset"><h2>על המקרן</h2><p class="note" style="margin:0">המקרן · גרסה 0.23.0</p></section>`,
+  };
+  pane.innerHTML = (panes[setTab] || panes.start)();
+
+  // one place that stores a choice, whichever pane it came from
+  pane.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
-    store.set('settings', settings); applySettings(); viewSettings();
+    store.set('settings', settings); applySettings(); paintSettings();
   });
   if($('#rtvSet')) $('#rtvSet').onsubmit = e => {
     e.preventDefault();
@@ -2106,10 +2185,11 @@ function viewSettings(){
     if(k.length !== 8) return alert('קוד הגישה צריך להיות באורך 8 תווים.');
     store.set('rtvKey', k); rtvCache = null; store.set('livePl', 'rtv'); location.hash = '#/live';
   };
-  $('#app').querySelectorAll('[data-plrm]').forEach(b => b.onclick = () => {
-    playlists = playlists.filter(p => p.url !== b.dataset.plrm); store.set('playlists', playlists); viewSettings();
+  if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); rtvCache = null; paintSettings(); };
+  pane.querySelectorAll('[data-plrm]').forEach(b => b.onclick = () => {
+    playlists = playlists.filter(p => p.url !== b.dataset.plrm); store.set('playlists', playlists); paintSettings();
   });
-  $('#plf').onsubmit = async e => {
+  if($('#plf')) $('#plf').onsubmit = async e => {
     e.preventDefault();
     const url = $('#plu').value.trim(), name = $('#pln').value.trim() || 'הפלייליסט שלי';
     if(!url) return;
@@ -2120,26 +2200,25 @@ function viewSettings(){
       playlists = playlists.filter(p => p.url !== url).concat({name, url});
       store.set('playlists', playlists);
       alert(`נוסף „${name}” עם ${chans.length} ערוצים.`);
-      viewSettings();
+      paintSettings();
     }catch(err){ alert(`לא ניתן לטעון את הפלייליסט (${err.message}).`); }
   };
-  if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); rtvCache = null; viewSettings(); };
-  const saveCats = ids => { settings.cats = ids; store.set('settings', settings); viewSettings(); };
-  $('#app').querySelectorAll('[data-cat]').forEach(cb => cb.onchange = () => {
+  const saveCats = ids => { settings.cats = ids; store.set('settings', settings); paintSettings(); };
+  pane.querySelectorAll('[data-cat]').forEach(cb => cb.onchange = () => {
     const h = new Set(settings.hiddenCats || []);
     cb.checked ? h.delete(cb.dataset.cat) : h.add(cb.dataset.cat);
     settings.hiddenCats = [...h]; store.set('settings', settings);
   });
-  $('#app').querySelectorAll('[data-up],[data-down]').forEach(b => b.onclick = () => {
+  pane.querySelectorAll('[data-up],[data-down]').forEach(b => b.onclick = () => {
     const ids = ordered.map(c => c.id), i = +(b.dataset.up ?? b.dataset.down), j = b.dataset.up != null ? i - 1 : i + 1;
     [ids[i], ids[j]] = [ids[j], ids[i]];
     saveCats(ids);
   });
-  $('#sreset').onclick = () => {
+  if($('#sreset')) $('#sreset').onclick = () => {
     settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off'};
-    store.set('settings', settings); applySettings(); viewSettings();
+    store.set('settings', settings); applySettings(); paintSettings();
   };
-  if(focusKey) $('#app').querySelector(focusKey)?.focus();
+  if(focusKey) pane.querySelector(focusKey)?.focus();
 }
 
 function viewAddons(msg){
@@ -2251,12 +2330,14 @@ function restoreScreen(){
 }
 
 let routed = false;
+let listHash = '#/';                                 // the list a title was opened from
 async function route(){
   routed = true;
   rememberScreen();
   resetObservers();
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['show', 'r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
+  if(['', 'cat', 'genres', 'genre', 'discover', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
   if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
   else if(r === 'genres') viewGenres();
@@ -2272,7 +2353,7 @@ async function route(){
   else if(r === 'detail') viewDetail(a, b);
   else if(r === 'library') viewLibrary();
   else if(r === 'addons') viewAddons();
-  else if(r === 'settings') viewSettings();
+  else if(r === 'settings') viewSettings(a);
   else viewHome();
   restoreScreen();
 }
@@ -2326,17 +2407,31 @@ paintNet();
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
    follows the focus — instead of the browser scrolling on its own. */
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])';
-const ROWS_SEL = '.nav, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .quals, .alt, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide';
+const ROWS_SEL = '.bar, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .quals, .alt, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide, .stabs, .keyform, .plrow, .tstat';
 const visible = el => el.offsetParent !== null && el.getBoundingClientRect().width > 0;
 // While a sheet or the quick view is open the remote stays inside it: nothing behind it can take focus.
 const tvScope = () => document.querySelector('.sheet') || document;
 const tvRows = () => [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
 const itemsOf = row => [...row.querySelectorAll(FOCUSABLE)].filter(visible);
 const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
-function focusItem(el, smooth){
+/* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
+   under the top bar (so the category is always readable), anything else is just brought into view. */
+const barHeight = () => document.querySelector('.bar')?.offsetHeight || 0;
+const catsHeight = () => { const c = $('#cats'); return c && c.offsetHeight && getComputedStyle(c).position === 'sticky' ? c.offsetHeight : 0; };
+function focusItem(el){
   if(!el) return;
   el.focus({preventScroll: true});
-  el.scrollIntoView({block: 'center', inline: 'center', behavior: smooth ? 'auto' : 'auto'});
+  const strip = el.closest('.strip, .chlist, #cats, .nav, .bar, .stabs');
+  if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center'});
+  if(el.closest('.bar')) return scrollTo(0, 0);
+  const row = el.closest('.row');
+  if(row){
+    const want = Math.max(0, Math.round(row.getBoundingClientRect().top + scrollY - barHeight() - catsHeight() - 14));
+    if(Math.abs(scrollY - want) > 4) scrollTo(0, want);
+    return;
+  }
+  const r = el.getBoundingClientRect();
+  if(r.top < barHeight() + 20 || r.bottom > innerHeight - 20) el.scrollIntoView({block: 'center'});
 }
 function tvMove(dir){
   const rows = tvRows();
@@ -2346,11 +2441,28 @@ function tvMove(dir){
   if(!row){ focusItem(itemsOf(rows[0])[0]); return true; }
   const items = itemsOf(row);
   const i = items.indexOf(active);
+  if(row.classList.contains('stabs')){              // side menu: a column, not a row
+    if(dir === 'up' || dir === 'down'){
+      const n = items[i + (dir === 'down' ? 1 : -1)];
+      if(n){ focusItem(n); n.click(); }             // moving down the menu opens that page
+      return true;
+    }
+    if(dir === 'left'){                             // RTL: the page is to the left of the menu
+      const pane = $('#spane');
+      const first = pane && tvRows().filter(r => pane.contains(r)).flatMap(itemsOf)[0];
+      if(first) focusItem(first);
+    }
+    return true;
+  }
   if(dir === 'left' || dir === 'right'){
     // right-to-left: ArrowLeft goes forward through the row
     const step = dir === 'left' ? 1 : -1;
     const next = items[i + step];
     if(next){ focusItem(next); return true; }
+    if(dir === 'right'){                            // back to the side menu, if there is one
+      const tab = document.querySelector('.stabs button.on') || document.querySelector('.stabs button');
+      if(tab && $('#spane')?.contains(active)) focusItem(tab);
+    }
     return true;                                    // stay put at the row's edge
   }
   // up / down: inside a wrapped grid move a line, otherwise move to the next row
@@ -2372,13 +2484,18 @@ function tvMove(dir){
   focusItem(cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]));
   return true;
 }
+let lastMoveAt = 0;
 addEventListener('keydown', e => {
   if(!isTvLayout() || e.altKey || e.ctrlKey || e.metaKey) return;
   const dir = {ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'}[e.key];
   if(!dir) return;
   const a = document.activeElement;
   if(a && (a.tagName === 'INPUT' && !a.readOnly || a.tagName === 'SELECT')) return;   // typing / picking
-  if(tvMove(dir)) e.preventDefault();
+  e.preventDefault();
+  const now = performance.now();                     // a held key repeats fast: keep one move per ~80ms
+  if(now - lastMoveAt < 80) return;
+  lastMoveAt = now;
+  tvMove(dir);
 }, true);
 
 // Remote control (Android TV): text fields stay locked while focus passes over them, so the on-screen
@@ -2405,13 +2522,34 @@ new MutationObserver(muts => { for(const m of muts) for(const n of m.addedNodes)
   .observe(document.body, {childList: true, subtree: true});
 // Back on the remote/phone: close an open panel or keyboard first (called by the app before going back).
 window.boothBack = () => {
+  const status = $('#tstatus');
+  if(status && getComputedStyle(status).display !== 'none'){ $('#tstatusBtn').click(); return true; }
   const sheet = document.querySelector('.sheet');
   if(sheet){ sheet.remove(); return true; }
   if(document.querySelector('.qv')){ closeQuickView(); return true; }
   const a = document.activeElement;
   if(a && a.tagName === 'INPUT' && !a.readOnly && isTvLayout()){ a.blur(); return true; }
-  return false;
+  const up = parentHash();
+  if(up === null) return false;                      // already at the top: the app closes
+  goTo(up);
+  return true;
 };
+/** One level up, by where you are - never back through everything you visited. */
+function parentHash(){
+  const r = (location.hash.split('/')[1] || '').split('?')[0];
+  if(!r) return null;                                                  // home
+  if(['show', 'r13', 'kan', 'mako'].includes(r)) return '#/tv';
+  if(r === 'addons') return '#/settings';
+  if(r === 'genre') return '#/genres';
+  if(r === 'detail') return listHash;
+  return '#/';
+}
+/** Go somewhere without growing the history: Back is our own ladder now. */
+function goTo(hash){
+  if(location.hash === hash) return route();
+  history.replaceState(null, '', hash || '#/');
+  route();
+}
 // Search key on the remote
 window.boothSearchKey = () => { const q = $('#q'); q.focus(); q.readOnly = false; window.BoothAndroid?.showKeyboard?.(); };
 // Remote control (Android TV): if nothing has focus after a page renders, focus its first item.
@@ -2428,9 +2566,9 @@ const addonsReady = loadAddons();
 withTimeout(addonsReady, 6000).then(() => route());
 addonsReady.then(() => { if(!routed) route(); setTimeout(loadServices, 3000); });
 </script>
-<div id="tstatus" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:10000;max-width:calc(100vw - 32px);padding:12px 14px 12px 18px;border-radius:12px;background:var(--raise);border:1px solid var(--line);color:var(--light);font:14px/1.4 var(--body);box-shadow:0 8px 28px #0008;align-items:center;gap:14px">
+<div id="tstatus" role="status" aria-live="polite" class="tstat">
   <span id="tstatusMsg"></span>
-  <button id="tstatusBtn" style="flex:none;background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer">ביטול</button>
+  <button id="tstatusBtn">ביטול</button>
 </div>
 <script>
 // Torrent progress from the Android engine. Empty message hides the bar.
@@ -2438,10 +2576,11 @@ window.boothTorrentStatus = (msg, isError) => {
   const bar = document.getElementById('tstatus');
   document.getElementById('tstatusMsg').textContent = msg;
   bar.style.display = msg ? 'flex' : 'none';
-  bar.style.borderColor = isError ? 'var(--velvet)' : 'var(--line)';
+  bar.classList.toggle('bad', !!isError);
   const btn = document.getElementById('tstatusBtn');
   btn.textContent = isError ? 'סגור' : 'ביטול';
-  btn.onclick = () => { if (!isError && window.BoothAndroid) BoothAndroid.cancelTorrent(); bar.style.display = 'none'; };
+  btn.onclick = () => { if (!isError && window.BoothAndroid) BoothAndroid.cancelTorrent(); bar.style.display = 'none'; tvFocus(); };
+  if(msg) btn.focus();                                // the way out is the first thing the remote holds
 };
 </script>
 </body>

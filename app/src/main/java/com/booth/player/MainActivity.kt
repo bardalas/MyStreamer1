@@ -194,9 +194,9 @@ class MainActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        // The page walks its own ladder (one level up per press); at the top, Back leaves the app.
         web.evaluateJavascript("(window.boothBack && boothBack()) ? 'y' : 'n'") { handled ->
-            if (handled?.contains("y") == true) return@evaluateJavascript
-            if (web.canGoBack()) web.goBack() else finish()
+            if (handled?.contains("y") != true) finish()
         }
     }
 

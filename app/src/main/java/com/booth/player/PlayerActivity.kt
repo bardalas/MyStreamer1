@@ -13,7 +13,6 @@ import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.C
@@ -71,9 +70,8 @@ class PlayerActivity : AppCompatActivity() {
                 intent.getStringExtra("drm") ?: "")
         })
         if (sources.isEmpty()) { finish(); return }
-        if (savedInstanceState == null) resumePosition = intent.getLongExtra("pos", 0L)
         index = (savedInstanceState?.getInt("index") ?: intent.getIntExtra("index", 0)).coerceIn(0, sources.size - 1)
-        resumePosition = savedInstanceState?.getLong("pos") ?: 0L
+        resumePosition = savedInstanceState?.getLong("pos") ?: intent.getLongExtra("pos", 0L)
 
         val view = findViewById<PlayerView>(R.id.playerView)
         view.setShowSubtitleButton(!live)
@@ -95,18 +93,30 @@ class PlayerActivity : AppCompatActivity() {
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) { subs = emptyList(); showOsd(); return }
 
-        // Wait (briefly) for the Hebrew subtitle lookup before building the player,
-        // because side-loaded subtitles must be part of the MediaItem.
+        // Play now, look for Hebrew subtitles in the background: side-loaded subtitles have to be part
+        // of the MediaItem, so when they arrive the player is rebuilt at the very same position.
+        subs = emptyList()
+        showMessage("מחפש כתוביות בעברית…", 0)
         Thread {
-            val found = Subtitles.await(8_000)
+            val found = Subtitles.await(25_000)
             runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
                 subs = found
-                Toast.makeText(this,
-                    if (found.isEmpty()) "לא נמצאו כתוביות בעברית" else "נמצאו ${found.size} כתוביות בעברית",
-                    Toast.LENGTH_SHORT).show()
-                if (started) buildPlayer()
+                showMessage(if (found.isEmpty()) "לא נמצאו כתוביות בעברית" else "כתוביות בעברית: ${found.first().label}", 3_500)
+                if (found.isNotEmpty() && started) reloadWithSubs()
             }
         }.start()
+    }
+
+    /** Hebrew subtitles arrived: rebuild the player around them, without losing the place. */
+    private fun reloadWithSubs() {
+        val p = player ?: return
+        resumePosition = p.currentPosition
+        val wasPlaying = p.playWhenReady
+        p.release()
+        player = null
+        buildPlayer()
+        player?.playWhenReady = wasPlaying
     }
 
     // Build the player in onStart and release it in onStop, so returning from
@@ -170,7 +180,9 @@ class PlayerActivity : AppCompatActivity() {
                 it.addListener(object : Player.Listener {
                     override fun onPlayerError(error: PlaybackException) = onError(error)
                     override fun onPlaybackStateChanged(state: Int) {
-                        if (state == Player.STATE_READY && retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
+                        if (state != Player.STATE_READY) return
+                        hideErrorPanel()
+                        if (retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
                     }
                 })
                 findViewById<PlayerView>(R.id.playerView).player = it
@@ -268,13 +280,47 @@ class PlayerActivity : AppCompatActivity() {
             handler.postDelayed(rebuild, 3_000)
             return
         }
-        showMessage(buildString {
-            append("לא ניתן לנגן את ").append(sources[index].name.ifBlank { "הערוץ" })
-            append("\n").append(error.errorCodeName)
-            if (status != null) append(" · HTTP ").append(status)
-            if (!why.isNullOrBlank()) append("\n").append(why.take(160))
-        }, 0)
+        // Say it in plain Hebrew, and put the next step on screen instead of leaving a black picture.
+        val reason = when {
+            status == 403 || status == 401 -> "המקור דחה את הבקשה. אם זה ערוץ, ייתכן שהמנוי פתוח במקום אחר."
+            status == 404 -> "הכתובת של המקור לא קיימת יותר."
+            status != null -> "השרת החזיר שגיאה (HTTP $status)."
+            error.errorCodeName.contains("TIMEOUT") || error.errorCodeName.contains("NETWORK") ->
+                "אין תשובה מהמקור. בדוק את החיבור לאינטרנט."
+            error.errorCodeName.contains("DECODER") || error.errorCodeName.contains("FORMAT") ->
+                "המכשיר לא יודע לפענח את הפורמט הזה. נסה מקור אחר (למשל 1080p במקום 4K)."
+            error.errorCodeName.contains("DRM") -> "ההגנה על התוכן לא אושרה במכשיר הזה."
+            else -> why?.take(160) ?: "המקור לא נוגן."
+        }
+        showErrorPanel("לא ניתן לנגן את ${sources[index].name.ifBlank { "התוכן" }}", reason)
     }
+
+    /** The panel over the video: why it stopped, and the buttons that get the viewer moving again. */
+    private fun showErrorPanel(title: String, why: String) {
+        handler.removeCallbacks(hideOsd)
+        findViewById<TextView>(R.id.osd).visibility = View.GONE
+        findViewById<TextView>(R.id.errTitle).text = title
+        findViewById<TextView>(R.id.errWhy).text = why
+        val box = findViewById<View>(R.id.errbox)
+        box.visibility = View.VISIBLE
+        findViewById<View>(R.id.errRetry).apply {
+            setOnClickListener {
+                hideErrorPanel()
+                retries = 0
+                player?.release(); player = null
+                buildPlayer()
+            }
+            requestFocus()
+        }
+        findViewById<View>(R.id.errNext).apply {
+            visibility = if (sources.size > 1) View.VISIBLE else View.GONE
+            setOnClickListener { hideErrorPanel(); zapBy(1) }
+        }
+        // Back to the app, where the other sources for this title are listed.
+        findViewById<View>(R.id.errBack).setOnClickListener { finish() }
+    }
+
+    private fun hideErrorPanel() { findViewById<View>(R.id.errbox).visibility = View.GONE }
 
     /** Message over the video; [ms] = 0 keeps it until the next channel or successful playback. */
     private fun showMessage(text: String, ms: Long) {
@@ -300,6 +346,10 @@ class PlayerActivity : AppCompatActivity() {
     @OptIn(UnstableApi::class)
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
+        if (findViewById<View>(R.id.errbox).visibility == View.VISIBLE) {
+            if (event.keyCode == KeyEvent.KEYCODE_BACK) { hideErrorPanel(); finish(); return true }
+            return super.dispatchKeyEvent(event)                 // arrows move between the panel's buttons
+        }
         val controls = findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible
         when (event.keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> {
