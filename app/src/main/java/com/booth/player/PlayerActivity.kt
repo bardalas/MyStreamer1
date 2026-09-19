@@ -26,7 +26,6 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
@@ -173,13 +172,8 @@ class PlayerActivity : AppCompatActivity() {
             }
             .build()
 
-        val dataSources = DefaultDataSource.Factory(this, http)
-        // Live HLS prepares "chunkless": the playlist alone is enough to start, no test segment first.
-        val sourceFactory = if (live && url.contains(".m3u8"))
-            HlsMediaSource.Factory(dataSources).setAllowChunklessPreparation(true)
-        else DefaultMediaSourceFactory(dataSources)
         player = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(sourceFactory)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
             .setLoadControl(loadControl)
             .build().also {
                 // Hebrew subtitles on by default (also picks embedded Hebrew tracks in MKVs).
