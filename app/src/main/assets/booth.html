@@ -637,12 +637,14 @@ const CATEGORIES = [
   {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, 'booth.he.movies'], [BOOTH_ID, 'booth.he.series'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [BOOTH_ID, 'booth.he.movies.new']]},
   {id: 'tv', name: 'ערוצי הטלוויזיה', rows: [{r13: 'recent', title: 'רשת 13 · שודר לאחרונה'}, {r13: 'series', title: 'רשת 13 · כל התוכניות'},
-    ...['keshet', 'kan'].flatMap(ch => [yt('latest', ch), yt('playlists', ch)])]},
-  {id: 'comedy', name: 'קומדיה', rows: [[CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
+    {kan: /^דרמה/, title: 'כאן 11 · דרמה'}, {kan: /קומדיה/, title: 'כאן 11 · קומדיה וסאטירה'}, {kan: /^דוקו ריאליטי/, title: 'כאן 11 · דוקו ריאליטי'},
+    {kan: /^בידור/, title: 'כאן 11 · בידור'}, {kan: /^סרטים/, title: 'כאן 11 · סרטים'}, {kan: /^דוקו$/, title: 'כאן 11 · דוקו'},
+    yt('latest', 'keshet'), yt('playlists', 'keshet')]},
+  {id: 'comedy', name: 'קומדיה', rows: [{kan: /קומדיה/, title: 'כאן 11 · קומדיה וסאטירה'}, [CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [CINEMETA_ID, 'imdbRating', 'genre=Comedy', 'הקומדיות הכי טובות']]},
   {id: 'kids', name: 'ילדים', rows: [yt('latest', 'kankids', 'חדש בכאן חינוכית'), [CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'],
     [CINEMETA_ID, 'top', 'genre=Family', 'לכל המשפחה'], yt('playlists', 'kankids', 'סדרות כאן חינוכית')]},
-  {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
+  {id: 'docs', name: 'תיעודי', rows: [{kan: /^דוקו$/, title: 'כאן 11 · דוקו'}, [SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
   {id: 'netflix', name: 'Netflix', rows: [[SC_ID, /^netflix-top10/], [SC_ID, 'nfx']]},
   {id: 'apple', name: 'Apple TV+', rows: [[SC_ID, 'atp']]},
   {id: 'disney', name: 'Disney+', rows: [[SC_ID, 'dnp']]},
@@ -811,6 +813,99 @@ async function viewR13Series(sid, title){
   }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון מרשת 13 (${esc(e.message)}).</p>`; }
 }
 
+/* ---------- Kan BOX (kan.org.il) — the public website's pages; episodes are plain HLS ---------- */
+const KAN = 'https://www.kan.org.il';
+let kanBoxCache = null;
+const kanClean = t => (t || '').replace(/(small\s*)?poster( image)?( small)?\s*\d+\s*x\s*\d+/gi, '').replace(/\s*-\s*כאן 11$/, '').replace(/\s*לוגו$/, '').trim();
+const kanAbs = u => !u ? '' : u.startsWith('http') ? u : KAN + (u.startsWith('/') ? '' : '/') + u;
+const kanDoc = async url => new DOMParser().parseFromString(await fetchText(url), 'text/html');
+
+/** Kan BOX sections (דרמה, קומדיה וסאטירה, דוקו, סרטים, ילדים…) -> programmes with posters. */
+async function kanBox(){
+  if(kanBoxCache) return kanBoxCache;
+  const doc = await kanDoc(`${KAN}/lobby/kan-box/`);
+  const sections = [];
+  for(const h2 of doc.querySelectorAll('h2')){
+    const title = h2.textContent.trim();
+    if(!title || title.length > 40 || /אולי יעניין/.test(title)) continue;
+    let box = h2.parentElement;
+    for(let i = 0; i < 6 && box && !box.querySelector('a[href*="/p-"] img'); i++) box = box.parentElement;
+    if(!box) continue;
+    const progs = new Map();
+    for(const a of box.querySelectorAll('a[href]')){
+      const m = a.getAttribute('href').match(/\/content\/kan\/[\w-]+\/p-(\d+)\/?$/);
+      const img = a.querySelector('img');
+      if(!m || !img || progs.has(m[1])) continue;
+      const name = kanClean(img.getAttribute('alt') || a.getAttribute('aria-label'));
+      if(name) progs.set(m[1], {id: m[1], url: kanAbs(a.getAttribute('href')), name, img: kanAbs(img.getAttribute('data-src') || img.getAttribute('src'))});
+    }
+    if(progs.size) sections.push({title, items: [...progs.values()]});
+  }
+  if(!sections.length) throw new Error('לא נמצאו תוכניות');
+  return kanBoxCache = sections;
+}
+function kanCard(x){
+  return `<a class="poster" href="#/kan/${encodeURIComponent(x.url.replace(KAN, ''))}/${encodeURIComponent(x.name)}">
+    <div class="art" style="background-image:url('${esc(x.img)}')"></div><div class="t" dir="auto">${esc(x.name)}</div></a>`;
+}
+
+/** Episodes listed on a programme/season page. */
+function kanEpisodes(doc, progPath){
+  const eps = new Map();
+  for(const a of doc.querySelectorAll('a[href]')){
+    const href = kanAbs(a.getAttribute('href'));
+    if(!href.startsWith(KAN + progPath) || !/\/\d+\/?$/.test(href.slice((KAN + progPath).length))) continue;
+    if(eps.has(href)) continue;
+    const title = a.querySelector('.card-title')?.textContent.trim() || a.getAttribute('aria-label') || a.textContent.trim().split('\n')[0];
+    if(!title || /^לצפייה ב/.test(title.trim())) continue;     // skip "watch the first episode" promo links
+    eps.set(href, {url: href, name: title.trim(), text: a.querySelector('.card-text')?.textContent.trim() || '',
+                   img: kanAbs(a.querySelector('img')?.getAttribute('src'))});
+  }
+  return [...eps.values()];
+}
+
+async function viewKanProgram(path, title){
+  renderCats(null);
+  $('#app').innerHTML = `<div class="page"><div class="showhead"><div><h1 dir="auto">${esc(title || '')}</h1><p id="kdesc"></p></div></div>
+    <div class="seasons" id="seasons"></div><div class="eplist" id="eps"><p class="note">טוען פרקים…</p></div></div>`;
+  try{
+    const doc = await kanDoc(KAN + path);
+    $('#kdesc').textContent = doc.querySelector('meta[name="description"]')?.content || '';
+    // seasons: /p-XXXX/sN/ links (newest first); without seasons the programme page lists the episodes itself
+    const seasons = [...new Set([...doc.querySelectorAll('a[href]')].map(a => (a.getAttribute('href').match(new RegExp(path.replace(/[/-]/g, m => '\\' + m) + '(s\\d+)/?$')) || [])[1]).filter(Boolean))]
+      .sort((a, b) => +b.slice(1) - +a.slice(1));
+    const load = async sn => {
+      $('#eps').innerHTML = '<p class="note">טוען פרקים…</p>';
+      const d = sn ? await kanDoc(`${KAN}${path}${sn}/`) : doc;
+      const eps = kanEpisodes(d, path);
+      $('#eps').innerHTML = eps.length ? eps.map(e => `<button class="eprow" data-kan="${esc(e.url)}" data-title="${esc(title + ' · ' + e.name)}">
+          <img src="${esc(e.img)}" alt="" loading="lazy"><span><b dir="auto">${esc(e.name)}</b><small dir="auto">${esc(e.text)}</small></span></button>`).join('')
+        : '<p class="note">אין פרקים זמינים כרגע.</p>';
+    };
+    let cur = seasons[0] || '';
+    const draw = () => {
+      $('#seasons').innerHTML = seasons.length > 1 ? seasons.map(sn => `<button class="chip ${sn === cur ? 'on' : ''}" data-s="${sn}">עונה ${sn.slice(1)}</button>`).join('') : '';
+      $('#seasons').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { cur = b.dataset.s; draw(); load(cur); });
+    };
+    draw();
+    await load(cur);
+  }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון מכאן (${esc(e.message)}).</p>`; }
+}
+
+/** Episode page -> its HLS URL (no DRM). */
+async function kanPlay(url, title){
+  try{
+    const html = await fetchText(url);
+    const m = html.match(/https:\/\/[^"'\s<>]+?\.m3u8[^"'\s<>]*/);
+    if(!m) throw new Error('לא נמצא וידאו בעמוד');
+    const hls = m[0].replace(/&amp;/g, '&');
+    // same route as broadcaster VOD (no subtitle search); no licence needed
+    if(window.BoothAndroid && BoothAndroid.playDrm) BoothAndroid.playDrm(hls, '', title);
+    else openPlayer({url: hls}, title, null);
+  }catch(e){ alert(`לא ניתן לנגן את הפרק (${e.message}).`); }
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-kan]'); if(b){ e.preventDefault(); kanPlay(b.dataset.kan, b.dataset.title); } });
+
 /* ---------- genres page ---------- */
 const GENRE_TILES = [['Comedy', '😂'], ['Action', '💥'], ['Drama', '🎭'], ['Thriller', '🔪'], ['Horror', '👻'], ['Sci-Fi', '🚀'],
   ['Romance', '💕'], ['Animation', '🎨'], ['Family', '👨‍👩‍👧'], ['Crime', '🕵️'], ['Adventure', '🗺️'], ['Fantasy', '🐉'],
@@ -861,11 +956,19 @@ function renderRows(rows, {hero = true, cont = [], heading = ''} = {}){
   const app = $('#app');
   app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
     ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || x.r13 || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || x.r13 || x.kan || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
   let heroDone = !hero;
   rows.forEach(async (x, i) => {
     const el = $('#row' + i);
+    if(x.kan){
+      try{
+        const secs = await kanBox();
+        const sec = secs.find(z => x.kan.test(z.title));
+        el.innerHTML = sec ? sec.items.slice(0, 40).map(kanCard).join('') : '<p class="note">אין כרגע.</p>';
+      }catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מכאן (${esc(e.message)}).</p>`; }
+      return;
+    }
     if(x.r13){
       try{ el.innerHTML = (await r13row(x.r13)).map(r13card).join('') || '<p class="note">אין כרגע.</p>'; }
       catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מרשת 13 (${esc(e.message)}).</p>`; }
@@ -1557,7 +1660,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.15.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.16.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -1666,7 +1769,7 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
 async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre', 'show', 'r13'].includes(r) ? 'home' : r)));
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre', 'show', 'r13', 'kan'].includes(r) ? 'home' : r)));
   scrollTo(0, 0);
   if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
@@ -1674,6 +1777,7 @@ async function route(){
   else if(r === 'genre') viewGenre(a);
   else if(r === 'show') viewShow(a, b);
   else if(r === 'r13') viewR13Series(a, b);
+  else if(r === 'kan') viewKanProgram(a, b);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'live') viewLive();
   else if(r === 'search') viewSearch(a);

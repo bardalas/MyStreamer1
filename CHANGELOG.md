@@ -1,5 +1,12 @@
 # Booth Android changelog
 
+## 0.16.0 — 2026-09-19
+- Kan BOX (kan.org.il) in ערוצי הטלוויזיה: דרמה, קומדיה וסאטירה, דוקו ריאליטי, בידור, סרטים, דוקו —
+  programme pages with seasons and episodes; episodes play in the app (plain HLS from Kan's CDN).
+  Kan comedy and documentary sections also appear in the קומדיה and תיעודי categories.
+- Native page fetches send browser-like headers (Kan rejects the default Java agent).
+- Keshet 12 stays on its official YouTube channel: mako.co.il is behind bot protection.
+
 ## 0.15.0 — 2026-09-19
 - Reshet 13 VOD (13tv.co.il) in ערוצי הטלוויזיה: "שודר לאחרונה" and all 293 shows, show pages with
   seasons and episodes; episodes play in the app (DASH + Widevine, licensed by Reshet's own
