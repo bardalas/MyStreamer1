@@ -79,8 +79,7 @@ main{padding:0 28px 60px}
 /* page filters */
 .page{padding-top:12px}
 .page h1{font-size:40px}
-.filters{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 24px}
-.filters select,.field{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.field{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
 .more{margin:28px auto 0;display:block}
 
 /* detail */
@@ -369,6 +368,7 @@ main{padding:0 28px 60px}
 .live-top #lq{flex:1;min-width:160px;max-width:320px}
 .live-groups{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
 [data-layout="tv"] .live-groups .chip{font-size:16px;padding:9px 16px}
+[data-layout="tv"] .live-top #lq{display:none}
 .continue{display:flex;align-items:center;gap:10px;width:100%;max-width:900px;border:1px solid var(--line);background:var(--surface);color:var(--light);border-radius:10px;padding:12px 16px;margin:0 0 14px;cursor:pointer;font-size:15px;text-align:start}
 .continue:hover,.continue:focus-visible{border-color:var(--tungsten)}
 .continue span{color:var(--tungsten);font-weight:700}
@@ -398,7 +398,6 @@ main{padding:0 28px 60px}
 .poster.wide{flex-basis:calc(var(--poster-w) * 1.55)}
 .poster.wide .art{aspect-ratio:16/9}
 button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;cursor:pointer;font:inherit}
-.grid.wide{grid-template-columns:repeat(auto-fill,minmax(calc(var(--poster-w) * 1.55),1fr))}
 /* genres page */
 .genres{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;max-width:1000px}
 .genres a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:96px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-decoration:none;font-weight:600;font-size:16px}
@@ -520,6 +519,7 @@ const store = {
   },
 };
 addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') store.flush(); });
+addEventListener('pagehide', () => store.flush());
 /** Keep a plain object cache under a size limit (oldest-inserted entries go first). */
 function capMap(obj, max){
   const keys = Object.keys(obj);
@@ -923,15 +923,6 @@ const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div cl
 /* ---------- categories ---------- */
 const SC_ID = 'pw.ers.netflix-catalog', BOOTH_ID = 'org.booth.catalogs', CINEMETA_ID = 'com.linvo.cinemeta';
 // rows: [add-on id, catalog id (or pattern), extra args, title override]
-// Official YouTube channels of the Israeli broadcasters (latest uploads via RSS, shows via playlists).
-const BROADCASTERS = {
-  kan: {name: 'כאן 11', handle: '@kan11', cid: 'UCKqFqiCe1dCUxRe0_YNZ6gg'},
-  keshet: {name: 'קשת 12', handle: '@keshet12', cid: 'UC5KbmHkBV59FzJ-Dr5wfrKg'},
-  reshet: {name: 'רשת 13', handle: '@13tv', cid: 'UCy-M3jXvw3axMtNZz9DJxPQ'},
-  kankids: {name: 'כאן חינוכית', handle: '@KanKids', cid: 'UC_fUfLFo31WTFZPxgr1EcLA'},
-};
-const yt = (kind, ch, title) => ({yt: kind, ch, title: title || (kind === 'latest' ? `חדש ב${BROADCASTERS[ch].name}` : `תוכניות ${BROADCASTERS[ch].name}`)});
-// rows: [add-on id, catalog id (or pattern), extra args, title override] or a YouTube row
 const CATEGORIES = [
   {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, 'booth.he.movies'], [BOOTH_ID, 'booth.he.series'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [BOOTH_ID, 'booth.he.movies.new']]},
@@ -952,84 +943,6 @@ function userCategories(){
 }
 
 /* ---------- YouTube (official broadcaster channels) — fetched live, played in the YouTube app ---------- */
-const ytCache = {};
-function ytInitialData(html){
-  let m = html.match(/var ytInitialData = (\{[\s\S]*?\});<\/script>/);
-  if(m) return JSON.parse(m[1]);
-  // mobile site (m.youtube.com): the same JSON as an escaped string literal
-  m = html.match(/var ytInitialData = '((?:[^'\\]|\\.)*)';/);
-  if(!m) return {};
-  return JSON.parse(JSON.parse('"' + m[1].replace(/\\x([0-9a-fA-F]{2})/g, '\\u00$1').replace(/\\'/g, "'") + '"'));
-}
-const ytText = t => t?.simpleText || (t?.runs || []).map(r => r.text).join('') || t?.content || '';
-/** Playlists or videos from a YouTube page (both use "lockup" view models). */
-function ytLockups(data){
-  const out = [];
-  (function walk(o){
-    if(!o || typeof o !== 'object') return;
-    // mobile-site renderers
-    const r = o.compactPlaylistRenderer || o.gridPlaylistRenderer || o.playlistRenderer;
-    if(r?.playlistId){
-      const thumb = (r.thumbnail?.thumbnails || r.thumbnails?.[0]?.thumbnails || []).slice(-1)[0]?.url || '';
-      out.push({id: r.playlistId, name: ytText(r.title), video: false, thumb});
-      return;
-    }
-    const v = o.playlistVideoRenderer || o.compactVideoRenderer || o.videoRenderer;
-    if(v?.videoId){
-      out.push({id: v.videoId, name: ytText(v.title), video: true, thumb: `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`});
-      return;
-    }
-    if(o.lockupViewModel){
-      const v = o.lockupViewModel, id = v.contentId;
-      const title = v.metadata?.lockupMetadataViewModel?.title?.content;
-      const video = v.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO';
-      const img = JSON.stringify(v.contentImage || {}).match(/https:\/\/i\.ytimg\.com\/[^"]+/);
-      if(id && title) out.push({id, name: title, video, thumb: video ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : (img ? img[0].replace(/\\u0026/g, '&') : '')});
-      return;
-    }
-    for(const k in o) walk(o[k]);
-  })(data);
-  return out;
-}
-async function ytRow(kind, ch){
-  const b = BROADCASTERS[ch], key = kind + ch;
-  if(ytCache[key]) return ytCache[key];
-  if(kind === 'latest'){
-    const xml = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${b.cid}`);
-    const doc = new DOMParser().parseFromString(xml, 'text/xml');
-    return ytCache[key] = [...doc.getElementsByTagName('entry')].map(e => {
-      const id = e.getElementsByTagName('yt:videoId')[0]?.textContent;
-      return {id, name: e.getElementsByTagName('title')[0]?.textContent || '', video: true, thumb: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`};
-    }).filter(x => x.id);
-  }
-  return ytCache[key] = ytLockups(ytInitialData(await fetchText(`https://www.youtube.com/${b.handle}/playlists`))).filter(x => !x.video);
-}
-async function ytPlaylist(id){
-  const key = 'pl' + id;
-  if(ytCache[key]) return ytCache[key];
-  return ytCache[key] = ytLockups(ytInitialData(await fetchText(`https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`))).filter(x => x.video);
-}
-function ytCard(x){
-  const art = `<div class="art" data-bg="${esc(x.thumb)}"></div><div class="t" dir="auto">${esc(x.name)}</div>`;
-  return x.video ? `<button class="poster wide" data-yt="${esc(x.id)}">${art}</button>`
-                 : `<a class="poster wide" href="#/show/${encodeURIComponent(x.id)}/${encodeURIComponent(x.name)}">${art}</a>`;
-}
-function playYouTube(id){
-  if(window.BoothAndroid && BoothAndroid.openYouTube) BoothAndroid.openYouTube(id);
-  else window.open(`https://www.youtube.com/watch?v=${encodeURIComponent(id)}`, '_blank', 'noopener');
-}
-document.addEventListener('click', e => { const b = e.target.closest('[data-yt]'); if(b){ e.preventDefault(); playYouTube(b.dataset.yt); } });
-
-async function viewShow(id, title){
-  renderCats(null);
-  $('#app').innerHTML = `<div class="page"><h1 dir="auto">${esc(title || '')}</h1><div class="grid wide" id="eps">${skeletons(8)}</div>
-    <p class="note">הפרקים מתנגנים באפליקציית YouTube, מהערוץ הרשמי.</p></div>`;
-  try{
-    const vids = await ytPlaylist(id);
-    $('#eps').innerHTML = vids.map(ytCard).join('') || '<p class="note">אין פרקים ברשימה הזו.</p>';
-  }catch(e){ showErr($('#eps'), 'לא ניתן לטעון את הפרקים', e, () => viewShow(id, title)); }
-}
-
 /* ---------- Reshet 13 VOD & live (13tv.co.il) — the site's own Kaltura OTT API, as a guest ---------- */
 const R13 = {api: 'https://5031.frp1.ott.kaltura.com/api_v3/service/', ks: '', exp: 0};
 const R13_SERIES = '1259', R13_EPISODE = '1268', R13_CHANNEL = '1265';
@@ -1350,15 +1263,21 @@ async function viewJfcTab(tabs){
 }
 
 /* ---------- a taste of the title ----------
-   Resting on a poster (mouse or remote) plays the trailer inside that very tile, muted and without
-   controls - no player opens, nothing else moves. Off from the settings for anyone who dislikes it. */
+   Resting on a poster (mouse or remote) shows a taste inside that very tile - no player opens,
+   nothing else moves. In a browser it is the trailer, muted; the app's WebView cannot embed
+   YouTube (its widget check refuses, "error 153"), so there the tile shows the title's backdrop
+   scene instead. Off from the settings for anyone who dislikes it. */
 const trailerIds = new Map();
+const canEmbedYt = /^https?:$/.test(location.protocol);
 let peekTimer = null, peekCard = null;
 
 function stopPeek(){
   clearTimeout(peekTimer);
-  peekCard?.querySelector('.peek')?.remove();
-  peekCard?.classList.remove('previewing');
+  if(!peekCard) return;
+  peekCard.querySelector('.peek')?.remove();
+  const art = peekCard.querySelector('.art');
+  if(art && art.dataset.prevBg !== undefined){ art.style.backgroundImage = art.dataset.prevBg; delete art.dataset.prevBg; }
+  peekCard.classList.remove('previewing');
   peekCard = null;
 }
 
@@ -1370,9 +1289,19 @@ async function startPeek(cardEl){
   const id = cardEl.dataset.id;
   const art = cardEl.querySelector('.art');
   if(!id || !art) return;
+  const type = (cardEl.getAttribute('href') || '').split('/')[2] || 'movie';
+  if(!canEmbedYt){
+    const meta = await fetchMeta(type, id).catch(() => null);
+    if(!meta?.background || !stillOn(cardEl)) return;
+    stopPeek();
+    art.dataset.prevBg = art.style.backgroundImage;
+    art.style.backgroundImage = `url('${meta.background.replace(/'/g, '%27')}')`;
+    cardEl.classList.add('previewing');
+    peekCard = cardEl;
+    return;
+  }
   let yt = trailerIds.get(id);
   if(yt === undefined){
-    const type = (cardEl.getAttribute('href') || '').split('/')[2] || 'movie';
     const meta = await fetchMeta(type, id).catch(() => null);
     yt = meta?.trailers?.[0]?.source || meta?.trailerStreams?.[0]?.ytId || null;
     trailerIds.set(id, yt);
@@ -1381,7 +1310,7 @@ async function startPeek(cardEl){
   stopPeek();
   const frame = document.createElement('iframe');
   frame.className = 'peek';
-  frame.allow = 'autoplay; encrypted-media; picture-in-picture';
+  frame.allow = 'autoplay; encrypted-media';
   frame.setAttribute('tabindex', '-1');
   frame.setAttribute('aria-hidden', 'true');
   frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&start=8&loop=1&playlist=${encodeURIComponent(yt)}`;
@@ -1639,7 +1568,7 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
   app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
     ${top}
     ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || x.r13 || x.kan || x.merge || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.r13 || x.kan || x.merge || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
   let heroDone = !hero;
   // Each title appears once per page: it stays in the first (highest) row that has it.
@@ -1681,11 +1610,6 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
     if(x.r13){
       try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || '<p class="note">אין כרגע.</p>'; }
       catch(e){ showErr(el, 'לא ניתן לטעון מרשת 13', e, again); }
-      return;
-    }
-    if(x.yt){
-      try{ el.innerHTML = (await ytRow(x.yt, x.ch)).slice(0, 30).map(ytCard).join('') || '<p class="note">אין כרגע.</p>'; }
-      catch(e){ showErr(el, 'לא ניתן לטעון מ־YouTube', e, again); }
       return;
     }
     try{
@@ -1733,42 +1657,6 @@ function renderHero(m){
   h.innerHTML = `<div class="bg" style="background-image:url('${esc(m.background || m.poster)}')"></div><div class="beam"></div>
     <div class="copy"><h1 data-heid="${esc(m.id)}" dir="auto">${esc(heTitle(m.id, m.name))}</h1><p dir="auto">${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
     <a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">לפרטים</a></div>`;
-}
-
-async function viewDiscover(type, catKey, genre){
-  const app = $('#app');
-  const types = [...new Set(addons.flatMap(a => (a.manifest.catalogs||[]).map(c => c.type)))];
-  type = type || types[0] || 'movie';
-  const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => c.type === type && !(c.extra||[]).some(e => e.isRequired && e.name !== 'genre')).map(c => ({a, c, key: a.manifest.id + '|' + c.id})));
-  const cur = cats.find(x => x.key === catKey) || cats[0];
-  const genreExtra = cur && (cur.c.extra||[]).find(e => e.name === 'genre');
-  const genres = (genreExtra && genreExtra.options) || cur?.c.genres || [];
-  const go = (t, k, g) => location.hash = `#/discover/${t}/${encodeURIComponent(k||'')}/${encodeURIComponent(g||'')}`;
-  app.innerHTML = `<div class="page"><h1>גלה</h1><div class="filters">
-    <select id="ft" aria-label="סוג">${types.map(t => `<option value="${esc(t)}" ${t===type?'selected':''}>${esc(typeHe(t))}</option>`).join('')}</select>
-    <select id="fc" aria-label="קטלוג">${cats.map(x => `<option value="${esc(x.key)}" ${x===cur?'selected':''}>${esc(catalogHe(x.c.name)||x.c.id)} (${esc(x.a.manifest.name)})</option>`).join('')}</select>
-    ${genres.length ? `<select id="fg" aria-label="ז׳אנר"><option value="">כל הז׳אנרים</option>${genres.map(g => `<option value="${esc(g)}" ${g===genre?'selected':''}>${esc(genreHe(g))}</option>`).join('')}</select>` : ''}
-  </div><div class="grid" id="grid">${skeletons(18)}</div><button class="btn ghost more" id="more" hidden>טען עוד</button></div>`;
-  $('#ft').onchange = e => go(e.target.value);
-  $('#fc').onchange = e => go(type, e.target.value);
-  if($('#fg')) $('#fg').onchange = e => go(type, cur.key, e.target.value);
-  if(!cur){ $('#grid').innerHTML = '<p class="note">אין קטלוגים מהסוג הזה.</p>'; return; }
-  let skip = 0;
-  const load = async () => {
-    const extra = [genre && `genre=${encodeURIComponent(genre)}`, skip && `skip=${skip}`].filter(Boolean).join('&');
-    try{
-      const d = await catalogFetch(cur.a, type, cur.c.id, extra);
-      const metas = d.metas || [];
-      const g = $('#grid'); if(!g) return;
-      if(!skip) g.innerHTML = '';
-      g.insertAdjacentHTML('beforeend', metas.map(card).join(''));
-      skip += metas.length;
-      $('#more').hidden = metas.length < 20;
-      if(!skip) g.innerHTML = '<p class="note">אין כאן כלום. נסה ז׳אנר אחר.</p>';
-    }catch(e){ showErr($('#grid'), 'לא ניתן לטעון את הקטלוג', e, load); }
-  };
-  $('#more').onclick = load;
-  load();
 }
 
 async function viewSearch(q){
@@ -1961,7 +1849,7 @@ function renderStreams(box, all, pending, label, ctx, errors = [], retry){
     const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!open));
     btn.nextElementSibling.hidden = open;
-    if(!open) itemsOf(btn.nextElementSibling)[0]?.focus?.();
+    if(!open) btn.nextElementSibling.querySelector('button')?.focus();
   };
 }
 
@@ -2500,7 +2388,7 @@ function paintSettings(){
       <section class="sset"><h2>פריסה</h2><div class="sopts">${LAYOUTS.map(o => optCard('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>`
       + seg('poster', 'גודל פוסטרים', POSTER_SIZES.map(o => [o.id, esc(o.name)]))
       + seg('preview', 'טעימה מהכותר', [['on', 'פעיל'], ['off', 'כבוי']],
-        'עמידה על פוסטר מתחילה לנגן בתוכו קטע קצר מהטריילר, בלי קול ובלי לפתוח נגן.')
+        'עמידה על פוסטר מציגה טעימה בתוך האריח עצמו - בלי קול ובלי לפתוח נגן.')
       + seg('nosrc', 'כותרים בלי מקורות', [['grey', 'להאפיר'], ['hide', 'להסתיר']],
         'כותר שאין לו כרגע מקור צפייה — להשאיר אותו מעומעם, או להוציא אותו מהמסך.'),
 
@@ -2530,7 +2418,7 @@ function paintSettings(){
       <p class="note" style="margin:0 0 10px">מחזיר את כל ההגדרות לברירת המחדל. הספרייה, היסטוריית הצפייה וקוד ה־RaspberryTV נשמרים.</p>
       <div class="keyform"><button class="danger" id="sreset">איפוס לברירת המחדל</button></div></section>
       <section class="sset"><h2>על המקרן</h2>
-      <p class="note" style="margin:0 0 10px">המקרן · גרסה ${esc(APP_VERSION || '0.25.0')}</p>
+      <p class="note" style="margin:0 0 10px">המקרן${APP_VERSION ? ` · גרסה ${esc(APP_VERSION)}` : ' · תצוגת דפדפן'}</p>
       <div class="keyform"><button class="btn primary" id="supd">בדוק אם יש גרסה חדשה</button></div></section>`,
   };
   pane.innerHTML = (panes[setTab] || panes.start)();
@@ -2571,9 +2459,9 @@ function paintSettings(){
     saveCats(ids);
   });
   if($('#supd')) $('#supd').onclick = async () => {
-    store.set('updCheck', 0); store.set('updSkip', '');
+    store.set('updSkip', '');
     $('#supd').textContent = 'בודק…';
-    await checkUpdate();
+    await checkUpdate(true);
     $('#supd').textContent = document.querySelector('.update') ? 'נמצאה גרסה חדשה' : 'זו הגרסה העדכנית';
   };
   if($('#sreset')) $('#sreset').onclick = () => {
@@ -2621,6 +2509,7 @@ const loadHls = () => window.Hls ? Promise.resolve(window.Hls) : (hlsLoading ||=
 }));
 
 function openPlayer(s, title, ctx){
+  if(s.ytId && window.BoothAndroid?.openYouTube) return BoothAndroid.openYouTube(s.ytId);
   $('#ptitle').textContent = title;
   const body = $('#pbody');
   if(s.ytId){
@@ -2670,12 +2559,14 @@ function isNewer(latest, current){
   return false;
 }
 
-async function checkUpdate(){
+async function checkUpdate(force){
   if(!APP_VERSION || !window.BoothAndroid?.openExternal) return;        // only inside the app
-  if(Date.now() - (store.get('updCheck', 0) || 0) < 6 * 3600e3) return; // at most once every six hours
-  store.set('updCheck', Date.now());
+  if(document.querySelector('.update')) return;                         // one card at a time
+  // a cold start always checks; returning to the foreground re-checks at most twice an hour
+  if(!force && Date.now() - (store.get('updCheck', 0) || 0) < 30 * 60e3) return;
   let rel;
   try{ rel = await getJSON(RELEASES, 8000); }catch(e){ return; }
+  store.set('updCheck', Date.now());
   const tag = (rel.tag_name || '').replace(/^v/, '');
   if(!tag || !isNewer(tag, APP_VERSION) || store.get('updSkip', '') === tag) return;
   const what = (rel.body || '').split('\n').map(l => l.replace(/^[-*]\s*/, '').trim())
@@ -2727,20 +2618,16 @@ function restoreScreen(){
   tick();
 }
 
-let routed = false;
 let listHash = '#/';                                 // the list a title was opened from
 async function route(){
-  routed = true;
   rememberScreen();
   resetObservers();
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['show', 'r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
-  if(['', 'cat', 'genres', 'genre', 'discover', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
+  if(['', 'cat', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
   if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
-  if(r === 'discover') viewDiscover(a, b, c);
-  else if(r === 'genres') viewGenres();
+  if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
-  else if(r === 'show') viewShow(a, b);
   else if(r === 'r13') viewR13Series(a, b);
   else if(r === 'kan') viewKanProgram(a, b);
   else if(r === 'tv') viewTv(a);
@@ -2805,7 +2692,20 @@ paintNet();
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
    follows the focus — instead of the browser scrolling on its own. */
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])';
-const ROWS_SEL = '.bar, #cats, .bctabs, .live-top, #lg, #cont, #bchead, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .progs, .eps, .eplist, .chrow, .addon, .qvclose, .qvact, .playrow, .quals, .altlist, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide, .stabs, .keyform, .plrow, .tstat, .sgroup, .update, .keypad, .detact, .seasonbar, #desc';
+/* Every group of controls the remote can stand on. Anything focusable MUST sit inside one of
+   these, or the D-pad cannot reach it; tvRows() keeps only the innermost match, so nesting two
+   of them is safe. Grouped by the screen that renders them. */
+const ROWS_SEL = [
+  '.bar', '#cats', '.stabs',                                               // chrome: top bar, rail, settings menu
+  '.bctabs', '.strip', '.grid', '.genres', '.sopts', '.seg', '.sgroup',    // browsing rows and pickers
+  '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
+  '#desc', '.detact', '.seasonbar', '.seasons', '.eps', '.eplist',         // a title: text, actions, episodes
+  '.qvclose', '.qvact', '.playrow', '.quals', '.altlist',                  // quick view + sources panel
+  '.live-top', '#lg', '#cont', '#bchead', '.chrow',                        // live TV
+  '.days', '.progs', '.guide', '.keypad', '.keyform',                      // catch-up guide, key entry
+  '.sheet header', '.sheet .body', '.tstat', '.update',                    // sheets and floating cards
+  '.catorder', '.addpl', '.add', '.plrow', '.addon',                       // settings lists, add-ons
+].join(', ');
 // offsetParent is null for position:fixed elements (per spec) even when they're plainly on
 // screen - the rail, the update card and the torrent-status card are all fixed. A size check
 // on the box itself, ignoring layout position, doesn't have that blind spot.
@@ -2888,8 +2788,10 @@ function tvMove(dir){
     focusItem(same.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best));
     return true;
   }
-  const ri = rows.indexOf(row);
-  const next = rows[ri + (dir === 'down' ? 1 : -1)];
+  const railed = document.body.classList.contains('railed');
+  const flow = rows.filter(r => r === row || !(railed && r.id === 'cats'));
+  const ri = flow.indexOf(row);
+  const next = flow[ri + (dir === 'down' ? 1 : -1)];
   if(!next) return true;
   const cand = itemsOf(next);
   focusItem(cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]));
@@ -2949,7 +2851,7 @@ window.boothBack = () => {
 function parentHash(){
   const r = (location.hash.split('/')[1] || '').split('?')[0];
   if(!r) return null;                                                  // home
-  if(['show', 'r13', 'kan', 'mako'].includes(r)) return '#/tv';
+  if(['r13', 'kan', 'mako'].includes(r)) return '#/tv';
   if(r === 'addons') return '#/settings';
   if(r === 'genre') return '#/genres';
   if(r === 'detail') return listHash;
@@ -2971,12 +2873,19 @@ function tvFocus(){
 }
 setTimeout(tvFocus, 2500);
 if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');
-// Render as soon as the add-ons answer, but never wait longer than 6s for a slow one.
-const withTimeout = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(r, ms))]);
-const addonsReady = loadAddons();
-withTimeout(addonsReady, 6000).then(() => route());
-addonsReady.then(() => { if(!routed) route(); setTimeout(loadServices, 3000); });
-setTimeout(checkUpdate, 2500);
+/* ---------- boot ---------- */
+async function boot(){
+  const ready = loadAddons();
+  const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
+  route();                                             // render now, with whatever has answered
+  if(first === 'slow'){
+    await ready;                                       // and when the add-ons finally arrive,
+    if(['', '#/', '#'].includes(location.hash)) route();   // fill the home screen they left empty
+  }
+  setTimeout(loadServices, 3000);
+  setTimeout(() => checkUpdate(true), 2500);
+}
+boot();
 addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkUpdate(); });
 </script>
 <div id="tstatus" role="status" aria-live="polite" class="tstat">
