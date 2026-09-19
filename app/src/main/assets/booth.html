@@ -684,14 +684,31 @@ function userCategories(){
 /* ---------- YouTube (official broadcaster channels) — fetched live, played in the YouTube app ---------- */
 const ytCache = {};
 function ytInitialData(html){
-  const m = html.match(/var ytInitialData = (\{[\s\S]*?\});<\/script>/);
-  return m ? JSON.parse(m[1]) : {};
+  let m = html.match(/var ytInitialData = (\{[\s\S]*?\});<\/script>/);
+  if(m) return JSON.parse(m[1]);
+  // mobile site (m.youtube.com): the same JSON as an escaped string literal
+  m = html.match(/var ytInitialData = '((?:[^'\\]|\\.)*)';/);
+  if(!m) return {};
+  return JSON.parse(JSON.parse('"' + m[1].replace(/\\x([0-9a-fA-F]{2})/g, '\\u00$1').replace(/\\'/g, "'") + '"'));
 }
+const ytText = t => t?.simpleText || (t?.runs || []).map(r => r.text).join('') || t?.content || '';
 /** Playlists or videos from a YouTube page (both use "lockup" view models). */
 function ytLockups(data){
   const out = [];
   (function walk(o){
     if(!o || typeof o !== 'object') return;
+    // mobile-site renderers
+    const r = o.compactPlaylistRenderer || o.gridPlaylistRenderer || o.playlistRenderer;
+    if(r?.playlistId){
+      const thumb = (r.thumbnail?.thumbnails || r.thumbnails?.[0]?.thumbnails || []).slice(-1)[0]?.url || '';
+      out.push({id: r.playlistId, name: ytText(r.title), video: false, thumb});
+      return;
+    }
+    const v = o.playlistVideoRenderer || o.compactVideoRenderer || o.videoRenderer;
+    if(v?.videoId){
+      out.push({id: v.videoId, name: ytText(v.title), video: true, thumb: `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`});
+      return;
+    }
     if(o.lockupViewModel){
       const v = o.lockupViewModel, id = v.contentId;
       const title = v.metadata?.lockupMetadataViewModel?.title?.content;
@@ -1786,7 +1803,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.18.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.18.1</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();

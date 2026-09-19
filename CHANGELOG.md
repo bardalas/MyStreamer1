@@ -1,5 +1,10 @@
 # Booth Android changelog
 
+## 0.18.1 — 2026-09-19
+- Fix: Keshet 12 and Kan (YouTube fallback) showed no shows on phones. YouTube sent its mobile site to
+  the app's phone user-agent; YouTube requests now ask for the desktop page, and the parser also
+  understands the mobile page format.
+
 ## 0.18.0 — 2026-09-19
 - The app is now called **המקרן**, with a projector icon (adaptive icon incl. themed/monochrome,
   legacy icon for Android 7) and an Android TV home-screen banner; projector logo in the app.

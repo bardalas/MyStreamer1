@@ -125,7 +125,11 @@ class MainActivity : AppCompatActivity() {
                     conn.connectTimeout = 10_000
                     conn.readTimeout = 30_000
                     // Browser-like headers: some broadcaster sites (Kan) turn away the default Java agent.
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36")
+                    // YouTube serves its mobile site to phone agents; ask for the desktop page the app parses.
+                    val desktop = conn.url.host.endsWith("youtube.com")
+                    conn.setRequestProperty("User-Agent",
+                        if (desktop) "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
+                        else "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36")
                     conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                     conn.setRequestProperty("Accept-Language", "he-IL,he;q=0.9,en;q=0.8")
                     PlayerActivity.basicAuth(url)?.let { conn.setRequestProperty("Authorization", it) }
