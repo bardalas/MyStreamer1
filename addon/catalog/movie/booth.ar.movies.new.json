@@ -1,24 +1,10 @@
 {
 "metas": [
 {
-"id": "tt32612507",
-"type": "movie",
-"name": "Lee Cronin's The Mummy",
-"poster": "https://images.metahub.space/poster/medium/tt32612507/img",
-"releaseInfo": "2026"
-},
-{
 "id": "tt33515714",
 "type": "movie",
 "name": "In a Whisper",
 "poster": "https://images.metahub.space/poster/medium/tt33515714/img",
-"releaseInfo": "2026"
-},
-{
-"id": "tt39075020",
-"type": "movie",
-"name": "Soumsoum, The Night of the Stars",
-"poster": "https://images.metahub.space/poster/medium/tt39075020/img",
 "releaseInfo": "2026"
 },
 {
@@ -29,24 +15,10 @@
 "releaseInfo": "2026"
 },
 {
-"id": "tt34386754",
-"type": "movie",
-"name": "Once Upon a Time in the Middle East",
-"poster": "https://images.metahub.space/poster/medium/tt34386754/img",
-"releaseInfo": "2026"
-},
-{
 "id": "tt43705006",
 "type": "movie",
 "name": "No Paradise If You Are Killed by a Woman",
 "poster": "https://images.metahub.space/poster/medium/tt43705006/img",
-"releaseInfo": "2026"
-},
-{
-"id": "tt43704371",
-"type": "movie",
-"name": "Citizen Osama",
-"poster": "https://images.metahub.space/poster/medium/tt43704371/img",
 "releaseInfo": "2026"
 },
 {
@@ -61,13 +33,6 @@
 "type": "movie",
 "name": "The Voice of Hind Rajab",
 "poster": "https://images.metahub.space/poster/medium/tt36943034/img",
-"releaseInfo": "2025"
-},
-{
-"id": "tt32298285",
-"type": "movie",
-"name": "Sirāt",
-"poster": "https://images.metahub.space/poster/medium/tt32298285/img",
 "releaseInfo": "2025"
 },
 {
@@ -99,20 +64,6 @@
 "releaseInfo": "2025"
 },
 {
-"id": "tt30781967",
-"type": "movie",
-"name": "Eagles of the Republic",
-"poster": "https://images.metahub.space/poster/medium/tt30781967/img",
-"releaseInfo": "2025"
-},
-{
-"id": "tt37496640",
-"type": "movie",
-"name": "The Sea",
-"poster": "https://images.metahub.space/poster/medium/tt37496640/img",
-"releaseInfo": "2025"
-},
-{
 "id": "tt32429174",
 "type": "movie",
 "name": "Calle Málaga",
@@ -124,13 +75,6 @@
 "type": "movie",
 "name": "Yunan",
 "poster": "https://images.metahub.space/poster/medium/tt24022322/img",
-"releaseInfo": "2025"
-},
-{
-"id": "tt26472958",
-"type": "movie",
-"name": "Away",
-"poster": "https://images.metahub.space/poster/medium/tt26472958/img",
 "releaseInfo": "2025"
 },
 {
@@ -155,13 +99,6 @@
 "releaseInfo": "2025"
 },
 {
-"id": "tt31436598",
-"type": "movie",
-"name": "Pheasant Island",
-"poster": "https://images.metahub.space/poster/medium/tt31436598/img",
-"releaseInfo": "2025"
-},
-{
 "id": "tt34965506",
 "type": "movie",
 "name": "Khartoum",
@@ -176,31 +113,10 @@
 "releaseInfo": "2025"
 },
 {
-"id": "tt37676219",
-"type": "movie",
-"name": "Good Valley Stories",
-"poster": "https://images.metahub.space/poster/medium/tt37676219/img",
-"releaseInfo": "2025"
-},
-{
 "id": "tt31392191",
 "type": "movie",
 "name": "Where the Wind Comes From",
 "poster": "https://images.metahub.space/poster/medium/tt31392191/img",
-"releaseInfo": "2025"
-},
-{
-"id": "tt30195482",
-"type": "movie",
-"name": "No Beast. So Fierce",
-"poster": "https://images.metahub.space/poster/medium/tt30195482/img",
-"releaseInfo": "2025"
-},
-{
-"id": "tt35927674",
-"type": "movie",
-"name": "Siko Siko",
-"poster": "https://images.metahub.space/poster/medium/tt35927674/img",
 "releaseInfo": "2025"
 },
 {
@@ -211,53 +127,11 @@
 "releaseInfo": "2025"
 },
 {
-"id": "tt36962446",
+"id": "tt35927674",
 "type": "movie",
-"name": "Know Hope: The Abstract and the Very Real",
-"poster": "https://images.metahub.space/poster/medium/tt36962446/img",
+"name": "Siko Siko",
+"poster": "https://images.metahub.space/poster/medium/tt35927674/img",
 "releaseInfo": "2025"
-},
-{
-"id": "tt33078916",
-"type": "movie",
-"name": "Escape From The Outland",
-"poster": "https://images.metahub.space/poster/medium/tt33078916/img",
-"releaseInfo": "2025"
-},
-{
-"id": "tt39232815",
-"type": "movie",
-"name": "Butcher's Stain",
-"poster": "https://images.metahub.space/poster/medium/tt39232815/img",
-"releaseInfo": "2025"
-},
-{
-"id": "tt30953759",
-"type": "movie",
-"name": "No Other Land",
-"poster": "https://images.metahub.space/poster/medium/tt30953759/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt27487473",
-"type": "movie",
-"name": "The Wages of Fear",
-"poster": "https://images.metahub.space/poster/medium/tt27487473/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt30135174",
-"type": "movie",
-"name": "Ghost Trail",
-"poster": "https://images.metahub.space/poster/medium/tt30135174/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt14680834",
-"type": "movie",
-"name": "Who Do I Belong To",
-"poster": "https://images.metahub.space/poster/medium/tt14680834/img",
-"releaseInfo": "2024"
 },
 {
 "id": "tt32260733",
@@ -267,10 +141,10 @@
 "releaseInfo": "2024"
 },
 {
-"id": "tt33338697",
+"id": "tt14680834",
 "type": "movie",
-"name": "The Bibi Files",
-"poster": "https://images.metahub.space/poster/medium/tt33338697/img",
+"name": "Who Do I Belong To",
+"poster": "https://images.metahub.space/poster/medium/tt14680834/img",
 "releaseInfo": "2024"
 },
 {
@@ -288,45 +162,10 @@
 "releaseInfo": "2024"
 },
 {
-"id": "tt32606918",
-"type": "movie",
-"name": "From Ground Zero",
-"poster": "https://images.metahub.space/poster/medium/tt32606918/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt19029666",
-"type": "movie",
-"name": "Customs Frontline",
-"poster": "https://images.metahub.space/poster/medium/tt19029666/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt23888758",
-"type": "movie",
-"name": "Layla",
-"poster": "https://images.metahub.space/poster/medium/tt23888758/img",
-"releaseInfo": "2024"
-},
-{
 "id": "tt21272942",
 "type": "movie",
 "name": "I Was a Stranger",
 "poster": "https://images.metahub.space/poster/medium/tt21272942/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt31551124",
-"type": "movie",
-"name": "The Belle from Gaza",
-"poster": "https://images.metahub.space/poster/medium/tt31551124/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt5636228",
-"type": "movie",
-"name": "Lumina",
-"poster": "https://images.metahub.space/poster/medium/tt5636228/img",
 "releaseInfo": "2024"
 },
 {
@@ -344,20 +183,6 @@
 "releaseInfo": "2024"
 },
 {
-"id": "tt33298252",
-"type": "movie",
-"name": "Rabia",
-"poster": "https://images.metahub.space/poster/medium/tt33298252/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt28305954",
-"type": "movie",
-"name": "Close to the Sultan",
-"poster": "https://images.metahub.space/poster/medium/tt28305954/img",
-"releaseInfo": "2024"
-},
-{
 "id": "tt23782554",
 "type": "movie",
 "name": "Red Path",
@@ -369,20 +194,6 @@
 "type": "movie",
 "name": "Aïcha",
 "poster": "https://images.metahub.space/poster/medium/tt27907962/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt27004148",
-"type": "movie",
-"name": "Grave Torture",
-"poster": "https://images.metahub.space/poster/medium/tt27004148/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt23640170",
-"type": "movie",
-"name": "Meet the Barbarians",
-"poster": "https://images.metahub.space/poster/medium/tt23640170/img",
 "releaseInfo": "2024"
 },
 {
@@ -414,20 +225,6 @@
 "releaseInfo": "2024"
 },
 {
-"id": "tt15386456",
-"type": "movie",
-"name": "Shikun",
-"poster": "https://images.metahub.space/poster/medium/tt15386456/img",
-"releaseInfo": "2024"
-},
-{
-"id": "tt14225838",
-"type": "movie",
-"name": "Io capitano",
-"poster": "https://images.metahub.space/poster/medium/tt14225838/img",
-"releaseInfo": "2023"
-},
-{
 "id": "tt27502426",
 "type": "movie",
 "name": "Four Daughters",
@@ -442,10 +239,10 @@
 "releaseInfo": "2023"
 },
 {
-"id": "tt27722543",
+"id": "tt22857256",
 "type": "movie",
-"name": "Green Border",
-"poster": "https://images.metahub.space/poster/medium/tt27722543/img",
+"name": "Bye Bye Tiberias",
+"poster": "https://images.metahub.space/poster/medium/tt22857256/img",
 "releaseInfo": "2023"
 },
 {
@@ -456,24 +253,10 @@
 "releaseInfo": "2023"
 },
 {
-"id": "tt22857256",
-"type": "movie",
-"name": "Bye Bye Tiberias",
-"poster": "https://images.metahub.space/poster/medium/tt22857256/img",
-"releaseInfo": "2023"
-},
-{
 "id": "tt14330672",
 "type": "movie",
 "name": "Goodbye Julia",
 "poster": "https://images.metahub.space/poster/medium/tt14330672/img",
-"releaseInfo": "2023"
-},
-{
-"id": "tt16611924",
-"type": "movie",
-"name": "The Burdened",
-"poster": "https://images.metahub.space/poster/medium/tt16611924/img",
 "releaseInfo": "2023"
 },
 {
@@ -491,10 +274,10 @@
 "releaseInfo": "2023"
 },
 {
-"id": "tt20251588",
+"id": "tt16611924",
 "type": "movie",
-"name": "Shoshana",
-"poster": "https://images.metahub.space/poster/medium/tt20251588/img",
+"name": "The Burdened",
+"poster": "https://images.metahub.space/poster/medium/tt16611924/img",
 "releaseInfo": "2023"
 },
 {
@@ -512,13 +295,6 @@
 "releaseInfo": "2023"
 },
 {
-"id": "tt14356054",
-"type": "movie",
-"name": "Take My Breath",
-"poster": "https://images.metahub.space/poster/medium/tt14356054/img",
-"releaseInfo": "2023"
-},
-{
 "id": "tt27721079",
 "type": "movie",
 "name": "Voy! Voy! Voy!",
@@ -526,10 +302,10 @@
 "releaseInfo": "2023"
 },
 {
-"id": "tt28554013",
+"id": "tt14356054",
 "type": "movie",
-"name": "Naga",
-"poster": "https://images.metahub.space/poster/medium/tt28554013/img",
+"name": "Take My Breath",
+"poster": "https://images.metahub.space/poster/medium/tt14356054/img",
 "releaseInfo": "2023"
 },
 {
@@ -540,17 +316,10 @@
 "releaseInfo": "2023"
 },
 {
-"id": "tt20452218",
+"id": "tt28554013",
 "type": "movie",
-"name": "The Deep Dark",
-"poster": "https://images.metahub.space/poster/medium/tt20452218/img",
-"releaseInfo": "2023"
-},
-{
-"id": "tt10656212",
-"type": "movie",
-"name": "Buya Hamka: Vol. 1",
-"poster": "https://images.metahub.space/poster/medium/tt10656212/img",
+"name": "Naga",
+"poster": "https://images.metahub.space/poster/medium/tt28554013/img",
 "releaseInfo": "2023"
 },
 {
@@ -558,13 +327,6 @@
 "type": "movie",
 "name": "Deserts",
 "poster": "https://images.metahub.space/poster/medium/tt27789218/img",
-"releaseInfo": "2023"
-},
-{
-"id": "tt27873958",
-"type": "movie",
-"name": "Ruby House",
-"poster": "https://images.metahub.space/poster/medium/tt27873958/img",
 "releaseInfo": "2023"
 },
 {
@@ -582,10 +344,10 @@
 "releaseInfo": "2023"
 },
 {
-"id": "tt33322029",
+"id": "tt27873958",
 "type": "movie",
-"name": "Vibrations from Gaza",
-"poster": "https://images.metahub.space/poster/medium/tt33322029/img",
+"name": "Ruby House",
+"poster": "https://images.metahub.space/poster/medium/tt27873958/img",
 "releaseInfo": "2023"
 },
 {
@@ -594,34 +356,6 @@
 "name": "The Night of the Glass of Water",
 "poster": "https://images.metahub.space/poster/medium/tt22299230/img",
 "releaseInfo": "2023"
-},
-{
-"id": "tt8745676",
-"type": "movie",
-"name": "The Swimmers",
-"poster": "https://images.metahub.space/poster/medium/tt8745676/img",
-"releaseInfo": "2022"
-},
-{
-"id": "tt15452062",
-"type": "movie",
-"name": "Boy from Heaven",
-"poster": "https://images.metahub.space/poster/medium/tt15452062/img",
-"releaseInfo": "2022"
-},
-{
-"id": "tt15445056",
-"type": "movie",
-"name": "Athena",
-"poster": "https://images.metahub.space/poster/medium/tt15445056/img",
-"releaseInfo": "2022"
-},
-{
-"id": "tt11946138",
-"type": "movie",
-"name": "Rebel",
-"poster": "https://images.metahub.space/poster/medium/tt11946138/img",
-"releaseInfo": "2022"
 },
 {
 "id": "tt9317274",
@@ -645,6 +379,13 @@
 "releaseInfo": "2022"
 },
 {
+"id": "tt10278448",
+"type": "movie",
+"name": "The Island of Forgiveness",
+"poster": "https://images.metahub.space/poster/medium/tt10278448/img",
+"releaseInfo": "2022"
+},
+{
 "id": "tt17006006",
 "type": "movie",
 "name": "Nezouh",
@@ -659,20 +400,6 @@
 "releaseInfo": "2022"
 },
 {
-"id": "tt10278448",
-"type": "movie",
-"name": "The Island of Forgiveness",
-"poster": "https://images.metahub.space/poster/medium/tt10278448/img",
-"releaseInfo": "2022"
-},
-{
-"id": "tt15655974",
-"type": "movie",
-"name": "Infiltration",
-"poster": "https://images.metahub.space/poster/medium/tt15655974/img",
-"releaseInfo": "2022"
-},
-{
 "id": "tt11112784",
 "type": "movie",
 "name": "Perfect Strangers",
@@ -680,10 +407,10 @@
 "releaseInfo": "2022"
 },
 {
-"id": "tt11069038",
+"id": "tt19783912",
 "type": "movie",
-"name": "Cork",
-"poster": "https://images.metahub.space/poster/medium/tt11069038/img",
+"name": "Ashkal",
+"poster": "https://images.metahub.space/poster/medium/tt19783912/img",
 "releaseInfo": "2022"
 },
 {
@@ -694,11 +421,284 @@
 "releaseInfo": "2022"
 },
 {
-"id": "tt19783912",
+"id": "tt15613514",
 "type": "movie",
-"name": "Ashkal",
-"poster": "https://images.metahub.space/poster/medium/tt19783912/img",
+"name": "The Crime",
+"poster": "https://images.metahub.space/poster/medium/tt15613514/img",
 "releaseInfo": "2022"
+},
+{
+"id": "tt21352686",
+"type": "movie",
+"name": "The Damned Don't Cry",
+"poster": "https://images.metahub.space/poster/medium/tt21352686/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt10935956",
+"type": "movie",
+"name": "Kira & El Gin",
+"poster": "https://images.metahub.space/poster/medium/tt10935956/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt17827194",
+"type": "movie",
+"name": "Raven Song",
+"poster": "https://images.metahub.space/poster/medium/tt17827194/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt18397006",
+"type": "movie",
+"name": "The Dam",
+"poster": "https://images.metahub.space/poster/medium/tt18397006/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt11555492",
+"type": "movie",
+"name": "Farha",
+"poster": "https://images.metahub.space/poster/medium/tt11555492/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt9178020",
+"type": "movie",
+"name": "Copilot",
+"poster": "https://images.metahub.space/poster/medium/tt9178020/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt7265490",
+"type": "movie",
+"name": "Memory Box",
+"poster": "https://images.metahub.space/poster/medium/tt7265490/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt12244822",
+"type": "movie",
+"name": "Amira",
+"poster": "https://images.metahub.space/poster/medium/tt12244822/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14122234",
+"type": "movie",
+"name": "Miguel's War",
+"poster": "https://images.metahub.space/poster/medium/tt14122234/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt9860858",
+"type": "movie",
+"name": "Costa Brava, Lebanon",
+"poster": "https://images.metahub.space/poster/medium/tt9860858/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt13445076",
+"type": "movie",
+"name": "Al Kameen",
+"poster": "https://images.metahub.space/poster/medium/tt13445076/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14014162",
+"type": "movie",
+"name": "All The Prime Minister's Men",
+"poster": "https://images.metahub.space/poster/medium/tt14014162/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt15132224",
+"type": "movie",
+"name": "The Stranger",
+"poster": "https://images.metahub.space/poster/medium/tt15132224/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14805128",
+"type": "movie",
+"name": "Feathers",
+"poster": "https://images.metahub.space/poster/medium/tt14805128/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt11778102",
+"type": "movie",
+"name": "Mousa",
+"poster": "https://images.metahub.space/poster/medium/tt11778102/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt13043436",
+"type": "movie",
+"name": "The Humans and the Mongoose",
+"poster": "https://images.metahub.space/poster/medium/tt13043436/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt11389120",
+"type": "movie",
+"name": "The Falconer",
+"poster": "https://images.metahub.space/poster/medium/tt11389120/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt10696586",
+"type": "movie",
+"name": "Marry Me Again?",
+"poster": "https://images.metahub.space/poster/medium/tt10696586/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt11778144",
+"type": "movie",
+"name": "The Knower",
+"poster": "https://images.metahub.space/poster/medium/tt11778144/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt11452758",
+"type": "movie",
+"name": "Shaw-ming",
+"poster": "https://images.metahub.space/poster/medium/tt11452758/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt13758760",
+"type": "movie",
+"name": "A Stand Worthy of Men",
+"poster": "https://images.metahub.space/poster/medium/tt13758760/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt13065704",
+"type": "movie",
+"name": "One Second",
+"poster": "https://images.metahub.space/poster/medium/tt13065704/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt17066696",
+"type": "movie",
+"name": "Shugaley 3",
+"poster": "https://images.metahub.space/poster/medium/tt17066696/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14216488",
+"type": "movie",
+"name": "My Bride",
+"poster": "https://images.metahub.space/poster/medium/tt14216488/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt13742892",
+"type": "movie",
+"name": "Black Medusa",
+"poster": "https://images.metahub.space/poster/medium/tt13742892/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt10360862",
+"type": "movie",
+"name": "The Man Who Sold His Skin",
+"poster": "https://images.metahub.space/poster/medium/tt10360862/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt13501592",
+"type": "movie",
+"name": "This Rain Will Never Stop",
+"poster": "https://images.metahub.space/poster/medium/tt13501592/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt9252468",
+"type": "movie",
+"name": "Mosul",
+"poster": "https://images.metahub.space/poster/medium/tt9252468/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12246266",
+"type": "movie",
+"name": "200 Meters",
+"poster": "https://images.metahub.space/poster/medium/tt12246266/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt11474480",
+"type": "movie",
+"name": "The Present",
+"poster": "https://images.metahub.space/poster/medium/tt11474480/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt11692148",
+"type": "movie",
+"name": "Gaza mon amour",
+"poster": "https://images.metahub.space/poster/medium/tt11692148/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12444454",
+"type": "movie",
+"name": "Souad",
+"poster": "https://images.metahub.space/poster/medium/tt12444454/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt13657102",
+"type": "movie",
+"name": "The Tambour of Retribution",
+"poster": "https://images.metahub.space/poster/medium/tt13657102/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt14033768",
+"type": "movie",
+"name": "The Postcard",
+"poster": "https://images.metahub.space/poster/medium/tt14033768/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt10676134",
+"type": "movie",
+"name": "Mica",
+"poster": "https://images.metahub.space/poster/medium/tt10676134/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12594020",
+"type": "movie",
+"name": "I Am Afraid To Forget Your Face",
+"poster": "https://images.metahub.space/poster/medium/tt12594020/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt11561866",
+"type": "movie",
+"name": "Masameer: The Movie",
+"poster": "https://images.metahub.space/poster/medium/tt11561866/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt14111156",
+"type": "movie",
+"name": "Before the Dying of the Light",
+"poster": "https://images.metahub.space/poster/medium/tt14111156/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt11833648",
+"type": "movie",
+"name": "Shams Al-Ma'arif",
+"poster": "https://images.metahub.space/poster/medium/tt11833648/img",
+"releaseInfo": "2020"
 }
 ]
 }
