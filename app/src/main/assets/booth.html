@@ -120,9 +120,10 @@ main{padding:0 28px 60px}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
 .chip.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--on-accent);font-weight:600}
 .play{display:flex;flex-direction:column;gap:14px}
-.playbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:0;border-radius:10px;padding:14px 18px;background:var(--tungsten);color:var(--on-accent);font-size:17px;font-weight:700;cursor:pointer}
-.playbtn small{font-weight:500;font-size:13px;opacity:.8}
+.playbtn{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;min-width:180px;border:0;border-radius:10px;padding:11px 20px;background:var(--tungsten);color:var(--on-accent);font-size:15px;font-weight:600;cursor:pointer}
+.playbtn small{font-weight:400;font-size:12px;opacity:.75}
 .playbtn:disabled{background:var(--raise);color:var(--muted);cursor:default}
+[data-layout="tv"] .playbtn{align-self:stretch;width:100%;justify-content:center;font-size:18px;padding:14px 20px}
 .quals{display:flex;flex-wrap:wrap;gap:8px}
 .quals button{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer}
 .quals button:hover,.quals button:focus-visible{border-color:var(--tungsten)}
@@ -255,6 +256,70 @@ main{padding:0 28px 60px}
 .desc .src a{color:var(--muted)}
 .readmore{background:none;border:0;color:var(--tungsten);font-weight:600;cursor:pointer;padding:0 4px}
 .orig{display:block;font-family:var(--body);font-size:15px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:6px}
+
+/* the secondary menu as a rail on the side: every category is one move away */
+@media(min-width:900px){
+  .cats{position:fixed;top:var(--barh,72px);inset-inline-end:0;width:var(--rail,190px);height:calc(100vh - var(--barh,72px));
+    flex-direction:column;gap:2px;padding:14px 12px 60px;overflow-y:auto;background:var(--night);
+    border-inline-start:1px solid var(--line);scrollbar-width:none}
+  .cats a{padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:none}
+  .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset -3px 0 var(--tungsten)}
+  body.railed main{margin-inline-end:var(--rail,190px)}
+}
+[data-layout="tv"]{--rail:250px}
+[data-layout="tv"] .cats a{font-size:18px;padding:13px 18px}
+
+/* A title on the TV: the backdrop is the room's wallpaper, and everything you can DO with the
+   title - play, sources, episodes - is on the first screen, without scrolling. */
+[data-layout="tv"] .backdrop{position:fixed;inset:0;height:100vh;margin:0;z-index:0;opacity:.5}
+[data-layout="tv"] .backdrop::after{background:linear-gradient(0deg,var(--night) 30%,var(--shade-50) 75%,var(--shade-20))}
+[data-layout="tv"] .detail{margin-top:0;padding-top:14px;grid-template-columns:190px 1fr;gap:26px;align-items:start}
+[data-layout="tv"] .detail h1{font-size:34px;margin:0 0 8px}
+[data-layout="tv"] .detail .facts{margin-bottom:8px}
+[data-layout="tv"] .desc{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:64ch;margin:0 0 12px}
+[data-layout="tv"] .detail .people{display:none}
+[data-layout="tv"] .cols{margin-top:16px;gap:20px}
+[data-layout="tv"] .cols .panel:last-child{order:-1}      /* watching comes before the episode list */
+[data-layout="tv"] .eps{max-height:27vh}
+[data-layout="tv"] .panel{padding:14px 16px}
+[data-layout="tv"] .panel h3{font-size:21px;margin-bottom:8px}
+
+/* RaspberryTV access key: typed with the remote, no on-screen keyboard needed */
+.keypad{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;direction:ltr}
+.keypad button{background:var(--surface);border:1px solid var(--line);color:var(--light);border-radius:8px;
+  padding:12px 0;font:600 17px var(--body);cursor:pointer}
+.keypad button:hover,.keypad button:focus-visible{border-color:var(--tungsten);color:var(--tungsten)}
+.keypad button.wide{grid-column:span 2}
+.keyboxes{display:flex;gap:8px;justify-content:center;direction:ltr;margin:4px 0 14px}
+.keyboxes span{width:38px;height:48px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);font:700 20px var(--display)}
+.keyboxes span.set{border-color:var(--tungsten);color:var(--tungsten)}
+[data-layout="tv"] .keypad button{padding:15px 0;font-size:19px}
+[data-layout="tv"] .keyboxes span{width:46px;height:58px;font-size:24px}
+
+/* sorting and filtering: three rows of chips, one tap each */
+.sortbar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:0 0 18px}
+.sortbar .sgroup{display:flex;gap:6px;align-items:center}
+.sortbar .slabel{color:var(--muted);font-size:13px;margin-inline-end:2px}
+.sortbar button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:6px 13px;font:inherit;font-size:14px;cursor:pointer}
+.sortbar button.on{background:var(--tungsten);border-color:transparent;color:var(--on-accent);font-weight:600}
+.sortbar button:hover{color:var(--light)}
+[data-layout="tv"] .sortbar button{font-size:17px;padding:10px 18px}
+.rate{color:var(--tungsten);font-weight:600}
+
+/* a taste of the title, in the tile you are standing on */
+.art .peek{position:absolute;inset-inline:0;top:50%;transform:translateY(-50%);width:100%;aspect-ratio:16/9;border:0;pointer-events:none;z-index:2}
+.poster.previewing .art{background-color:#000}
+
+/* a newer version is out: a quiet card at the bottom, never in the way */
+.update{position:fixed;inset-block-end:18px;inset-inline-start:50%;transform:translateX(-50%);z-index:9000;
+  display:flex;flex-wrap:wrap;align-items:center;gap:12px;max-width:calc(100vw - 32px);padding:14px 18px;
+  border-radius:14px;background:var(--raise);border:1px solid var(--tungsten);color:var(--light);
+  font:15px/1.4 var(--body);box-shadow:0 18px 44px #000a}
+.update b{font-weight:700}
+.update button{border:1px solid var(--line);background:none;color:var(--light);border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer}
+.update button.go{background:var(--tungsten);color:var(--on-accent);border-color:transparent;font-weight:600}
+[data-layout="tv"] .update{font-size:18px}
 
 /* opening a source: the card sits over the middle of the screen, with its own way out */
 .tstat{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;
@@ -771,6 +836,66 @@ async function loadServices(){
   applyBadges();
 }
 
+/* ---------- sorting and filtering ----------
+   Real IMDb ratings and years come with the catalogue itself, so a category can be re-ordered
+   without asking anything else: one tap per choice, and the rows become one ranked grid. */
+const SORT_BY = [['pop', 'פופולרי'], ['rating', 'דירוג IMDb'], ['year', 'הכי חדש'], ['az', 'לפי שם']];
+const SORT_YEAR = [['', 'כל השנים'], ['2020', '2020 ומעלה'], ['2010', 'שנות ה־2010'], ['2000', 'שנות ה־2000'], ['old', 'לפני 2000']];
+const SORT_RATE = [['', 'כל הדירוגים'], ['7', '7+'], ['8', '8+']];
+let sortState = Object.assign({by: 'pop', year: '', rate: ''}, store.get('sort', {}));
+const sortActive = () => sortState.by !== 'pop' || !!sortState.year || !!sortState.rate;
+const yearOfMeta = m => +String(m.year || m.releaseInfo || '').slice(0, 4) || 0;
+const rateOf = m => parseFloat(m.imdbRating) || 0;
+
+/** The bar itself; [redraw] is called after every change. */
+function sortBar(redraw){
+  const group = (key, opts, label) => `<div class="sgroup"><span class="slabel">${label}</span>${opts.map(([v, n]) =>
+    `<button data-sk="${key}" data-sv="${v}" class="${sortState[key] === v ? 'on' : ''}" aria-pressed="${sortState[key] === v}">${n}</button>`).join('')}</div>`;
+  return `<div class="sortbar" role="group" aria-label="מיון וסינון">
+    ${group('by', SORT_BY, 'מיון')}${group('year', SORT_YEAR, 'שנים')}${group('rate', SORT_RATE, 'דירוג')}</div>`;
+}
+function wireSortBar(redraw){
+  document.querySelectorAll('[data-sk]').forEach(b => b.onclick = () => {
+    sortState[b.dataset.sk] = b.dataset.sv;
+    store.set('sort', sortState);
+    redraw();
+  });
+}
+/** Apply the current choice to a list of titles. */
+function applySort(list){
+  const {by, year, rate} = sortState;
+  let out = list.filter(m => {
+    const y = yearOfMeta(m);
+    if(year === '2020' && y < 2020) return false;
+    if(year === '2010' && (y < 2010 || y > 2019)) return false;
+    if(year === '2000' && (y < 2000 || y > 2009)) return false;
+    if(year === 'old' && (!y || y >= 2000)) return false;
+    if(rate && rateOf(m) < +rate) return false;
+    return true;
+  });
+  if(by === 'rating') out = out.sort((a, b) => rateOf(b) - rateOf(a));
+  if(by === 'year') out = out.sort((a, b) => yearOfMeta(b) - yearOfMeta(a));
+  if(by === 'az') out = out.sort((a, b) => heTitle(a.id, a.name).localeCompare(heTitle(b.id, b.name), 'he'));
+  return out;
+}
+
+/** Everything a set of rows holds, as one grid: used when a sort or a filter is on. */
+async function gridFrom(rows, heading){
+  const app = $('#app');
+  app.innerHTML = `<div class="page"><h1>${esc(heading)}</h1>${sortBar()}<div class="grid" id="grid">${skeletons(18)}</div></div>`;
+  wireSortBar(() => gridFrom(rows, heading));
+  const lists = await Promise.all(rows.filter(x => x.a && x.c).map(x =>
+    catalogFetch(x.a, x.c.type, x.c.id, x.extra).then(d => d.metas || []).catch(() => [])));
+  const seen = new Set(), all = [];
+  for(const l of lists) for(const m of l) if(!seen.has(m.id)){ seen.add(m.id); all.push(m); }
+  const grid = $('#grid');
+  if(!grid) return;
+  const out = applySort(all);
+  grid.innerHTML = out.length ? out.slice(0, 200).map(card).join('')
+    : '<p class="note">אין כותרים שעונים על הסינון הזה. נסה לוותר על אחד התנאים.</p>';
+  lazyBg(grid);
+}
+
 /* ---------- cards ---------- */
 let progressIdx = new Map();
 function indexProgress(){ progressIdx = new Map(Object.values(progress).map(x => [x.metaId, x])); }
@@ -784,7 +909,9 @@ function card(m){
   const name = heTitle(m.id, m.name);
   const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';
   const none = key && typeof avail !== 'undefined' && isNoSrc(avail[key]);
-  return `<a class="poster${none ? ' nosrc' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
+  const rating = m.imdbRating ? ` · <span class="rate">★ ${esc(m.imdbRating)}</span>` : '';
+  if(m.trailers?.[0]?.source || m.trailerStreams?.[0]?.ytId) trailerIds.set(m.id, m.trailers?.[0]?.source || m.trailerStreams[0].ytId);
+  return `<a class="poster${none ? ' nosrc' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}${rating}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
@@ -1218,6 +1345,62 @@ async function viewJfcTab(tabs){
   }catch(e){ showErr($('#jfcrows'), 'לא ניתן לטעון את ארכיון הסרטים הישראלי', e, () => viewJfcTab(tabs)); }
 }
 
+/* ---------- a taste of the title ----------
+   Resting on a poster (mouse or remote) plays the trailer inside that very tile, muted and without
+   controls - no player opens, nothing else moves. Off from the settings for anyone who dislikes it. */
+const trailerIds = new Map();
+let peekTimer = null, peekCard = null;
+
+function stopPeek(){
+  clearTimeout(peekTimer);
+  peekCard?.querySelector('.peek')?.remove();
+  peekCard?.classList.remove('previewing');
+  peekCard = null;
+}
+
+/** Is the viewer still on this card? (mouse: hovered, remote: focused) */
+const stillOn = el => el.isConnected && (el === document.activeElement || el.matches(':hover') || el.contains(document.activeElement));
+
+async function startPeek(cardEl){
+  if(settings.preview === 'off' || !cardEl || cardEl === peekCard) return;
+  const id = cardEl.dataset.id;
+  const art = cardEl.querySelector('.art');
+  if(!id || !art) return;
+  let yt = trailerIds.get(id);
+  if(yt === undefined){
+    const type = (cardEl.getAttribute('href') || '').split('/')[2] || 'movie';
+    const meta = await fetchMeta(type, id).catch(() => null);
+    yt = meta?.trailers?.[0]?.source || meta?.trailerStreams?.[0]?.ytId || null;
+    trailerIds.set(id, yt);
+  }
+  if(!yt || !stillOn(cardEl)) return;
+  stopPeek();
+  const frame = document.createElement('iframe');
+  frame.className = 'peek';
+  frame.allow = 'autoplay; encrypted-media; picture-in-picture';
+  frame.setAttribute('tabindex', '-1');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&start=8&loop=1&playlist=${encodeURIComponent(yt)}`;
+  art.appendChild(frame);
+  cardEl.classList.add('previewing');
+  peekCard = cardEl;
+}
+
+function armPeek(cardEl){
+  if(!cardEl || cardEl === peekCard) return;
+  stopPeek();
+  peekTimer = setTimeout(() => startPeek(cardEl), isTvLayout() ? 1200 : 700);
+}
+document.addEventListener('mouseover', e => {
+  const c = e.target.closest?.('a.poster[href^="#/detail/"]');
+  if(c) armPeek(c); else if(peekCard && !peekCard.matches(':hover')) stopPeek();
+});
+document.addEventListener('focusin', e => {
+  const c = e.target.closest?.('a.poster[href^="#/detail/"]');
+  if(c) armPeek(c); else stopPeek();
+});
+addEventListener('hashchange', stopPeek);
+
 /* ---------- quick view: tap a poster for the synopsis; tap it again (or the button) to open it ---------- */
 const metaCache = {};
 async function fetchMeta(type, id){
@@ -1411,7 +1594,9 @@ function viewGenre(g){
   const rows = [];
   for(const id of ['top', 'imdbRating']) for(const c of cm.manifest.catalogs || []) if(c.id === id)
     rows.push({a: cm, c, extra: `genre=${encodeURIComponent(g)}`, title: `${genreHe(g)} · ${id === 'top' ? 'פופולרי' : 'הכי טובים'}`});
-  renderRows(rows, {hero: false, heading: genreHe(g)});
+  if(sortActive()) return gridFrom(rows, genreHe(g));
+  renderRows(rows, {hero: false, heading: genreHe(g), top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
+  wireSortBar(() => viewGenre(g));
 }
 
 /** Resolve a category's row specs against the installed add-ons. */
@@ -1431,8 +1616,10 @@ function rowsFor(cat){
 function renderCats(active){
   const nav = $('#cats');
   nav.hidden = active == null;
+  document.body.classList.toggle('railed', !nav.hidden);
+  document.documentElement.style.setProperty('--barh', (document.querySelector('.bar')?.offsetHeight || 72) + 'px');
   if(active == null) return;
-  if(settings.kids === 'on'){ nav.hidden = true; return; }
+  if(settings.kids === 'on'){ nav.hidden = true; document.body.classList.remove('railed'); return; }
   const avail = userCategories().filter(c => rowsFor(c).length);
   nav.innerHTML = [`<a href="#/" class="${active === 'home' ? 'on' : ''}">הכל</a>`,
     ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}"><bdi>${esc(c.name)}</bdi></a>`),
@@ -1529,7 +1716,10 @@ function viewCategory(id){
   const cat = CATEGORIES.find(c => c.id === id);
   if(!cat) return viewHome();
   renderCats(id);
-  renderRows(rowsFor(cat), {hero: false});
+  const rows = rowsFor(cat);
+  if(sortActive()) return gridFrom(rows, cat.name);
+  renderRows(rows, {hero: false, top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
+  wireSortBar(() => viewCategory(id));
 }
 
 function renderHero(m){
@@ -1761,6 +1951,8 @@ function renderStreams(box, all, pending, label, ctx, errors = [], retry){
 
 async function loadStreams({type, meta}, videoId, label){
   const box = $('#streams');
+  const takeFocus = isTvLayout() && (!document.activeElement || document.activeElement === document.body
+    || document.activeElement.closest('.eps'));
   const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
   if(!src.length){ box.innerHTML = `<p class="note">לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.</p>`; return; }
   const token = ++streamsToken;
@@ -1768,7 +1960,14 @@ async function loadStreams({type, meta}, videoId, label){
   const all = [], errors = [];
   let pending = src.length;
   const retry = () => loadStreams({type, meta}, videoId, label);
-  const render = () => { if(token === streamsToken && box.isConnected) renderStreams(box, all, pending > 0, label, ctx, errors, retry); };
+  let focused = false;
+  const render = () => {
+    if(token !== streamsToken || !box.isConnected) return;
+    renderStreams(box, all, pending > 0, label, ctx, errors, retry);
+    // the first thing the remote holds on a title is "play"
+    const play = box.querySelector('.playbtn:not([disabled])');
+    if(play && takeFocus && !focused){ focused = true; play.focus(); }
+  };
   render();
   await Promise.all(src.map(async a => {
     const url = `${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`;
@@ -1950,6 +2149,53 @@ const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמיש
 const hhmm = t => new Date(t * 1000).toLocaleTimeString('he-IL', {hour: '2-digit', minute: '2-digit'});
 const dayKey = t => new Date(t * 1000).toDateString();
 
+/** RaspberryTV's access key, typed on screen: eight characters, remote-friendly, no keyboard popup. */
+function openRtvKey(after){
+  document.querySelector('.sheet')?.remove();
+  let code = '';
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  const chars = [...'0123456789abcdefghijklmnopqrstuvwxyz'];
+  sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="קוד גישה ל־RaspberryTV">
+    <header><b>קוד הגישה של RaspberryTV</b><button aria-label="סגור">✕</button></header>
+    <div class="body">
+      <p class="note" style="margin:0">הקוד בן 8 תווים, מהחשבון שלך באתר RaspberryTV תחת "Access key for applications". הוא נשמר רק במכשיר הזה.</p>
+      <div class="keyboxes" id="kbox">${'<span></span>'.repeat(8)}</div>
+      <div class="keypad" id="kpad">
+        ${chars.map(c => `<button data-k="${c}">${c}</button>`).join('')}
+        <button class="wide" data-del="1">⌫ מחק</button>
+        <button class="wide" data-ok="1">שמור</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(sheet);
+  const close = () => sheet.remove();
+  sheet.querySelector('header button').onclick = close;
+  sheet.onclick = e => { if(e.target === sheet) close(); };
+  const paint = () => sheet.querySelectorAll('#kbox span').forEach((b, i) => {
+    b.textContent = code[i] || '';
+    b.classList.toggle('set', !!code[i]);
+  });
+  const save = () => {
+    if(code.length !== 8) return;
+    store.set('rtvKey', code); rtvCache = null; store.set('livePl', 'rtv');
+    close();
+    after ? after() : (location.hash = '#/live');
+  };
+  sheet.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+    if(code.length < 8){ code += b.dataset.k; paint(); }
+    if(code.length === 8) sheet.querySelector('[data-ok]').focus();
+  });
+  sheet.querySelector('[data-del]').onclick = () => { code = code.slice(0, -1); paint(); };
+  sheet.querySelector('[data-ok]').onclick = save;
+  // a real keyboard (phone, or a USB one on the TV) types straight into it
+  sheet.addEventListener('keydown', e => {
+    if(/^[0-9a-zA-Z]$/.test(e.key) && code.length < 8){ code += e.key.toLowerCase(); paint(); e.preventDefault(); }
+    else if(e.key === 'Backspace'){ code = code.slice(0, -1); paint(); e.preventDefault(); }
+    else if(e.key === 'Enter' && code.length === 8){ save(); e.preventDefault(); }
+  });
+  sheet.querySelector('[data-k]').focus();
+}
+
 /** Channel sheet: watch live, or pick a past programme from the guide (catch-up). */
 async function openChannel(c){
   document.querySelector('.sheet')?.remove();
@@ -2072,7 +2318,9 @@ async function viewLive(){
     </div>
     <div id="cont"></div>
     <div id="chs"><p class="note">טוען ערוצים…</p></div>
-    ${store.get('rtvKey', '') ? '' : `<p class="note" style="margin-top:24px">מנוי RaspberryTV? הזן את קוד הגישה פעם אחת ב<a href="#/settings">הגדרות</a>.</p>`}</div>`;
+    ${store.get('rtvKey', '') ? '' : `<div class="keyform" style="margin-top:24px"><button class="btn primary" id="rtvOpen">הזן קוד RaspberryTV</button>
+      <span class="note">מנוי RaspberryTV? הזן את קוד הגישה פעם אחת והערוצים יופיעו כאן.</span></div>`}</div>`;
+  if($('#rtvOpen')) $('#rtvOpen').onclick = () => openRtvKey(viewLive);
   app.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { store.set('livePl', b.dataset.pl); store.set('liveGroup', ''); viewLive(); });
 
   let chans;
@@ -2161,7 +2409,7 @@ const LAYOUTS = [
 ];
 const POSTER_SIZES = [{id: 's', name: 'קטן'}, {id: 'm', name: 'בינוני'}, {id: 'l', name: 'גדול'}];
 const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off'}, store.get('settings', {}));
+let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'}, store.get('settings', {}));
 function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
@@ -2229,6 +2477,8 @@ function paintSettings(){
     look: () => `<section class="sset"><h2>ערכת עיצוב</h2><div class="sopts">${SKINS.map(o => optCard('skin', o, swatch(o))).join('')}</div></section>
       <section class="sset"><h2>פריסה</h2><div class="sopts">${LAYOUTS.map(o => optCard('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>`
       + seg('poster', 'גודל פוסטרים', POSTER_SIZES.map(o => [o.id, esc(o.name)]))
+      + seg('preview', 'טעימה מהכותר', [['on', 'פעיל'], ['off', 'כבוי']],
+        'עמידה על פוסטר מתחילה לנגן בתוכו קטע קצר מהטריילר, בלי קול ובלי לפתוח נגן.')
       + seg('nosrc', 'כותרים בלי מקורות', [['grey', 'להאפיר'], ['hide', 'להסתיר']],
         'כותר שאין לו כרגע מקור צפייה — להשאיר אותו מעומעם, או להוציא אותו מהמסך.'),
 
@@ -2242,8 +2492,7 @@ function paintSettings(){
       ${rtv ? `<p class="note" style="margin:0 0 10px">מחובר עם קוד <b dir="ltr">${esc(rtv.slice(0, 2))}••••••</b>. הערוצים נמצאים ב<a href="#/live">שידור חי</a> ← RaspberryTV.</p>
         <button class="danger" id="rtvClear">הסר את קוד הגישה</button>`
       : `<p class="note" style="margin:0 0 10px">קוד הגישה לאפליקציות (8 תווים) נמצא בחשבון RaspberryTV, תחת "Access key for applications". הוא נשמר רק במכשיר הזה.</p>
-        <form class="keyform" id="rtvSet"><input class="field" id="rtvKeyIn" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" placeholder="8 תווים" aria-label="קוד גישה ל־RaspberryTV">
-        <button class="btn primary">שמור</button></form>`}</section>
+        <div class="keyform"><button class="btn primary" id="rtvSet">הזן את קוד הגישה</button></div>`}</section>
       <section class="sset"><h2>פלייליסטים (M3U)</h2>
       ${playlists.map(p => `<div class="plrow"><b>${esc(p.name)}</b><code dir="ltr">${esc(p.url)}</code><button class="danger" data-plrm="${esc(p.url)}">הסר</button></div>`).join('')}
       <form class="addpl" id="plf"><input class="field" id="pln" placeholder="שם" aria-label="שם הפלייליסט">
@@ -2258,7 +2507,9 @@ function paintSettings(){
     about: () => `<section class="sset"><h2>איפוס</h2>
       <p class="note" style="margin:0 0 10px">מחזיר את כל ההגדרות לברירת המחדל. הספרייה, היסטוריית הצפייה וקוד ה־RaspberryTV נשמרים.</p>
       <div class="keyform"><button class="danger" id="sreset">איפוס לברירת המחדל</button></div></section>
-      <section class="sset"><h2>על המקרן</h2><p class="note" style="margin:0">המקרן · גרסה 0.23.0</p></section>`,
+      <section class="sset"><h2>על המקרן</h2>
+      <p class="note" style="margin:0 0 10px">המקרן · גרסה ${esc(APP_VERSION || '0.24.0')}</p>
+      <div class="keyform"><button class="btn primary" id="supd">בדוק אם יש גרסה חדשה</button></div></section>`,
   };
   pane.innerHTML = (panes[setTab] || panes.start)();
 
@@ -2267,12 +2518,7 @@ function paintSettings(){
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); paintSettings();
   });
-  if($('#rtvSet')) $('#rtvSet').onsubmit = e => {
-    e.preventDefault();
-    const k = $('#rtvKeyIn').value.trim();
-    if(k.length !== 8) return alert('קוד הגישה צריך להיות באורך 8 תווים.');
-    store.set('rtvKey', k); rtvCache = null; store.set('livePl', 'rtv'); location.hash = '#/live';
-  };
+  if($('#rtvSet')) $('#rtvSet').onclick = () => openRtvKey(paintSettings);
   if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); rtvCache = null; paintSettings(); };
   pane.querySelectorAll('[data-plrm]').forEach(b => b.onclick = () => {
     playlists = playlists.filter(p => p.url !== b.dataset.plrm); store.set('playlists', playlists); paintSettings();
@@ -2302,8 +2548,14 @@ function paintSettings(){
     [ids[i], ids[j]] = [ids[j], ids[i]];
     saveCats(ids);
   });
+  if($('#supd')) $('#supd').onclick = async () => {
+    store.set('updCheck', 0); store.set('updSkip', '');
+    $('#supd').textContent = 'בודק…';
+    await checkUpdate();
+    $('#supd').textContent = document.querySelector('.update') ? 'נמצאה גרסה חדשה' : 'זו הגרסה העדכנית';
+  };
   if($('#sreset')) $('#sreset').onclick = () => {
-    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off'};
+    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'};
     store.set('settings', settings); applySettings(); paintSettings();
   };
   if(focusKey) pane.querySelector(focusKey)?.focus();
@@ -2379,6 +2631,42 @@ function closePlayer(){
 }
 $('#close').onclick = closePlayer;
 addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
+
+/* ---------- new version ----------
+   On every start the app asks GitHub for the latest release. If it is newer than this build, a card
+   offers it; "עדכן" hands the APK to Android's own downloader and installer, which asks before it
+   installs. Nothing is downloaded or installed behind the viewer's back. */
+const RELEASES = 'https://api.github.com/repos/bardalas/MyStreamer1/releases/latest';
+const APK_URL = 'https://github.com/bardalas/MyStreamer1/releases/latest/download/HaMakren.apk';
+const APP_VERSION = (() => { try{ return window.BoothAndroid?.appVersion?.() || ''; }catch(e){ return ''; } })();
+
+/** "0.23.0" vs "0.24.1" -> is the second one newer? */
+function isNewer(latest, current){
+  const a = String(latest).replace(/^v/, '').split('.').map(Number);
+  const b = String(current).replace(/^v/, '').split('.').map(Number);
+  for(let i = 0; i < 3; i++){ const x = a[i] || 0, y = b[i] || 0; if(x !== y) return x > y; }
+  return false;
+}
+
+async function checkUpdate(){
+  if(!APP_VERSION || !window.BoothAndroid?.openExternal) return;        // only inside the app
+  if(Date.now() - (store.get('updCheck', 0) || 0) < 6 * 3600e3) return; // at most once every six hours
+  store.set('updCheck', Date.now());
+  let rel;
+  try{ rel = await getJSON(RELEASES, 8000); }catch(e){ return; }
+  const tag = (rel.tag_name || '').replace(/^v/, '');
+  if(!tag || !isNewer(tag, APP_VERSION) || store.get('updSkip', '') === tag) return;
+  const what = (rel.body || '').split('\n').map(l => l.replace(/^[-*]\s*/, '').trim())
+    .filter(l => l && !/^co-authored|^🤖|^https?:/i.test(l)).slice(0, 2).join(' · ');
+  const card = document.createElement('div');
+  card.className = 'update';
+  card.innerHTML = `<span><b>גרסה ${esc(tag)} זמינה</b>${what ? ` · ${esc(what.slice(0, 120))}` : ''}</span>
+    <button class="go" id="updGo">עדכן עכשיו</button><button id="updLater">לא עכשיו</button>`;
+  document.body.appendChild(card);
+  $('#updGo').onclick = () => { BoothAndroid.openExternal(APK_URL); card.remove(); };
+  $('#updLater').onclick = () => { store.set('updSkip', tag); card.remove(); };
+  if(isTvLayout()) $('#updGo').focus();
+}
 
 /* ---------- router ---------- */
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
@@ -2495,7 +2783,7 @@ paintNet();
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
    follows the focus — instead of the browser scrolling on its own. */
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])';
-const ROWS_SEL = '.bar, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .quals, .alt, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide, .stabs, .keyform, .plrow, .tstat';
+const ROWS_SEL = '.bar, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .quals, .alt, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide, .stabs, .keyform, .plrow, .tstat, .sgroup, .update, .keypad';
 const visible = el => el.offsetParent !== null && el.getBoundingClientRect().width > 0;
 // While a sheet or the quick view is open the remote stays inside it: nothing behind it can take focus.
 const tvScope = () => document.querySelector('.sheet') || document;
@@ -2509,6 +2797,7 @@ const catsHeight = () => { const c = $('#cats'); return c && c.offsetHeight && g
 function focusItem(el){
   if(!el) return;
   el.focus({preventScroll: true});
+  if(el.matches('a.poster[href^="#/detail/"]')) armPeek(el); else stopPeek();
   const strip = el.closest('.strip, .chlist, #cats, .nav, .bar, .stabs');
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center'});
   if(el.closest('.bar')) return scrollTo(0, 0);
@@ -2529,15 +2818,16 @@ function tvMove(dir){
   if(!row){ focusItem(itemsOf(rows[0])[0]); return true; }
   const items = itemsOf(row);
   const i = items.indexOf(active);
-  if(row.classList.contains('stabs')){              // side menu: a column, not a row
+  const column = row.classList.contains('stabs') || (row.id === 'cats' && document.body.classList.contains('railed'));
+  if(column){                                       // side menu: a column, not a row
     if(dir === 'up' || dir === 'down'){
       const n = items[i + (dir === 'down' ? 1 : -1)];
       if(n){ focusItem(n); n.click(); }             // moving down the menu opens that page
       return true;
     }
     if(dir === 'left'){                             // RTL: the page is to the left of the menu
-      const pane = $('#spane');
-      const first = pane && tvRows().filter(r => pane.contains(r)).flatMap(itemsOf)[0];
+      const main = $('#spane') || $('#app');
+      const first = main && tvRows().filter(r => main.contains(r)).flatMap(itemsOf)[0];
       if(first) focusItem(first);
     }
     return true;
@@ -2550,12 +2840,14 @@ function tvMove(dir){
     if(dir === 'right'){                            // back to the side menu, if there is one
       const tab = document.querySelector('.stabs button.on') || document.querySelector('.stabs button');
       if(tab && $('#spane')?.contains(active)) focusItem(tab);
+      else if(document.body.classList.contains('railed') && $('#app').contains(active))
+        focusItem($('#cats a.on') || $('#cats a'));
     }
     return true;                                    // stay put at the row's edge
   }
   // up / down: inside a wrapped grid move a line, otherwise move to the next row
   const x = active ? centerX(active) : 0;
-  if(row.classList.contains('grid') || row.classList.contains('genres') || row.classList.contains('sopts')){
+  if(row.classList.contains('grid') || row.classList.contains('genres') || row.classList.contains('sopts') || row.classList.contains('keypad')){
     const top = active.getBoundingClientRect().top;
     const line = items.filter(el => (dir === 'down' ? el.getBoundingClientRect().top > top + 4 : el.getBoundingClientRect().top < top - 4));
     if(line.length){
@@ -2653,6 +2945,8 @@ const withTimeout = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(r,
 const addonsReady = loadAddons();
 withTimeout(addonsReady, 6000).then(() => route());
 addonsReady.then(() => { if(!routed) route(); setTimeout(loadServices, 3000); });
+setTimeout(checkUpdate, 2500);
+addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkUpdate(); });
 </script>
 <div id="tstatus" role="status" aria-live="polite" class="tstat">
   <span id="tstatusMsg"></span>

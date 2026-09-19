@@ -119,6 +119,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** This build's version name, so the page can tell whether a newer one was released. */
+        @JavascriptInterface fun appVersion(): String =
+            runCatching { packageManager.getPackageInfo(packageName, 0).versionName ?: "" }.getOrDefault("")
+
+        /** Hand a link to the system (browser / downloader): used to fetch a new version's APK.
+         *  Android's own installer asks the viewer to confirm - the app never installs anything itself. */
+        @JavascriptInterface fun openExternal(url: String) {
+            runOnUiThread {
+                runCatching {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }.onFailure { startActivity(BrowserActivity.intent(this@MainActivity, url)) }
+            }
+        }
+
         /** A broadcaster's own web page (its player plays the video) in an in-app window. */
         @JavascriptInterface fun openSite(url: String) {
             runOnUiThread { startActivity(BrowserActivity.intent(this@MainActivity, url)) }
