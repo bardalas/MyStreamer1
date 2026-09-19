@@ -16,6 +16,7 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
+    private val REQ_LIVE = 1
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -123,8 +124,8 @@ class MainActivity : AppCompatActivity() {
         /** Live TV with channel zapping: [channelsJson] = [{name, url, ua, referer}], starting at [index]. */
         @JavascriptInterface fun playChannels(channelsJson: String, index: Int) {
             runOnUiThread {
-                startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
-                    .putExtra("channels", channelsJson).putExtra("index", index).putExtra("live", true))
+                startActivityForResult(Intent(this@MainActivity, PlayerActivity::class.java)
+                    .putExtra("channels", channelsJson).putExtra("index", index).putExtra("live", true), REQ_LIVE)
             }
         }
 
@@ -167,6 +168,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Back: let the page close an open panel/keyboard first, then go back, then leave the app.
+    // The player closed with "catch-up" for a channel: open its programme guide in the page.
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val channel = data?.getStringExtra("catchup")
+        if (requestCode == REQ_LIVE && resultCode == RESULT_OK && !channel.isNullOrBlank()) {
+            web.evaluateJavascript("window.boothCatchup && boothCatchup(${JSONObject.quote(channel)})", null)
+        }
+    }
+
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         web.evaluateJavascript("(window.boothBack && boothBack()) ? 'y' : 'n'") { handled ->

@@ -1995,7 +1995,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.20.1</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.21.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -2124,7 +2124,85 @@ async function route(){
   else if(r === 'settings') viewSettings();
   else viewHome();
 }
+/** The projector logo: back to the last live channel (or home, if nothing was watched yet). */
+document.querySelector('.logo').addEventListener('click', async e => {
+  const last = store.get('lastChannel', null);
+  if(!last) return;                                    // no channel yet: the logo is just "home"
+  e.preventDefault();
+  try{
+    const chans = await liveChannels(last.src);
+    const i = chans.findIndex(c => c.name === last.name);
+    if(i >= 0) return watchChannel(chans, i, last.src);
+  }catch(err){}
+  location.hash = '#/live';
+});
+/** The player asks for a channel's catch-up (long press OK while watching). */
+window.boothCatchup = async name => {
+  const last = store.get('lastChannel', null);
+  try{
+    const chans = await liveChannels(last?.src || 'il');
+    const c = chans.find(x => x.name === name);
+    if(c) openChannel(c);
+  }catch(e){}
+};
+
 addEventListener('hashchange', route);
+/* Remote control (Android TV): arrows move focus between titles and between rows, and the page
+   follows the focus — instead of the browser scrolling on its own. */
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])';
+const ROWS_SEL = '.nav, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .catorder, .addpl, .add, .ltabs, .mkbar';
+const visible = el => el.offsetParent !== null && el.getBoundingClientRect().width > 0;
+const tvRows = () => [...document.querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
+const itemsOf = row => [...row.querySelectorAll(FOCUSABLE)].filter(visible);
+const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+function focusItem(el, smooth){
+  if(!el) return;
+  el.focus({preventScroll: true});
+  el.scrollIntoView({block: 'center', inline: 'center', behavior: smooth ? 'auto' : 'auto'});
+}
+function tvMove(dir){
+  const rows = tvRows();
+  if(!rows.length) return false;
+  const active = document.activeElement;
+  let row = rows.find(r => r.contains(active));
+  if(!row){ focusItem(itemsOf(rows[0])[0]); return true; }
+  const items = itemsOf(row);
+  const i = items.indexOf(active);
+  if(dir === 'left' || dir === 'right'){
+    // right-to-left: ArrowLeft goes forward through the row
+    const step = dir === 'left' ? 1 : -1;
+    const next = items[i + step];
+    if(next){ focusItem(next); return true; }
+    return true;                                    // stay put at the row's edge
+  }
+  // up / down: inside a wrapped grid move a line, otherwise move to the next row
+  const x = active ? centerX(active) : 0;
+  if(row.classList.contains('grid') || row.classList.contains('genres') || row.classList.contains('sopts')){
+    const top = active.getBoundingClientRect().top;
+    const line = items.filter(el => (dir === 'down' ? el.getBoundingClientRect().top > top + 4 : el.getBoundingClientRect().top < top - 4));
+    if(line.length){
+      const band = dir === 'down' ? Math.min(...line.map(el => el.getBoundingClientRect().top)) : Math.max(...line.map(el => el.getBoundingClientRect().top));
+      const same = line.filter(el => Math.abs(el.getBoundingClientRect().top - band) < 4);
+      focusItem(same.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best));
+      return true;
+    }
+  }
+  const ri = rows.indexOf(row);
+  const next = rows[ri + (dir === 'down' ? 1 : -1)];
+  if(!next) return true;
+  const cand = itemsOf(next);
+  focusItem(cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]));
+  return true;
+}
+addEventListener('keydown', e => {
+  if(!isTvLayout() || e.altKey || e.ctrlKey || e.metaKey) return;
+  const dir = {ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'}[e.key];
+  if(!dir) return;
+  const a = document.activeElement;
+  if(a && (a.tagName === 'INPUT' && !a.readOnly || a.tagName === 'SELECT')) return;   // typing / picking
+  if(tvMove(dir)) e.preventDefault();
+}, true);
+
 // Remote control (Android TV): text fields stay locked while focus passes over them, so the on-screen
 // keyboard doesn't pop up; OK (Enter) unlocks the field and opens the keyboard.
 function armInput(i){

@@ -29,4 +29,26 @@
             android:layout_marginTop="12dp"
             android:text="▼" android:textSize="22sp" android:contentDescription="ערוץ הבא" />
     </LinearLayout>
+
+    <!-- Live TV: channel bar (OK opens it, OK again switches channel) -->
+    <LinearLayout
+        android:id="@+id/infobar"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_gravity="bottom" android:orientation="vertical"
+        android:background="#D9000000" android:padding="16dp"
+        android:layoutDirection="rtl" android:visibility="gone">
+        <TextView
+            android:id="@+id/infoNow"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#FFFFFF" android:textSize="18sp" android:paddingBottom="10dp" />
+        <HorizontalScrollView
+            android:id="@+id/chScroll"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:scrollbars="none">
+            <LinearLayout
+                android:id="@+id/chRow"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+    </LinearLayout>
 </FrameLayout>

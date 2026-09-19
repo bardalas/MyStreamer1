@@ -1,5 +1,11 @@
 # Booth Android changelog
 
+## 0.21.0 — 2026-09-20
+- Remote: arrows jump between titles and rows (the page follows the focus) instead of scrolling.
+- The projector logo resumes the last live channel watched.
+- Live TV player: OK opens a channel bar (channel list + hints), OK again switches channel;
+  play/pause pauses the live stream; holding OK opens that channel's catch-up guide in the app.
+
 ## 0.20.1 — 2026-09-20
 - Search stays in the top row next to the menu (it shrinks instead of dropping to its own row).
 - Smaller posters (default 132, small 104, large 168); the TV layout no longer enlarges them.

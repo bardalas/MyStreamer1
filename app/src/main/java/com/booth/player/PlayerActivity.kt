@@ -8,7 +8,10 @@ import android.os.Looper
 import android.view.GestureDetector
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.Gravity
 import android.view.View
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.OptIn
@@ -47,6 +50,9 @@ class PlayerActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     /** Automatic retries for the current channel (IPTV servers may still hold the previous session). */
     private var retries = 0
+    /** Channel bar (live TV): which channel the viewer is pointing at while it is open. */
+    private var barIndex = 0
+    private val barOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +86,8 @@ class PlayerActivity : AppCompatActivity() {
             findViewById<View>(R.id.chUp).setOnClickListener { zapBy(-1) }
             findViewById<View>(R.id.chDown).setOnClickListener { zapBy(1) }
         }
+
+        if (sources.size > 1) buildChannelBar()
 
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) { subs = emptyList(); showOsd(); return }
@@ -170,6 +178,63 @@ class PlayerActivity : AppCompatActivity() {
             }
     }
 
+    /** Channel bar: the channel list along the bottom, for choosing with the remote. */
+    private fun buildChannelBar() {
+        val row = findViewById<LinearLayout>(R.id.chRow)
+        row.removeAllViews()
+        sources.forEachIndexed { i, src ->
+            val t = TextView(this).apply {
+                text = "${i + 1}. ${src.name}"
+                textSize = 17f
+                setPadding(28, 14, 28, 14)
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                setOnClickListener { pickChannel(i) }
+            }
+            row.addView(t)
+        }
+    }
+
+    private fun showChannelBar() {
+        if (sources.size < 2) return
+        barIndex = index
+        findViewById<View>(R.id.infobar).visibility = View.VISIBLE
+        findViewById<PlayerView>(R.id.playerView).hideController()
+        paintChannelBar()
+    }
+
+    private fun hideChannelBar() { findViewById<View>(R.id.infobar).visibility = View.GONE }
+
+    private fun paintChannelBar() {
+        val row = findViewById<LinearLayout>(R.id.chRow)
+        for (i in 0 until row.childCount) {
+            val t = row.getChildAt(i) as TextView
+            t.setBackgroundColor(if (i == barIndex) Color.parseColor("#F0B429") else Color.TRANSPARENT)
+            t.setTextColor(if (i == barIndex) Color.parseColor("#14161F") else Color.WHITE)
+        }
+        row.getChildAt(barIndex)?.let { v ->
+            findViewById<HorizontalScrollView>(R.id.chScroll).smoothScrollTo(v.left - 200, 0)
+        }
+        findViewById<TextView>(R.id.infoNow).text =
+            "צופה: ${sources[index].name}   ·   OK להחלפה   ·   לחיצה ארוכה על OK: צפייה אחורה"
+    }
+
+    private fun moveChannelBar(step: Int) {
+        barIndex = (barIndex + step + sources.size) % sources.size
+        paintChannelBar()
+    }
+
+    private fun pickChannel(i: Int) {
+        hideChannelBar()
+        if (i != index) zapBy(i - index) else showOsd()
+    }
+
+    /** Long press OK: back to the app, opening this channel's catch-up (programme guide). */
+    private fun openCatchUp() {
+        setResult(RESULT_OK, android.content.Intent().putExtra("catchup", sources[index].name))
+        finish()
+    }
+
     /** Live TV: switch to the previous/next channel in the list (wraps around). */
     private fun zapBy(step: Int) {
         if (sources.size < 2) return
@@ -178,6 +243,7 @@ class PlayerActivity : AppCompatActivity() {
         player?.release()
         player = null
         showOsd()
+        if (barOpen) { barIndex = index; paintChannelBar() }
         // Give the server a moment to close the previous channel's session before opening the next.
         handler.removeCallbacks(rebuild)
         handler.postDelayed(rebuild, 400)
@@ -226,17 +292,30 @@ class PlayerActivity : AppCompatActivity() {
         handler.postDelayed(hideOsd, 3_000)
     }
 
-    // Remote: channel keys always zap; up/down zap while the controls are hidden.
+    // Remote: OK opens the channel bar (OK again switches), long press opens catch-up,
+    // channel keys and up/down zap directly, play/pause pauses the live stream.
     @OptIn(UnstableApi::class)
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (sources.size > 1 && event.action == KeyEvent.ACTION_DOWN) {
-            val controls = findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible
-            when (event.keyCode) {
-                KeyEvent.KEYCODE_CHANNEL_UP -> { zapBy(-1); return true }
-                KeyEvent.KEYCODE_CHANNEL_DOWN -> { zapBy(1); return true }
-                KeyEvent.KEYCODE_DPAD_UP -> if (!controls) { zapBy(-1); return true }
-                KeyEvent.KEYCODE_DPAD_DOWN -> if (!controls) { zapBy(1); return true }
+        if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
+        val controls = findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                player?.let { it.playWhenReady = !it.playWhenReady; showMessage(if (it.playWhenReady) "ממשיך" else "מושהה", 2_000) }
+                return true
             }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BUTTON_A -> {
+                if (sources.size < 2) return super.dispatchKeyEvent(event)
+                if (event.repeatCount > 0) { openCatchUp(); return true }        // held down
+                if (barOpen) pickChannel(barIndex) else showChannelBar()
+                return true
+            }
+            KeyEvent.KEYCODE_BACK -> if (barOpen) { hideChannelBar(); return true }
+            KeyEvent.KEYCODE_DPAD_LEFT -> if (barOpen) { moveChannelBar(1); return true }    // right-to-left list
+            KeyEvent.KEYCODE_DPAD_RIGHT -> if (barOpen) { moveChannelBar(-1); return true }
+            KeyEvent.KEYCODE_CHANNEL_UP -> if (sources.size > 1) { zapBy(-1); return true }
+            KeyEvent.KEYCODE_CHANNEL_DOWN -> if (sources.size > 1) { zapBy(1); return true }
+            KeyEvent.KEYCODE_DPAD_UP -> if (sources.size > 1 && !controls && !barOpen) { zapBy(-1); return true }
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls && !barOpen) { zapBy(1); return true }
         }
         return super.dispatchKeyEvent(event)
     }
