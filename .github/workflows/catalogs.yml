@@ -1,11 +1,11 @@
 name: Refresh Booth catalogs
 
-# Rebuilds the Hebrew/Arabic catalogs (addon/) from Wikidata every week.
+# Rebuilds the Hebrew/Arabic catalogs and the Hebrew title map (addon/) from Wikidata daily.
 # The app reads them from raw.githubusercontent.com, so no app release is needed.
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * 1'   # Mondays 03:00 UTC
+    - cron: '0 3 * * *'   # daily 03:00 UTC (streaming catalogs change often)
 
 jobs:
   refresh:

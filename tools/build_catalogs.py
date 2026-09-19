@@ -6,6 +6,10 @@ IMDb id), ranked by how many Wikipedia editions cover the title (a popularity pr
 release date. Served straight from the repo via raw.githubusercontent.com, so refreshing
 the catalogs (weekly workflow) needs no app release.
 
+Also writes addon/he.json: Hebrew titles and Hebrew Wikipedia article names for every title in
+the catalogs the app shows (Cinemeta, Streaming Catalogs, Booth), so the phone does not have to
+query Wikidata's slow SPARQL endpoint itself.
+
 Usage: python tools/build_catalogs.py
 """
 import json
@@ -19,6 +23,9 @@ SPARQL = "https://query.wikidata.org/sparql"
 UA = "BoothCatalogs/1.0 (https://github.com/bardalas/MyStreamer1)"
 POSTER = "https://images.metahub.space/poster/medium/{}/img"
 LIMIT = 100
+CINEMETA = "https://v3-cinemeta.strem.io"
+STREAMING_CATALOGS = ("https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/"
+                      "bmZ4LGF0cCxkbnAsYW1wLGhibSxwbXAsY3RzLG1nbDo6SUw6MTc4OTg0MTUwODAwMDoxOjA6")
 
 HEBREW, ARABIC = "Q9288", "Q13955"
 FILM, SERIES = "Q11424", "Q5398426"
@@ -51,6 +58,10 @@ def query(lang, cls, retries=4):
   OPTIONAL {{ ?item rdfs:label ?en FILTER(LANG(?en) = "en") }}
   OPTIONAL {{ ?item rdfs:label ?ar FILTER(LANG(?ar) = "ar") }}
 }}"""
+    return run_sparql(sparql, retries)
+
+
+def run_sparql(sparql, retries=4):
     url = SPARQL + "?format=json&query=" + urllib.parse.quote(sparql)
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/sparql-results+json"})
     for attempt in range(retries):
@@ -60,7 +71,53 @@ def query(lang, cls, retries=4):
         except Exception as e:  # Wikidata's endpoint is flaky under load; back off and retry
             print(f"  retry {attempt + 1} ({e})")
             time.sleep(10 * (attempt + 1))
-    raise RuntimeError(f"Wikidata query failed for {lang}/{cls}")
+    raise RuntimeError("Wikidata query failed")
+
+
+def get_json(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 " + UA})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.load(r)
+
+
+def shown_ids():
+    """IMDb ids in the catalogs the app shows on Home and category pages."""
+    ids = set()
+    for base in (CINEMETA, STREAMING_CATALOGS):
+        for c in get_json(base + "/manifest.json").get("catalogs", []):
+            if c["id"] in ("last-videos", "calendar-videos") or any(e.get("isRequired") for e in c.get("extra", [])):
+                continue
+            extras = [""] + (["/genre=Documentary"] if base == CINEMETA and c["id"] == "top" else [])
+            for extra in extras:
+                try:
+                    metas = get_json(f"{base}/catalog/{c['type']}/{c['id']}{extra}.json").get("metas", [])
+                    ids |= {m["id"] for m in metas if m["id"].startswith("tt")}
+                except Exception as e:
+                    print(f"  skip {c['id']}{extra}: {e}")
+    return ids
+
+
+def hebrew_titles(ids, batch=150):
+    """tt -> [Hebrew title, Hebrew Wikipedia article] (0 when neither exists)."""
+    out = {}
+    ids = sorted(ids)
+    for i in range(0, len(ids), batch):
+        chunk = ids[i:i + batch]
+        values = " ".join(f'"{x}"' for x in chunk)
+        sparql = f"""SELECT ?imdb ?he ?wp WHERE {{ VALUES ?imdb {{ {values} }} ?item wdt:P345 ?imdb.
+  OPTIONAL {{ ?item rdfs:label ?he FILTER(LANG(?he) = "he") }}
+  OPTIONAL {{ ?wp schema:about ?item; schema:isPartOf <https://he.wikipedia.org/> }} }}"""
+        rows = run_sparql(sparql)
+        for x in chunk:
+            out.setdefault(x, ["", ""])
+        for b in rows:
+            e = out[b["imdb"]["value"]]
+            if "he" in b and not e[0]:
+                e[0] = b["he"]["value"]
+            if "wp" in b and not e[1]:
+                e[1] = urllib.parse.unquote(b["wp"]["value"].split("/wiki/")[1])
+        time.sleep(1)  # be gentle with the public endpoint
+    return {k: (v if any(v) else 0) for k, v in out.items()}
 
 
 def titles(rows, lang):
@@ -116,13 +173,21 @@ def main():
         "id": "org.booth.catalogs",
         "version": "1.0.0",
         "name": "Booth Catalogs",
-        "description": "Israeli (Hebrew) and Arabic films and series, from Wikidata. Refreshed weekly.",
+        "description": "Israeli (Hebrew) and Arabic films and series, from Wikidata. Refreshed daily.",
         "resources": ["catalog"],
         "types": ["movie", "series"],
         "idPrefixes": ["tt"],
         "catalogs": manifest_catalogs,
     }
     (ROOT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    ids = shown_ids()
+    for items in cache.values():
+        ids |= {t["imdb"] for t in items}
+    print(f"hebrew titles for {len(ids)} ids")
+    he = hebrew_titles(ids)
+    (ROOT / "he.json").write_text(json.dumps(he, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"  {sum(1 for v in he.values() if v and v[0])} with a Hebrew title, {sum(1 for v in he.values() if v and v[1])} with a Hebrew article")
 
 
 if __name__ == "__main__":
