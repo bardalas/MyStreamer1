@@ -88,6 +88,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** Broadcaster VOD (e.g. Reshet 13): DASH + Widevine licence URL from the broadcaster's own API. */
+        @JavascriptInterface fun playDrm(url: String, licenseUrl: String, title: String) {
+            runOnUiThread {
+                startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
+                    .putExtra("url", url).putExtra("drm", licenseUrl).putExtra("title", title).putExtra("nosubs", true))
+            }
+        }
+
         /** Live TV with channel zapping: [channelsJson] = [{name, url, ua, referer}], starting at [index]. */
         @JavascriptInterface fun playChannels(channelsJson: String, index: Int) {
             runOnUiThread {

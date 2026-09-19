@@ -1,5 +1,12 @@
 # Booth Android changelog
 
+## 0.15.0 — 2026-09-19
+- Reshet 13 VOD (13tv.co.il) in ערוצי הטלוויזיה: "שודר לאחרונה" and all 293 shows, show pages with
+  seasons and episodes; episodes play in the app (DASH + Widevine, licensed by Reshet's own
+  Kaltura licence server, as on the website).
+- Reshet 13 live channels in Live TV: רשת 13, ערוץ הקומדיות, ריאליטי, ערוץ הנופש.
+- Player: DASH and Widevine support.
+
 ## 0.14.0 — 2026-09-19
 - New categories: ערוצי הטלוויזיה (official Kan 11 / Keshet 12 / Reshet 13 YouTube: latest videos
   and shows), קומדיה (popular, best-rated, Israeli comedy films and series), ילדים (Kan Kids,

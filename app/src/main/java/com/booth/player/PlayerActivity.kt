@@ -33,7 +33,7 @@ import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
     /** One playable item. Live TV passes a whole channel list so the viewer can zap through it. */
-    private data class Source(val name: String, val url: String, val ua: String, val referer: String)
+    private data class Source(val name: String, val url: String, val ua: String, val referer: String, val drm: String = "")
 
     private var player: ExoPlayer? = null
     private var resumePosition = 0L
@@ -56,10 +56,11 @@ class PlayerActivity : AppCompatActivity() {
         sources = intent.getStringExtra("channels")?.let { json ->
             val a = JSONArray(json)
             List(a.length()) { i ->
-                a.getJSONObject(i).run { Source(optString("name"), optString("url"), optString("ua"), optString("referer")) }
+                a.getJSONObject(i).run { Source(optString("name"), optString("url"), optString("ua"), optString("referer"), optString("drm")) }
             }
         } ?: listOfNotNull(intent.getStringExtra("url")?.let {
-            Source(intent.getStringExtra("title") ?: "", it, intent.getStringExtra("ua") ?: "", intent.getStringExtra("referer") ?: "")
+            Source(intent.getStringExtra("title") ?: "", it, intent.getStringExtra("ua") ?: "", intent.getStringExtra("referer") ?: "",
+                intent.getStringExtra("drm") ?: "")
         })
         if (sources.isEmpty()) { finish(); return }
         index = (savedInstanceState?.getInt("index") ?: intent.getIntExtra("index", 0)).coerceIn(0, sources.size - 1)
@@ -80,8 +81,8 @@ class PlayerActivity : AppCompatActivity() {
             findViewById<View>(R.id.chDown).setOnClickListener { zapBy(1) }
         }
 
-        // Live TV has no subtitle lookup.
-        if (live) { subs = emptyList(); showOsd(); return }
+        // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
+        if (live || intent.getBooleanExtra("nosubs", false)) { subs = emptyList(); showOsd(); return }
 
         // Wait (briefly) for the Hebrew subtitle lookup before building the player,
         // because side-loaded subtitles must be part of the MediaItem.
@@ -137,7 +138,14 @@ class PlayerActivity : AppCompatActivity() {
         }
         val item = MediaItem.Builder().setUri(url).setSubtitleConfigurations(subtitleConfigs)
             // IPTV HLS links often carry tokens/query strings, which stop ExoPlayer inferring the type.
-            .apply { if (url.contains(".m3u8")) setMimeType(MimeTypes.APPLICATION_M3U8) }
+            .apply {
+                if (url.contains(".m3u8")) setMimeType(MimeTypes.APPLICATION_M3U8)
+                // Broadcaster VOD: DASH protected with Widevine, licensed by the broadcaster's own licence server.
+                if (src.drm.isNotBlank()) {
+                    if (!url.contains(".m3u8")) setMimeType(MimeTypes.APPLICATION_MPD)
+                    setDrmConfiguration(MediaItem.DrmConfiguration.Builder(C.WIDEVINE_UUID).setLicenseUri(src.drm).build())
+                }
+            }
             .build()
 
         player = ExoPlayer.Builder(this)

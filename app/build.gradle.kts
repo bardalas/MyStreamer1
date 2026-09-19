@@ -11,8 +11,8 @@ android {
         applicationId = "com.booth.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1400
-        versionName = "0.14.0"
+        versionCode = 1500
+        versionName = "0.15.0"
     }
     signingConfigs {
         create("release") {
@@ -50,5 +50,6 @@ dependencies {
     implementation("com.frostwire:jlibtorrent-android-arm:$jlibtorrentVersion")
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
+    implementation("androidx.media3:media3-exoplayer-dash:1.11.1")
     implementation("androidx.media3:media3-ui:1.11.1")
 }

@@ -312,6 +312,19 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .catorder label{flex:1;display:flex;align-items:center;gap:10px;cursor:pointer}
 .catorder button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;width:34px;height:30px;cursor:pointer}
 
+/* broadcaster show page */
+.showhead{display:flex;gap:18px;align-items:flex-start;margin:0 0 18px;max-width:900px}
+.showhead img{width:120px;border-radius:8px;flex:none}
+.showhead p{color:var(--text2);margin:6px 0 0;font-size:14px;line-height:1.6}
+.seasons{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.eplist{display:flex;flex-direction:column;max-width:900px}
+.eprow{display:flex;gap:14px;align-items:center;width:100%;text-align:start;background:none;border:0;border-bottom:1px solid var(--line);color:var(--light);padding:10px 4px;cursor:pointer}
+.eprow:hover,.eprow:focus-visible{background:var(--raise)}
+.eprow img{width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;flex:none;background:var(--surface)}
+.eprow b{display:block;font-weight:600;font-size:15px}
+.eprow small{display:block;color:var(--muted);font-size:13px;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (max-width:760px){.eprow img{width:120px}.showhead img{width:90px}}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -623,7 +636,8 @@ const yt = (kind, ch, title) => ({yt: kind, ch, title: title || (kind === 'lates
 const CATEGORIES = [
   {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, 'booth.he.movies'], [BOOTH_ID, 'booth.he.series'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [BOOTH_ID, 'booth.he.movies.new']]},
-  {id: 'tv', name: 'ערוצי הטלוויזיה', rows: ['keshet', 'reshet', 'kan'].flatMap(ch => [yt('latest', ch), yt('playlists', ch)])},
+  {id: 'tv', name: 'ערוצי הטלוויזיה', rows: [{r13: 'recent', title: 'רשת 13 · שודר לאחרונה'}, {r13: 'series', title: 'רשת 13 · כל התוכניות'},
+    ...['keshet', 'kan'].flatMap(ch => [yt('latest', ch), yt('playlists', ch)])]},
   {id: 'comedy', name: 'קומדיה', rows: [[CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [CINEMETA_ID, 'imdbRating', 'genre=Comedy', 'הקומדיות הכי טובות']]},
   {id: 'kids', name: 'ילדים', rows: [yt('latest', 'kankids', 'חדש בכאן חינוכית'), [CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'],
@@ -706,6 +720,97 @@ async function viewShow(id, title){
   }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון את הפרקים (${esc(e.message)}).</p>`; }
 }
 
+/* ---------- Reshet 13 VOD & live (13tv.co.il) — the site's own Kaltura OTT API, as a guest ---------- */
+const R13 = {api: 'https://5031.frp1.ott.kaltura.com/api_v3/service/', ks: '', exp: 0};
+const R13_SERIES = '1259', R13_EPISODE = '1268', R13_CHANNEL = '1265';
+async function r13(svc, body){
+  const r = await fetch(`${R13.api}${svc}?format=1`, {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({apiVersion: '5.4.0', clientTag: 'ReshetWeb', ...body})});
+  const d = await r.json();
+  if(d.result?.error) throw new Error(d.result.error.message);
+  return d.result;
+}
+async function r13ks(){
+  if(R13.ks && Date.now() < R13.exp) return R13.ks;
+  let udid = store.get('r13udid', '');
+  if(!udid){ udid = 'booth-' + Math.random().toString(36).slice(2) + Date.now().toString(36); store.set('r13udid', udid); }
+  R13.ks = (await r13('ottuser/action/anonymousLogin', {partnerId: 5031, udid})).ks;
+  R13.exp = Date.now() + 6 * 3600e3;
+  return R13.ks;
+}
+async function r13list(kSql, orderBy = 'CREATE_DATE_DESC', size = 100){
+  const r = await r13('asset/action/list', {ks: await r13ks(), filter: {objectType: 'KalturaSearchAssetFilter', kSql, orderBy},
+    pager: {objectType: 'KalturaFilterPager', pageSize: size, pageIndex: 1}});
+  return r.objects || [];
+}
+const r13img = (o, ratio, w, h) => { const u = (o.images || []).find(i => i.ratio === ratio)?.url; return u ? `${u}/width/${w}/height/${h}` : ''; };
+const r13meta = (o, k) => o.metas?.[k]?.value;
+/** Playable source: DASH + Widevine licence for VOD, plain HLS for the live channels. */
+async function r13source(assetId, live){
+  const r = await r13('asset/action/getPlaybackContext', {ks: await r13ks(), assetId: String(assetId), assetType: 'media',
+    contextDataParams: {objectType: 'KalturaPlaybackContextOptions', context: 'PLAYBACK', streamerType: live ? 'applehttp' : 'mpegdash', urlType: 'DIRECT', mediaProtocol: 'https'}});
+  const bad = (r.messages || []).find(m => m.code && m.code !== 'OK');
+  if(bad) throw new Error(bad.message);
+  const srcs = r.sources || [];
+  if(live){ const h = srcs.find(x => !(x.drm || []).length) || srcs[0]; if(!h) throw new Error('אין שידור'); return {url: h.url}; }
+  const d = srcs.find(x => (x.drm || []).some(k => k.scheme === 'WIDEVINE_CENC')) || srcs[0];
+  if(!d) throw new Error('אין מקור לפרק');
+  return {url: d.url, drm: (d.drm || []).find(k => k.scheme === 'WIDEVINE_CENC')?.licenseURL || ''};
+}
+async function r13playEpisode(id, title){
+  try{
+    const src = await r13source(id, false);
+    if(window.BoothAndroid && BoothAndroid.playDrm) BoothAndroid.playDrm(src.url, src.drm, title);
+    else alert('פרקי רשת 13 מתנגנים באפליקציית Booth לאנדרואיד.');
+  }catch(e){ alert(`לא ניתן לנגן את הפרק (${e.message}).`); }
+}
+function r13card(o){
+  if(o.type == R13_SERIES) return `<a class="poster" href="#/r13/${encodeURIComponent(r13meta(o, 'SeriesID'))}/${encodeURIComponent(o.name)}">
+      <div class="art" style="background-image:url('${esc(r13img(o, '2x3', 300, 450))}')"></div><div class="t" dir="auto">${esc(o.name)}</div></a>`;
+  return `<button class="poster wide" data-r13="${o.id}" data-title="${esc(o.name)}"><div class="art" style="background-image:url('${esc(r13img(o, '16x9', 480, 270))}')"></div>
+      <div class="t" dir="auto">${esc(o.name)}</div></button>`;
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-r13]'); if(b){ e.preventDefault(); r13playEpisode(b.dataset.r13, b.dataset.title); } });
+async function r13row(kind){
+  if(kind === 'series') return r13list(`(and asset_type='${R13_SERIES}')`, 'VIEWS_DESC', 100);
+  return r13list(`(and asset_type='${R13_EPISODE}')`, 'CREATE_DATE_DESC', 30);
+}
+/** Reshet 13 live channels (main channel, comedy, reality, holiday) with playable HLS URLs. */
+async function r13channels(){
+  const chans = (await r13list(`(and asset_type='${R13_CHANNEL}')`, 'NAME_ASC', 20)).filter(o => !/test|בדיקה|kaltura|cnn/i.test(o.name));
+  const out = await Promise.all(chans.map(async o => {
+    try{ const {url} = await r13source(o.id, true);
+      return {name: /שידור חי/.test(o.name) ? 'רשת 13' : `${o.name} (13)`, group: 'רשת 13', url, logo: r13img(o, '1x1', 120, 120)}; }
+    catch(e){ return null; }
+  }));
+  return out.filter(Boolean);
+}
+
+async function viewR13Series(sid, title){
+  renderCats(null);
+  $('#app').innerHTML = `<div class="page"><div class="showhead" id="shead"><div><h1 dir="auto">${esc(title || '')}</h1></div></div>
+    <div class="seasons" id="seasons"></div><div class="eplist" id="eps"><p class="note">טוען פרקים…</p></div></div>`;
+  try{
+    const [series] = await r13list(`(and asset_type='${R13_SERIES}' SeriesID='${sid}')`, 'NAME_ASC', 1);
+    if(series) $('#shead').innerHTML = `<img src="${esc(r13img(series, '2x3', 240, 360))}" alt=""><div><h1 dir="auto">${esc(series.name)}</h1>
+        <p>${esc(r13meta(series, 'LongSummary') || series.description || '')}</p></div>`;
+    const eps = await r13list(`(and asset_type='${R13_EPISODE}' SeriesID='${sid}')`, 'CREATE_DATE_DESC', 200);
+    if(!eps.length){ $('#eps').innerHTML = '<p class="note">אין פרקים זמינים כרגע.</p>'; return; }
+    const seasons = [...new Set(eps.map(o => +r13meta(o, 'SeasonNumber') || 0))].sort((a, b) => b - a);
+    let cur = seasons[0];
+    const draw = () => {
+      $('#seasons').innerHTML = seasons.length > 1 ? seasons.map(n => `<button class="chip ${n === cur ? 'on' : ''}" data-s="${n}">${n ? 'עונה ' + n : 'מיוחדים'}</button>`).join('') : '';
+      $('#seasons').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { cur = +b.dataset.s; draw(); });
+      const list = eps.filter(o => (+r13meta(o, 'SeasonNumber') || 0) === cur)
+        .sort((a, b) => (+r13meta(a, 'EpisodeNumber') || 0) - (+r13meta(b, 'EpisodeNumber') || 0));
+      $('#eps').innerHTML = list.map(o => `<button class="eprow" data-r13="${o.id}" data-title="${esc(o.name)}">
+          <img src="${esc(r13img(o, '16x9', 320, 180))}" alt="" loading="lazy"><span><b dir="auto">${esc(o.name)}</b>
+          <small dir="auto">${esc(r13meta(o, 'ShortSummary') || o.description || '')}</small></span></button>`).join('');
+    };
+    draw();
+  }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון מרשת 13 (${esc(e.message)}).</p>`; }
+}
+
 /* ---------- genres page ---------- */
 const GENRE_TILES = [['Comedy', '😂'], ['Action', '💥'], ['Drama', '🎭'], ['Thriller', '🔪'], ['Horror', '👻'], ['Sci-Fi', '🚀'],
   ['Romance', '💕'], ['Animation', '🎨'], ['Family', '👨‍👩‍👧'], ['Crime', '🕵️'], ['Adventure', '🗺️'], ['Fantasy', '🐉'],
@@ -756,11 +861,16 @@ function renderRows(rows, {hero = true, cont = [], heading = ''} = {}){
   const app = $('#app');
   app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
     ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || x.r13 || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
   let heroDone = !hero;
   rows.forEach(async (x, i) => {
     const el = $('#row' + i);
+    if(x.r13){
+      try{ el.innerHTML = (await r13row(x.r13)).map(r13card).join('') || '<p class="note">אין כרגע.</p>'; }
+      catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מרשת 13 (${esc(e.message)}).</p>`; }
+      return;
+    }
     if(x.yt){
       try{ el.innerHTML = (await ytRow(x.yt, x.ch)).slice(0, 30).map(ytCard).join('') || '<p class="note">אין כרגע.</p>'; }
       catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מ־YouTube (${esc(e.message)}).</p>`; }
@@ -1286,7 +1396,11 @@ function liveSources(){
           {key: 'il', name: 'ערוצים ישראליים'}, ...playlists.map(p => ({key: p.url, name: p.name}))];
 }
 async function liveChannels(key){
-  if(key === 'il') return IL_CHANNELS;
+  if(key === 'il'){
+    const r13ch = await r13channels().catch(() => []);
+    const main = r13ch.filter(c => c.name === 'רשת 13'), extra = r13ch.filter(c => c.name !== 'רשת 13');
+    return [IL_CHANNELS[0], ...main, ...IL_CHANNELS.slice(1), ...extra];     // כאן 11, רשת 13, עכשיו 14, … then 13's themed channels
+  }
   if(key === 'rtv') return loadRtv();
   return playlistCache[key] ||= parseM3U(await fetchText(key));
 }
@@ -1443,7 +1557,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.14.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.15.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -1552,13 +1666,14 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
 async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre', 'show'].includes(r) ? 'home' : r)));
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre', 'show', 'r13'].includes(r) ? 'home' : r)));
   scrollTo(0, 0);
   if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
   else if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
   else if(r === 'show') viewShow(a, b);
+  else if(r === 'r13') viewR13Series(a, b);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'live') viewLive();
   else if(r === 'search') viewSearch(a);
