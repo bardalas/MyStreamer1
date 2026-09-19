@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Booth</title>
+<title>המקרן</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=Rubik:wght@500;700;800&family=Heebo:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
@@ -36,7 +36,7 @@ img{max-width:100%;display:block}
 /* top bar */
 .bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;padding:14px 28px;background:linear-gradient(var(--night) 60%,transparent)}
 .logo{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;text-decoration:none;display:flex;align-items:center;gap:8px}
-.logo i{width:10px;height:10px;border-radius:50%;background:var(--tungsten)}
+.logo svg{flex:none;transform:scaleX(-1)}   /* beam points toward the menu in RTL */
 .nav{display:flex;gap:4px}
 .nav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--muted);font-weight:500}
 .nav a.on{color:var(--light);background:var(--raise)}
@@ -334,6 +334,21 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .bchead .note{margin:0}
 [data-layout="tv"] .bctabs a{font-size:20px;padding:12px 24px}
 
+/* quick view: first tap on a poster */
+.qv{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);margin:4px 0 20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);animation:qvIn .18s ease-out}
+.qvart{min-height:230px;background:var(--raise) center/cover}
+.qvbody{position:relative;padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.qvx{position:absolute;top:8px;inset-inline-end:10px;background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.qvbody h3{margin:0;padding-inline-end:28px;font-family:var(--display);font-size:22px;line-height:1.2}
+.qvbody h3 small{display:block;font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted);margin-top:2px}
+.qvbody .facts{margin:0}
+.qvdesc{margin:0;color:var(--text2);font-size:14px;line-height:1.65;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.qvact{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto}
+.qvhint{font-size:12px;color:var(--muted);margin:0}
+.poster.sel .art{outline:3px solid var(--tungsten);outline-offset:2px}
+@keyframes qvIn{from{opacity:0;transform:translateY(-6px)}}
+@media (max-width:760px){.qv{grid-template-columns:1fr}.qvart{min-height:170px}}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -351,7 +366,7 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 </head>
 <body>
 <div class="bar">
-  <a class="logo" href="#/"><i></i>Booth</a>
+  <a class="logo" href="#/" aria-label="המקרן – דף הבית"><svg width="30" height="30" viewBox="8 8 50 48" aria-hidden="true"><path d="M40 32 L60 20 V44 Z" fill="var(--tungsten)" opacity=".35"/><circle cx="17" cy="20" r="7" fill="none" stroke="var(--tungsten)" stroke-width="3"/><circle cx="31" cy="20" r="7" fill="none" stroke="var(--tungsten)" stroke-width="3"/><rect x="11" y="29" width="30" height="16" rx="3" fill="var(--tungsten)"/><rect x="41" y="33" width="5" height="8" rx="1" fill="var(--tungsten)"/><rect x="16" y="45" width="4" height="7" fill="var(--tungsten)"/><rect x="32" y="45" width="4" height="7" fill="var(--tungsten)"/></svg>המקרן</a>
   <nav class="nav">
     <a href="#/" data-r="home">סרטים וסדרות</a>
     <a href="#/tv" data-r="tv">ערוצים</a>
@@ -769,7 +784,7 @@ async function r13playEpisode(id, title){
   try{
     const src = await r13source(id, false);
     if(window.BoothAndroid && BoothAndroid.playDrm) BoothAndroid.playDrm(src.url, src.drm, title);
-    else alert('פרקי רשת 13 מתנגנים באפליקציית Booth לאנדרואיד.');
+    else alert('פרקי רשת 13 מתנגנים באפליקציית המקרן לאנדרואיד.');
   }catch(e){ alert(`לא ניתן לנגן את הפרק (${e.message}).`); }
 }
 function r13card(o){
@@ -953,6 +968,69 @@ async function viewTv(which){
   }
 }
 
+/* ---------- quick view: tap a poster for the synopsis; tap it again (or the button) to open it ---------- */
+const metaCache = {};
+async function fetchMeta(type, id){
+  const key = type + ':' + id;
+  if(metaCache[key]) return metaCache[key];
+  for(const a of addons.filter(a => supports(a.manifest, 'meta', type, id))){
+    try{ const m = (await getJSON(`${a.base}/meta/${type}/${encodeURIComponent(id)}.json`)).meta; if(m) return metaCache[key] = m; }catch(e){}
+  }
+  return null;
+}
+let qvHref = null;
+function closeQuickView(){
+  document.querySelector('.qv')?.remove();
+  document.querySelectorAll('.poster.sel').forEach(x => x.classList.remove('sel'));
+  qvHref = null;
+}
+async function openQuickView(card){
+  closeQuickView();
+  const href = card.getAttribute('href');
+  const [, , type, idEnc] = href.split('/');
+  const id = decodeURIComponent(idEnc);
+  qvHref = href;
+  card.classList.add('sel');
+  const name = card.querySelector('.t')?.textContent || '';
+  const box = document.createElement('div');
+  box.className = 'qv';
+  box.innerHTML = `<div class="qvart"></div><div class="qvbody"><button class="qvx" aria-label="סגור">✕</button>
+      <h3 dir="auto">${esc(name)}</h3><div class="facts"></div><p class="qvdesc note">טוען תקציר…</p>
+      <div class="qvact"><a class="btn primary" href="${esc(href)}">▶ צפייה ואפשרויות</a></div>
+      <p class="qvhint">לחיצה נוספת על הפוסטר פותחת את ה${type === 'series' ? 'סדרה' : 'סרט'}</p></div>`;
+  // right under the row (or the grid) the poster sits in
+  const anchor = card.closest('.strip') || card.closest('.grid');
+  anchor.after(box);
+  box.querySelector('.qvx').onclick = closeQuickView;
+  box.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+
+  const meta = await fetchMeta(type, id);
+  if(qvHref !== href || !box.isConnected) return;
+  if(meta){
+    box.querySelector('.qvart').style.backgroundImage = `url('${(meta.background || meta.poster || '').replace(/'/g, '%27')}')`;
+    const heName = heTitle(meta.id, meta.name);
+    box.querySelector('h3').innerHTML = `${esc(heName)}${heName !== meta.name ? `<small dir="ltr">${esc(meta.name)}</small>` : ''}`;
+    box.querySelector('.facts').innerHTML = [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`, yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`,
+      meta.runtime && `<span>${esc(meta.runtime)}</span>`, ...(meta.genres || meta.genre || []).slice(0, 3).map(g => `<span>${esc(genreHe(g))}</span>`)].filter(Boolean).join('');
+  }
+  const desc = box.querySelector('.qvdesc');
+  desc.classList.remove('note');
+  desc.dir = 'auto';
+  desc.textContent = meta?.description || 'אין תקציר.';
+  if(hebrewOn() && /^tt\d+$/.test(id)){
+    const plot = await hebrewPlot(id).catch(() => null);
+    if(plot && qvHref === href && box.isConnected){ desc.dir = 'rtl'; desc.textContent = plot.text; }
+  }
+}
+document.addEventListener('click', e => {
+  const card = e.target.closest('a.poster[href^="#/detail/"]');
+  if(!card || !card.closest('.strip, .grid')) return;
+  if(qvHref === card.getAttribute('href')){ closeQuickView(); return; }   // second tap: open the title
+  e.preventDefault();
+  openQuickView(card);
+});
+addEventListener('hashchange', () => { qvHref = null; });
+
 /* ---------- genres page ---------- */
 const GENRE_TILES = [['Comedy', '😂'], ['Action', '💥'], ['Drama', '🎭'], ['Thriller', '🔪'], ['Horror', '👻'], ['Sci-Fi', '🚀'],
   ['Romance', '💕'], ['Animation', '🎨'], ['Family', '👨‍👩‍👧'], ['Crime', '🕵️'], ['Adventure', '🗺️'], ['Fantasy', '🐉'],
@@ -1039,7 +1117,7 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
 async function viewHome(){
   renderCats('home');
   // Cinemeta's popular rows, then the first row of every category.
-  if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')));
+  if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')), {hero: false});
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
   const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: 'פופולרי'})) : [];
   for(const cat of userCategories()){
@@ -1051,14 +1129,14 @@ async function viewHome(){
     if(rows.length < 8) rows.push({a, c, title: catalogHe(c.name) || c.id});
   }
   const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
-  renderRows(rows, {cont});
+  renderRows(rows, {cont, hero: false});
 }
 
 function viewCategory(id){
   const cat = CATEGORIES.find(c => c.id === id);
   if(!cat) return viewHome();
   renderCats(id);
-  renderRows(rowsFor(cat));
+  renderRows(rowsFor(cat), {hero: false});
 }
 
 function renderHero(m){
@@ -1240,7 +1318,7 @@ function playStream(s, label, ctx){
   else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label, vid, release);
   else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
   else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release);
-  else alert('מקורות טורנט מתנגנים באפליקציית Booth לאנדרואיד.');
+  else alert('מקורות טורנט מתנגנים באפליקציית המקרן לאנדרואיד.');
 }
 
 function renderStreams(box, all, pending, label, ctx, errors = [], retry){
@@ -1708,7 +1786,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.17.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.18.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
