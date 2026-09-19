@@ -1915,6 +1915,13 @@ async function route(){
   else viewHome();
 }
 addEventListener('hashchange', route);
+// Remote control (Android TV): if nothing has focus after a page renders, focus its first item.
+addEventListener('hashchange', () => setTimeout(tvFocus, 900));
+function tvFocus(){
+  if(settings.layout !== 'tv' || (document.activeElement && document.activeElement !== document.body)) return;
+  document.querySelector('#app a[href], #app button, .nav a.on')?.focus();
+}
+setTimeout(tvFocus, 2500);
 if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');
 loadAddons().then(route);
 </script>

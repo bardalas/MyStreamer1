@@ -1,6 +1,6 @@
-# MyStreamer Android
+# המקרן (HaMakren) — Android & Android TV
 
-Current release: **v0.17.0-alpha** (`versionCode 1700`).
+Current release: **v0.18.0-alpha** (`versionCode 1800`).
 
 Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 
@@ -13,6 +13,12 @@ Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrenti
 - Hebrew subtitles are added automatically (Wizdom + OpenSubtitles, matched to the release).
 - Direct HTTP/HLS sources open in the native Media3/ExoPlayer player.
 - Torrentio sources stream: playback starts after a few MB are buffered; the rest downloads ahead of the playhead.
+
+## Android TV
+Install the **Downloader** app on the TV and enter:
+`https://github.com/bardalas/MyStreamer1/releases/latest/download/HaMakren.apk`
+(or install Obtainium on the TV as below). The app appears on the TV home screen with its banner
+and uses the large TV layout automatically; the remote works everywhere, including channel up/down in live TV.
 
 ## Install on your phone & get automatic updates
 1. Install **[Obtainium](https://github.com/ImranR98/Obtainium/releases/latest)** (free, open source).

@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
         web.webChromeClient = WebChromeClient()
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
         web.loadUrl("file:///android_asset/booth.html")
+        web.requestFocus()   // remote D-pad works immediately (Android TV)
         TorrentEngine.warmUp(applicationContext)
     }
 

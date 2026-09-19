@@ -1,5 +1,13 @@
 # Booth Android changelog
 
+## 0.18.0 — 2026-09-19
+- The app is now called **המקרן**, with a projector icon (adaptive icon incl. themed/monochrome,
+  legacy icon for Android 7) and an Android TV home-screen banner; projector logo in the app.
+- Films & series: no banner; tapping a poster opens a quick view under the row (backdrop,
+  Hebrew title, rating, year, genres, Hebrew synopsis). Tapping it again opens the title.
+- Android TV: focus lands on the page so the remote works at once; releases also carry a fixed-name
+  HaMakren.apk for a permanent download link.
+
 ## 0.17.0 — 2026-09-19
 - New "ערוצים" area in the top menu, separate from films & series: one tab per broadcaster
   (כאן 11 · רשת 13 · קשת 12), each with its own sections and a "▶ שידור חי" button.
