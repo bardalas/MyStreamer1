@@ -100,6 +100,17 @@ main{padding:0 28px 60px}
 .panel h3{margin:0 0 12px;font-family:var(--display);font-size:19px}
 .eps{max-height:520px;overflow:auto;display:flex;flex-direction:column;gap:4px}
 .ep{display:grid;grid-template-columns:34px 1fr;gap:10px;text-align:start;background:none;border:0;border-radius:6px;padding:8px;cursor:pointer}
+.ep.seen .n::after{content:'✓';display:block;font-size:11px;color:var(--muted)}
+.ep.seen>span>div:first-child{color:var(--muted)}
+.ep .bar{height:3px;border-radius:2px;background:var(--line);margin-top:6px}
+.ep .bar>i{display:block;height:100%;border-radius:2px;background:var(--tungsten)}
+/* something did not load: say so once, with a way to try again */
+.oops{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raise);color:var(--muted);font-size:14px}
+.oops button{background:none;border:1px solid var(--line);color:var(--light);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+.oops button:focus-visible,.oops button:hover{border-color:var(--tungsten);color:var(--tungsten)}
+#offbar{position:fixed;inset-inline:0;bottom:0;z-index:60;display:none;gap:12px;align-items:center;justify-content:center;
+  padding:10px 16px;background:#7a1f1f;color:#fff;font:14px/1.4 var(--body)}
+#offbar.on{display:flex}
 .ep:hover{background:var(--raise)} .ep.on{background:var(--raise);box-shadow:inset -3px 0 var(--tungsten)}
 .ep .n{font-family:var(--display);font-weight:700;color:var(--tungsten)}
 .ep .d{font-size:12px;color:var(--muted)}
@@ -443,6 +454,14 @@ let addons = [];   // {url, base, manifest}
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
+/** Failed load: one calm line and a button that runs the same load again. */
+function showErr(el, what, e, retry){
+  if(!el) return;
+  const why = !navigator.onLine ? 'אין חיבור לאינטרנט' : (e?.message || '');
+  el.innerHTML = `<div class="oops"><span>${esc(what)}${why ? ` · ${esc(why)}` : ''}</span>${retry ? '<button>נסה שוב</button>' : ''}</div>`;
+  const b = el.querySelector('button');
+  if(b) b.onclick = () => { el.innerHTML = '<p class="note">טוען…</p>'; retry(); };
+}
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const normUrl = u => u.trim().replace(/^stremio:\/\//, 'https://');
 const baseOf = u => normUrl(u).replace(/\/manifest\.json(\?.*)?$/, '');
@@ -853,7 +872,7 @@ async function viewShow(id, title){
   try{
     const vids = await ytPlaylist(id);
     $('#eps').innerHTML = vids.map(ytCard).join('') || '<p class="note">אין פרקים ברשימה הזו.</p>';
-  }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון את הפרקים (${esc(e.message)}).</p>`; }
+  }catch(e){ showErr($('#eps'), 'לא ניתן לטעון את הפרקים', e, () => viewShow(id, title)); }
 }
 
 /* ---------- Reshet 13 VOD & live (13tv.co.il) — the site's own Kaltura OTT API, as a guest ---------- */
@@ -948,7 +967,7 @@ async function viewR13Series(sid, title){
           <small dir="auto">${esc(r13meta(o, 'ShortSummary') || o.description || '')}</small></span></button>`).join('');
     };
     draw();
-  }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון מרשת 13 (${esc(e.message)}).</p>`; }
+  }catch(e){ showErr($('#eps'), 'לא ניתן לטעון מרשת 13', e, () => viewR13Series(sid, title)); }
 }
 
 /* ---------- Kan BOX (kan.org.il) — the public website's pages; episodes are plain HLS ---------- */
@@ -1028,7 +1047,7 @@ async function viewKanProgram(path, title){
     };
     draw();
     await load(cur);
-  }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון מכאן (${esc(e.message)}).</p>`; }
+  }catch(e){ showErr($('#eps'), 'לא ניתן לטעון מכאן', e, () => viewKanProgram(path, title)); }
 }
 
 /** Episode page -> its HLS URL (no DRM). */
@@ -1098,6 +1117,16 @@ async function fetchMeta(type, id){
   }
   return null;
 }
+/** The quick view's main button: continue, or watch from the start. */
+function qvPlayLabel(metaId){
+  const w = Object.values(progress).find(x => x.metaId === metaId);
+  if(w && w.d && w.t < w.d - 60){
+    const left = Math.max(1, Math.round((w.d - w.t) / 60));
+    return `▶ המשך צפייה · נותרו ${left} דק׳`;
+  }
+  return '▶ צפייה ואפשרויות';
+}
+
 let qvHref = null;
 function closeQuickView(){
   document.querySelector('.qv')?.remove();
@@ -1116,8 +1145,8 @@ async function openQuickView(card){
   box.className = 'qv';
   box.innerHTML = `<div class="qvart"></div><div class="qvbody"><button class="qvx" aria-label="סגור">✕</button>
       <h3 dir="auto">${esc(name)}</h3><div class="facts"></div><p class="qvdesc note">טוען תקציר…</p>
-      <div class="qvact"><a class="btn primary" href="${esc(href)}">▶ צפייה ואפשרויות</a></div>
-      <p class="qvhint">לחיצה נוספת על הפוסטר פותחת את ה${type === 'series' ? 'סדרה' : 'סרט'}</p></div>`;
+      <div class="qvact"><a class="btn primary" href="${esc(href)}">${qvPlayLabel(id)}</a></div>
+      <p class="qvhint">${card.classList.contains('nosrc') ? 'לא נמצאו מקורות לכותר הזה כרגע' : `לחיצה נוספת על הפוסטר פותחת את ה${type === 'series' ? 'סדרה' : 'סרט'}`}</p></div>`;
   // right under the row (or the grid) the poster sits in
   const anchor = card.closest('.strip') || card.closest('.grid');
   anchor.after(box);
@@ -1245,7 +1274,7 @@ async function viewMakoProgram(path, title){
     $('#mseasons').querySelectorAll('[data-sp]').forEach(b => b.onclick = () => {
       curSeason = b.dataset.sp;
       $('#mseasons').querySelectorAll('[data-sp]').forEach(x => x.classList.toggle('on', x === b));
-      drawSeason(curSeason).catch(e => { $('#eps').innerHTML = `<p class="err">${esc(e.message)}</p>`; });
+      drawSeason(curSeason).catch(e => showErr($('#eps'), 'לא ניתן לטעון את הפרקים', e, () => drawSeason(curSeason)));
     });
     await drawSeason(seasons.length ? curSeason : path);
   }catch(e){
@@ -1317,8 +1346,9 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
     claimed.set(m.id, i);
     return true;
   });
-  rows.forEach(async (x, i) => {
+  const fillRow = async (x, i) => {
     const el = $('#row' + i);
+    const again = () => fillRow(x, i);
     if(x.merge){
       try{
         const sc = addons.find(a => a.manifest.id === SC_ID);
@@ -1332,7 +1362,7 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
         const merged = [];                                   // round-robin so every service is represented
         for(let k = 0; merged.length < 200 && lists.some(l => l[k]); k++) for(const l of lists) if(l[k] && !merged.some(m => m.id === l[k].id)) merged.push(l[k]);
         if(el) el.innerHTML = dedupe(i, merged).slice(0, rowMax()).map(card).join('') || '<p class="note">אין כרגע.</p>';
-      }catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון (${esc(e.message)}).</p>`; }
+      }catch(e){ showErr(el, 'לא ניתן לטעון את השורה', e, again); }
       return;
     }
     if(x.kan){
@@ -1340,17 +1370,17 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
         const secs = await kanBox();
         const sec = secs.find(z => x.kan.test(z.title));
         el.innerHTML = sec ? sec.items.slice(0, rowMax()).map(kanCard).join('') : '<p class="note">אין כרגע.</p>';
-      }catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מכאן (${esc(e.message)}).</p>`; }
+      }catch(e){ showErr(el, 'לא ניתן לטעון מכאן', e, again); }
       return;
     }
     if(x.r13){
       try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || '<p class="note">אין כרגע.</p>'; }
-      catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מרשת 13 (${esc(e.message)}).</p>`; }
+      catch(e){ showErr(el, 'לא ניתן לטעון מרשת 13', e, again); }
       return;
     }
     if(x.yt){
       try{ el.innerHTML = (await ytRow(x.yt, x.ch)).slice(0, 30).map(ytCard).join('') || '<p class="note">אין כרגע.</p>'; }
-      catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מ־YouTube (${esc(e.message)}).</p>`; }
+      catch(e){ showErr(el, 'לא ניתן לטעון מ־YouTube', e, again); }
       return;
     }
     try{
@@ -1358,8 +1388,9 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
       const metas = d.metas || [];
       if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || '<p class="note">הקטלוג ריק.</p>';
       if(!heroDone && metas.length){ heroDone = true; renderHero(metas.find(m => m.background) || metas[0]); }
-    }catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון את הקטלוג (${esc(e.message)}).</p>`; }
-  });
+    }catch(e){ showErr(el, 'לא ניתן לטעון את הקטלוג', e, again); }
+  };
+  rows.forEach((x, i) => fillRow(x, i));
 }
 
 async function viewHome(){
@@ -1426,7 +1457,7 @@ async function viewDiscover(type, catKey, genre){
       skip += metas.length;
       $('#more').hidden = metas.length < 20;
       if(!skip) g.innerHTML = '<p class="note">אין כאן כלום. נסה ז׳אנר אחר.</p>';
-    }catch(e){ $('#grid').innerHTML = `<p class="err">לא ניתן לטעון את הקטלוג (${esc(e.message)}).</p>`; }
+    }catch(e){ showErr($('#grid'), 'לא ניתן לטעון את הקטלוג', e, load); }
   };
   $('#more').onclick = load;
   load();
@@ -1440,13 +1471,13 @@ async function viewSearch(q){
   if(hasHebrew(q)){
     app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>בעברית <small>Wikidata</small></h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
     hebrewSearch(q).then(ms => { $('#sHe').innerHTML = ms.map(card).join('') || '<p class="note">לא נמצאו תוצאות.</p>'; })
-      .catch(e => { $('#sHe').innerHTML = `<p class="err">החיפוש בעברית נכשל (${esc(e.message)}).</p>`; });
+      .catch(e => showErr($('#sHe'), 'החיפוש בעברית נכשל', e, () => viewSearch(q)));
   }
   cats.forEach(async (x, i) => {
     try{
       const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}/search=${encodeURIComponent(q)}.json`);
       $('#s'+i).innerHTML = (d.metas||[]).map(card).join('') || '<p class="note">לא נמצאו תוצאות.</p>';
-    }catch(e){ $('#s'+i).innerHTML = `<p class="err">החיפוש נכשל (${esc(e.message)}).</p>`; }
+    }catch(e){ showErr($('#s'+i), 'החיפוש נכשל', e, () => viewSearch(q)); }
   });
 }
 
@@ -1485,7 +1516,7 @@ async function viewDetail(type, id){
     </div>
     <div class="cols">
       ${seasons.length ? `<div class="panel"><h3>פרקים</h3><select class="field" id="season" aria-label="עונה" style="margin-bottom:10px">${seasons.map(s => `<option value="${s}">${s === 0 ? 'מיוחדים' : 'עונה ' + s}</option>`).join('')}</select><div class="eps" id="eps"></div></div>` : ''}
-      <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>צפייה</h3><div id="streams"><p class="note">${seasons.length ? 'בחר פרק כדי לראות מקורות.' : 'טוען…'}</p></div></div>
+      <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>צפייה</h3><div id="streams"><p class="note">טוען…</p></div></div>
     </div>`;
 
   $('#lib').onclick = e => {
@@ -1502,16 +1533,28 @@ async function viewDetail(type, id){
   const ctx = {type, meta};
   if(seasons.length){
     const renderEps = s => {
-      $('#eps').innerHTML = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0)).map(v => {
+      const eps = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0));
+      $('#eps').innerHTML = eps.map(v => {
         const n = v.episode ?? v.number ?? '';
-        const seen = progress[v.id];
-        return `<button class="ep" data-id="${esc(v.id)}"><span class="n">${esc(n)}</span><span><div>${esc(v.name || v.title || 'פרק ' + n)}${seen ? ' ·' : ''}</div><div class="d">${v.released ? esc(new Date(v.released).toLocaleDateString()) : ''}</div></span></button>`;
+        const w = progress[v.id];                            // how far this episode was watched
+        const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
+        const seen = pct > 92 || (w && !w.d);
+        return `<button class="ep${seen ? ' seen' : ''}" data-id="${esc(v.id)}"><span class="n">${esc(n)}</span><span>
+          <div>${esc(v.name || v.title || 'פרק ' + n)}</div>
+          <div class="d">${v.released ? esc(new Date(v.released).toLocaleDateString()) : ''}${pct && !seen ? ` · נותרו ${Math.max(1, Math.round((w.d - w.t) / 60))} דק׳` : ''}</div>
+          ${pct && !seen ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}</span></button>`;
       }).join('');
-      $('#eps').querySelectorAll('.ep').forEach(b => b.onclick = () => {
+      const pick = b => {
         $('#eps').querySelectorAll('.ep').forEach(x => x.classList.remove('on')); b.classList.add('on');
         const v = videos.find(x => x.id === b.dataset.id);
         loadStreams(ctx, v.id, `${meta.name} S${v.season}E${v.episode ?? v.number}`);
-      });
+      };
+      $('#eps').querySelectorAll('.ep').forEach(b => b.onclick = () => pick(b));
+      // open on the episode you are in the middle of, otherwise the first one you have not seen
+      const started = eps.find(v => { const w = progress[v.id]; return w && w.d && w.t / w.d <= .92; });
+      const next = started || eps.find(v => !progress[v.id]) || eps[0];
+      const btn = next && $('#eps').querySelector(`.ep[data-id="${CSS.escape(next.id)}"]`);
+      if(btn) pick(btn);
     };
     const first = seasons.find(s => s !== 0) ?? seasons[0];
     $('#season').value = first; renderEps(first);
@@ -1922,7 +1965,7 @@ async function viewLive(){
 
   let chans;
   try{ chans = await liveChannels(sel); }
-  catch(err){ $('#chs').innerHTML = `<p class="err">לא ניתן לטעון את הערוצים (${esc(err.message)}).</p>`; return; }
+  catch(err){ showErr($('#chs'), 'לא ניתן לטעון את הערוצים', err, viewLive); return; }
 
   const groups = [...new Set(chans.map(c => c.group))];
   const liveGroup = store.get('liveGroup', '');
@@ -2179,13 +2222,41 @@ function resetObservers(){
   requestAnimationFrame(() => { lazyBg(document); armHeAndAvail(document); });
 }
 
+/* Where every screen was left off (scroll, and on TV which poster had focus), so Back puts you
+   back where you were instead of at the top of the page. */
+const screenMem = new Map();
+let memHash = location.hash;
+function rememberScreen(){
+  const card = document.activeElement?.closest?.('.poster, .ep, .chmain');
+  screenMem.set(memHash, {y: scrollY, id: card?.dataset.id || null});
+  memHash = location.hash;
+}
+function restoreScreen(){
+  const mem = screenMem.get(location.hash);
+  if(!mem || (!mem.y && !mem.id)){ scrollTo(0, 0); return; }
+  let tries = 0, stop = false;
+  const cancel = () => { stop = true; };
+  addEventListener('wheel', cancel, {once: true});
+  addEventListener('touchstart', cancel, {once: true});
+  const tick = () => {
+    if(stop) return;
+    if(mem.id){
+      const el = document.querySelector(`.poster[data-id="${CSS.escape(mem.id)}"]`);
+      if(el){ isTvLayout() ? focusItem(el) : el.scrollIntoView({block: 'center'}); stop = true; return; }
+    }
+    if(scrollY !== mem.y) scrollTo(0, mem.y);
+    if(++tries < 8) setTimeout(tick, 180);
+  };
+  tick();
+}
+
 let routed = false;
 async function route(){
   routed = true;
+  rememberScreen();
   resetObservers();
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['show', 'r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
-  scrollTo(0, 0);
   if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
   else if(r === 'genres') viewGenres();
@@ -2203,6 +2274,7 @@ async function route(){
   else if(r === 'addons') viewAddons();
   else if(r === 'settings') viewSettings();
   else viewHome();
+  restoreScreen();
 }
 /** The projector logo: back to the last live channel (or home, if nothing was watched yet). */
 document.querySelector('.logo').addEventListener('click', async e => {
@@ -2242,12 +2314,23 @@ window.boothCatchup = async name => {
 };
 
 addEventListener('hashchange', route);
+/* No connection: one bar at the bottom instead of a screenful of errors; the screen reloads by itself
+   as soon as the line is back. */
+const offbar = Object.assign(document.createElement('div'), {id: 'offbar', role: 'status'});
+offbar.innerHTML = '<span>אין חיבור לאינטרנט. המקרן ימשיך ברגע שהחיבור יחזור.</span>';
+document.body.appendChild(offbar);
+const paintNet = () => offbar.classList.toggle('on', !navigator.onLine);
+addEventListener('offline', paintNet);
+addEventListener('online', () => { paintNet(); route(); });
+paintNet();
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
    follows the focus — instead of the browser scrolling on its own. */
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])';
-const ROWS_SEL = '.nav, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .catorder, .addpl, .add, .ltabs, .mkbar';
+const ROWS_SEL = '.nav, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .quals, .alt, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide';
 const visible = el => el.offsetParent !== null && el.getBoundingClientRect().width > 0;
-const tvRows = () => [...document.querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
+// While a sheet or the quick view is open the remote stays inside it: nothing behind it can take focus.
+const tvScope = () => document.querySelector('.sheet') || document;
+const tvRows = () => [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
 const itemsOf = row => [...row.querySelectorAll(FOCUSABLE)].filter(visible);
 const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
 function focusItem(el, smooth){
