@@ -26,6 +26,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
@@ -51,6 +52,8 @@ class PlayerActivity : AppCompatActivity() {
     private var retries = 0
     /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
     private val watchId get() = intent.getStringExtra("vid") ?: ""
+    /** A television: the D-pad owns every key, so live playback shows no overlay controls at all. */
+    private val onTv by lazy { packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK) }
     /** Channel bar (live TV): which channel the viewer is pointing at while it is open. */
     private var barIndex = 0
     private val barOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
@@ -81,7 +84,8 @@ class PlayerActivity : AppCompatActivity() {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.25f)
         }
 
-        if (sources.size > 1) {
+        if (live && onTv) view.useController = false        // remote keys zap and open the bar; nothing to focus-steal
+        if (sources.size > 1 && !(live && onTv)) {
             val zap = findViewById<View>(R.id.zap)
             view.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { zap.visibility = it })
             findViewById<View>(R.id.chUp).setOnClickListener { zapBy(-1) }
@@ -146,7 +150,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         if (headers.isNotEmpty()) http.setDefaultRequestProperties(headers)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(if (live) 8_000 else 30_000, 120_000, if (live) 1_500 else 2_500, 5_000)
+            .setBufferDurationsMs(if (live) 8_000 else 30_000, 120_000, if (live) 1_000 else 2_500, 5_000)
             .build()
 
         val subtitleConfigs = subs.orEmpty().mapIndexed { i, s ->
@@ -169,8 +173,13 @@ class PlayerActivity : AppCompatActivity() {
             }
             .build()
 
+        val dataSources = DefaultDataSource.Factory(this, http)
+        // Live HLS prepares "chunkless": the playlist alone is enough to start, no test segment first.
+        val sourceFactory = if (live && url.contains(".m3u8"))
+            HlsMediaSource.Factory(dataSources).setAllowChunklessPreparation(true)
+        else DefaultMediaSourceFactory(dataSources)
         player = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
+            .setMediaSourceFactory(sourceFactory)
             .setLoadControl(loadControl)
             .build().also {
                 // Hebrew subtitles on by default (also picks embedded Hebrew tracks in MKVs).
@@ -261,7 +270,7 @@ class PlayerActivity : AppCompatActivity() {
         if (barOpen) { barIndex = index; paintChannelBar() }
         // Give the server a moment to close the previous channel's session before opening the next.
         handler.removeCallbacks(rebuild)
-        handler.postDelayed(rebuild, 400)
+        handler.postDelayed(rebuild, 250)
     }
 
     private val rebuild = Runnable { if (started && player == null) buildPlayer() }
