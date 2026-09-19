@@ -22,7 +22,7 @@ try{
   --on-accent:#14161f; --text2:#d4cdb9; --err:#ff9d8a; --ghost:rgba(239,230,207,.1);
   --shade-55:rgba(20,22,31,.55); --shade-50:rgba(20,22,31,.5); --shade-20:rgba(20,22,31,.2);
   --glow:rgba(240,180,41,.45); --glow-soft:rgba(240,180,41,.35); --beam:rgba(240,180,41,.13);
-  --poster-w:150px;
+  --poster-w:132px;
   --display:"Bricolage Grotesque","Rubik",system-ui,sans-serif;
   --body:"Figtree","Heebo",system-ui,sans-serif;
 }
@@ -40,7 +40,7 @@ img{max-width:100%;display:block}
 .nav{display:flex;gap:4px}
 .nav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--muted);font-weight:500}
 .nav a.on{color:var(--light);background:var(--raise)}
-.search{margin-inline-start:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 16px 4px 4px;width:min(340px,40vw)}
+.search{flex:0 1 300px;min-width:150px;margin-inline-start:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 16px 4px 4px;width:min(340px,40vw)}
 .search input{flex:1;background:none;border:0;outline:0;min-width:0}
 .search button{background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:6px 14px;font-weight:600;cursor:pointer}
 
@@ -162,8 +162,8 @@ main{padding:0 28px 60px}
   --glow:rgba(200,65,45,.3);--glow-soft:rgba(200,65,45,.25);--beam:rgba(200,65,45,.07);--ghost:rgba(29,26,22,.08)}
 
 /* ---------- layouts (Settings) ---------- */
-:root[data-poster="s"]{--poster-w:118px}
-:root[data-poster="l"]{--poster-w:196px}
+:root[data-poster="s"]{--poster-w:104px}
+:root[data-poster="l"]{--poster-w:168px}
 /* Poster wall: no banner, every row wraps into a grid */
 [data-layout="grid"] .hero{display:none}
 [data-layout="grid"] main{padding-top:8px}
@@ -178,9 +178,9 @@ main{padding:0 28px 60px}
 [data-layout="list"] .poster:hover .art,[data-layout="list"] .poster:focus-visible .art{transform:none;box-shadow:none}
 [data-layout="list"] .poster:hover,[data-layout="list"] .poster:focus-visible{background:var(--raise)}
 /* TV: 10-foot UI - larger type, posters and focus for a remote */
-[data-layout="tv"] body{font-size:18px}
-[data-layout="tv"] .poster{flex-basis:calc(var(--poster-w) * 1.35)}
-[data-layout="tv"] .grid{grid-template-columns:repeat(auto-fill,minmax(calc(var(--poster-w) * 1.35),1fr))}
+[data-layout="tv"] body{font-size:17px}
+[data-layout="tv"] .poster{flex-basis:var(--poster-w)}
+[data-layout="tv"] .grid{grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr))}
 [data-layout="tv"] .strip{gap:24px;padding:8px 6px 18px}
 [data-layout="tv"] .row h2{font-size:28px}
 [data-layout="tv"] .nav a{padding:10px 20px;font-size:18px}
@@ -368,9 +368,9 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .nav a{white-space:nowrap}
-@media (max-width:1000px){.bar{flex-wrap:wrap}.search{width:100%;order:3;margin-inline-start:0}}
+
 @media (max-width:760px){
-  .bar{flex-wrap:wrap;padding:12px 16px}.search{width:100%;order:3}
+  .bar{flex-wrap:wrap;padding:12px 16px;gap:10px 14px}.search{flex:1 1 140px;min-width:0;width:auto}.nav{order:3;width:100%}
   main{padding:0 16px 50px}.hero,.backdrop{margin:0 -16px 28px}
   .detail{grid-template-columns:1fr;margin-top:-22vh}.detail .poster-lg{width:150px}
   .cols{grid-template-columns:1fr}.poster{flex-basis:calc(var(--poster-w) * .8)}
@@ -1995,7 +1995,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.20.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.20.1</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();

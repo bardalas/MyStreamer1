@@ -1,5 +1,9 @@
 # Booth Android changelog
 
+## 0.20.1 — 2026-09-20
+- Search stays in the top row next to the menu (it shrinks instead of dropping to its own row).
+- Smaller posters (default 132, small 104, large 168); the TV layout no longer enlarges them.
+
 ## 0.20.0 — 2026-09-20
 - Content first: no per-service categories. Home = popular films / series, new films / series on the
   streaming services (merged), then Israeli, comedy, kids, documentaries. Each title appears once per page.
