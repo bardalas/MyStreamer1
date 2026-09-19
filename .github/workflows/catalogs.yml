@@ -26,4 +26,6 @@ jobs:
           git add addon
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "Refresh Booth catalogs"
+          # main may have moved while Wikidata was being queried (the build takes a while)
+          git pull --rebase origin main
           git push
