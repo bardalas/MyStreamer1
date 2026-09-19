@@ -34,12 +34,6 @@ import org.json.JSONArray
 import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
-    companion object {
-        /** What live requests identify as when the playlist names no agent of its own. */
-        private const val LIVE_UA =
-            "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-
     /** One playable item. Live TV passes a whole channel list so the viewer can zap through it. */
     private data class Source(val name: String, val url: String, val ua: String, val referer: String, val drm: String = "")
 
@@ -444,6 +438,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     companion object {
+        /** What live requests identify as when the playlist names no agent of its own. */
+        private const val LIVE_UA =
+            "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
         /** "Basic …" header for http://user:pass@host/… URLs, else null. */
         fun basicAuth(url: String): String? {
             val info = Uri.parse(url).userInfo ?: return null
