@@ -12,7 +12,7 @@
 try{
   const s = JSON.parse(localStorage.getItem('booth:settings') || '{}'), r = document.documentElement;
   const tv = !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-  r.dataset.skin = s.skin || 'tungsten'; r.dataset.layout = s.layout || (tv ? 'tv' : 'cinema'); r.dataset.poster = s.poster || 'm';
+  r.dataset.skin = s.skin || 'tungsten'; r.dataset.layout = s.layout || (tv ? 'tv' : 'cinema'); r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
 }catch(e){}
 </script>
 <style>
@@ -36,10 +36,10 @@ img{max-width:100%;display:block}
 /* top bar */
 .bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;padding:14px 28px;background:linear-gradient(var(--night) 60%,transparent)}
 .logo{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;text-decoration:none;display:flex;align-items:center;gap:8px}
-.logo i{width:14px;height:14px;border-radius:50%;background:var(--tungsten);box-shadow:0 0 18px 4px var(--glow)}
+.logo i{width:10px;height:10px;border-radius:50%;background:var(--tungsten)}
 .nav{display:flex;gap:4px}
 .nav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--muted);font-weight:500}
-.nav a.on{color:var(--night);background:var(--light)}
+.nav a.on{color:var(--light);background:var(--raise)}
 .search{margin-inline-start:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 16px 4px 4px;width:min(340px,40vw)}
 .search input{flex:1;background:none;border:0;outline:0;min-width:0}
 .search button{background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:6px 14px;font-weight:600;cursor:pointer}
@@ -47,15 +47,15 @@ img{max-width:100%;display:block}
 main{padding:0 28px 60px}
 
 /* hero: projector beam */
-.hero{position:relative;margin:0 -28px 36px;min-height:62vh;display:flex;align-items:flex-end;overflow:hidden}
+.hero{position:relative;margin:0 -28px 32px;min-height:46vh;display:flex;align-items:flex-end;overflow:hidden}
 .hero .bg{position:absolute;inset:0;background-size:cover;background-position:center 25%;filter:saturate(.85)}
 .hero::before{content:"";position:absolute;inset:0;z-index:1;background:
   linear-gradient(270deg,var(--night) 8%,var(--shade-55) 45%,transparent 75%),
   linear-gradient(0deg,var(--night) 2%,transparent 45%)}
-.hero .beam{position:absolute;z-index:1;left:-10%;transform:scaleX(-1);top:-30%;width:70%;height:160%;background:conic-gradient(from 200deg at 100% 0%,transparent 0deg,var(--beam) 14deg,transparent 30deg);pointer-events:none}
+.hero .beam{display:none;position:absolute;z-index:1;left:-10%;transform:scaleX(-1);top:-30%;width:70%;height:160%;background:conic-gradient(from 200deg at 100% 0%,transparent 0deg,var(--beam) 14deg,transparent 30deg);pointer-events:none}
 .hero .copy{position:relative;z-index:2;padding:0 28px 48px;max-width:760px}
-.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(44px,8vw,104px);line-height:.9;letter-spacing:-.035em;margin:0 0 16px}
-.hero p{color:var(--text2);max-width:56ch;margin:0 0 22px}
+.hero h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,56px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
+.hero p{color:var(--text2);max-width:56ch;margin:0 0 18px;font-size:14px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;text-decoration:none}
 .btn.primary{background:var(--tungsten);color:var(--on-accent)}
 .btn.ghost{background:var(--ghost);color:var(--light)}
@@ -71,7 +71,7 @@ main{padding:0 28px 60px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr));gap:22px 16px}
 .poster{flex:0 0 var(--poster-w);scroll-snap-align:start;text-decoration:none;display:block}
 .poster .art{aspect-ratio:2/3;border-radius:6px;background:var(--surface) center/cover;position:relative;overflow:hidden;transition:transform .2s}
-.poster:hover .art,.poster:focus-visible .art{transform:translateY(-4px);box-shadow:0 10px 28px -8px var(--glow-soft)}
+.poster:hover .art,.poster:focus-visible .art{transform:translateY(-2px)}
 .poster .t{margin-top:8px;font-weight:600;font-size:14px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .poster .y{color:var(--muted);font-size:13px}
 .poster .prog{position:absolute;inset-inline-start:0;bottom:0;height:4px;background:var(--tungsten)}
@@ -87,14 +87,14 @@ main{padding:0 28px 60px}
 /* detail */
 .detail{display:grid;grid-template-columns:260px 1fr;gap:40px;position:relative;z-index:2;margin-top:-30vh;padding-top:12px}
 .detail .poster-lg{border-radius:8px;aspect-ratio:2/3;background:var(--surface) center/cover;box-shadow:0 20px 50px -10px #000}
-.detail h1{font-family:var(--display);font-weight:800;font-size:clamp(36px,5vw,64px);line-height:.95;letter-spacing:-.03em;margin:0 0 12px}
+.detail h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,48px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
 .facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .facts span{background:var(--raise);border-radius:4px;padding:3px 9px;font-size:13px;color:var(--text2)}
-.facts .imdb{background:var(--tungsten);color:var(--on-accent);font-weight:700}
+.facts .imdb{font-weight:600}
 .desc{max-width:68ch;color:var(--text2)}
 .people{color:var(--muted);font-size:14px;margin:12px 0 22px;max-width:68ch}
 .people b{color:var(--light);font-weight:500}
-.backdrop{height:62vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative}
+.backdrop{height:50vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative}
 .backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night) 12%,var(--shade-50) 60%,var(--shade-20))}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:28px}
 .panel{background:var(--surface);border-radius:10px;padding:18px}
@@ -105,29 +105,29 @@ main{padding:0 28px 60px}
 .ep .n{font-family:var(--display);font-weight:700;color:var(--tungsten)}
 .ep .d{font-size:12px;color:var(--muted)}
 
-/* streams: grouped by quality, with filters */
+/* sources: one Play button, quality shortcuts, the rest tucked away */
 .panel,#streams{min-width:0}
-.sfilter{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 8px}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
 .chip.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--on-accent);font-weight:600}
-.chip .c{margin-left:6px;opacity:.7;font-variant-numeric:tabular-nums}
-.sfilter select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
-.sfsum{font-size:13px;margin:0 0 10px}
-.qgroup{background:var(--raise);border-radius:10px;margin-bottom:8px;overflow:hidden}
-.qgroup>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
-.qgroup>summary::-webkit-details-marker{display:none}
-.qgroup>summary::before{content:"◂";color:var(--muted);transition:transform .15s}
-.qgroup[open]>summary::before{transform:rotate(-90deg)}
-.qname{font-family:var(--display);font-weight:700;font-size:16px;min-width:52px}
-.qmeta{flex:1;min-width:0;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
-.qbest{flex:none;border:0;border-radius:999px;background:var(--tungsten);color:var(--on-accent);font-weight:600;font-size:13px;padding:6px 12px;cursor:pointer}
-.srow{display:flex;gap:12px;width:100%;text-align:start;border:0;border-top:1px solid var(--line);background:none;color:var(--light);padding:10px 14px;cursor:pointer}
-.srow:hover,.srow:focus-visible{background:var(--surface)}
-.srow .seeds{flex:0 0 64px;font-size:13px;font-weight:600;color:var(--tungsten);font-variant-numeric:tabular-nums}
-.srow .info{display:flex;flex-direction:column;min-width:0;gap:2px}
-.srow .t{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.srow .m{font-size:12px;color:var(--muted)}
-.smore{display:block;width:100%;border:0;border-top:1px solid var(--line);background:none;color:var(--tungsten);font-size:13px;font-weight:600;padding:10px;cursor:pointer}
+.play{display:flex;flex-direction:column;gap:14px}
+.playbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:0;border-radius:10px;padding:14px 18px;background:var(--tungsten);color:var(--on-accent);font-size:17px;font-weight:700;cursor:pointer}
+.playbtn small{font-weight:500;font-size:13px;opacity:.8}
+.playbtn:disabled{background:var(--raise);color:var(--muted);cursor:default}
+.quals{display:flex;flex-wrap:wrap;gap:8px}
+.quals button{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer}
+.quals button:hover,.quals button:focus-visible{border-color:var(--tungsten)}
+.alt>summary{cursor:pointer;color:var(--muted);font-size:14px;list-style:none}
+.alt>summary::-webkit-details-marker{display:none}
+.alt>summary::before{content:"◂ ";display:inline-block;transition:transform .15s}
+.alt[open]>summary::before{transform:rotate(-90deg)}
+.srow{display:flex;gap:12px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:none;color:var(--light);padding:10px 4px;cursor:pointer;font-size:14px}
+.srow:hover,.srow:focus-visible{background:var(--raise)}
+.srow b{flex:0 0 52px;font-weight:600}
+.srow span{color:var(--muted);font-variant-numeric:tabular-nums}
+/* titles without any source */
+.poster.nosrc .art{filter:grayscale(1);opacity:.35}
+.poster.nosrc .t,.poster.nosrc .y{opacity:.45}
+[data-nosrc="hide"] .poster.nosrc{display:none}
 .note{color:var(--muted);font-size:14px}
 .err{color:var(--err);font-size:14px}
 
@@ -216,9 +216,9 @@ main{padding:0 28px 60px}
 .cats{position:sticky;top:64px;z-index:15;display:flex;gap:8px;overflow-x:auto;padding:4px 28px 12px;background:linear-gradient(var(--night) 75%,transparent);scrollbar-width:none}
 .cats::-webkit-scrollbar{display:none}
 .cats[hidden]{display:none}
-.cats a{flex:none;text-decoration:none;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.cats a{flex:none;text-decoration:none;padding:6px 10px;border-radius:0;color:var(--muted);font-size:14px;font-weight:500;white-space:nowrap}
 .cats a:hover{color:var(--light)}
-.cats a.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--on-accent)}
+.cats a.on{color:var(--light);box-shadow:inset 0 -2px var(--tungsten)}
 [data-layout="tv"] .cats a{padding:10px 20px;font-size:17px}
 
 /* live tv */
@@ -261,7 +261,7 @@ main{padding:0 28px 60px}
 }
 </style>
 </head>
-<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.10.1</div>
+<body>
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
@@ -291,12 +291,15 @@ const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json';
 const TORRENTIO = 'https://torrentio.strem.fun/manifest.json';
 // Netflix, Apple TV+, Disney+, Prime, HBO Max, Paramount+, Curiosity Stream, MagellanTV (Israel region).
 const STREAMING_CATALOGS = 'https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/bmZ4LGF0cCxkbnAsYW1wLGhibSxwbXAsY3RzLG1nbDo6SUw6MTc4OTg0MTUwODAwMDoxOjA6/manifest.json';
-// Israeli (Hebrew) and Arabic films & series, built weekly from Wikidata (see tools/build_catalogs.py).
-const BOOTH_CATALOGS = 'https://raw.githubusercontent.com/bardalas/MyStreamer1/main/addon/manifest.json';
-let addonUrls = store.get('addons', [CINEMETA, TORRENTIO, STREAMING_CATALOGS, BOOTH_CATALOGS]);
+let addonUrls = store.get('addons', [CINEMETA, TORRENTIO, STREAMING_CATALOGS]);
 if(store.get('defaultsRev', 1) < 2){
-  for(const u of [STREAMING_CATALOGS, BOOTH_CATALOGS]) if(!addonUrls.includes(u)) addonUrls.push(u);
-  store.set('addons', addonUrls); store.set('defaultsRev', 2);
+  if(!addonUrls.includes(STREAMING_CATALOGS)) addonUrls.push(STREAMING_CATALOGS);
+  store.set('defaultsRev', 2);
+}
+if(store.get('defaultsRev', 1) < 3){
+  // Israeli/Arabic catalogs are now built into the app (live from Wikidata); drop the old repo-hosted add-on.
+  addonUrls = addonUrls.filter(u => !u.includes('raw.githubusercontent.com/bardalas/MyStreamer1'));
+  store.set('addons', addonUrls); store.set('defaultsRev', 3);
 }
 let library = store.get('library', {});
 let progress = store.get('progress', {});
@@ -328,20 +331,16 @@ const yearOf = m => m.releaseInfo || (m.year ?? '') || (m.released ? m.released.
 
 async function loadAddons(){
   const res = await Promise.allSettled(addonUrls.map(async url => ({url, base: baseOf(url), manifest: await getJSON(normUrl(url))})));
-  addons = res.filter(r => r.status === 'fulfilled').map(r => r.value);
+  addons = res.filter(r => r.status === 'fulfilled').map(r => r.value).concat(LOCAL_ADDON);
 }
 
-/* ---------- Hebrew titles & plots ----------
-   Titles: a map precomputed daily on GitHub (addon/he.json, see tools/build_catalogs.py) for every
-   catalog title; anything missing is looked up on Wikidata in small batches and cached.
-   Plots: the "עלילה" section of the title's Hebrew Wikipedia article. */
-const WDQS = 'https://query.wikidata.org/sparql?format=json&query=';
-const HE_TITLES = 'https://raw.githubusercontent.com/bardalas/MyStreamer1/main/addon/he.json';
+/* ---------- Hebrew titles, plots & search — fetched live from Wikidata and Hebrew Wikipedia ----------
+   Uses the regular Wikidata API (search + wbgetentities). Titles are looked up only for posters that
+   actually scroll into view, and cached on the device. */
 const WDAPI = 'https://www.wikidata.org/w/api.php?format=json&origin=*&';
 let heCache = store.get('heMeta', {});             // tt -> {t: Hebrew title, w: hewiki article}
 const hePending = new Set();
 let heTimer = null, heBusy = false;
-let heReady = Promise.resolve();                     // resolves once the precomputed map is loaded
 const hebrewOn = () => (typeof settings === 'undefined' || settings.lang !== 'en');
 const hasHebrew = s => /[\u0590-\u05FF]/.test(s || '');
 // Wikidata labels sometimes carry a disambiguator: "אובססיה (סרט, 2025)" -> "אובססיה".
@@ -349,84 +348,88 @@ const heClean = t => (t || '').replace(/\s*\((?:סרט|סדרה|סדרת|מינ�
 const heTitle = (id, fallback) => (hebrewOn() && heCache[id]?.t) || fallback;
 for(const e of Object.values(heCache)) if(e?.t) e.t = heClean(e.t);   // titles cached by 0.9/0.10 weren't cleaned
 
-/** Queue ids for a Hebrew title lookup; lookups are batched and the page updated in place. */
+const claim = (e, p) => e?.claims?.[p]?.[0]?.mainsnak?.datavalue?.value;
+const claimIds = (e, p) => (e?.claims?.[p] || []).map(c => c.mainsnak?.datavalue?.value?.id).filter(Boolean);
+const claimYear = e => (e?.claims?.P577 || []).map(c => c.mainsnak?.datavalue?.value?.time?.slice(1, 5)).filter(Boolean).sort()[0];
+const hewiki = e => (e?.sitelinks?.hewiki?.title || '').replace(/ /g, '_');
+
+/** Run fn over items with limited concurrency. */
+async function pool(items, n, fn){
+  const queue = [...items];
+  await Promise.all(Array.from({length: Math.min(n, queue.length)}, async () => { while(queue.length) await fn(queue.shift()); }));
+}
+
+/** IMDb ids -> Hebrew title + Hebrew Wikipedia article, via the Wikidata API. */
+async function heLookup(ids){
+  const byItem = {};
+  // one small search per id: a combined search can't say which item matched which IMDb id
+  await pool(ids, 6, async id => {
+    try{
+      const s = await getJSON(`${WDAPI}action=query&list=search&srlimit=1&srprop=&srsearch=haswbstatement:P345=${id}`);
+      const q = s.query?.search?.[0]?.title;
+      if(q) byItem[q] = id; else heCache[id] = {t: '', w: ''};   // not on Wikidata
+    }catch(e){ /* network error: try again next time it is shown */ }
+  });
+  const qs = Object.keys(byItem);
+  for(let i = 0; i < qs.length; i += 50){
+    const d = await getJSON(`${WDAPI}action=wbgetentities&props=labels|sitelinks&languages=he&sitefilter=hewiki&ids=${qs.slice(i, i + 50).join('|')}`);
+    for(const [q, e] of Object.entries(d.entities || {})) heCache[byItem[q]] = {t: heClean(e.labels?.he?.value), w: hewiki(e)};
+  }
+  store.set('heMeta', heCache);
+}
+
+/** Queue ids for a Hebrew title lookup (batched; the page is updated in place). */
 function hebrewize(ids){
   if(!hebrewOn()) return;
   for(const id of ids) if(/^tt\d+$/.test(id) && !(id in heCache)) hePending.add(id);
-  if(hePending.size){ clearTimeout(heTimer); heTimer = setTimeout(heFlush, 300); }
-}
-async function heLookup(ids){
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 20000);
-  const q = `SELECT ?imdb ?he ?wp WHERE { VALUES ?imdb { ${ids.map(i => `"${i}"`).join(' ')} } ?item wdt:P345 ?imdb.
-    OPTIONAL { ?item rdfs:label ?he FILTER(LANG(?he) = "he") }
-    OPTIONAL { ?wp schema:about ?item; schema:isPartOf <https://he.wikipedia.org/> } }`;
-  const r = await fetch(WDQS + encodeURIComponent(q), {signal: ctl.signal}).finally(() => clearTimeout(timer));
-  if(!r.ok) throw new Error(r.status);
-  const d = await r.json();
-  for(const id of ids) heCache[id] ||= {t: '', w: ''};
-  for(const b of d.results.bindings){
-    const e = heCache[b.imdb.value];
-    if(b.he) e.t ||= heClean(b.he.value);
-    if(b.wp) e.w ||= decodeURIComponent(b.wp.value.split('/wiki/')[1] || '');
-  }
-  store.set('heMeta', heCache);
+  if(hePending.size){ clearTimeout(heTimer); heTimer = setTimeout(heFlush, 250); }
 }
 async function heFlush(){
   if(heBusy || !hePending.size) return;
   heBusy = true;
-  await heReady;
-  for(const id of [...hePending]) if(id in heCache) hePending.delete(id);
-  if(!hePending.size){ heBusy = false; return; }
-  const batch = [...hePending].slice(0, 50);
+  const batch = [...hePending].slice(0, 30);
   batch.forEach(id => hePending.delete(id));
-  try{
-    await heLookup(batch);
-    for(const id of batch){
-      const t = heCache[id]?.t; if(!t) continue;
-      document.querySelectorAll(`[data-heid="${id}"]`).forEach(el => { el.textContent = t; el.dir = 'rtl'; });
-    }
-  }catch(e){ /* rate-limited or offline: these ids are retried when shown again */ }
+  try{ await heLookup(batch); }catch(e){ /* offline or rate-limited */ }
+  applyHebrew();
   heBusy = false;
-  if(hePending.size) heTimer = setTimeout(heFlush, 2500);   // Wikidata rate-limits bursts
+  if(hePending.size) heTimer = setTimeout(heFlush, 400);
 }
-
 function applyHebrew(){
+  if(!hebrewOn()) return;
   document.querySelectorAll('[data-heid]').forEach(el => {
     const t = heCache[el.dataset.heid]?.t;
     if(t && el.textContent !== t){ el.textContent = t; el.dir = 'rtl'; }
   });
 }
 
-/** Precomputed Hebrew titles (refreshed daily); ids in it are never looked up from the phone. */
-async function loadHebrewTitles(){
+// Look titles up only when their poster comes into view (rows hold hundreds of titles).
+const heObserver = new IntersectionObserver(entries => {
+  const ids = [];
+  for(const en of entries) if(en.isIntersecting){ heObserver.unobserve(en.target); ids.push(en.target.dataset.heid); }
+  if(ids.length) hebrewize(ids);
+}, {rootMargin: '300px'});
+new MutationObserver(muts => {
   if(!hebrewOn()) return;
-  try{
-    const d = await getJSON(HE_TITLES);
-    for(const [id, v] of Object.entries(d)) heCache[id] = v ? {t: heClean(v[0]), w: v[1] || ''} : {t: '', w: ''};
-    for(const id of [...hePending]) if(id in heCache) hePending.delete(id);
-    store.set('heMeta', heCache);
-    applyHebrew();
-  }catch(e){ /* offline: keep the cached copy */ }
-}
-
-/** Fast single-title lookup through the Wikidata API (used by the details page). */
-async function heLookupOne(id){
-  const s = await getJSON(`${WDAPI}action=query&list=search&srsearch=haswbstatement:P345=${id}&srlimit=1`);
-  const q = s.query?.search?.[0]?.title;
-  heCache[id] = {t: '', w: ''};
-  if(q){
-    const e = (await getJSON(`${WDAPI}action=wbgetentities&ids=${q}&props=labels|sitelinks&languages=he&sitefilter=hewiki`)).entities?.[q];
-    heCache[id] = {t: heClean(e?.labels?.he?.value), w: (e?.sitelinks?.hewiki?.title || '').replace(/ /g, '_')};
+  for(const m of muts) for(const n of m.addedNodes){
+    if(n.nodeType !== 1) continue;
+    const els = n.matches('[data-heid]') ? [n] : n.querySelectorAll('[data-heid]');
+    const now = [];
+    for(const el of els){
+      if(el.dataset.heid in heCache) continue;
+      // the first posters of a row are on screen right away; the rest wait until scrolled to
+      const card = el.closest('.poster');
+      if(!card || [...card.parentNode.children].indexOf(card) < 10) now.push(el.dataset.heid);
+      else heObserver.observe(el);
+    }
+    if(now.length) hebrewize(now);
   }
-  store.set('heMeta', heCache);
-}
+}).observe(document.body, {childList: true, subtree: true});
 
 const plotCache = {};
 /** Hebrew plot for an IMDb id from Hebrew Wikipedia: the plot section, else the lead. */
 async function hebrewPlot(id){
   if(id in plotCache) return plotCache[id];
-  if(!(id in heCache)) await heLookupOne(id);
+  if(!(id in heCache)) await heLookup([id]);
   const article = heCache[id]?.w;
   if(!article) return plotCache[id] = null;
   const d = await getJSON(`https://he.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=wiki&redirects=1&format=json&origin=*&titles=${encodeURIComponent(article)}`);
@@ -436,26 +439,67 @@ async function hebrewPlot(id){
   return plotCache[id] = body ? {text: body, article} : null;
 }
 
+const SERIES_CLASSES = new Set(['Q5398426', 'Q1259759', 'Q63952888', 'Q526877', 'Q117467246', 'Q15416', 'Q7725310']);
+const FILM_CLASSES = new Set(['Q11424', 'Q202866', 'Q93204', 'Q24869', 'Q506240', 'Q24862', 'Q229390', 'Q226730', 'Q2484376', 'Q17517379', 'Q20650540']);
+const EPISODE_CLASS = 'Q21191270';
+
+/** Wikidata items -> Stremio metas (tt ids only), filling the Hebrew title cache on the way. */
+async function wdMetas(qids, forceType){
+  const out = [];
+  for(let i = 0; i < qids.length; i += 50){
+    const d = await getJSON(`${WDAPI}action=wbgetentities&props=labels|claims|sitelinks&languages=he|en|ar&sitefilter=hewiki&ids=${qids.slice(i, i + 50).join('|')}`);
+    for(const q of qids.slice(i, i + 50)){
+      const e = d.entities?.[q];
+      const id = claim(e, 'P345');
+      if(!e || typeof id !== 'string' || !id.startsWith('tt')) continue;
+      const classes = claimIds(e, 'P31');
+      if(classes.includes(EPISODE_CLASS)) continue;
+      const series = classes.some(c => SERIES_CLASSES.has(c));
+      if(!forceType && !series && !classes.some(c => FILM_CLASSES.has(c))) continue;
+      const he = heClean(e.labels?.he?.value);
+      heCache[id] = {t: he, w: hewiki(e)};
+      out.push({id, type: forceType || (series ? 'series' : 'movie'), name: he || e.labels?.en?.value || e.labels?.ar?.value || id,
+                poster: `https://images.metahub.space/poster/medium/${id}/img`, releaseInfo: claimYear(e) || ''});
+    }
+  }
+  store.set('heMeta', heCache);
+  return out;
+}
+
 /** Hebrew search: Wikidata full-text search, keeping films and series that have an IMDb id. */
 async function hebrewSearch(q){
-  const s = await getJSON(`https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q + ' haswbstatement:P345')}&srlimit=30&format=json&origin=*`);
+  const s = await getJSON(`${WDAPI}action=query&list=search&srlimit=20&srprop=&srsearch=${encodeURIComponent(q + ' haswbstatement:P345')}`);
   const qids = (s.query?.search || []).map(r => r.title).filter(t => /^Q\d+$/.test(t));
-  if(!qids.length) return [];
-  const sp = `SELECT ?item ?imdb ?he ?en ?date ?series WHERE { VALUES ?item { ${qids.map(x => 'wd:' + x).join(' ')} } ?item wdt:P345 ?imdb.
-    { ?item wdt:P31/wdt:P279* wd:Q11424 } UNION { ?item wdt:P31/wdt:P279* wd:Q5398426 BIND(true AS ?series) }
-    OPTIONAL { ?item rdfs:label ?he FILTER(LANG(?he) = "he") } OPTIONAL { ?item rdfs:label ?en FILTER(LANG(?en) = "en") }
-    OPTIONAL { ?item wdt:P577 ?date } }`;
-  const rows = (await getJSON(WDQS + encodeURIComponent(sp))).results.bindings;
-  const byItem = new Map();
-  for(const b of rows){
-    const id = b.imdb.value; if(!id.startsWith('tt')) continue;
-    const m = byItem.get(b.item.value) || {id, type: 'movie', name: '', poster: `https://images.metahub.space/poster/medium/${id}/img`};
-    if(b.series) m.type = 'series';
-    m.name ||= b.he?.value || b.en?.value || id;
-    const y = b.date?.value.slice(0, 4); if(y && (!m.releaseInfo || y < m.releaseInfo)) m.releaseInfo = y;
-    byItem.set(b.item.value, m);
-  }
-  return qids.map(q => byItem.get('http://www.wikidata.org/entity/' + q)).filter(Boolean);
+  return qids.length ? wdMetas(qids) : [];
+}
+
+/* ---------- built-in Israeli catalogs (live Wikidata search, cached for a day) ---------- */
+const LOCAL_CATALOGS = [
+  // country of origin + original language: language alone also matches Hollywood films with a few lines of Hebrew
+  {id: 'booth.he.movies', type: 'movie', name: 'סרטים ישראליים', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+  {id: 'booth.he.movies.new', type: 'movie', name: 'סרטים ישראליים חדשים', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'create_timestamp_desc'},
+  {id: 'booth.he.series', type: 'series', name: 'סדרות ישראליות', filter: 'P31=Q5398426', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+];
+async function localCatalog(id){
+  const c = LOCAL_CATALOGS.find(x => x.id === id);
+  if(!c) return {metas: []};
+  const cached = store.get('cat:' + id, null);
+  if(cached && Date.now() - cached.at < 864e5) return {metas: cached.metas};
+  const query = `haswbstatement:${c.filter} haswbstatement:P364=${c.lang} haswbstatement:${c.countries.map(x => 'P495=' + x).join('|')} haswbstatement:P345`;
+  const s = await getJSON(`${WDAPI}action=query&list=search&srlimit=100&srprop=&srsort=${c.sort}&srsearch=${encodeURIComponent(query)}`);
+  let metas = await wdMetas((s.query?.search || []).map(r => r.title), c.type);
+  if(c.sort === 'create_timestamp_desc') metas = metas.filter(m => m.releaseInfo).sort((a, b) => b.releaseInfo.localeCompare(a.releaseInfo));
+  metas = metas.slice(0, 60);
+  if(metas.length) store.set('cat:' + id, {at: Date.now(), metas});
+  return {metas};
+}
+const LOCAL_ADDON = {url: 'local:booth', local: localCatalog, manifest: {id: 'org.booth.catalogs', name: 'Booth', version: '1', resources: ['catalog'],
+  types: ['movie', 'series'], catalogs: LOCAL_CATALOGS.map(({id, type, name}) => ({id, type, name}))}};
+
+/** Catalog page from an add-on (HTTP) or from the built-in catalogs. */
+function catalogFetch(a, type, id, extra){
+  if(a.local) return extra && /skip=/.test(extra) ? Promise.resolve({metas: []}) : a.local(id);
+  return getJSON(`${a.base}/catalog/${type}/${id}${extra ? '/' + extra : ''}.json`);
 }
 
 /* ---------- Hebrew labels for add-on data ---------- */
@@ -470,7 +514,7 @@ const typeHe = t => ({movie: 'סרטים', series: 'סדרות', channel: 'ער�
 const CATALOG_NAMES_HE = {Popular: 'פופולרי', New: 'חדש', Featured: 'מומלצים',
   'Netflix Top 10 Movies (Global)': 'Netflix – טופ 10', 'Netflix Top 10 Shows (Global)': 'Netflix – טופ 10',
   'Popular documentaries': 'תיעודיים פופולריים', 'Israeli films': 'סרטים ישראליים', 'New Israeli films': 'סרטים ישראליים חדשים',
-  'Israeli series': 'סדרות ישראליות', 'Arabic films': 'סרטים בערבית', 'New Arabic films': 'סרטים חדשים בערבית', 'Arabic series': 'סדרות בערבית'};
+  'Israeli series': 'סדרות ישראליות'};
 const catalogHe = n => CATALOG_NAMES_HE[n] || n;
 
 /* ---------- cards ---------- */
@@ -480,9 +524,10 @@ function card(m){
   const art = m.poster
     ? `<div class="art" style="background-image:url('${esc(m.poster)}')">${pct?`<div class="prog" style="width:${pct}%"></div>`:''}</div>`
     : `<div class="art noart">${esc(m.name)}</div>`;
-  hebrewize([m.id]);
   const name = heTitle(m.id, m.name);
-  return `<a class="poster" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
+  const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';
+  const none = key && typeof avail !== 'undefined' && avail[key] && !avail[key][0];
+  return `<a class="poster${none ? ' nosrc' : ''}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
@@ -499,7 +544,6 @@ const CATEGORIES = [
   {id: 'paramount', name: 'Paramount+', rows: [[SC_ID, 'pmp']]},
   {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
   {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, /^booth\.he\./]]},
-  {id: 'arabic', name: 'ערבית', rows: [[BOOTH_ID, /^booth\.ar\./]]},
 ];
 
 /** Resolve a category's row specs against the installed add-ons. */
@@ -530,13 +574,13 @@ function renderRows(rows, {hero = true, cont = []} = {}){
   const app = $('#app');
   app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : '<div style="height:8px"></div>'}
     ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi> <small>${esc(typeHe(x.c.type))}</small></h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${/סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
   let heroDone = !hero;
   rows.forEach(async (x, i) => {
     const el = $('#row' + i);
     try{
-      const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}${x.extra ? '/' + x.extra : ''}.json`);
+      const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
       const metas = d.metas || [];
       if(el) el.innerHTML = metas.map(card).join('') || '<p class="note">הקטלוג ריק.</p>';
       if(!heroDone && metas.length){ heroDone = true; renderHero(metas.find(m => m.background) || metas[0]); }
@@ -597,7 +641,7 @@ async function viewDiscover(type, catKey, genre){
   const load = async () => {
     const extra = [genre && `genre=${encodeURIComponent(genre)}`, skip && `skip=${skip}`].filter(Boolean).join('&');
     try{
-      const d = await getJSON(`${cur.a.base}/catalog/${type}/${cur.c.id}${extra ? '/' + extra : ''}.json`);
+      const d = await catalogFetch(cur.a, type, cur.c.id, extra);
       const metas = d.metas || [];
       const g = $('#grid'); if(!g) return;
       if(!skip) g.innerHTML = '';
@@ -665,7 +709,7 @@ async function viewDetail(type, id){
     </div>
     <div class="cols">
       ${seasons.length ? `<div class="panel"><h3>פרקים</h3><select class="field" id="season" aria-label="עונה" style="margin-bottom:10px">${seasons.map(s => `<option value="${s}">${s === 0 ? 'מיוחדים' : 'עונה ' + s}</option>`).join('')}</select><div class="eps" id="eps"></div></div>` : ''}
-      <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>מקורות צפייה</h3><div id="streams"><p class="note">${seasons.length ? 'בחר פרק כדי לראות מקורות.' : 'טוען…'}</p></div></div>
+      <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>צפייה</h3><div id="streams"><p class="note">${seasons.length ? 'בחר פרק כדי לראות מקורות.' : 'טוען…'}</p></div></div>
     </div>`;
 
   $('#lib').onclick = () => {
@@ -697,17 +741,11 @@ async function viewDetail(type, id){
   }
 }
 
-/* ---------- streams: grouped by quality, with filters ---------- */
-const QUALS = ['4K', '1080p', '720p', 'SD', 'CAM', 'Other'];
+/* ---------- sources: pick the best automatically ---------- */
 const GB = 1024 ** 3;
-const PREVIEW = 5;
-let streamFilter = Object.assign({quals: {CAM: false}, minSeeds: 0, maxGB: 0, sort: 'seeds'}, store.get('streamFilter', {}));
 let streamsToken = 0;
-const openGroups = new Set(), expandedGroups = new Set();
-let groupsTouched = false;
-
 const fmtSize = b => b >= GB ? (b / GB).toFixed(1) + ' GB' : Math.round(b / 1024 ** 2) + ' MB';
-const score = x => x.direct ? Infinity : (x.seeds ?? -1);
+const isCam = s => /\b(hd)?cam(rip)?\b|\b(hd)?ts\b|telesync|\bscr\b|screener|\btc\b|telecine/i.test(`${s.name || ''}\n${s.title || s.description || ''}`);
 
 /** Pull quality, seeders, size, provider and tags out of a Stremio stream (Torrentio format, with fallbacks). */
 function parseStream(s, addon, i){
@@ -734,11 +772,14 @@ function parseStream(s, addon, i){
   };
 }
 
-function passes(x){
-  const f = streamFilter;
-  return f.quals[x.q] !== false
-    && (x.direct || (x.seeds ?? 0) >= f.minSeeds)
-    && (!f.maxGB || !x.size || x.size <= f.maxGB * GB);
+/** How good a source is to stream on a phone/TV: direct links first, then well-seeded 1080p. */
+function rank(x){
+  if(x.direct) return 1e9;
+  const seeds = x.seeds ?? 0;
+  if(seeds < 1) return -1;
+  const quality = {'1080p': 1, '720p': .85, '4K': .75, 'SD': .45, 'Other': .35}[x.q] ?? .3;
+  const size = x.size && x.size > 20 * GB ? .5 : 1;        // huge remuxes stall when streamed
+  return Math.log10(seeds + 1) * quality * size;
 }
 
 function playStream(s, label, ctx){
@@ -753,96 +794,98 @@ function playStream(s, label, ctx){
   else alert('מקורות טורנט מתנגנים באפליקציית Booth לאנדרואיד.');
 }
 
-function renderStreams(box, all, pending, errors, label, ctx){
-  const f = streamFilter;
-  const counts = Object.fromEntries(QUALS.map(q => [q, all.filter(x => x.q === q).length]));
-  const sorters = {
-    seeds: (a, b) => (score(b) - score(a)) || 0,
-    small: (a, b) => (a.size ?? Infinity) - (b.size ?? Infinity) || 0,
-    large: (a, b) => (b.size ?? 0) - (a.size ?? 0),
-  };
-  const shown = all.filter(passes).sort(sorters[f.sort] || sorters.seeds);
-  const groups = QUALS.map(q => [q, shown.filter(x => x.q === q)]).filter(([, xs]) => xs.length);
-  if(!groupsTouched && !openGroups.size && groups.length) openGroups.add(groups[0][0]);
-
-  const opt = (v, text) => `<option value="${v}">${text}</option>`;
-  const row = x => `<button class="srow" data-i="${x.i}">
-      <span class="seeds">${x.direct ? 'ישיר' : x.seeds != null ? '👤 ' + x.seeds : '—'}</span>
-      <span class="info"><span class="t" dir="auto">${esc(x.name)}</span>
-      <span class="m">${esc([x.size && fmtSize(x.size), x.provider || x.addon, ...x.tags].filter(Boolean).join(' · '))} ${x.flags.join(' ')}</span></span>
-    </button>`;
-  const group = ([q, xs]) => {
-    const seeds = xs.map(x => x.seeds).filter(n => n != null);
-    const sizes = xs.map(x => x.size).filter(Boolean);
-    const meta = [(xs.length > 1 ? `${xs.length} מקורות` : 'מקור אחד'),
-                  seeds.length && `עד 👤 ${Math.max(...seeds)}`,
-                  sizes.length && [...new Set([fmtSize(Math.min(...sizes)), fmtSize(Math.max(...sizes))])].join(' – ')].filter(Boolean).join(' · ');
-    const list = expandedGroups.has(q) ? xs : xs.slice(0, PREVIEW);
-    return `<details class="qgroup" data-q="${q}" ${openGroups.has(q) ? 'open' : ''}>
-      <summary><span class="qname">${q}</span><span class="qmeta">${meta}</span><button class="qbest" data-q="${q}" aria-label="נגן את מקור ה־${q} הטוב ביותר">▶ הכי טוב</button></summary>
-      ${list.map(row).join('')}
-      ${list.length < xs.length ? `<button class="smore" data-q="${q}">הצג את כל ה־${xs.length}</button>` : ''}
-    </details>`;
-  };
-
-  // Re-rendering replaces the controls; keep D-pad/keyboard focus on the same one.
-  const a = document.activeElement;
-  const focusKey = a && box.contains(a) ? (a.id ? '#' + a.id : a.dataset.q ? `.${a.className.split(' ')[0]}[data-q="${a.dataset.q}"]` : null) : null;
-
-  box.innerHTML = `
-    <div class="sfilter" role="group" aria-label="סינון מקורות">
-      ${QUALS.filter(q => counts[q]).map(q => `<button class="chip ${f.quals[q] !== false ? 'on' : ''}" data-q="${q}" aria-pressed="${f.quals[q] !== false}">${q}<span class="c">${counts[q]}</span></button>`).join('')}
-      <select id="fSeeds" aria-label="מינימום זורעים">${[0, 5, 20, 100].map(n => opt(n, n ? `👤 ${n}+` : 'כל כמות זורעים')).join('')}</select>
-      <select id="fSize" aria-label="גודל מקסימלי">${[0, 2, 5, 10, 20].map(n => opt(n, n ? `עד ${n} GB` : 'כל גודל')).join('')}</select>
-      <select id="fSort" aria-label="מיון">${opt('seeds', 'הכי הרבה זורעים')}${opt('small', 'הקטן ביותר קודם')}${opt('large', 'הגדול ביותר קודם')}</select>
-    </div>
-    <p class="note sfsum">${all.length ? `${shown.length} מתוך ${all.length} מקורות` : ''}${pending ? (all.length ? ' · ' : '') + 'טוען מקורות…' : ''}</p>
-    ${groups.map(group).join('')}
-    ${!pending && all.length && !shown.length ? '<p class="note">אין מקורות שמתאימים לסינון.</p>' : ''}
-    ${!pending && !all.length && !errors.length ? '<p class="note">לא נמצאו מקורות לכותר הזה.</p>' : ''}
-    ${errors.map(e => `<p class="err">${esc(e)}</p>`).join('')}`;
-
-  $('#fSeeds').value = f.minSeeds; $('#fSize').value = f.maxGB; $('#fSort').value = f.sort;
-  if(focusKey) box.querySelector(focusKey)?.focus();
-
-  const rerender = () => { store.set('streamFilter', streamFilter); renderStreams(box, all, pending, errors, label, ctx); };
-  box.querySelectorAll('.chip').forEach(b => b.onclick = () => { f.quals[b.dataset.q] = f.quals[b.dataset.q] === false; rerender(); });
-  $('#fSeeds').onchange = e => { f.minSeeds = +e.target.value; rerender(); };
-  $('#fSize').onchange = e => { f.maxGB = +e.target.value; rerender(); };
-  $('#fSort').onchange = e => { f.sort = e.target.value; rerender(); };
-  box.querySelectorAll('.qgroup').forEach(d => d.ontoggle = () => {
-    groupsTouched = true;
-    d.open ? openGroups.add(d.dataset.q) : openGroups.delete(d.dataset.q);
-  });
-  box.querySelectorAll('.qbest').forEach(b => b.onclick = e => {
-    e.preventDefault(); e.stopPropagation();
-    const best = shown.filter(x => x.q === b.dataset.q).reduce((m, x) => score(x) > score(m) ? x : m);
-    playStream(best.s, label, ctx);
-  });
-  box.querySelectorAll('.smore').forEach(b => b.onclick = () => { expandedGroups.add(b.dataset.q); rerender(); });
-  box.querySelectorAll('.srow').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx));
+function renderStreams(box, all, pending, label, ctx){
+  const list = all.filter(x => x.q !== 'CAM' && rank(x) >= 0).sort((a, b) => rank(b) - rank(a));
+  const best = list[0];
+  if(!best){
+    box.innerHTML = `<div class="play"><button class="playbtn" disabled>${pending ? 'מחפש מקורות…' : 'אין מקורות זמינים כרגע'}</button></div>`;
+    return;
+  }
+  const byQuality = ['4K', '1080p', '720p', 'SD'].map(q => list.find(x => x.q === q)).filter(Boolean);
+  const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
+  box.innerHTML = `<div class="play">
+      <button class="playbtn" data-i="${best.i}">▶ נגן <small>${esc(detail(best))}</small></button>
+      ${byQuality.length > 1 ? `<div class="quals" role="group" aria-label="איכות">${byQuality.map(x => `<button data-i="${x.i}">${x.q}</button>`).join('')}</div>` : ''}
+      ${list.length > 1 ? `<details class="alt"><summary>מקורות נוספים (${list.length - 1})</summary>
+        ${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? 'ישיר' : '👤 ' + (x.seeds ?? 0)}</span></button>`).join('')}
+      </details>` : ''}
+      ${pending ? '<p class="note" style="margin:0">מחפש מקורות נוספים…</p>' : ''}
+    </div>`;
+  box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx));
 }
 
 async function loadStreams({type, meta}, videoId, label){
   const box = $('#streams');
   const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
-  if(!src.length){ box.innerHTML = `<p class="note">לא מותקן תוסף מקורות לכותר הזה. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.</p>`; return; }
+  if(!src.length){ box.innerHTML = `<p class="note">לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.</p>`; return; }
   const token = ++streamsToken;
   const ctx = {videoId, type, meta};
-  const all = [], errors = [];
+  const all = [];
   let pending = src.length;
-  openGroups.clear(); expandedGroups.clear(); groupsTouched = false;
-  const render = () => { if(token === streamsToken && box.isConnected) renderStreams(box, all, pending > 0, errors, label, ctx); };
+  const render = () => { if(token === streamsToken && box.isConnected) renderStreams(box, all, pending > 0, label, ctx); };
   render();
   await Promise.all(src.map(async a => {
     try{
       const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`);
       for(const s of d.streams || []) all.push(parseStream(s, a.manifest.name, all.length));
-    }catch(e){ errors.push(`${a.manifest.name} לא הגיב (${e.message}).`); }
+    }catch(e){ /* one add-on failing shouldn't block the others */ }
     pending--;
     render();
   }));
+  if(type === 'movie') setAvail(`${type}:${meta.id}`, all.some(x => x.q !== 'CAM' && rank(x) >= 0));
 }
+
+/* ---------- which titles have sources (greys out / hides the rest) ---------- */
+let avail = store.get('avail', {});                 // "type:tt…" -> [ok, checkedAt]
+const AVAIL_TTL = 864e5;
+const availPending = new Set();
+let availBusy = false;
+const availKnown = k => avail[k] && Date.now() - avail[k][1] < AVAIL_TTL;
+function setAvail(key, ok){
+  avail[key] = [ok, Date.now()];
+  store.set('avail', avail);
+  document.querySelectorAll(`[data-avail="${key}"]`).forEach(el => el.classList.toggle('nosrc', !ok));
+}
+async function hasSources(key){
+  const [type, id] = key.split(':');
+  const vid = type === 'series' ? `${id}:1:1` : id;          // a series counts as available if S1E1 is
+  for(const a of addons.filter(a => supports(a.manifest, 'stream', type, vid))){
+    try{
+      const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(vid)}.json`);
+      if((d.streams || []).some(s => !isCam(s))) return true;
+    }catch(e){ return null; }                                 // unknown: don't grey out on a network error
+  }
+  return false;
+}
+function queueAvail(keys){
+  for(const k of keys) if(!availKnown(k)) availPending.add(k);
+  if(!availBusy) availFlush();
+}
+async function availFlush(){
+  availBusy = true;
+  while(availPending.size){
+    const batch = [...availPending].slice(0, 4);
+    batch.forEach(k => availPending.delete(k));
+    await Promise.all(batch.map(async k => { const ok = await hasSources(k); if(ok !== null) setAvail(k, ok); }));
+  }
+  availBusy = false;
+}
+const availObserver = new IntersectionObserver(entries => {
+  const keys = [];
+  for(const en of entries) if(en.isIntersecting){ availObserver.unobserve(en.target); keys.push(en.target.dataset.avail); }
+  if(keys.length) queueAvail(keys);
+}, {rootMargin: '300px'});
+new MutationObserver(muts => {
+  const now = [];
+  for(const m of muts) for(const n of m.addedNodes){
+    if(n.nodeType !== 1) continue;
+    for(const el of n.matches('[data-avail]') ? [n] : n.querySelectorAll('[data-avail]')){
+      if(availKnown(el.dataset.avail)) continue;
+      if([...el.parentNode.children].indexOf(el) < 10) now.push(el.dataset.avail); else availObserver.observe(el);
+    }
+  }
+  if(now.length) queueAvail(now);
+}).observe(document.body, {childList: true, subtree: true});
 
 function viewLibrary(){
   const items = Object.values(library).sort((a,b) => b.added - a.added);
@@ -986,10 +1029,10 @@ const LAYOUTS = [
 ];
 const POSTER_SIZES = [{id: 's', name: 'קטן'}, {id: 'm', name: 'בינוני'}, {id: 'l', name: 'גדול'}];
 const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he'}, store.get('settings', {}));
+let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey'}, store.get('settings', {}));
 function applySettings(){
   const r = document.documentElement;
-  r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster;
+  r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
 }
 applySettings();
 
@@ -1007,14 +1050,16 @@ function viewSettings(){
     <section class="sset"><h2>שמות ותקצירים</h2><div class="seg" role="group" aria-label="שפת השמות והתקצירים">${[{id: 'he', name: 'עברית'}, {id: 'en', name: 'English'}].map(o =>
       `<button class="${settings.lang === o.id ? 'on' : ''}" data-g="lang" data-v="${o.id}" aria-pressed="${settings.lang === o.id}">${o.name}</button>`).join('')}</div>
       <p class="note" style="margin:8px 0 0">השמות בעברית מגיעים מ־Wikidata והתקצירים מוויקיפדיה העברית. כותרים בלי ערך בעברית נשארים באנגלית.</p></section>
+    <section class="sset"><h2>כותרים בלי מקורות</h2><div class="seg" role="group" aria-label="כותרים בלי מקורות">${[{id: 'grey', name: 'להאפיר'}, {id: 'hide', name: 'להסתיר'}].map(o =>
+      `<button class="${settings.nosrc === o.id ? 'on' : ''}" data-g="nosrc" data-v="${o.id}" aria-pressed="${settings.nosrc === o.id}">${o.name}</button>`).join('')}</div></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.11.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
   });
   $('#sreset').onclick = () => {
-    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he'};
+    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey'};
     store.set('settings', settings); applySettings(); viewSettings();
   };
   if(focusKey) $('#app').querySelector(focusKey)?.focus();
@@ -1025,10 +1070,10 @@ function viewAddons(msg){
     <p class="note" style="max-width:68ch">הדבק קישור manifest של כל תוסף תואם Stremio. הקטלוגים, הפרטים ומקורות הצפייה מגיעים מהתוספים שמותקנים כאן.</p>
     <form class="add" id="addf"><input class="field" id="aurl" placeholder="https://…/manifest.json" aria-label="קישור manifest" dir="ltr"><button class="btn primary">התקן</button></form>
     ${msg ? `<p class="${msg.err?'err':'note'}">${esc(msg.text)}</p>` : ''}
-    ${addons.map(a => `<div class="addon">${a.manifest.logo ? `<img src="${esc(a.manifest.logo)}" alt="">` : '<div class="ph"></div>'}
+    ${addons.filter(a => !a.local).map(a => `<div class="addon">${a.manifest.logo ? `<img src="${esc(a.manifest.logo)}" alt="">` : '<div class="ph"></div>'}
       <div><h3>${esc(a.manifest.name)} <span class="note">v${esc(a.manifest.version)}</span></h3><p>${esc(a.manifest.description)}</p><p>${esc((a.manifest.resources||[]).map(r => r.name||r).join(', '))}</p></div>
       <button class="danger" data-u="${esc(a.url)}">הסר</button></div>`).join('')}
-    ${addonUrls.length > addons.length ? `<p class="err">${addonUrls.length - addons.length} תוספים לא זמינים כרגע ומוסתרים.</p>` : ''}</div>`;
+    ${addonUrls.length > addons.filter(a => !a.local).length ? `<p class="err">${addonUrls.length - addons.filter(a => !a.local).length} תוספים לא זמינים כרגע ומוסתרים.</p>` : ''}</div>`;
   $('#addf').onsubmit = async e => {
     e.preventDefault();
     const url = $('#aurl').value.trim(); if(!url) return;
@@ -1096,7 +1141,6 @@ async function route(){
   else viewHome();
 }
 addEventListener('hashchange', route);
-heReady = loadHebrewTitles();
 loadAddons().then(route);
 </script>
 <div id="tstatus" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:10000;max-width:calc(100vw - 32px);padding:12px 14px 12px 18px;border-radius:12px;background:var(--raise);border:1px solid var(--line);color:var(--light);font:14px/1.4 var(--body);box-shadow:0 8px 28px #0008;align-items:center;gap:14px">

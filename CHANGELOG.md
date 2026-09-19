@@ -1,5 +1,16 @@
 # Booth Android changelog
 
+## 0.11.0 — 2026-09-19
+- All content is fetched live by the app; nothing is hosted in the repository any more:
+  Israeli catalogs, Hebrew titles and Hebrew search come from the Wikidata API, plots from
+  Hebrew Wikipedia. (Removed the repo-hosted catalogs, title map, generator and daily job.)
+- Hebrew titles are looked up only for posters on screen and cached on the device.
+- Minimal design: calmer banner, no glow effects, text-tab categories, neutral badges.
+- Sources: one "▶ נגן" button that picks the best source automatically, quality shortcuts,
+  and a collapsed list of other sources. No filters; CAM copies hidden.
+- Titles without sources are greyed out (or hidden, in Settings), checked as they scroll into view.
+- Removed the Arabic category.
+
 ## 0.10.1 — 2026-09-19
 - Hebrew titles: strip Wikidata disambiguators such as "(סרט, 2025)".
 

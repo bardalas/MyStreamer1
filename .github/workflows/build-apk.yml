@@ -7,7 +7,7 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*' ]
-    paths-ignore: [ '**.md', 'VERSION.txt', '.gitignore', 'addon/**', 'tools/**', '.github/workflows/catalogs.yml' ]
+    paths-ignore: [ '**.md', 'VERSION.txt', '.gitignore', ]
 
 # A newer push to main cancels the older, still-running build. Tag (release) builds are never cancelled.
 concurrency:
