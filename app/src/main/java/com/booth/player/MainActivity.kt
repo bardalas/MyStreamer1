@@ -17,6 +17,7 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
     private val REQ_LIVE = 1
+    @Volatile private var updateCancelled = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -123,6 +124,51 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface fun appVersion(): String =
             runCatching { packageManager.getPackageInfo(packageName, 0).versionName ?: "" }.getOrDefault("")
 
+        /** In-app update, at the user's request: download the new APK into the app cache and hand
+         *  it to Android's package installer, which asks the user to confirm. The page shows the
+         *  progress through the same status card the torrent engine uses. */
+        @JavascriptInterface fun updateApp(url: String) {
+            updateCancelled = false
+            Thread {
+                val status = { msg: String, err: Boolean -> runOnUiThread {
+                    web.evaluateJavascript("window.boothTorrentStatus && boothTorrentStatus(${JSONObject.quote(msg)}, $err)", null)
+                } }
+                try {
+                    val file = java.io.File(cacheDir, "update.apk")
+                    val conn = URL(url).openConnection() as HttpURLConnection
+                    conn.instanceFollowRedirects = true
+                    conn.connectTimeout = 15_000
+                    conn.readTimeout = 30_000
+                    conn.connect()
+                    val total = conn.contentLengthLong
+                    conn.inputStream.use { input ->
+                        file.outputStream().use { out ->
+                            val buf = ByteArray(64 * 1024)
+                            var done = 0L; var lastPct = -1
+                            while (true) {
+                                if (updateCancelled) { file.delete(); status("", false); return@Thread }
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                out.write(buf, 0, n); done += n
+                                val pct = if (total > 0) (done * 100 / total).toInt() else -1
+                                if (pct != lastPct) { lastPct = pct
+                                    status(if (pct >= 0) "מוריד את העדכון… $pct%" else "מוריד את העדכון…", false)
+                                }
+                            }
+                        }
+                    }
+                    status("", false)
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        this@MainActivity, "$packageName.files", file)
+                    startActivity(Intent(Intent.ACTION_VIEW)
+                        .setDataAndType(uri, "application/vnd.android.package-archive")
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (e: Exception) {
+                    status("הורדת העדכון נכשלה (${e.message ?: "שגיאה"})", true)
+                }
+            }.start()
+        }
+
         /** Hand a link to the system (browser / downloader): used to fetch a new version's APK.
          *  Android's own installer asks the viewer to confirm - the app never installs anything itself. */
         @JavascriptInterface fun openExternal(url: String) {
@@ -179,6 +225,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface fun cancelTorrent() {
+            updateCancelled = true
             TorrentEngine.cancelPending()
             Thread { TorrentEngine.stopCurrent() }.start()
             showStatus("")

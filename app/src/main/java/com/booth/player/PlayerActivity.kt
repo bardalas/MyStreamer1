@@ -34,6 +34,12 @@ import org.json.JSONArray
 import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
+    companion object {
+        /** What live requests identify as when the playlist names no agent of its own. */
+        private const val LIVE_UA =
+            "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     /** One playable item. Live TV passes a whole channel list so the viewer can zap through it. */
     private data class Source(val name: String, val url: String, val ua: String, val referer: String, val drm: String = "")
 
@@ -135,21 +141,25 @@ class PlayerActivity : AppCompatActivity() {
         if (player != null) return
         val src = sources[index]
         val url = src.url
-        // Torrent streams are served from localhost and a read can wait while the next
-        // piece downloads, so allow long read timeouts and a larger forward buffer.
+        // Torrent streams come from localhost and a read may wait for the next piece: long
+        // timeouts. Live is the opposite - a stalled connection must FAIL fast (seconds) so the
+        // automatic retry can rebuild, instead of hanging two minutes looking frozen.
         val http = DefaultHttpDataSource.Factory()
-            .setConnectTimeoutMs(30_000)
-            .setReadTimeoutMs(120_000)
+            .setConnectTimeoutMs(if (live) 8_000 else 30_000)
+            .setReadTimeoutMs(if (live) 10_000 else 120_000)
             .setAllowCrossProtocolRedirects(true)
         // Per-channel headers from IPTV playlists, and user:pass@host logins (e.g. TVHeadend).
-        src.ua.takeIf { it.isNotBlank() }?.let { http.setUserAgent(it) }
+        // Live channels that name no agent get a browser one - some IPTV panels throttle
+        // players they do not recognize, which reads as endless buffering.
+        val ua = src.ua.ifBlank { if (live) LIVE_UA else "" }
+        if (ua.isNotBlank()) http.setUserAgent(ua)
         val headers = buildMap {
             src.referer.takeIf { it.isNotBlank() }?.let { put("Referer", it) }
             basicAuth(url)?.let { put("Authorization", it) }
         }
         if (headers.isNotEmpty()) http.setDefaultRequestProperties(headers)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(if (live) 8_000 else 30_000, 120_000, if (live) 1_000 else 2_500, 5_000)
+            .setBufferDurationsMs(if (live) 8_000 else 30_000, 120_000, if (live) 1_200 else 2_500, 4_000)
             .build()
 
         val subtitleConfigs = subs.orEmpty().mapIndexed { i, s ->
@@ -270,6 +280,11 @@ class PlayerActivity : AppCompatActivity() {
     private val rebuild = Runnable { if (started && player == null) buildPlayer() }
 
     private fun onError(error: PlaybackException) {
+        if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+            player?.release(); player = null
+            handler.removeCallbacks(rebuild); handler.post(rebuild)   // rejoin the live edge now
+            return
+        }
         // HTTP status (e.g. 403 while the server still counts the previous stream) and the root message.
         val status = generateSequence<Throwable>(error) { it.cause }
             .filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode
