@@ -213,6 +213,32 @@ main{padding:0 28px 60px}
 .seg button{border:0;background:none;border-radius:999px;padding:8px 18px;cursor:pointer;color:var(--muted);font-weight:600}
 .seg button.on{background:var(--tungsten);color:var(--on-accent)}
 
+.cats{position:sticky;top:64px;z-index:15;display:flex;gap:8px;overflow-x:auto;padding:4px 28px 12px;background:linear-gradient(var(--night) 75%,transparent);scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cats[hidden]{display:none}
+.cats a{flex:none;text-decoration:none;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.cats a:hover{color:var(--light)}
+.cats a.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--on-accent)}
+[data-layout="tv"] .cats a{padding:10px 20px;font-size:17px}
+
+/* live tv */
+.ltabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.ltools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 18px}
+.ltools .field{min-width:220px}
+.channels{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.chan{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--light);cursor:pointer;text-align:center}
+.chan:hover,.chan:focus-visible{background:var(--raise);border-color:var(--tungsten)}
+.chan .logo{width:100%;height:64px;display:flex;align-items:center;justify-content:center}
+.chan .logo img{max-height:64px;max-width:90%;object-fit:contain}
+.chan .logo span{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--raise);font-family:var(--display);font-weight:700;font-size:20px;color:var(--tungsten)}
+.chan b{font-size:14px;line-height:1.25}
+.chan small{font-size:12px;color:var(--muted)}
+[data-layout="tv"] .channels{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.addpl{display:grid;grid-template-columns:1fr 2fr auto;gap:10px;max-width:900px;margin:8px 0 6px}
+.hint{font-size:13px;color:var(--muted);max-width:900px;margin:0 0 24px}
+.hint code{background:var(--raise);padding:1px 6px;border-radius:4px;font-size:12px}
+@media (max-width:760px){.cats{top:104px;padding:4px 16px 10px}.addpl{grid-template-columns:1fr}}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -228,7 +254,7 @@ main{padding:0 28px 60px}
 }
 </style>
 </head>
-<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.7.0</div>
+<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.8.0</div>
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
@@ -240,6 +266,7 @@ main{padding:0 28px 60px}
   </nav>
   <form class="search" id="sf"><input id="q" placeholder="Search movies and series" aria-label="Search"><button>Search</button></form>
 </div>
+<nav class="cats" id="cats" aria-label="Categories"></nav>
 <main id="app"></main>
 
 <div class="player" id="player">
@@ -255,7 +282,15 @@ const store = {
 };
 const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json';
 const TORRENTIO = 'https://torrentio.strem.fun/manifest.json';
-let addonUrls = store.get('addons', [CINEMETA, TORRENTIO]);
+// Netflix, Apple TV+, Disney+, Prime, HBO Max, Paramount+, Curiosity Stream, MagellanTV (Israel region).
+const STREAMING_CATALOGS = 'https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/bmZ4LGF0cCxkbnAsYW1wLGhibSxwbXAsY3RzLG1nbDo6SUw6MTc4OTg0MTUwODAwMDoxOjA6/manifest.json';
+// Israeli (Hebrew) and Arabic films & series, built weekly from Wikidata (see tools/build_catalogs.py).
+const BOOTH_CATALOGS = 'https://raw.githubusercontent.com/bardalas/MyStreamer1/main/addon/manifest.json';
+let addonUrls = store.get('addons', [CINEMETA, TORRENTIO, STREAMING_CATALOGS, BOOTH_CATALOGS]);
+if(store.get('defaultsRev', 1) < 2){
+  for(const u of [STREAMING_CATALOGS, BOOTH_CATALOGS]) if(!addonUrls.includes(u)) addonUrls.push(u);
+  store.set('addons', addonUrls); store.set('defaultsRev', 2);
+}
 let library = store.get('library', {});
 let progress = store.get('progress', {});
 let addons = [];   // {url, base, manifest}
@@ -301,29 +336,87 @@ function card(m){
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
 /* ---------- views ---------- */
-async function viewHome(){
-  const app = $('#app');
-  const cats = [];
-  for(const a of addons) for(const c of a.manifest.catalogs || []){
-    if((c.extra||[]).some(e => e.isRequired) || (c.extraRequired||[]).length) continue;
-    cats.push({a, c});
+/* ---------- categories ---------- */
+const SC_ID = 'pw.ers.netflix-catalog', BOOTH_ID = 'org.booth.catalogs', CINEMETA_ID = 'com.linvo.cinemeta';
+// rows: [add-on id, catalog id (or pattern), extra args, title override]
+const CATEGORIES = [
+  {id: 'netflix', name: 'Netflix', rows: [[SC_ID, /^netflix-top10/], [SC_ID, 'nfx']]},
+  {id: 'apple', name: 'Apple TV+', rows: [[SC_ID, 'atp']]},
+  {id: 'disney', name: 'Disney+', rows: [[SC_ID, 'dnp']]},
+  {id: 'prime', name: 'Prime Video', rows: [[SC_ID, 'amp']]},
+  {id: 'hbo', name: 'HBO Max', rows: [[SC_ID, 'hbm']]},
+  {id: 'paramount', name: 'Paramount+', rows: [[SC_ID, 'pmp']]},
+  {id: 'docs', name: 'Documentaries', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'Popular documentaries']]},
+  {id: 'israeli', name: 'Israeli', rows: [[BOOTH_ID, /^booth\.he\./]]},
+  {id: 'arabic', name: 'Arabic', rows: [[BOOTH_ID, /^booth\.ar\./]]},
+];
+
+/** Resolve a category's row specs against the installed add-ons. */
+function rowsFor(cat){
+  const out = [];
+  for(const [aid, cid, extra, title] of cat.rows){
+    const a = addons.find(x => x.manifest.id === aid);
+    if(!a) continue;
+    for(const c of a.manifest.catalogs || [])
+      if(cid instanceof RegExp ? cid.test(c.id) : c.id === cid) out.push({a, c, extra, title: title || c.name});
   }
-  const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
-  app.innerHTML = `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>
+  return out;
+}
+
+function renderCats(active){
+  const nav = $('#cats');
+  nav.hidden = active == null;
+  if(active == null) return;
+  const avail = CATEGORIES.filter(c => rowsFor(c).length);
+  nav.innerHTML = [`<a href="#/" class="${active === 'home' ? 'on' : ''}">All</a>`,
+    ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}">${esc(c.name)}</a>`),
+    `<a href="#/live" class="${active === 'live' ? 'on' : ''}">📺 Live TV</a>`].join('');
+  nav.querySelector('.on')?.scrollIntoView({inline: 'center', block: 'nearest'});
+}
+
+/** Hero + "continue watching" + a row per catalog; rows load in parallel. */
+function renderRows(rows, {hero = true, cont = []} = {}){
+  const app = $('#app');
+  app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : '<div style="height:8px"></div>'}
     ${cont.length ? `<div class="row"><h2>Continue watching</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${cats.slice(0, 8).map((x,i) => `<div class="row"><h2>${esc(x.c.name || x.c.id)} <small>${esc(x.c.type)}</small></h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
-    ${!cats.length ? `<p class="note">No catalogs yet. Install an add-on that has catalogs on the <a href="#/addons">Add-ons</a> page.</p>` : ''}`;
-  let heroDone = false;
-  cats.slice(0, 8).forEach(async (x, i) => {
-    const el = $('#row'+i);
+    ${rows.map((x, i) => `<div class="row"><h2>${esc(x.title)} <small>${x.c.type === 'movie' ? 'Movies' : x.c.type === 'series' ? 'Series' : esc(x.c.type)}</small></h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${!rows.length ? `<p class="note">No catalogs yet. Install an add-on that has catalogs on the <a href="#/addons">Add-ons</a> page.</p>` : ''}`;
+  let heroDone = !hero;
+  rows.forEach(async (x, i) => {
+    const el = $('#row' + i);
     try{
-      const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}.json`);
+      const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}${x.extra ? '/' + x.extra : ''}.json`);
       const metas = d.metas || [];
       if(el) el.innerHTML = metas.map(card).join('') || '<p class="note">This catalog is empty.</p>';
       if(!heroDone && metas.length){ heroDone = true; renderHero(metas.find(m => m.background) || metas[0]); }
     }catch(e){ if(el) el.innerHTML = `<p class="err">Could not load this catalog (${esc(e.message)}).</p>`; }
   });
 }
+
+async function viewHome(){
+  renderCats('home');
+  // Cinemeta's popular rows, then the first row of every category.
+  const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
+  const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: 'Popular'})) : [];
+  for(const cat of CATEGORIES){
+    const r = rowsFor(cat);
+    if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: x.title.startsWith(cat.name) ? x.title : `${cat.name} · ${x.title}`})));
+  }
+  if(!rows.length) for(const a of addons) for(const c of a.manifest.catalogs || []){
+    if((c.extra||[]).some(e => e.isRequired) || (c.extraRequired||[]).length) continue;
+    if(rows.length < 8) rows.push({a, c, title: c.name || c.id});
+  }
+  const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
+  renderRows(rows, {cont});
+}
+
+function viewCategory(id){
+  const cat = CATEGORIES.find(c => c.id === id);
+  if(!cat) return viewHome();
+  renderCats(id);
+  renderRows(rowsFor(cat));
+}
+
 function renderHero(m){
   const h = $('#hero'); if(!h) return;
   h.innerHTML = `<div class="bg" style="background-image:url('${esc(m.background || m.poster)}')"></div><div class="beam"></div>
@@ -588,6 +681,123 @@ function viewLibrary(){
   $('#app').innerHTML = `<div class="page"><h1>Library</h1>${items.length ? `<div class="grid">${items.map(card).join('')}</div>` : `<p class="note">Your library is empty. Open any title and choose “Add to library”.</p>`}</div>`;
 }
 
+/* ---------- live tv: built-in Israeli channels + user M3U playlists ---------- */
+// Official free-to-air broadcaster streams only.
+const IL_CHANNELS = [
+  {name: 'Kan 11', group: 'Israel', url: 'https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Kan11Logo.svg/960px-Kan11Logo.svg.png'},
+  {name: 'Now 14', group: 'Israel', url: 'https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8', logo: 'https://i.imgur.com/Iq2Kb69.png'},
+  {name: 'Makan 33', group: 'Israel', url: 'https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8', logo: 'https://i.imgur.com/RVtQTed.png'},
+  {name: 'i24NEWS Hebrew', group: 'News', url: 'https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8', logo: 'https://www.i24news.tv/images/favicon.png'},
+  {name: 'i24NEWS Arabic', group: 'News', url: 'https://i24newsarabic-cdn.encoders.immergo.tv/master.m3u8', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/LOGO_i24NEWS.png/960px-LOGO_i24NEWS.png'},
+  {name: 'Channel 9', group: 'Israel', url: 'https://contact.gostreaming.tv/Con-11/index.m3u8', logo: 'https://i.imgur.com/pttM3KQ.png'},
+];
+let playlists = store.get('playlists', []);        // [{name, url}] added by the user
+const playlistCache = {};                           // url -> channels
+
+/** Text fetch through the Android app when available (no CORS, reaches LAN devices like a Raspberry Pi). */
+const nativeCallbacks = {};
+window.boothFetchDone = (id, ok, body) => {
+  const cb = nativeCallbacks[id]; delete nativeCallbacks[id];
+  if(cb) ok ? cb.res(body) : cb.rej(new Error(body));
+};
+function fetchText(url){
+  if(window.BoothAndroid && BoothAndroid.fetchText) return new Promise((res, rej) => {
+    const id = 'f' + Math.random().toString(36).slice(2);
+    nativeCallbacks[id] = {res, rej};
+    BoothAndroid.fetchText(url, id);
+  });
+  return fetch(url).then(r => { if(!r.ok) throw new Error(r.status + ' from ' + new URL(url).host); return r.text(); });
+}
+
+function parseM3U(text){
+  const out = [];
+  let cur = null;
+  for(const raw of text.split(/\r?\n/)){
+    const line = raw.trim();
+    if(!line) continue;
+    if(line.startsWith('#EXTINF')){
+      const attr = k => (line.match(new RegExp(k + '="([^"]*)"')) || [])[1] || '';
+      const bare = line.replace(/[\w-]+="[^"]*"/g, '');
+      cur = {name: bare.slice(bare.indexOf(',') + 1).trim() || 'Channel', logo: attr('tvg-logo'),
+             group: attr('group-title') || 'Channels', ua: attr('http-user-agent'), referer: attr('http-referrer')};
+    } else if(line.startsWith('#EXTVLCOPT:')){
+      if(!cur) continue;
+      const [k, ...v] = line.slice(11).split('=');
+      if(k === 'http-user-agent') cur.ua = v.join('=');
+      if(k === 'http-referrer') cur.referer = v.join('=');
+    } else if(line.startsWith('#EXTGRP:')){
+      if(cur) cur.group = line.slice(8).trim();
+    } else if(!line.startsWith('#')){
+      out.push(cur ? {...cur, url: line} : {name: line.split('/').pop(), group: 'Channels', url: line});
+      cur = null;
+    }
+  }
+  return out;
+}
+
+function playLive(ch){
+  if(window.BoothAndroid && BoothAndroid.playLive) BoothAndroid.playLive(ch.url, ch.name, ch.ua || '', ch.referer || '');
+  else openPlayer({url: ch.url}, ch.name, null);
+}
+
+async function viewLive(msg){
+  renderCats('live');
+  const app = $('#app');
+  const sources = [{key: 'il', name: 'Israeli channels'}, ...playlists.map(p => ({key: p.url, name: p.name}))];
+  let sel = store.get('livePl', 'il');
+  if(!sources.some(x => x.key === sel)) sel = 'il';
+  const liveGroup = store.get('liveGroup', '');
+  app.innerHTML = `<div class="page"><h1>Live TV</h1>
+    <div class="ltabs" role="group" aria-label="Playlists">${sources.map(x => `<button class="chip ${x.key === sel ? 'on' : ''}" data-pl="${esc(x.key)}">${esc(x.name)}</button>`).join('')}</div>
+    <div class="ltools"><input class="field" id="lq" placeholder="Filter channels" aria-label="Filter channels"><select class="field" id="lg" aria-label="Group"></select>
+      ${sel !== 'il' ? `<button class="danger" id="lrm">Remove this playlist</button>` : ''}</div>
+    <div id="chs"><p class="note">Loading channels…</p></div>
+    <h2 style="font-family:var(--display);font-size:20px;margin:34px 0 4px">Add a playlist</h2>
+    <form class="addpl" id="plf"><input class="field" id="pln" placeholder="Name (e.g. Raspberry Pi)" aria-label="Playlist name">
+      <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="Playlist link (M3U)"><button class="btn primary">Add</button></form>
+    ${msg ? `<p class="${msg.err ? 'err' : 'note'}">${esc(msg.text)}</p>` : ''}
+    <p class="hint">Any M3U playlist works. On a Raspberry Pi: <b>TVHeadend</b> <code>http://&lt;pi-ip&gt;:9981/playlist/channels.m3u</code> (add <code>user:pass@</code> before the IP if it needs a login) ·
+      <b>Threadfin / xTeVe</b> <code>http://&lt;pi-ip&gt;:34400/m3u/threadfin.m3u</code> · <b>Jellyfin</b> <code>http://&lt;pi-ip&gt;:8096/LiveTv/Tuners/…/m3u</code>.</p></div>`;
+
+  app.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { store.set('livePl', b.dataset.pl); store.set('liveGroup', ''); viewLive(); });
+  $('#plf').onsubmit = async e => {
+    e.preventDefault();
+    const url = $('#plu').value.trim(), name = $('#pln').value.trim() || 'My playlist';
+    if(!url) return;
+    try{
+      const chans = parseM3U(await fetchText(url));
+      if(!chans.length) throw new Error('no channels found in that playlist');
+      playlistCache[url] = chans;
+      playlists = playlists.filter(p => p.url !== url).concat({name, url});
+      store.set('playlists', playlists); store.set('livePl', url);
+      viewLive({text: `Added “${name}” with ${chans.length} channels.`});
+    }catch(err){ viewLive({err: true, text: `Could not load that playlist (${err.message}).`}); }
+  };
+  if($('#lrm')) $('#lrm').onclick = () => {
+    playlists = playlists.filter(p => p.url !== sel); store.set('playlists', playlists); store.set('livePl', 'il'); viewLive();
+  };
+
+  let chans;
+  try{
+    chans = sel === 'il' ? IL_CHANNELS : (playlistCache[sel] ||= parseM3U(await fetchText(sel)));
+  }catch(err){ $('#chs').innerHTML = `<p class="err">Could not load this playlist (${esc(err.message)}).</p>`; return; }
+
+  const groups = [...new Set(chans.map(c => c.group))];
+  $('#lg').innerHTML = `<option value="">All groups (${chans.length})</option>` + groups.map(g => `<option ${g === liveGroup ? 'selected' : ''}>${esc(g)}</option>`).join('');
+  $('#lg').hidden = groups.length < 2;
+  const draw = () => {
+    const q = $('#lq').value.trim().toLowerCase(), g = $('#lg').value;
+    const list = chans.filter(c => (!g || c.group === g) && (!q || c.name.toLowerCase().includes(q)));
+    $('#chs').innerHTML = list.length ? `<div class="channels">${list.map(c => `<button class="chan" data-i="${chans.indexOf(c)}">
+        <span class="logo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:${esc(JSON.stringify(c.name.slice(0, 2)))}}))">` : `<span>${esc(c.name.slice(0, 2))}</span>`}</span>
+        <b>${esc(c.name)}</b><small>${esc(c.group)}</small></button>`).join('')}</div>` : '<p class="note">No channels match.</p>';
+    $('#chs').querySelectorAll('.chan').forEach(b => b.onclick = () => playLive(chans[b.dataset.i]));
+  };
+  $('#lq').oninput = draw;
+  $('#lg').onchange = () => { store.set('liveGroup', $('#lg').value); draw(); };
+  draw();
+}
+
 /* ---------- settings: skins & layouts ---------- */
 const SKINS = [
   {id: 'tungsten', name: 'Tungsten', note: 'Warm amber on night blue', c: ['#14161f', '#272c3f', '#f0b429', '#efe6cf']},
@@ -703,7 +913,10 @@ async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (r || 'home')));
   scrollTo(0, 0);
+  if(!['', 'cat', 'live'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
+  else if(r === 'cat') viewCategory(a);
+  else if(r === 'live') viewLive();
   else if(r === 'search') viewSearch(a);
   else if(r === 'detail') viewDetail(a, b);
   else if(r === 'library') viewLibrary();

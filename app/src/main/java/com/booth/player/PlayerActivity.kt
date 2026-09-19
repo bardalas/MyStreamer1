@@ -41,6 +41,9 @@ class PlayerActivity : AppCompatActivity() {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.25f)
         }
 
+        // Live TV has no subtitle lookup.
+        if (intent.getBooleanExtra("live", false)) { subs = emptyList(); return }
+
         // Wait (briefly) for the Hebrew subtitle lookup before building the player,
         // because side-loaded subtitles must be part of the MediaItem.
         Thread {
@@ -73,6 +76,13 @@ class PlayerActivity : AppCompatActivity() {
             .setConnectTimeoutMs(30_000)
             .setReadTimeoutMs(120_000)
             .setAllowCrossProtocolRedirects(true)
+        // Per-channel headers from IPTV playlists, and user:pass@host logins (e.g. TVHeadend).
+        intent.getStringExtra("ua")?.takeIf { it.isNotBlank() }?.let { http.setUserAgent(it) }
+        val headers = buildMap {
+            intent.getStringExtra("referer")?.takeIf { it.isNotBlank() }?.let { put("Referer", it) }
+            basicAuth(url)?.let { put("Authorization", it) }
+        }
+        if (headers.isNotEmpty()) http.setDefaultRequestProperties(headers)
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(30_000, 120_000, 2_500, 5_000)
             .build()
@@ -85,7 +95,10 @@ class PlayerActivity : AppCompatActivity() {
                 .setSelectionFlags(if (i == 0) C.SELECTION_FLAG_DEFAULT else 0)
                 .build()
         }
-        val item = MediaItem.Builder().setUri(url).setSubtitleConfigurations(subtitleConfigs).build()
+        val item = MediaItem.Builder().setUri(url).setSubtitleConfigurations(subtitleConfigs)
+            // IPTV HLS links often carry tokens/query strings, which stop ExoPlayer inferring the type.
+            .apply { if (url.contains(".m3u8") || url.contains("m3u8?")) setMimeType(MimeTypes.APPLICATION_M3U8) }
+            .build()
 
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
@@ -97,7 +110,7 @@ class PlayerActivity : AppCompatActivity() {
                     .build()
                 findViewById<PlayerView>(R.id.playerView).player = it
                 it.setMediaItem(item)
-                it.seekTo(resumePosition)
+                if (!intent.getBooleanExtra("live", false)) it.seekTo(resumePosition)
                 it.prepare()
                 it.playWhenReady = true
             }
@@ -115,6 +128,14 @@ class PlayerActivity : AppCompatActivity() {
         // Leaving the player ends the torrent stream and frees its downloaded data.
         if (isFinishing && intent.getBooleanExtra("torrent", false)) {
             Thread { TorrentEngine.stopCurrent() }.start()
+        }
+    }
+
+    companion object {
+        /** "Basic …" header for http://user:pass@host/… URLs, else null. */
+        fun basicAuth(url: String): String? {
+            val info = Uri.parse(url).userInfo ?: return null
+            return "Basic " + android.util.Base64.encodeToString(Uri.decode(info).toByteArray(), android.util.Base64.NO_WRAP)
         }
     }
 

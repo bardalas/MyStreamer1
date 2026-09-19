@@ -1,9 +1,11 @@
 # MyStreamer Android
 
-Current release: **v0.7.0-alpha** (`versionCode 700`).
+Current release: **v0.8.0-alpha** (`versionCode 800`).
 
 Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 
+- Categories: Netflix, Apple TV+, Disney+, Prime, HBO Max, Paramount+, Documentaries, Israeli, Arabic.
+- Live TV: official Israeli channels + your own M3U playlists (e.g. a Raspberry Pi running TVHeadend).
 - Settings: 5 skins, 4 layouts (Cinema, Poster wall, List, TV) and poster size.
 - Hebrew subtitles are added automatically (Wizdom + OpenSubtitles, matched to the release).
 - Direct HTTP/HLS sources open in the native Media3/ExoPlayer player.

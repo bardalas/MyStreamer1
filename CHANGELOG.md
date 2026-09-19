@@ -1,5 +1,15 @@
 # Booth Android changelog
 
+## 0.8.0 — 2026-09-19
+- Category bar on Home: All, Netflix, Apple TV+, Disney+, Prime Video, HBO Max, Paramount+,
+  Documentaries (Curiosity Stream, MagellanTV, popular documentaries), Israeli, Arabic, Live TV.
+- New default add-ons: Streaming Catalogs (Israel region) and Booth Catalogs (Israeli/Hebrew and
+  Arabic films & series, generated weekly from Wikidata by tools/build_catalogs.py).
+- Live TV: official Israeli channels built in (Kan 11, Now 14, Makan 33, i24NEWS Hebrew/Arabic,
+  Channel 9) plus any M3U playlist you add (e.g. TVHeadend / Threadfin on a Raspberry Pi),
+  with group filter and search. Playlists are fetched natively, so LAN addresses and
+  user:pass@ logins work; per-channel User-Agent/Referer honoured.
+
 ## 0.7.0 — 2026-09-19
 - New Settings page (top menu), applied instantly and remembered:
   - Skins: Tungsten, Midnight (OLED black), Velvet, Forest, Daylight (light).
