@@ -127,10 +127,8 @@ main{padding:0 28px 60px}
 .quals{display:flex;flex-wrap:wrap;gap:8px}
 .quals button{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer}
 .quals button:hover,.quals button:focus-visible{border-color:var(--tungsten)}
-.alt>summary{cursor:pointer;color:var(--muted);font-size:14px;list-style:none}
-.alt>summary::-webkit-details-marker{display:none}
-.alt>summary::before{content:"◂ ";display:inline-block;transition:transform .15s}
-.alt[open]>summary::before{transform:rotate(-90deg)}
+.altbtn{background:none;border:0;padding:0;color:var(--muted);font-size:14px;cursor:pointer;font-family:inherit}
+.altbtn[aria-expanded="true"]{color:var(--light)}
 .srow{display:flex;gap:12px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:none;color:var(--light);padding:10px 4px;cursor:pointer;font-size:14px}
 .srow:hover,.srow:focus-visible{background:var(--raise)}
 .srow b{flex:0 0 52px;font-weight:600}
@@ -221,6 +219,9 @@ main{padding:0 28px 60px}
 .lprev .l i{width:11px;align-self:stretch;border-radius:2px;background:var(--tungsten);opacity:.5}
 .lprev .l em{flex:1;height:5px;border-radius:3px;background:var(--muted);opacity:.55}
 .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px}
+/* a season picker can hold many more options than the 2-3-way toggles .seg was built for - it
+   wraps instead of running off the edge of its panel */
+.seasonbar{flex-wrap:wrap;max-width:100%}
 .seg button{border:0;background:none;border-radius:999px;padding:8px 18px;cursor:pointer;color:var(--muted);font-weight:600}
 .seg button.on{background:var(--tungsten);color:var(--on-accent)}
 
@@ -259,12 +260,12 @@ main{padding:0 28px 60px}
 
 /* the secondary menu as a rail on the side: every category is one move away */
 @media(min-width:900px){
-  .cats{position:fixed;top:var(--barh,72px);inset-inline-end:0;width:var(--rail,190px);height:calc(100vh - var(--barh,72px));
+  .cats{position:fixed;top:var(--barh,72px);inset-inline-start:0;width:var(--rail,190px);height:calc(100vh - var(--barh,72px));
     flex-direction:column;gap:2px;padding:14px 12px 60px;overflow-y:auto;background:var(--night);
-    border-inline-start:1px solid var(--line);scrollbar-width:none}
+    border-inline-end:1px solid var(--line);scrollbar-width:none}
   .cats a{padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:none}
-  .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset -3px 0 var(--tungsten)}
-  body.railed main{margin-inline-end:var(--rail,190px)}
+  .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset 3px 0 var(--tungsten)}
+  body.railed main{margin-inline-start:var(--rail,190px)}
 }
 [data-layout="tv"]{--rail:250px}
 [data-layout="tv"] .cats a{font-size:18px;padding:13px 18px}
@@ -366,6 +367,8 @@ main{padding:0 28px 60px}
 .live-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
 .live-top .field{padding:7px 12px}
 .live-top #lq{flex:1;min-width:160px;max-width:320px}
+.live-groups{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+[data-layout="tv"] .live-groups .chip{font-size:16px;padding:9px 16px}
 .continue{display:flex;align-items:center;gap:10px;width:100%;max-width:900px;border:1px solid var(--line);background:var(--surface);color:var(--light);border-radius:10px;padding:12px 16px;margin:0 0 14px;cursor:pointer;font-size:15px;text-align:start}
 .continue:hover,.continue:focus-visible{border-color:var(--tungsten)}
 .continue span{color:var(--tungsten);font-weight:700}
@@ -434,7 +437,8 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .qv{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);margin:4px 0 20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);animation:qvIn .18s ease-out}
 .qvart{min-height:230px;background:var(--raise) center/cover}
 .qvbody{position:relative;padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.qvx{position:absolute;top:8px;inset-inline-end:10px;background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.qvclose{position:absolute;top:8px;inset-inline-end:10px}
+.qvx{background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
 .qvbody h3{margin:0;padding-inline-end:28px;font-family:var(--display);font-size:22px;line-height:1.2}
 .qvbody h3 small{display:block;font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted);margin-top:2px}
 .qvbody .facts{margin:0}
@@ -1438,7 +1442,7 @@ async function openQuickView(card){
   const name = card.querySelector('.t')?.textContent || '';
   const box = document.createElement('div');
   box.className = 'qv';
-  box.innerHTML = `<div class="qvart"></div><div class="qvbody"><button class="qvx" aria-label="סגור">✕</button>
+  box.innerHTML = `<div class="qvart"></div><div class="qvbody"><div class="qvclose"><button class="qvx" aria-label="סגור">✕</button></div>
       <h3 dir="auto">${esc(name)}</h3><div class="facts"></div><p class="qvdesc note">טוען תקציר…</p>
       <div class="qvact"><a class="btn primary" href="${esc(href)}">${qvPlayLabel(id)}</a></div>
       <p class="qvhint">${card.classList.contains('nosrc') ? 'לא נמצאו מקורות לכותר הזה כרגע' : `לחיצה נוספת על הפוסטר פותחת את ה${type === 'series' ? 'סדרה' : 'סרט'}`}</p></div>`;
@@ -1615,6 +1619,7 @@ function rowsFor(cat){
 
 function renderCats(active){
   const nav = $('#cats');
+  const hadFocus = nav.contains(document.activeElement);
   nav.hidden = active == null;
   document.body.classList.toggle('railed', !nav.hidden);
   document.documentElement.style.setProperty('--barh', (document.querySelector('.bar')?.offsetHeight || 72) + 'px');
@@ -1625,6 +1630,7 @@ function renderCats(active){
     ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}"><bdi>${esc(c.name)}</bdi></a>`),
     `<a href="#/genres" class="${active === 'genres' ? 'on' : ''}">ז׳אנרים</a>`].join('');
   nav.querySelector('.on')?.scrollIntoView({inline: 'center', block: 'nearest'});
+  if(hadFocus) nav.querySelector('.on')?.focus({preventScroll: true});
 }
 
 /** Hero + "continue watching" + a row per catalog; rows load in parallel. */
@@ -1812,12 +1818,12 @@ async function viewDetail(type, id){
         <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreHe(g))}</span>`).join('')}</div>
         <p class="desc" id="desc" dir="auto">${esc(meta.description)}</p>
         <div class="people">${meta.director?.length ? `<div><b>במאי</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>שחקנים</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
-        <button class="btn ghost ${saved?'saved':''}" id="lib">${saved ? 'בספרייה שלך' : 'הוסף לספרייה'}</button>
-        ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">צפה בטריילר</button>` : ''}
+        <div class="detact"><button class="btn ghost ${saved?'saved':''}" id="lib">${saved ? 'בספרייה שלך' : 'הוסף לספרייה'}</button>
+        ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">צפה בטריילר</button>` : ''}</div>
       </div>
     </div>
     <div class="cols">
-      ${seasons.length ? `<div class="panel"><h3>פרקים</h3><select class="field" id="season" aria-label="עונה" style="margin-bottom:10px">${seasons.map(s => `<option value="${s}">${s === 0 ? 'מיוחדים' : 'עונה ' + s}</option>`).join('')}</select><div class="eps" id="eps"></div></div>` : ''}
+      ${seasons.length ? `<div class="panel"><h3>פרקים</h3>${seasons.length > 1 ? `<div class="seasonbar seg" role="group" aria-label="עונה">${seasons.map(s => `<button data-season="${s}">${s === 0 ? 'מיוחדים' : 'עונה ' + s}</button>`).join('')}</div>` : ''}<div class="eps" id="eps"></div></div>` : ''}
       <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>צפייה</h3><div id="streams"><p class="note">טוען…</p></div></div>
     </div>`;
 
@@ -1859,8 +1865,12 @@ async function viewDetail(type, id){
       if(btn) pick(btn);
     };
     const first = seasons.find(s => s !== 0) ?? seasons[0];
-    $('#season').value = first; renderEps(first);
-    $('#season').onchange = e => renderEps(e.target.value);
+    const pickSeason = s => {
+      $('#app').querySelectorAll('.seasonbar [data-season]').forEach(b => b.classList.toggle('on', b.dataset.season == s));
+      renderEps(s);
+    };
+    pickSeason(first);
+    $('#app').querySelectorAll('.seasonbar [data-season]').forEach(b => b.onclick = () => pickSeason(b.dataset.season));
   } else {
     loadStreams(ctx, meta.behaviorHints?.defaultVideoId || meta.id, meta.name);
   }
@@ -1928,25 +1938,31 @@ function renderStreams(box, all, pending, label, ctx, errors = [], retry){
   const best = list[0];
   if(!best){
     if(!pending && errors.length){
-      box.innerHTML = `<div class="play"><button class="playbtn" disabled>לא ניתן לטעון מקורות</button>
-        <p class="err" style="margin:0">${errors.map(esc).join('<br>')}</p><button class="btn ghost" id="sretry">נסה שוב</button></div>`;
+      box.innerHTML = `<div class="play"><div class="playrow"><button class="playbtn" disabled>לא ניתן לטעון מקורות</button></div>
+        <p class="err" style="margin:0">${errors.map(esc).join('<br>')}</p><div class="playrow"><button class="btn ghost" id="sretry">נסה שוב</button></div></div>`;
       $('#sretry').onclick = retry;
       return;
     }
-    box.innerHTML = `<div class="play"><button class="playbtn" disabled>${pending ? 'מחפש מקורות…' : 'אין מקורות זמינים כרגע'}</button></div>`;
+    box.innerHTML = `<div class="play"><div class="playrow"><button class="playbtn" disabled>${pending ? 'מחפש מקורות…' : 'אין מקורות זמינים כרגע'}</button></div></div>`;
     return;
   }
   const byQuality = ['4K', '1080p', '720p', 'SD'].map(q => list.find(x => x.q === q)).filter(Boolean);
   const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
   box.innerHTML = `<div class="play">
-      <button class="playbtn" data-i="${best.i}">▶ נגן <small>${esc(detail(best))}</small></button>
+      <div class="playrow"><button class="playbtn" data-i="${best.i}">▶ נגן <small>${esc(detail(best))}</small></button></div>
       ${byQuality.length > 1 ? `<div class="quals" role="group" aria-label="איכות">${byQuality.map(x => `<button data-i="${x.i}">${x.q}</button>`).join('')}</div>` : ''}
-      ${list.length > 1 ? `<details class="alt"><summary>מקורות נוספים (${list.length - 1})</summary>
-        ${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? 'ישיר' : '👤 ' + (x.seeds ?? 0)}</span></button>`).join('')}
-      </details>` : ''}
+      ${list.length > 1 ? `<div class="alt"><div class="playrow"><button class="altbtn" id="altToggle" aria-expanded="false">◂ מקורות נוספים (${list.length - 1})</button></div>
+        <div class="altlist" hidden>${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? 'ישיר' : '👤 ' + (x.seeds ?? 0)}</span></button>`).join('')}</div>
+      </div>` : ''}
       ${pending ? '<p class="note" style="margin:0">מחפש מקורות נוספים…</p>' : ''}
     </div>`;
   box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx));
+  if($('#altToggle')) $('#altToggle').onclick = e => {
+    const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!open));
+    btn.nextElementSibling.hidden = open;
+    if(!open) itemsOf(btn.nextElementSibling)[0]?.focus?.();
+  };
 }
 
 async function loadStreams({type, meta}, videoId, label){
@@ -2203,7 +2219,7 @@ async function openChannel(c){
   sheet.className = 'sheet';
   sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(c.name)}">
       <header>${c.logo ? `<img src="${esc(c.logo)}" alt="">` : ''}<b>${esc(c.name)}</b><button aria-label="סגור">✕</button></header>
-      <div class="body"><button class="playbtn" id="goLive">▶ שידור חי</button>
+      <div class="body"><div class="playrow"><button class="playbtn" id="goLive">▶ שידור חי</button></div>
         ${c.rec ? `<div id="guide"><p class="note">טוען את לוח השידורים…</p></div>` : ''}</div></div>`;
   document.body.appendChild(sheet);
   const close = () => sheet.remove();
@@ -2244,7 +2260,7 @@ async function openChannel(c){
   const draw = () => {
     const list = progs.filter(g => dayKey(g.t) === sel);
     guide.innerHTML = `<div class="days">${days.map(k => `<button class="${k === sel ? 'on' : ''}" data-day="${esc(k)}">${dayLabel(k)}</button>`).join('')}</div>
-      <div>${list.map((g, i) => {
+      <div class="progs">${list.map((g, i) => {
         const state = g.t > now ? 'future' : g.to > now ? 'now' : '';
         return `<button class="prog ${state}" data-p="${progs.indexOf(g)}" ${state === 'future' ? 'disabled' : ''} title="${esc(g.descr)}"><time>${hhmm(g.t)}</time><span>${esc(g.name)}${state === 'now' ? ' · עכשיו' : ''}</span></button>`;
       }).join('')}</div>`;
@@ -2314,8 +2330,8 @@ async function viewLive(){
     <div class="live-top">
       ${sources.length > 1 ? sources.map(x => `<button class="chip ${x.key === sel ? 'on' : ''}" data-pl="${esc(x.key)}">${esc(x.name)}</button>`).join('') : ''}
       <input class="field" id="lq" type="search" placeholder="חיפוש ערוץ" aria-label="חיפוש ערוץ">
-      <select class="field" id="lg" aria-label="קבוצה" hidden></select>
     </div>
+    <div class="live-groups" id="lg" role="group" aria-label="קבוצה" hidden></div>
     <div id="cont"></div>
     <div id="chs"><p class="note">טוען ערוצים…</p></div>
     ${store.get('rtvKey', '') ? '' : `<div class="keyform" style="margin-top:24px"><button class="btn primary" id="rtvOpen">הזן קוד RaspberryTV</button>
@@ -2328,10 +2344,17 @@ async function viewLive(){
   catch(err){ showErr($('#chs'), 'לא ניתן לטעון את הערוצים', err, viewLive); return; }
 
   const groups = [...new Set(chans.map(c => c.group))];
-  const liveGroup = store.get('liveGroup', '');
+  let liveGroup = store.get('liveGroup', '');
+  if(!groups.includes(liveGroup)) liveGroup = '';
   if(groups.length > 1){
     $('#lg').hidden = false;
-    $('#lg').innerHTML = `<option value="">כל הערוצים (${chans.length})</option>` + groups.map(g => `<option ${g === liveGroup ? 'selected' : ''}>${esc(g)}</option>`).join('');
+    $('#lg').innerHTML = [['', `הכל (${chans.length})`], ...groups.map(g => [g, g])].map(([v, n]) =>
+      `<button class="chip ${liveGroup === v ? 'on' : ''}" data-g="${esc(v)}">${esc(n)}</button>`).join('');
+    $('#lg').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
+      store.set('liveGroup', b.dataset.g);
+      $('#lg').querySelectorAll('[data-g]').forEach(x => x.classList.toggle('on', x === b));
+      draw();
+    });
   }
 
   const last = store.get('lastChannel', null);
@@ -2344,7 +2367,7 @@ async function viewLive(){
   let nowIo = null;
   const draw = () => {
     nowIo?.disconnect();
-    const q = $('#lq').value.trim().toLowerCase(), g = $('#lg').hidden ? '' : $('#lg').value;
+    const q = $('#lq').value.trim().toLowerCase(), g = $('#lg').hidden ? '' : $('#lg').querySelector('.on')?.dataset.g || '';
     const list = chans.filter(c => (!g || c.group === g) && (!q || c.name.toLowerCase().includes(q)));
     $('#chs').innerHTML = list.length ? `<div class="chlist">${list.map((c, i) => `<div class="chrow">
         <button class="chmain" data-i="${i}"><span class="chnum">${numbers.get(c)}</span>
@@ -2385,7 +2408,6 @@ async function viewLive(){
   };
   let typing = null;
   $('#lq').oninput = () => { clearTimeout(typing); typing = setTimeout(draw, 200); };   // playlists can hold thousands
-  $('#lg').onchange = () => { store.set('liveGroup', $('#lg').value); draw(); };
   draw();
 }
 
@@ -2508,7 +2530,7 @@ function paintSettings(){
       <p class="note" style="margin:0 0 10px">מחזיר את כל ההגדרות לברירת המחדל. הספרייה, היסטוריית הצפייה וקוד ה־RaspberryTV נשמרים.</p>
       <div class="keyform"><button class="danger" id="sreset">איפוס לברירת המחדל</button></div></section>
       <section class="sset"><h2>על המקרן</h2>
-      <p class="note" style="margin:0 0 10px">המקרן · גרסה ${esc(APP_VERSION || '0.24.0')}</p>
+      <p class="note" style="margin:0 0 10px">המקרן · גרסה ${esc(APP_VERSION || '0.25.0')}</p>
       <div class="keyform"><button class="btn primary" id="supd">בדוק אם יש גרסה חדשה</button></div></section>`,
   };
   pane.innerHTML = (panes[setTab] || panes.start)();
@@ -2783,11 +2805,17 @@ paintNet();
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
    follows the focus — instead of the browser scrolling on its own. */
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])';
-const ROWS_SEL = '.bar, #cats, .bctabs, .live-top, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .eplist, .chlist, .qvact, .play, .quals, .alt, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide, .stabs, .keyform, .plrow, .tstat, .sgroup, .update, .keypad';
-const visible = el => el.offsetParent !== null && el.getBoundingClientRect().width > 0;
+const ROWS_SEL = '.bar, #cats, .bctabs, .live-top, #lg, #cont, #bchead, .strip, .grid, .genres, .sopts, .seg, .seasons, .days, .progs, .eps, .eplist, .chrow, .addon, .qvclose, .qvact, .playrow, .quals, .altlist, .catorder, .addpl, .add, .ltabs, .mkbar, .filters, .oops, .sheet header, .sheet .body, .guide, .stabs, .keyform, .plrow, .tstat, .sgroup, .update, .keypad, .detact, .seasonbar, #desc';
+// offsetParent is null for position:fixed elements (per spec) even when they're plainly on
+// screen - the rail, the update card and the torrent-status card are all fixed. A size check
+// on the box itself, ignoring layout position, doesn't have that blind spot.
+const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
 // While a sheet or the quick view is open the remote stays inside it: nothing behind it can take focus.
 const tvScope = () => document.querySelector('.sheet') || document;
-const tvRows = () => [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
+const tvRows = () => {
+  const all = [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
+  return all.filter(r => !all.some(o => o !== r && r.contains(o)));    // keep only the innermost row
+};
 const itemsOf = row => [...row.querySelectorAll(FOCUSABLE)].filter(visible);
 const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
 /* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
@@ -2822,7 +2850,10 @@ function tvMove(dir){
   if(column){                                       // side menu: a column, not a row
     if(dir === 'up' || dir === 'down'){
       const n = items[i + (dir === 'down' ? 1 : -1)];
-      if(n){ focusItem(n); n.click(); }             // moving down the menu opens that page
+      if(n){
+        n.click();                                  // moving down the menu opens that page
+        n.focus();                                  // click() alone doesn't reliably move focus;
+      }                                              // #cats additionally restores it after its rebuild
       return true;
     }
     if(dir === 'left'){                             // RTL: the page is to the left of the menu
@@ -2845,17 +2876,17 @@ function tvMove(dir){
     }
     return true;                                    // stay put at the row's edge
   }
-  // up / down: inside a wrapped grid move a line, otherwise move to the next row
+  // up / down: move within the row if it has more than one visual line (a grid, or a vertical
+  // list); a row that is genuinely one line has nothing on another line, so this falls through to
+  // moving to the next row below/above it, correctly, without needing to know which kind it is.
   const x = active ? centerX(active) : 0;
-  if(row.classList.contains('grid') || row.classList.contains('genres') || row.classList.contains('sopts') || row.classList.contains('keypad')){
-    const top = active.getBoundingClientRect().top;
-    const line = items.filter(el => (dir === 'down' ? el.getBoundingClientRect().top > top + 4 : el.getBoundingClientRect().top < top - 4));
-    if(line.length){
-      const band = dir === 'down' ? Math.min(...line.map(el => el.getBoundingClientRect().top)) : Math.max(...line.map(el => el.getBoundingClientRect().top));
-      const same = line.filter(el => Math.abs(el.getBoundingClientRect().top - band) < 4);
-      focusItem(same.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best));
-      return true;
-    }
+  const top = active.getBoundingClientRect().top;
+  const line = items.filter(el => (dir === 'down' ? el.getBoundingClientRect().top > top + 4 : el.getBoundingClientRect().top < top - 4));
+  if(line.length){
+    const band = dir === 'down' ? Math.min(...line.map(el => el.getBoundingClientRect().top)) : Math.max(...line.map(el => el.getBoundingClientRect().top));
+    const same = line.filter(el => Math.abs(el.getBoundingClientRect().top - band) < 4);
+    focusItem(same.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best));
+    return true;
   }
   const ri = rows.indexOf(row);
   const next = rows[ri + (dir === 'down' ? 1 : -1)];
