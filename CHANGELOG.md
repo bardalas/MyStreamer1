@@ -1,5 +1,9 @@
 # Booth Android changelog
 
+## 0.5.2 — 2026-09-19
+- Smaller APK (~15 MB instead of 52 MB): ARM-only native libraries (arm64 + armv7), compressed.
+- Faster CI builds: Gradle build/configuration cache, parallel execution, no release lint.
+
 ## 0.5.1 — 2026-09-19
 - Release builds are signed with a permanent key, so new versions install over old ones (no uninstall).
 - Tagged versions are published as GitHub Releases; phones can auto-update via Obtainium.

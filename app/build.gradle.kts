@@ -11,8 +11,8 @@ android {
         applicationId = "com.booth.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 501
-        versionName = "0.5.1"
+        versionCode = 502
+        versionName = "0.5.2"
     }
     signingConfigs {
         create("release") {
@@ -24,6 +24,15 @@ android {
                 keyPassword = System.getenv("SIGNING_STORE_PASSWORD")
             }
         }
+    }
+    // Phones and Android TV boxes are ARM; x86 is only needed for emulators.
+    // Compressing native libs cuts the APK download size roughly in half.
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+    }
+    // Release lint ("lintVital") adds ~30s per CI build; run lint locally when needed.
+    lint {
+        checkReleaseBuilds = false
     }
     buildTypes {
         release {
@@ -39,8 +48,6 @@ dependencies {
     implementation("com.frostwire:jlibtorrent:$jlibtorrentVersion")
     implementation("com.frostwire:jlibtorrent-android-arm64:$jlibtorrentVersion")
     implementation("com.frostwire:jlibtorrent-android-arm:$jlibtorrentVersion")
-    implementation("com.frostwire:jlibtorrent-android-x86_64:$jlibtorrentVersion")
-    implementation("com.frostwire:jlibtorrent-android-x86:$jlibtorrentVersion")
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
     implementation("androidx.media3:media3-ui:1.11.1")
