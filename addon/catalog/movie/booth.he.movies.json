@@ -1,0 +1,704 @@
+{
+"metas": [
+{
+"id": "tt0118715",
+"type": "movie",
+"name": "ביג לבובסקי",
+"poster": "https://images.metahub.space/poster/medium/tt0118715/img",
+"releaseInfo": "1998"
+},
+{
+"id": "tt0408306",
+"type": "movie",
+"name": "מינכן",
+"poster": "https://images.metahub.space/poster/medium/tt0408306/img",
+"releaseInfo": "2005"
+},
+{
+"id": "tt0335345",
+"type": "movie",
+"name": "הפסיון של ישו",
+"poster": "https://images.metahub.space/poster/medium/tt0335345/img",
+"releaseInfo": "2004"
+},
+{
+"id": "tt0477347",
+"type": "movie",
+"name": "לילה מוטרף במוזיאון",
+"poster": "https://images.metahub.space/poster/medium/tt0477347/img",
+"releaseInfo": "2006"
+},
+{
+"id": "tt0093191",
+"type": "movie",
+"name": "מלאכים בשמי ברלין",
+"poster": "https://images.metahub.space/poster/medium/tt0093191/img",
+"releaseInfo": "1987"
+},
+{
+"id": "tt0389557",
+"type": "movie",
+"name": "ספר שחור",
+"poster": "https://images.metahub.space/poster/medium/tt0389557/img",
+"releaseInfo": "2006"
+},
+{
+"id": "tt0813547",
+"type": "movie",
+"name": "הזייפנים",
+"poster": "https://images.metahub.space/poster/medium/tt0813547/img",
+"releaseInfo": "2007"
+},
+{
+"id": "tt0247199",
+"type": "movie",
+"name": "המאמין",
+"poster": "https://images.metahub.space/poster/medium/tt0247199/img",
+"releaseInfo": "2001"
+},
+{
+"id": "tt3210686",
+"type": "movie",
+"name": "בן האלוהים",
+"poster": "https://images.metahub.space/poster/medium/tt3210686/img",
+"releaseInfo": "2014"
+},
+{
+"id": "tt30953759",
+"type": "movie",
+"name": "אין ארץ אחרת",
+"poster": "https://images.metahub.space/poster/medium/tt30953759/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt0145503",
+"type": "movie",
+"name": "Sunshine",
+"poster": "https://images.metahub.space/poster/medium/tt0145503/img",
+"releaseInfo": "1999"
+},
+{
+"id": "tt1483831",
+"type": "movie",
+"name": "לבנון",
+"poster": "https://images.metahub.space/poster/medium/tt1483831/img",
+"releaseInfo": "2009"
+},
+{
+"id": "tt0090015",
+"type": "movie",
+"name": "שואה",
+"poster": "https://images.metahub.space/poster/medium/tt0090015/img",
+"releaseInfo": "1985"
+},
+{
+"id": "tt7016254",
+"type": "movie",
+"name": "מילים נרדפות",
+"poster": "https://images.metahub.space/poster/medium/tt7016254/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt0070628",
+"type": "movie",
+"name": "The Hour-Glass Sanatorium",
+"poster": "https://images.metahub.space/poster/medium/tt0070628/img",
+"releaseInfo": "1973"
+},
+{
+"id": "tt0973844",
+"type": "movie",
+"name": "To Each His Own Cinema",
+"poster": "https://images.metahub.space/poster/medium/tt0973844/img",
+"releaseInfo": "2007"
+},
+{
+"id": "tt1674773",
+"type": "movie",
+"name": "חנה ארנדט",
+"poster": "https://images.metahub.space/poster/medium/tt1674773/img",
+"releaseInfo": "2012"
+},
+{
+"id": "tt1730768",
+"type": "movie",
+"name": "אשתו של שומר גן החיות",
+"poster": "https://images.metahub.space/poster/medium/tt1730768/img",
+"releaseInfo": "2017"
+},
+{
+"id": "tt1077262",
+"type": "movie",
+"name": "עג'מי",
+"poster": "https://images.metahub.space/poster/medium/tt1077262/img",
+"releaseInfo": "2009"
+},
+{
+"id": "tt1135989",
+"type": "movie",
+"name": "סיפור על אהבה וחושך",
+"poster": "https://images.metahub.space/poster/medium/tt1135989/img",
+"releaseInfo": "2015"
+},
+{
+"id": "tt6896536",
+"type": "movie",
+"name": "פוקסטרוט",
+"poster": "https://images.metahub.space/poster/medium/tt6896536/img",
+"releaseInfo": "2017"
+},
+{
+"id": "tt2125423",
+"type": "movie",
+"name": "חמש מצלמות שבורות",
+"poster": "https://images.metahub.space/poster/medium/tt2125423/img",
+"releaseInfo": "2011"
+},
+{
+"id": "tt0441761",
+"type": "movie",
+"name": "אזור חופשי",
+"poster": "https://images.metahub.space/poster/medium/tt0441761/img",
+"releaseInfo": "2005"
+},
+{
+"id": "tt0388505",
+"type": "movie",
+"name": "תחיה ותהיה",
+"poster": "https://images.metahub.space/poster/medium/tt0388505/img",
+"releaseInfo": "2005"
+},
+{
+"id": "tt0334754",
+"type": "movie",
+"name": "יוסי וג'אגר",
+"poster": "https://images.metahub.space/poster/medium/tt0334754/img",
+"releaseInfo": "2002"
+},
+{
+"id": "tt0476643",
+"type": "movie",
+"name": "הבועה",
+"poster": "https://images.metahub.space/poster/medium/tt0476643/img",
+"releaseInfo": "2006"
+},
+{
+"id": "tt3062880",
+"type": "movie",
+"name": "גט - המשפט של ויויאן אמסלם",
+"poster": "https://images.metahub.space/poster/medium/tt3062880/img",
+"releaseInfo": "2014"
+},
+{
+"id": "tt1032856",
+"type": "movie",
+"name": "ביקור התזמורת",
+"poster": "https://images.metahub.space/poster/medium/tt1032856/img",
+"releaseInfo": "2007"
+},
+{
+"id": "tt44766123",
+"type": "movie",
+"name": "נז\"א",
+"poster": "https://images.metahub.space/poster/medium/tt44766123/img",
+"releaseInfo": "2026"
+},
+{
+"id": "tt1445520",
+"type": "movie",
+"name": "הערת שוליים",
+"poster": "https://images.metahub.space/poster/medium/tt1445520/img",
+"releaseInfo": "2011"
+},
+{
+"id": "tt0274428",
+"type": "movie",
+"name": "התערבות אלוהית",
+"poster": "https://images.metahub.space/poster/medium/tt0274428/img",
+"releaseInfo": "2002"
+},
+{
+"id": "tt0758732",
+"type": "movie",
+"name": "בופור",
+"poster": "https://images.metahub.space/poster/medium/tt0758732/img",
+"releaseInfo": "2007"
+},
+{
+"id": "tt2318625",
+"type": "movie",
+"name": "עלטה",
+"poster": "https://images.metahub.space/poster/medium/tt2318625/img",
+"releaseInfo": "2012"
+},
+{
+"id": "tt1172963",
+"type": "movie",
+"name": "עץ לימון",
+"poster": "https://images.metahub.space/poster/medium/tt1172963/img",
+"releaseInfo": "2008"
+},
+{
+"id": "tt0423310",
+"type": "movie",
+"name": "הכלה הסורית",
+"poster": "https://images.metahub.space/poster/medium/tt0423310/img",
+"releaseInfo": "2004"
+},
+{
+"id": "tt1424327",
+"type": "movie",
+"name": "עיניים פקוחות",
+"poster": "https://images.metahub.space/poster/medium/tt1424327/img",
+"releaseInfo": "2009"
+},
+{
+"id": "tt0425236",
+"type": "movie",
+"name": "Mary",
+"poster": "https://images.metahub.space/poster/medium/tt0425236/img",
+"releaseInfo": "2005"
+},
+{
+"id": "tt0058541",
+"type": "movie",
+"name": "סאלח שבתי",
+"poster": "https://images.metahub.space/poster/medium/tt0058541/img",
+"releaseInfo": "1964"
+},
+{
+"id": "tt0352994",
+"type": "movie",
+"name": "ללכת על המים",
+"poster": "https://images.metahub.space/poster/medium/tt0352994/img",
+"releaseInfo": "2004"
+},
+{
+"id": "tt0079118",
+"type": "movie",
+"name": "אסקימו לימון",
+"poster": "https://images.metahub.space/poster/medium/tt0079118/img",
+"releaseInfo": "1978"
+},
+{
+"id": "tt0328802",
+"type": "movie",
+"name": "11'09\"01 September 11",
+"poster": "https://images.metahub.space/poster/medium/tt0328802/img",
+"releaseInfo": "2002"
+},
+{
+"id": "tt4830786",
+"type": "movie",
+"name": "האופה מברלין",
+"poster": "https://images.metahub.space/poster/medium/tt4830786/img",
+"releaseInfo": "2017"
+},
+{
+"id": "tt0076398",
+"type": "movie",
+"name": "מבצע יונתן",
+"poster": "https://images.metahub.space/poster/medium/tt0076398/img",
+"releaseInfo": "1977"
+},
+{
+"id": "tt5791098",
+"type": "movie",
+"name": "תל אביב על האש",
+"poster": "https://images.metahub.space/poster/medium/tt5791098/img",
+"releaseInfo": "2018"
+},
+{
+"id": "tt2219514",
+"type": "movie",
+"name": "למלא את החלל",
+"poster": "https://images.metahub.space/poster/medium/tt2219514/img",
+"releaseInfo": "2012"
+},
+{
+"id": "tt0387059",
+"type": "movie",
+"name": "Bee Season",
+"poster": "https://images.metahub.space/poster/medium/tt0387059/img",
+"releaseInfo": "2005"
+},
+{
+"id": "tt0066374",
+"type": "movie",
+"name": "השוטר אזולאי",
+"poster": "https://images.metahub.space/poster/medium/tt0066374/img",
+"releaseInfo": "1970"
+},
+{
+"id": "tt1366409",
+"type": "movie",
+"name": "מיראל",
+"poster": "https://images.metahub.space/poster/medium/tt1366409/img",
+"releaseInfo": "2010"
+},
+{
+"id": "tt1037163",
+"type": "movie",
+"name": "הזמן שנותר: כרוניקה של נוכח נפקד",
+"poster": "https://images.metahub.space/poster/medium/tt1037163/img",
+"releaseInfo": "2009"
+},
+{
+"id": "tt0287471",
+"type": "movie",
+"name": "חתונה מאוחרת",
+"poster": "https://images.metahub.space/poster/medium/tt0287471/img",
+"releaseInfo": "2001"
+},
+{
+"id": "tt2309788",
+"type": "movie",
+"name": "שומרי הסף",
+"poster": "https://images.metahub.space/poster/medium/tt2309788/img",
+"releaseInfo": "2012"
+},
+{
+"id": "tt0807721",
+"type": "movie",
+"name": "מדוזות",
+"poster": "https://images.metahub.space/poster/medium/tt0807721/img",
+"releaseInfo": "2007"
+},
+{
+"id": "tt0278102",
+"type": "movie",
+"name": "לפניך ברעדה",
+"poster": "https://images.metahub.space/poster/medium/tt0278102/img",
+"releaseInfo": "2001"
+},
+{
+"id": "tt0115909",
+"type": "movie",
+"name": "קלרה הקדושה",
+"poster": "https://images.metahub.space/poster/medium/tt0115909/img",
+"releaseInfo": "1996"
+},
+{
+"id": "tt0362004",
+"type": "movie",
+"name": "Palindromes",
+"poster": "https://images.metahub.space/poster/medium/tt0362004/img",
+"releaseInfo": "2004"
+},
+{
+"id": "tt21833376",
+"type": "movie",
+"name": "דובבוש",
+"poster": "https://images.metahub.space/poster/medium/tt21833376/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt1787663",
+"type": "movie",
+"name": "בוקר טוב אדון פידלמן",
+"poster": "https://images.metahub.space/poster/medium/tt1787663/img",
+"releaseInfo": "2011"
+},
+{
+"id": "tt3815424",
+"type": "movie",
+"name": "3000 Nights",
+"poster": "https://images.metahub.space/poster/medium/tt3815424/img",
+"releaseInfo": "2015"
+},
+{
+"id": "tt10032266",
+"type": "movie",
+"name": "אסיה",
+"poster": "https://images.metahub.space/poster/medium/tt10032266/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt0388311",
+"type": "movie",
+"name": "אור",
+"poster": "https://images.metahub.space/poster/medium/tt0388311/img",
+"releaseInfo": "2004"
+},
+{
+"id": "tt0069771",
+"type": "movie",
+"name": "הבית ברחוב שלוש",
+"poster": "https://images.metahub.space/poster/medium/tt0069771/img",
+"releaseInfo": "1973"
+},
+{
+"id": "tt2924590",
+"type": "movie",
+"name": "שבלולים בגשם",
+"poster": "https://images.metahub.space/poster/medium/tt2924590/img",
+"releaseInfo": "2013"
+},
+{
+"id": "tt2082496",
+"type": "movie",
+"name": "בקבוק בים של עזה",
+"poster": "https://images.metahub.space/poster/medium/tt2082496/img",
+"releaseInfo": "2010"
+},
+{
+"id": "tt1311075",
+"type": "movie",
+"name": "שליחותו של הממונה על משאבי אנוש",
+"poster": "https://images.metahub.space/poster/medium/tt1311075/img",
+"releaseInfo": "2010"
+},
+{
+"id": "tt0282864",
+"type": "movie",
+"name": "Promises",
+"poster": "https://images.metahub.space/poster/medium/tt0282864/img",
+"releaseInfo": "2001"
+},
+{
+"id": "tt12246266",
+"type": "movie",
+"name": "200 Meters",
+"poster": "https://images.metahub.space/poster/medium/tt12246266/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt0287986",
+"type": "movie",
+"name": "אלוהים גדול, אני קטנה",
+"poster": "https://images.metahub.space/poster/medium/tt0287986/img",
+"releaseInfo": "2001"
+},
+{
+"id": "tt0857355",
+"type": "movie",
+"name": "The Year My Parents Went on Vacation",
+"poster": "https://images.metahub.space/poster/medium/tt0857355/img",
+"releaseInfo": "2006"
+},
+{
+"id": "tt1258123",
+"type": "movie",
+"name": "סיפור גדול",
+"poster": "https://images.metahub.space/poster/medium/tt1258123/img",
+"releaseInfo": "2009"
+},
+{
+"id": "tt1406160",
+"type": "movie",
+"name": "כלת הים",
+"poster": "https://images.metahub.space/poster/medium/tt1406160/img",
+"releaseInfo": "2009"
+},
+{
+"id": "tt2841572",
+"type": "movie",
+"name": "ערבים רוקדים - זהות שאולה",
+"poster": "https://images.metahub.space/poster/medium/tt2841572/img",
+"releaseInfo": "2014"
+},
+{
+"id": "tt1735200",
+"type": "movie",
+"name": "When Pigs Have Wings",
+"poster": "https://images.metahub.space/poster/medium/tt1735200/img",
+"releaseInfo": "2011"
+},
+{
+"id": "tt0101959",
+"type": "movie",
+"name": "גמר גביע",
+"poster": "https://images.metahub.space/poster/medium/tt0101959/img",
+"releaseInfo": "1991"
+},
+{
+"id": "tt0082009",
+"type": "movie",
+"name": "American Pop",
+"poster": "https://images.metahub.space/poster/medium/tt0082009/img",
+"releaseInfo": "1980"
+},
+{
+"id": "tt0162909",
+"type": "movie",
+"name": "החברים של יאנה",
+"poster": "https://images.metahub.space/poster/medium/tt0162909/img",
+"releaseInfo": "1999"
+},
+{
+"id": "tt0426155",
+"type": "movie",
+"name": "האושפיזין",
+"poster": "https://images.metahub.space/poster/medium/tt0426155/img",
+"releaseInfo": "2004"
+},
+{
+"id": "tt0189630",
+"type": "movie",
+"name": "קדוש",
+"poster": "https://images.metahub.space/poster/medium/tt0189630/img",
+"releaseInfo": "1999"
+},
+{
+"id": "tt0415949",
+"type": "movie",
+"name": "Keeping Up with the Steins",
+"poster": "https://images.metahub.space/poster/medium/tt0415949/img",
+"releaseInfo": "2006"
+},
+{
+"id": "tt0087699",
+"type": "movie",
+"name": "מאחורי הסורגים",
+"poster": "https://images.metahub.space/poster/medium/tt0087699/img",
+"releaseInfo": "1984"
+},
+{
+"id": "tt0782867",
+"type": "movie",
+"name": "הסודות",
+"poster": "https://images.metahub.space/poster/medium/tt0782867/img",
+"releaseInfo": "2007"
+},
+{
+"id": "tt2309224",
+"type": "movie",
+"name": "מי מפחד מהזאב הרע",
+"poster": "https://images.metahub.space/poster/medium/tt2309224/img",
+"releaseInfo": "2013"
+},
+{
+"id": "tt20259704",
+"type": "movie",
+"name": "צדיק",
+"poster": "https://images.metahub.space/poster/medium/tt20259704/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt35170345",
+"type": "movie",
+"name": "פרויד. האאוטסיידר",
+"poster": "https://images.metahub.space/poster/medium/tt35170345/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt0428965",
+"type": "movie",
+"name": "ירושלים הקטנה",
+"poster": "https://images.metahub.space/poster/medium/tt0428965/img",
+"releaseInfo": "2005"
+},
+{
+"id": "tt0380485",
+"type": "movie",
+"name": "הכוכבים של שלומי",
+"poster": "https://images.metahub.space/poster/medium/tt0380485/img",
+"releaseInfo": "2003"
+},
+{
+"id": "tt0833422",
+"type": "movie",
+"name": "אביבה אהובתי",
+"poster": "https://images.metahub.space/poster/medium/tt0833422/img",
+"releaseInfo": "2006"
+},
+{
+"id": "tt2131698",
+"type": "movie",
+"name": "להישאר בחיים",
+"poster": "https://images.metahub.space/poster/medium/tt2131698/img",
+"releaseInfo": "2012"
+},
+{
+"id": "tt2304915",
+"type": "movie",
+"name": "הנסיך הירוק",
+"poster": "https://images.metahub.space/poster/medium/tt2304915/img",
+"releaseInfo": "2014"
+},
+{
+"id": "tt2073016",
+"type": "movie",
+"name": "בנו של האחר",
+"poster": "https://images.metahub.space/poster/medium/tt2073016/img",
+"releaseInfo": "2012"
+},
+{
+"id": "tt0349079",
+"type": "movie",
+"name": "עלילה",
+"poster": "https://images.metahub.space/poster/medium/tt0349079/img",
+"releaseInfo": "2003"
+},
+{
+"id": "tt37496640",
+"type": "movie",
+"name": "הים",
+"poster": "https://images.metahub.space/poster/medium/tt37496640/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt0304267",
+"type": "movie",
+"name": "קדמה",
+"poster": "https://images.metahub.space/poster/medium/tt0304267/img",
+"releaseInfo": "2002"
+},
+{
+"id": "tt0376007",
+"type": "movie",
+"name": "האסונות של נינה",
+"poster": "https://images.metahub.space/poster/medium/tt0376007/img",
+"releaseInfo": "2004"
+},
+{
+"id": "tt0065076",
+"type": "movie",
+"name": "תעלת בלאומילך",
+"poster": "https://images.metahub.space/poster/medium/tt0065076/img",
+"releaseInfo": "1969"
+},
+{
+"id": "tt0317842",
+"type": "movie",
+"name": "כנפיים שבורות",
+"poster": "https://images.metahub.space/poster/medium/tt0317842/img",
+"releaseInfo": "2002"
+},
+{
+"id": "tt0084629",
+"type": "movie",
+"name": "ספיחס",
+"poster": "https://images.metahub.space/poster/medium/tt0084629/img",
+"releaseInfo": "1982"
+},
+{
+"id": "tt0068213",
+"type": "movie",
+"name": "אני אוהב אותך רוזה",
+"poster": "https://images.metahub.space/poster/medium/tt0068213/img",
+"releaseInfo": "1972"
+},
+{
+"id": "tt2915160",
+"type": "movie",
+"name": "בית לחם",
+"poster": "https://images.metahub.space/poster/medium/tt2915160/img",
+"releaseInfo": "2013"
+},
+{
+"id": "tt11390442",
+"type": "movie",
+"name": "נבגדים",
+"poster": "https://images.metahub.space/poster/medium/tt11390442/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12494638",
+"type": "movie",
+"name": "הברך",
+"poster": "https://images.metahub.space/poster/medium/tt12494638/img",
+"releaseInfo": "2021"
+}
+]
+}

@@ -1,0 +1,704 @@
+{
+"metas": [
+{
+"id": "tt44766123",
+"type": "movie",
+"name": "נז\"א",
+"poster": "https://images.metahub.space/poster/medium/tt44766123/img",
+"releaseInfo": "2026"
+},
+{
+"id": "tt39149951",
+"type": "movie",
+"name": "American Doctor",
+"poster": "https://images.metahub.space/poster/medium/tt39149951/img",
+"releaseInfo": "2026"
+},
+{
+"id": "tt43714261",
+"type": "movie",
+"name": "Conversation with the Sea",
+"poster": "https://images.metahub.space/poster/medium/tt43714261/img",
+"releaseInfo": "2026"
+},
+{
+"id": "tt39149971",
+"type": "movie",
+"name": "עצמאות",
+"poster": "https://images.metahub.space/poster/medium/tt39149971/img",
+"releaseInfo": "2026"
+},
+{
+"id": "tt41955949",
+"type": "movie",
+"name": "Noga",
+"poster": "https://images.metahub.space/poster/medium/tt41955949/img",
+"releaseInfo": "2026"
+},
+{
+"id": "tt43099279",
+"type": "movie",
+"name": "האהבות שלנו",
+"poster": "https://images.metahub.space/poster/medium/tt43099279/img",
+"releaseInfo": "2026"
+},
+{
+"id": "tt35170345",
+"type": "movie",
+"name": "פרויד. האאוטסיידר",
+"poster": "https://images.metahub.space/poster/medium/tt35170345/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt37496640",
+"type": "movie",
+"name": "הים",
+"poster": "https://images.metahub.space/poster/medium/tt37496640/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt35439895",
+"type": "movie",
+"name": "Holding Liat",
+"poster": "https://images.metahub.space/poster/medium/tt35439895/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt36667493",
+"type": "movie",
+"name": "כן!",
+"poster": "https://images.metahub.space/poster/medium/tt36667493/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt35503372",
+"type": "movie",
+"name": "A Letter To David",
+"poster": "https://images.metahub.space/poster/medium/tt35503372/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt36962446",
+"type": "movie",
+"name": "נאו הופ: המופשט והמאוד אמיתי",
+"poster": "https://images.metahub.space/poster/medium/tt36962446/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt39232815",
+"type": "movie",
+"name": "Butcher's Stain",
+"poster": "https://images.metahub.space/poster/medium/tt39232815/img",
+"releaseInfo": "2025"
+},
+{
+"id": "tt30953759",
+"type": "movie",
+"name": "אין ארץ אחרת",
+"poster": "https://images.metahub.space/poster/medium/tt30953759/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt33338697",
+"type": "movie",
+"name": "The Bibi Files",
+"poster": "https://images.metahub.space/poster/medium/tt33338697/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt27827069",
+"type": "movie",
+"name": "קרוב אלי",
+"poster": "https://images.metahub.space/poster/medium/tt27827069/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt31551124",
+"type": "movie",
+"name": "The Belle from Gaza",
+"poster": "https://images.metahub.space/poster/medium/tt31551124/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt28522171",
+"type": "movie",
+"name": "Happy Holidays",
+"poster": "https://images.metahub.space/poster/medium/tt28522171/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt32226697",
+"type": "movie",
+"name": "זעקות ואז שתיקה",
+"poster": "https://images.metahub.space/poster/medium/tt32226697/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt7176064",
+"type": "movie",
+"name": "כביש הסרגל",
+"poster": "https://images.metahub.space/poster/medium/tt7176064/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt15386456",
+"type": "movie",
+"name": "Shikun",
+"poster": "https://images.metahub.space/poster/medium/tt15386456/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt15066586",
+"type": "movie",
+"name": "המנצחים (סרט)",
+"poster": "https://images.metahub.space/poster/medium/tt15066586/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt31490993",
+"type": "movie",
+"name": "Il n'y a pas d'ombre dans le désert",
+"poster": "https://images.metahub.space/poster/medium/tt31490993/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt18266584",
+"type": "movie",
+"name": "בית",
+"poster": "https://images.metahub.space/poster/medium/tt18266584/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt32408215",
+"type": "movie",
+"name": "המעורר – סרט מכתבים בין סב לנכדו",
+"poster": "https://images.metahub.space/poster/medium/tt32408215/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt32571993",
+"type": "movie",
+"name": "העקידה (סרט, 2024)",
+"poster": "https://images.metahub.space/poster/medium/tt32571993/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt32516053",
+"type": "movie",
+"name": "סודה (סרט)",
+"poster": "https://images.metahub.space/poster/medium/tt32516053/img",
+"releaseInfo": "2024"
+},
+{
+"id": "tt21833376",
+"type": "movie",
+"name": "דובבוש",
+"poster": "https://images.metahub.space/poster/medium/tt21833376/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt20259704",
+"type": "movie",
+"name": "צדיק",
+"poster": "https://images.metahub.space/poster/medium/tt20259704/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt20251588",
+"type": "movie",
+"name": "שושנה",
+"poster": "https://images.metahub.space/poster/medium/tt20251588/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt27817584",
+"type": "movie",
+"name": "החייל הנעלם",
+"poster": "https://images.metahub.space/poster/medium/tt27817584/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt28239482",
+"type": "movie",
+"name": "שבע ברכות",
+"poster": "https://images.metahub.space/poster/medium/tt28239482/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt19631596",
+"type": "movie",
+"name": "המשלחת",
+"poster": "https://images.metahub.space/poster/medium/tt19631596/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt17323516",
+"type": "movie",
+"name": "כיסופים",
+"poster": "https://images.metahub.space/poster/medium/tt17323516/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt28000275",
+"type": "movie",
+"name": "העיר הזאת",
+"poster": "https://images.metahub.space/poster/medium/tt28000275/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt31150307",
+"type": "movie",
+"name": "קרב אוויר (סרט)",
+"poster": "https://images.metahub.space/poster/medium/tt31150307/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt30227310",
+"type": "movie",
+"name": "Supernova: The Music Festival Massacre",
+"poster": "https://images.metahub.space/poster/medium/tt30227310/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt27672725",
+"type": "movie",
+"name": "חלב",
+"poster": "https://images.metahub.space/poster/medium/tt27672725/img",
+"releaseInfo": "2023"
+},
+{
+"id": "tt21227108",
+"type": "movie",
+"name": "Fairytale",
+"poster": "https://images.metahub.space/poster/medium/tt21227108/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt12252488",
+"type": "movie",
+"name": "אמריקה",
+"poster": "https://images.metahub.space/poster/medium/tt12252488/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt17076682",
+"type": "movie",
+"name": "Concerned Citizen",
+"poster": "https://images.metahub.space/poster/medium/tt17076682/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt19433900",
+"type": "movie",
+"name": "H2: מעבדת השליטה",
+"poster": "https://images.metahub.space/poster/medium/tt19433900/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt14300518",
+"type": "movie",
+"name": "קריוקי",
+"poster": "https://images.metahub.space/poster/medium/tt14300518/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt22457212",
+"type": "movie",
+"name": "בחורים טובים",
+"poster": "https://images.metahub.space/poster/medium/tt22457212/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt19188852",
+"type": "movie",
+"name": "קבלו אותי",
+"poster": "https://images.metahub.space/poster/medium/tt19188852/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt7691384",
+"type": "movie",
+"name": "No Name Restaurant",
+"poster": "https://images.metahub.space/poster/medium/tt7691384/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt21379186",
+"type": "movie",
+"name": "ולריה מתחתנת",
+"poster": "https://images.metahub.space/poster/medium/tt21379186/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt21288422",
+"type": "movie",
+"name": "סבוי",
+"poster": "https://images.metahub.space/poster/medium/tt21288422/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt21637900",
+"type": "movie",
+"name": "כאילו אין מחר",
+"poster": "https://images.metahub.space/poster/medium/tt21637900/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt17593934",
+"type": "movie",
+"name": "1341 פריימים מהמצלמה של מיכה בר-עם",
+"poster": "https://images.metahub.space/poster/medium/tt17593934/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt22781826",
+"type": "movie",
+"name": "הפילגש",
+"poster": "https://images.metahub.space/poster/medium/tt22781826/img",
+"releaseInfo": "2022"
+},
+{
+"id": "tt12494638",
+"type": "movie",
+"name": "הברך",
+"poster": "https://images.metahub.space/poster/medium/tt12494638/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14775586",
+"type": "movie",
+"name": "ויהי בוקר",
+"poster": "https://images.metahub.space/poster/medium/tt14775586/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14556392",
+"type": "movie",
+"name": "תמונת הניצחון",
+"poster": "https://images.metahub.space/poster/medium/tt14556392/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt15041866",
+"type": "movie",
+"name": "The Swimmer",
+"poster": "https://images.metahub.space/poster/medium/tt15041866/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt8135564",
+"type": "movie",
+"name": "הנה אנחנו",
+"poster": "https://images.metahub.space/poster/medium/tt8135564/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14037312",
+"type": "movie",
+"name": "זרים מושלמים",
+"poster": "https://images.metahub.space/poster/medium/tt14037312/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt11579538",
+"type": "movie",
+"name": "The Replacement",
+"poster": "https://images.metahub.space/poster/medium/tt11579538/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt5851558",
+"type": "movie",
+"name": "הסירו דאגה מלבכם",
+"poster": "https://images.metahub.space/poster/medium/tt5851558/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14956778",
+"type": "movie",
+"name": "עיניים של אבא",
+"poster": "https://images.metahub.space/poster/medium/tt14956778/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt11905730",
+"type": "movie",
+"name": "אחד בלב",
+"poster": "https://images.metahub.space/poster/medium/tt11905730/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14043818",
+"type": "movie",
+"name": "מישהו יאהב מישהו",
+"poster": "https://images.metahub.space/poster/medium/tt14043818/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt14642216",
+"type": "movie",
+"name": "צל כבד",
+"poster": "https://images.metahub.space/poster/medium/tt14642216/img",
+"releaseInfo": "2021"
+},
+{
+"id": "tt10032266",
+"type": "movie",
+"name": "אסיה",
+"poster": "https://images.metahub.space/poster/medium/tt10032266/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12246266",
+"type": "movie",
+"name": "200 Meters",
+"poster": "https://images.metahub.space/poster/medium/tt12246266/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt11390442",
+"type": "movie",
+"name": "נבגדים",
+"poster": "https://images.metahub.space/poster/medium/tt11390442/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12716170",
+"type": "movie",
+"name": "לילה בחיפה",
+"poster": "https://images.metahub.space/poster/medium/tt12716170/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt9733388",
+"type": "movie",
+"name": "סאבלט",
+"poster": "https://images.metahub.space/poster/medium/tt9733388/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt7698982",
+"type": "movie",
+"name": "חתונה עם סבתא",
+"poster": "https://images.metahub.space/poster/medium/tt7698982/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt13009176",
+"type": "movie",
+"name": "חתונה הפוכה",
+"poster": "https://images.metahub.space/poster/medium/tt13009176/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12444576",
+"type": "movie",
+"name": "מותו של הקולנוע ושל אבא שלי גם",
+"poster": "https://images.metahub.space/poster/medium/tt12444576/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt10850214",
+"type": "movie",
+"name": "The End of Love",
+"poster": "https://images.metahub.space/poster/medium/tt10850214/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt12245228",
+"type": "movie",
+"name": "Tacheles - The Heart of the Matter",
+"poster": "https://images.metahub.space/poster/medium/tt12245228/img",
+"releaseInfo": "2020"
+},
+{
+"id": "tt7016254",
+"type": "movie",
+"name": "מילים נרדפות",
+"poster": "https://images.metahub.space/poster/medium/tt7016254/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10538710",
+"type": "movie",
+"name": "עין לבנה",
+"poster": "https://images.metahub.space/poster/medium/tt10538710/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt9857480",
+"type": "movie",
+"name": "קולות רקע",
+"poster": "https://images.metahub.space/poster/medium/tt9857480/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10122392",
+"type": "movie",
+"name": "ימים נוראים",
+"poster": "https://images.metahub.space/poster/medium/tt10122392/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt9358246",
+"type": "movie",
+"name": "לאה צמל, עורכת דין",
+"poster": "https://images.metahub.space/poster/medium/tt9358246/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt9779804",
+"type": "movie",
+"name": "15 שנה",
+"poster": "https://images.metahub.space/poster/medium/tt9779804/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10685828",
+"type": "movie",
+"name": "זונה כמוני",
+"poster": "https://images.metahub.space/poster/medium/tt10685828/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt9455100",
+"type": "movie",
+"name": "היום שאחרי לכתי",
+"poster": "https://images.metahub.space/poster/medium/tt9455100/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt6723102",
+"type": "movie",
+"name": "מראות שבורות",
+"poster": "https://images.metahub.space/poster/medium/tt6723102/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt9647298",
+"type": "movie",
+"name": "אלוהי הפסנתר",
+"poster": "https://images.metahub.space/poster/medium/tt9647298/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt8214936",
+"type": "movie",
+"name": "עיניים שלי",
+"poster": "https://images.metahub.space/poster/medium/tt8214936/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10370402",
+"type": "movie",
+"name": "המוסד",
+"poster": "https://images.metahub.space/poster/medium/tt10370402/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt8420768",
+"type": "movie",
+"name": "ברזיל אהובתי",
+"poster": "https://images.metahub.space/poster/medium/tt8420768/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt7610418",
+"type": "movie",
+"name": "בלי דם",
+"poster": "https://images.metahub.space/poster/medium/tt7610418/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt9046516",
+"type": "movie",
+"name": "בוקר טוב ילד",
+"poster": "https://images.metahub.space/poster/medium/tt9046516/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10679766",
+"type": "movie",
+"name": "מאמי",
+"poster": "https://images.metahub.space/poster/medium/tt10679766/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10608464",
+"type": "movie",
+"name": "קצפת ודובדבנים",
+"poster": "https://images.metahub.space/poster/medium/tt10608464/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10679838",
+"type": "movie",
+"name": "בזמק",
+"poster": "https://images.metahub.space/poster/medium/tt10679838/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt9811480",
+"type": "movie",
+"name": "נולדתי בירושלים ואני עדיין חי",
+"poster": "https://images.metahub.space/poster/medium/tt9811480/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt8214962",
+"type": "movie",
+"name": "לידה",
+"poster": "https://images.metahub.space/poster/medium/tt8214962/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10883740",
+"type": "movie",
+"name": "אפריקה",
+"poster": "https://images.metahub.space/poster/medium/tt10883740/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt11429932",
+"type": "movie",
+"name": "לוחם בנשמה",
+"poster": "https://images.metahub.space/poster/medium/tt11429932/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt11601440",
+"type": "movie",
+"name": "היום שבו ניצלו יהודי בולגריה",
+"poster": "https://images.metahub.space/poster/medium/tt11601440/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt7637180",
+"type": "movie",
+"name": "סדקים",
+"poster": "https://images.metahub.space/poster/medium/tt7637180/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt10660366",
+"type": "movie",
+"name": "המתים של יפו",
+"poster": "https://images.metahub.space/poster/medium/tt10660366/img",
+"releaseInfo": "2019"
+},
+{
+"id": "tt5791098",
+"type": "movie",
+"name": "תל אביב על האש",
+"poster": "https://images.metahub.space/poster/medium/tt5791098/img",
+"releaseInfo": "2018"
+},
+{
+"id": "tt4766630",
+"type": "movie",
+"name": "מוטי וולקנברוך מתעורר לחיים",
+"poster": "https://images.metahub.space/poster/medium/tt4766630/img",
+"releaseInfo": "2018"
+}
+]
+}

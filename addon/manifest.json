@@ -1,0 +1,48 @@
+{
+  "id": "org.booth.catalogs",
+  "version": "1.0.0",
+  "name": "Booth Catalogs",
+  "description": "Israeli (Hebrew) and Arabic films and series, from Wikidata. Refreshed weekly.",
+  "resources": [
+    "catalog"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt"
+  ],
+  "catalogs": [
+    {
+      "type": "movie",
+      "id": "booth.he.movies",
+      "name": "Israeli films"
+    },
+    {
+      "type": "movie",
+      "id": "booth.he.movies.new",
+      "name": "New Israeli films"
+    },
+    {
+      "type": "series",
+      "id": "booth.he.series",
+      "name": "Israeli series"
+    },
+    {
+      "type": "movie",
+      "id": "booth.ar.movies",
+      "name": "Arabic films"
+    },
+    {
+      "type": "movie",
+      "id": "booth.ar.movies.new",
+      "name": "New Arabic films"
+    },
+    {
+      "type": "series",
+      "id": "booth.ar.series",
+      "name": "Arabic series"
+    }
+  ]
+}
