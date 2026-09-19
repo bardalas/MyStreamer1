@@ -13,6 +13,7 @@ query Wikidata's slow SPARQL endpoint itself.
 Usage: python tools/build_catalogs.py
 """
 import json
+import re
 import pathlib
 import time
 import urllib.parse
@@ -113,11 +114,16 @@ def hebrew_titles(ids, batch=150):
         for b in rows:
             e = out[b["imdb"]["value"]]
             if "he" in b and not e[0]:
-                e[0] = b["he"]["value"]
+                e[0] = clean_he(b["he"]["value"])
             if "wp" in b and not e[1]:
                 e[1] = urllib.parse.unquote(b["wp"]["value"].split("/wiki/")[1])
         time.sleep(1)  # be gentle with the public endpoint
     return {k: (v if any(v) else 0) for k, v in out.items()}
+
+
+def clean_he(t):
+    """Drop Wikidata disambiguators: "אובססיה (סרט, 2025)" -> "אובססיה"."""
+    return re.sub(r"\s*\((?:סרט|סדרה|סדרת|מיני-סדרה|מיני סדרה|תוכנית|סרטון)[^)]*\)\s*$", "", t).strip()
 
 
 def titles(rows, lang):
@@ -135,7 +141,7 @@ def titles(rows, lang):
                 t["year"] = y
         for k in ("he", "en", "ar"):
             if k in b:
-                t["labels"].setdefault(k, b[k]["value"])
+                t["labels"].setdefault(k, clean_he(b[k]["value"]) if k == "he" else b[k]["value"])
     prefer = ("he", "en", "ar") if lang == HEBREW else ("en", "he", "ar")
     for t in out.values():
         t["name"] = next((t["labels"][k] for k in prefer if k in t["labels"]), None)

@@ -261,7 +261,7 @@ main{padding:0 28px 60px}
 }
 </style>
 </head>
-<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.10.0</div>
+<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.10.1</div>
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
@@ -344,7 +344,10 @@ let heTimer = null, heBusy = false;
 let heReady = Promise.resolve();                     // resolves once the precomputed map is loaded
 const hebrewOn = () => (typeof settings === 'undefined' || settings.lang !== 'en');
 const hasHebrew = s => /[\u0590-\u05FF]/.test(s || '');
+// Wikidata labels sometimes carry a disambiguator: "אובססיה (סרט, 2025)" -> "אובססיה".
+const heClean = t => (t || '').replace(/\s*\((?:סרט|סדרה|סדרת|מיני-סדרה|מיני סדרה|תוכנית|סרטון)[^)]*\)\s*$/, '').trim();
 const heTitle = (id, fallback) => (hebrewOn() && heCache[id]?.t) || fallback;
+for(const e of Object.values(heCache)) if(e?.t) e.t = heClean(e.t);   // titles cached by 0.9/0.10 weren't cleaned
 
 /** Queue ids for a Hebrew title lookup; lookups are batched and the page updated in place. */
 function hebrewize(ids){
@@ -364,7 +367,7 @@ async function heLookup(ids){
   for(const id of ids) heCache[id] ||= {t: '', w: ''};
   for(const b of d.results.bindings){
     const e = heCache[b.imdb.value];
-    if(b.he) e.t ||= b.he.value;
+    if(b.he) e.t ||= heClean(b.he.value);
     if(b.wp) e.w ||= decodeURIComponent(b.wp.value.split('/wiki/')[1] || '');
   }
   store.set('heMeta', heCache);
@@ -400,7 +403,7 @@ async function loadHebrewTitles(){
   if(!hebrewOn()) return;
   try{
     const d = await getJSON(HE_TITLES);
-    for(const [id, v] of Object.entries(d)) heCache[id] = v ? {t: v[0] || '', w: v[1] || ''} : {t: '', w: ''};
+    for(const [id, v] of Object.entries(d)) heCache[id] = v ? {t: heClean(v[0]), w: v[1] || ''} : {t: '', w: ''};
     for(const id of [...hePending]) if(id in heCache) hePending.delete(id);
     store.set('heMeta', heCache);
     applyHebrew();
@@ -414,7 +417,7 @@ async function heLookupOne(id){
   heCache[id] = {t: '', w: ''};
   if(q){
     const e = (await getJSON(`${WDAPI}action=wbgetentities&ids=${q}&props=labels|sitelinks&languages=he&sitefilter=hewiki`)).entities?.[q];
-    heCache[id] = {t: e?.labels?.he?.value || '', w: (e?.sitelinks?.hewiki?.title || '').replace(/ /g, '_')};
+    heCache[id] = {t: heClean(e?.labels?.he?.value), w: (e?.sitelinks?.hewiki?.title || '').replace(/ /g, '_')};
   }
   store.set('heMeta', heCache);
 }

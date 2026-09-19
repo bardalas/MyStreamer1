@@ -1,5 +1,8 @@
 # Booth Android changelog
 
+## 0.10.1 — 2026-09-19
+- Hebrew titles: strip Wikidata disambiguators such as "(סרט, 2025)".
+
 ## 0.10.0 — 2026-09-19
 - Full Hebrew interface, right-to-left: menus, categories, pages, sources list, Live TV,
   settings, add-ons, messages and the app's torrent/subtitle notices.
