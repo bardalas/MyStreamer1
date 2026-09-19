@@ -79,6 +79,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** Official broadcaster videos play in the YouTube app (web page as fallback). */
+        @JavascriptInterface fun openYouTube(videoId: String) {
+            runOnUiThread {
+                val app = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("vnd.youtube:$videoId"))
+                val web = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.youtube.com/watch?v=$videoId"))
+                try { startActivity(app) } catch (e: android.content.ActivityNotFoundException) { startActivity(web) }
+            }
+        }
+
         /** Live TV with channel zapping: [channelsJson] = [{name, url, ua, referer}], starting at [index]. */
         @JavascriptInterface fun playChannels(channelsJson: String, index: Int) {
             runOnUiThread {

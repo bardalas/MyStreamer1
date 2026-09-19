@@ -295,6 +295,23 @@ main{padding:0 28px 60px}
 .plrow b{flex:1;font-weight:500}
 .plrow code{color:var(--muted);font-size:12px;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* wide (16:9) cards for TV-channel shows and episodes */
+.poster.wide{flex-basis:calc(var(--poster-w) * 1.55)}
+.poster.wide .art{aspect-ratio:16/9}
+button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;cursor:pointer;font:inherit}
+.grid.wide{grid-template-columns:repeat(auto-fill,minmax(calc(var(--poster-w) * 1.55),1fr))}
+/* genres page */
+.genres{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;max-width:1000px}
+.genres a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:96px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-decoration:none;font-weight:600;font-size:16px}
+.genres a span{font-size:28px;line-height:1}
+.genres a:hover,.genres a:focus-visible{border-color:var(--tungsten)}
+[data-layout="tv"] .genres a{height:120px;font-size:19px}
+/* settings: home categories order */
+.catorder{display:flex;flex-direction:column;max-width:520px}
+.catorder div{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.catorder label{flex:1;display:flex;align-items:center;gap:10px;cursor:pointer}
+.catorder button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;width:34px;height:30px;cursor:pointer}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -536,13 +553,15 @@ const LOCAL_CATALOGS = [
   {id: 'booth.he.movies', type: 'movie', name: 'סרטים ישראליים', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
   {id: 'booth.he.movies.new', type: 'movie', name: 'סרטים ישראליים חדשים', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'create_timestamp_desc'},
   {id: 'booth.he.series', type: 'series', name: 'סדרות ישראליות', filter: 'P31=Q5398426', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+  {id: 'booth.he.comedy', type: 'movie', name: 'קומדיות ישראליות', filter: 'P31=Q11424', extra: 'P136=Q157443', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+  {id: 'booth.he.comedy.series', type: 'series', name: 'סדרות קומדיה ישראליות', filter: 'P31=Q5398426', extra: 'P136=Q170238|P136=Q859369|P136=Q7696995', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
 ];
 async function localCatalog(id){
   const c = LOCAL_CATALOGS.find(x => x.id === id);
   if(!c) return {metas: []};
   const cached = store.get('cat:' + id, null);
   if(cached && Date.now() - cached.at < 864e5) return {metas: cached.metas};
-  const query = `haswbstatement:${c.filter} haswbstatement:P364=${c.lang} haswbstatement:${c.countries.map(x => 'P495=' + x).join('|')} haswbstatement:P345`;
+  const query = `haswbstatement:${c.filter} ${c.extra ? `haswbstatement:${c.extra} ` : ''}haswbstatement:P364=${c.lang} haswbstatement:${c.countries.map(x => 'P495=' + x).join('|')} haswbstatement:P345`;
   const s = await getJSON(`${WDAPI}action=query&list=search&srlimit=100&srprop=&srsort=${c.sort}&srsearch=${encodeURIComponent(query)}`);
   let metas = await wdMetas((s.query?.search || []).map(r => r.title), c.type);
   if(c.sort === 'create_timestamp_desc') metas = metas.filter(m => m.releaseInfo).sort((a, b) => b.releaseInfo.localeCompare(a.releaseInfo));
@@ -592,21 +611,126 @@ const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div cl
 /* ---------- categories ---------- */
 const SC_ID = 'pw.ers.netflix-catalog', BOOTH_ID = 'org.booth.catalogs', CINEMETA_ID = 'com.linvo.cinemeta';
 // rows: [add-on id, catalog id (or pattern), extra args, title override]
+// Official YouTube channels of the Israeli broadcasters (latest uploads via RSS, shows via playlists).
+const BROADCASTERS = {
+  kan: {name: 'כאן 11', handle: '@kan11', cid: 'UCKqFqiCe1dCUxRe0_YNZ6gg'},
+  keshet: {name: 'קשת 12', handle: '@keshet12', cid: 'UC5KbmHkBV59FzJ-Dr5wfrKg'},
+  reshet: {name: 'רשת 13', handle: '@13tv', cid: 'UCy-M3jXvw3axMtNZz9DJxPQ'},
+  kankids: {name: 'כאן חינוכית', handle: '@KanKids', cid: 'UC_fUfLFo31WTFZPxgr1EcLA'},
+};
+const yt = (kind, ch, title) => ({yt: kind, ch, title: title || (kind === 'latest' ? `חדש ב${BROADCASTERS[ch].name}` : `תוכניות ${BROADCASTERS[ch].name}`)});
+// rows: [add-on id, catalog id (or pattern), extra args, title override] or a YouTube row
 const CATEGORIES = [
+  {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, 'booth.he.movies'], [BOOTH_ID, 'booth.he.series'], [BOOTH_ID, 'booth.he.comedy'],
+    [BOOTH_ID, 'booth.he.comedy.series'], [BOOTH_ID, 'booth.he.movies.new']]},
+  {id: 'tv', name: 'ערוצי הטלוויזיה', rows: ['keshet', 'reshet', 'kan'].flatMap(ch => [yt('latest', ch), yt('playlists', ch)])},
+  {id: 'comedy', name: 'קומדיה', rows: [[CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
+    [BOOTH_ID, 'booth.he.comedy.series'], [CINEMETA_ID, 'imdbRating', 'genre=Comedy', 'הקומדיות הכי טובות']]},
+  {id: 'kids', name: 'ילדים', rows: [yt('latest', 'kankids', 'חדש בכאן חינוכית'), [CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'],
+    [CINEMETA_ID, 'top', 'genre=Family', 'לכל המשפחה'], yt('playlists', 'kankids', 'סדרות כאן חינוכית')]},
+  {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
   {id: 'netflix', name: 'Netflix', rows: [[SC_ID, /^netflix-top10/], [SC_ID, 'nfx']]},
   {id: 'apple', name: 'Apple TV+', rows: [[SC_ID, 'atp']]},
   {id: 'disney', name: 'Disney+', rows: [[SC_ID, 'dnp']]},
   {id: 'prime', name: 'Prime Video', rows: [[SC_ID, 'amp']]},
   {id: 'hbo', name: 'HBO Max', rows: [[SC_ID, 'hbm']]},
   {id: 'paramount', name: 'Paramount+', rows: [[SC_ID, 'pmp']]},
-  {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
-  {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, /^booth\.he\./]]},
 ];
+/** Categories in the user's order, without the hidden ones (Settings → מסך הבית). */
+function userCategories(){
+  const order = settings.cats || CATEGORIES.map(c => c.id);
+  const hidden = new Set(settings.hiddenCats || []);
+  const known = [...order, ...CATEGORIES.map(c => c.id).filter(id => !order.includes(id))];
+  return known.map(id => CATEGORIES.find(c => c.id === id)).filter(c => c && !hidden.has(c.id));
+}
+
+/* ---------- YouTube (official broadcaster channels) — fetched live, played in the YouTube app ---------- */
+const ytCache = {};
+function ytInitialData(html){
+  const m = html.match(/var ytInitialData = (\{[\s\S]*?\});<\/script>/);
+  return m ? JSON.parse(m[1]) : {};
+}
+/** Playlists or videos from a YouTube page (both use "lockup" view models). */
+function ytLockups(data){
+  const out = [];
+  (function walk(o){
+    if(!o || typeof o !== 'object') return;
+    if(o.lockupViewModel){
+      const v = o.lockupViewModel, id = v.contentId;
+      const title = v.metadata?.lockupMetadataViewModel?.title?.content;
+      const video = v.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO';
+      const img = JSON.stringify(v.contentImage || {}).match(/https:\/\/i\.ytimg\.com\/[^"]+/);
+      if(id && title) out.push({id, name: title, video, thumb: video ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : (img ? img[0].replace(/\\u0026/g, '&') : '')});
+      return;
+    }
+    for(const k in o) walk(o[k]);
+  })(data);
+  return out;
+}
+async function ytRow(kind, ch){
+  const b = BROADCASTERS[ch], key = kind + ch;
+  if(ytCache[key]) return ytCache[key];
+  if(kind === 'latest'){
+    const xml = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${b.cid}`);
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    return ytCache[key] = [...doc.getElementsByTagName('entry')].map(e => {
+      const id = e.getElementsByTagName('yt:videoId')[0]?.textContent;
+      return {id, name: e.getElementsByTagName('title')[0]?.textContent || '', video: true, thumb: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`};
+    }).filter(x => x.id);
+  }
+  return ytCache[key] = ytLockups(ytInitialData(await fetchText(`https://www.youtube.com/${b.handle}/playlists`))).filter(x => !x.video);
+}
+async function ytPlaylist(id){
+  const key = 'pl' + id;
+  if(ytCache[key]) return ytCache[key];
+  return ytCache[key] = ytLockups(ytInitialData(await fetchText(`https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`))).filter(x => x.video);
+}
+function ytCard(x){
+  const art = `<div class="art" style="background-image:url('${esc(x.thumb)}')"></div><div class="t" dir="auto">${esc(x.name)}</div>`;
+  return x.video ? `<button class="poster wide" data-yt="${esc(x.id)}">${art}</button>`
+                 : `<a class="poster wide" href="#/show/${encodeURIComponent(x.id)}/${encodeURIComponent(x.name)}">${art}</a>`;
+}
+function playYouTube(id){
+  if(window.BoothAndroid && BoothAndroid.openYouTube) BoothAndroid.openYouTube(id);
+  else window.open(`https://www.youtube.com/watch?v=${encodeURIComponent(id)}`, '_blank', 'noopener');
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-yt]'); if(b){ e.preventDefault(); playYouTube(b.dataset.yt); } });
+
+async function viewShow(id, title){
+  renderCats(null);
+  $('#app').innerHTML = `<div class="page"><h1 dir="auto">${esc(title || '')}</h1><div class="grid wide" id="eps">${skeletons(8)}</div>
+    <p class="note">הפרקים מתנגנים באפליקציית YouTube, מהערוץ הרשמי.</p></div>`;
+  try{
+    const vids = await ytPlaylist(id);
+    $('#eps').innerHTML = vids.map(ytCard).join('') || '<p class="note">אין פרקים ברשימה הזו.</p>';
+  }catch(e){ $('#eps').innerHTML = `<p class="err">לא ניתן לטעון את הפרקים (${esc(e.message)}).</p>`; }
+}
+
+/* ---------- genres page ---------- */
+const GENRE_TILES = [['Comedy', '😂'], ['Action', '💥'], ['Drama', '🎭'], ['Thriller', '🔪'], ['Horror', '👻'], ['Sci-Fi', '🚀'],
+  ['Romance', '💕'], ['Animation', '🎨'], ['Family', '👨‍👩‍👧'], ['Crime', '🕵️'], ['Adventure', '🗺️'], ['Fantasy', '🐉'],
+  ['Documentary', '🎥'], ['Mystery', '🔍'], ['History', '📜'], ['War', '⚔️'], ['Music', '🎵'], ['Sport', '⚽'], ['Western', '🤠']];
+function viewGenres(){
+  renderCats('genres');
+  $('#app').innerHTML = `<div class="page"><h1>ז׳אנרים</h1><div class="genres">${GENRE_TILES.map(([g, icon]) =>
+    `<a href="#/genre/${encodeURIComponent(g)}"><span aria-hidden="true">${icon}</span>${esc(genreHe(g))}</a>`).join('')}</div></div>`;
+}
+function viewGenre(g){
+  renderCats('genres');
+  const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
+  if(!cm) return viewGenres();
+  const rows = [];
+  for(const id of ['top', 'imdbRating']) for(const c of cm.manifest.catalogs || []) if(c.id === id)
+    rows.push({a: cm, c, extra: `genre=${encodeURIComponent(g)}`, title: `${genreHe(g)} · ${id === 'top' ? 'פופולרי' : 'הכי טובים'}`});
+  renderRows(rows, {hero: false, heading: genreHe(g)});
+}
 
 /** Resolve a category's row specs against the installed add-ons. */
 function rowsFor(cat){
   const out = [];
-  for(const [aid, cid, extra, title] of cat.rows){
+  for(const spec of cat.rows){
+    if(!Array.isArray(spec)){ out.push(spec); continue; }       // YouTube row
+    const [aid, cid, extra, title] = spec;
     const a = addons.find(x => x.manifest.id === aid);
     if(!a) continue;
     for(const c of a.manifest.catalogs || [])
@@ -619,23 +743,29 @@ function renderCats(active){
   const nav = $('#cats');
   nav.hidden = active == null;
   if(active == null) return;
-  const avail = CATEGORIES.filter(c => rowsFor(c).length);
+  if(settings.kids === 'on'){ nav.hidden = true; return; }
+  const avail = userCategories().filter(c => rowsFor(c).length);
   nav.innerHTML = [`<a href="#/" class="${active === 'home' ? 'on' : ''}">הכל</a>`,
     ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}"><bdi>${esc(c.name)}</bdi></a>`),
-    `<a href="#/discover/movie" class="">ז׳אנרים</a>`].join('');
+    `<a href="#/genres" class="${active === 'genres' ? 'on' : ''}">ז׳אנרים</a>`].join('');
   nav.querySelector('.on')?.scrollIntoView({inline: 'center', block: 'nearest'});
 }
 
 /** Hero + "continue watching" + a row per catalog; rows load in parallel. */
-function renderRows(rows, {hero = true, cont = []} = {}){
+function renderRows(rows, {hero = true, cont = [], heading = ''} = {}){
   const app = $('#app');
-  app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : '<div style="height:8px"></div>'}
+  app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
     ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${/סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
   let heroDone = !hero;
   rows.forEach(async (x, i) => {
     const el = $('#row' + i);
+    if(x.yt){
+      try{ el.innerHTML = (await ytRow(x.yt, x.ch)).slice(0, 30).map(ytCard).join('') || '<p class="note">אין כרגע.</p>'; }
+      catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מ־YouTube (${esc(e.message)}).</p>`; }
+      return;
+    }
     try{
       const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
       const metas = d.metas || [];
@@ -648,9 +778,10 @@ function renderRows(rows, {hero = true, cont = []} = {}){
 async function viewHome(){
   renderCats('home');
   // Cinemeta's popular rows, then the first row of every category.
+  if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')));
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
   const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: 'פופולרי'})) : [];
-  for(const cat of CATEGORIES){
+  for(const cat of userCategories()){
     const r = rowsFor(cat);
     if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: x.title.startsWith(cat.name) ? x.title : `${cat.name} · ${x.title}`})));
   }
@@ -1266,7 +1397,7 @@ const LAYOUTS = [
 ];
 const POSTER_SIZES = [{id: 's', name: 'קטן'}, {id: 'm', name: 'בינוני'}, {id: 'l', name: 'גדול'}];
 const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey'}, store.get('settings', {}));
+let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off'}, store.get('settings', {}));
 function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
@@ -1279,7 +1410,17 @@ function viewSettings(){
   const swatch = o => `<span class="swatch" style="background:${o.c[0]}" aria-hidden="true"><i style="background:${o.c[1]}"></i><i style="background:${o.c[2]}"></i><b style="color:${o.c[3]}">Aa</b></span>`;
   const a = document.activeElement;
   const focusKey = a?.dataset?.g ? `[data-g="${a.dataset.g}"][data-v="${a.dataset.v}"]` : null;
+  const seg = (g, label, opts) => `<section class="sset"><h2>${label}</h2><div class="seg" role="group" aria-label="${label}">${opts.map(([v, n]) =>
+    `<button class="${settings[g] === v ? 'on' : ''}" data-g="${g}" data-v="${v}" aria-pressed="${settings[g] === v}">${n}</button>`).join('')}</div></section>`;
+  const hidden = new Set(settings.hiddenCats || []);
+  const ordered = [...(settings.cats || []), ...CATEGORIES.map(c => c.id).filter(id => !(settings.cats || []).includes(id))]
+    .map(id => CATEGORIES.find(c => c.id === id)).filter(Boolean);
   $('#app').innerHTML = `<div class="page"><h1>הגדרות</h1>
+    ${seg('start', 'מסך פתיחה', [['vod', 'סרטים וסדרות'], ['live', 'שידור חי']])}
+    ${seg('kids', 'מצב ילדים', [['off', 'כבוי'], ['on', 'פעיל']])}
+    <section class="sset"><h2>קטגוריות במסך הבית</h2><div class="catorder">${ordered.map((c, i) => `<div>
+        <label><input type="checkbox" data-cat="${c.id}" ${hidden.has(c.id) ? '' : 'checked'}><bdi>${esc(c.name)}</bdi></label>
+        <button data-up="${i}" aria-label="הזז למעלה" ${i ? '' : 'disabled'}>▲</button><button data-down="${i}" aria-label="הזז למטה" ${i < ordered.length - 1 ? '' : 'disabled'}>▼</button></div>`).join('')}</div></section>
     <section class="sset"><h2>ערכת עיצוב</h2><div class="sopts">${SKINS.map(o => card('skin', o, swatch(o))).join('')}</div></section>
     <section class="sset"><h2>פריסה</h2><div class="sopts">${LAYOUTS.map(o => card('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>
     <section class="sset"><h2>גודל פוסטרים</h2><div class="seg" role="group" aria-label="גודל פוסטרים">${POSTER_SIZES.map(o =>
@@ -1302,7 +1443,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.13.1</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.14.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -1331,8 +1472,19 @@ function viewSettings(){
     }catch(err){ alert(`לא ניתן לטעון את הפלייליסט (${err.message}).`); }
   };
   if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); rtvCache = null; viewSettings(); };
+  const saveCats = ids => { settings.cats = ids; store.set('settings', settings); viewSettings(); };
+  $('#app').querySelectorAll('[data-cat]').forEach(cb => cb.onchange = () => {
+    const h = new Set(settings.hiddenCats || []);
+    cb.checked ? h.delete(cb.dataset.cat) : h.add(cb.dataset.cat);
+    settings.hiddenCats = [...h]; store.set('settings', settings);
+  });
+  $('#app').querySelectorAll('[data-up],[data-down]').forEach(b => b.onclick = () => {
+    const ids = ordered.map(c => c.id), i = +(b.dataset.up ?? b.dataset.down), j = b.dataset.up != null ? i - 1 : i + 1;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    saveCats(ids);
+  });
   $('#sreset').onclick = () => {
-    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey'};
+    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off'};
     store.set('settings', settings); applySettings(); viewSettings();
   };
   if(focusKey) $('#app').querySelector(focusKey)?.focus();
@@ -1400,10 +1552,13 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
 async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search'].includes(r) ? 'home' : r)));
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre', 'show'].includes(r) ? 'home' : r)));
   scrollTo(0, 0);
-  if(!['', 'cat'].includes(r)) renderCats(null);
+  if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
+  else if(r === 'genres') viewGenres();
+  else if(r === 'genre') viewGenre(a);
+  else if(r === 'show') viewShow(a, b);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'live') viewLive();
   else if(r === 'search') viewSearch(a);
@@ -1414,6 +1569,7 @@ async function route(){
   else viewHome();
 }
 addEventListener('hashchange', route);
+if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');
 loadAddons().then(route);
 </script>
 <div id="tstatus" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:10000;max-width:calc(100vw - 32px);padding:12px 14px 12px 18px;border-radius:12px;background:var(--raise);border:1px solid var(--line);color:var(--light);font:14px/1.4 var(--body);box-shadow:0 8px 28px #0008;align-items:center;gap:14px">

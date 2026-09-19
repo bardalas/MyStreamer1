@@ -1,5 +1,14 @@
 # Booth Android changelog
 
+## 0.14.0 — 2026-09-19
+- New categories: ערוצי הטלוויזיה (official Kan 11 / Keshet 12 / Reshet 13 YouTube: latest videos
+  and shows), קומדיה (popular, best-rated, Israeli comedy films and series), ילדים (Kan Kids,
+  animation, family). Israeli category adds Israeli comedies.
+- Shows open as an episode list; episodes play in the YouTube app.
+- Genres page with big genre tiles (replaces the dropdowns).
+- Settings: start screen (films & series / live TV), kids mode, and which home categories to show
+  and in what order.
+
 ## 0.13.1 — 2026-09-19
 - Live TV: when a channel fails, retry automatically (twice, 3 s apart) — IPTV servers may still
   count the previous channel's session. Short pause between channels when zapping.
