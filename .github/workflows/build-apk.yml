@@ -3,15 +3,14 @@ name: Build MyStreamer APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -20,23 +19,22 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK 36
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.1.0'
 
-      - name: Extract MyStreamer source
+      - name: Extract MyStreamer
         run: |
+          rm -rf source
           mkdir source
           unzip MyStreamer-Android-v0.4.0-alpha-GitHub.zip -d source
-          echo "Extracted files:"
-          find source -maxdepth 3 -type f
+          ls -la source
 
       - name: Build APK
         working-directory: source
