@@ -131,7 +131,7 @@ main{padding:0 28px 60px}
 }
 </style>
 </head>
-<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.5.2</div>
+<body><div style="position:fixed;right:8px;bottom:6px;z-index:9999;font:10px monospace;color:#8d887d;opacity:.65">Booth Android v0.5.3</div>
 <div class="bar">
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
@@ -351,7 +351,7 @@ async function loadStreams({type, meta}, videoId, label){
       if(!streams.length){ el.innerHTML = '<p class="note">No streams from this add-on.</p>'; return; }
       el.innerHTML = streams.map((s, j) => {
         const playable = s.url || s.ytId || s.externalUrl;
-        const body = (s.title || s.description || '') + (!playable && s.infoHash ? '\nNeeds the Stremio streaming server. Opens in Stremio.' : '');
+        const body = (s.title || s.description || '') + (!playable && s.infoHash && !window.BoothAndroid ? '\nNeeds the Stremio streaming server. Opens in Stremio.' : '');
         return `<button class="ticket" data-j="${j}"><span class="stub">${esc(s.name || a.manifest.name)}</span><span class="body">${esc(body)}</span></button>`;
       }).join('');
       el.querySelectorAll('.ticket').forEach(b => b.onclick = () => {
@@ -360,7 +360,7 @@ async function loadStreams({type, meta}, videoId, label){
         else if(s.url || s.ytId) openPlayer(s, label, {videoId, type, meta});
         else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label);
         else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
-        else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label);
+        else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []));
         else alert('This source requires the Android torrent engine.');
       });
     }catch(e){ el.innerHTML = `<p class="err">This add-on did not respond (${esc(e.message)}).</p>`; }
@@ -445,6 +445,22 @@ async function route(){
 }
 addEventListener('hashchange', route);
 loadAddons().then(route);
+</script>
+<div id="tstatus" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:10000;max-width:calc(100vw - 32px);padding:12px 14px 12px 18px;border-radius:12px;background:var(--raise);border:1px solid var(--line);color:var(--light);font:14px/1.4 var(--body);box-shadow:0 8px 28px #0008;align-items:center;gap:14px">
+  <span id="tstatusMsg"></span>
+  <button id="tstatusBtn" style="flex:none;background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer">Cancel</button>
+</div>
+<script>
+// Torrent progress from the Android engine. Empty message hides the bar.
+window.boothTorrentStatus = (msg, isError) => {
+  const bar = document.getElementById('tstatus');
+  document.getElementById('tstatusMsg').textContent = msg;
+  bar.style.display = msg ? 'flex' : 'none';
+  bar.style.borderColor = isError ? 'var(--velvet)' : 'var(--line)';
+  const btn = document.getElementById('tstatusBtn');
+  btn.textContent = isError ? 'Dismiss' : 'Cancel';
+  btn.onclick = () => { if (!isError && window.BoothAndroid) BoothAndroid.cancelTorrent(); bar.style.display = 'none'; };
+};
 </script>
 </body>
 </html>

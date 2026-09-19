@@ -1,5 +1,13 @@
 # Booth Android changelog
 
+## 0.5.3 — 2026-09-19
+- Torrents now **stream**: playback starts after ~8 MB is buffered instead of after the full download.
+  A local HTTP server feeds the player while downloading; seeking re-prioritises the needed pieces.
+- Fix: torrents stuck on "Getting torrent info". Torrentio's trackers are now passed to the engine
+  (plus public trackers), and the DHT is bootstrapped at app start.
+- Progress shown in an on-screen status bar with Cancel, instead of a backlog of toasts.
+- Leaving the player stops the torrent and deletes its data; old downloads are cleared at start.
+
 ## 0.5.2 — 2026-09-19
 - Smaller APK (~15 MB instead of 52 MB): ARM-only native libraries (arm64 + armv7), compressed.
 - Faster CI builds: Gradle build/configuration cache, parallel execution, no release lint.

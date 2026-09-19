@@ -7,8 +7,9 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import org.json.JSONArray
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
@@ -25,6 +26,12 @@ class MainActivity : AppCompatActivity() {
         web.webChromeClient = WebChromeClient()
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
         web.loadUrl("file:///android_asset/booth.html")
+        TorrentEngine.warmUp(applicationContext)
+    }
+
+    /** Shows torrent progress in the page's status bar (empty = hide; error = red, with dismiss). */
+    private fun showStatus(msg: String, error: Boolean = false) = runOnUiThread {
+        web.evaluateJavascript("window.boothTorrentStatus && boothTorrentStatus(${JSONObject.quote(msg)}, $error)", null)
     }
 
     inner class Bridge {
@@ -35,19 +42,27 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        @JavascriptInterface fun playTorrent(infoHash: String, fileIdx: Int, title: String) {
-            runOnUiThread { Toast.makeText(this@MainActivity, "Starting torrent…", Toast.LENGTH_SHORT).show() }
-            TorrentEngine.downloadSelected(
-                this@MainActivity, infoHash, fileIdx,
-                onStatus = { msg -> runOnUiThread { Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show() } },
+        /** [sourcesJson]: the Stremio stream's `sources` array, e.g. ["tracker:udp://…", "dht:…"]. */
+        @JavascriptInterface fun playTorrent(infoHash: String, fileIdx: Int, title: String, sourcesJson: String) {
+            val sources = runCatching {
+                JSONArray(sourcesJson).let { a -> List(a.length()) { a.getString(it) } }
+            }.getOrDefault(emptyList())
+            showStatus("Starting torrent…")
+            TorrentEngine.stream(
+                applicationContext, infoHash, fileIdx, sources,
+                onStatus = { showStatus(it) },
                 onReady = { url -> runOnUiThread {
                     startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
-                        .putExtra("url", url).putExtra("title", title))
+                        .putExtra("url", url).putExtra("title", title).putExtra("torrent", true))
                 } },
-                onError = { err -> runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Torrent error: $err", Toast.LENGTH_LONG).show()
-                } }
+                onError = { showStatus("Torrent error: $it", error = true) }
             )
+        }
+
+        @JavascriptInterface fun cancelTorrent() {
+            TorrentEngine.cancelPending()
+            Thread { TorrentEngine.stopCurrent() }.start()
+            showStatus("")
         }
     }
 

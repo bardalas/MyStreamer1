@@ -1,11 +1,11 @@
 # MyStreamer Android
 
-Current release: **v0.5.2-alpha** (`versionCode 502`).
+Current release: **v0.5.3-alpha** (`versionCode 503`).
 
 Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 
 - Direct HTTP/HLS sources open in the native Media3/ExoPlayer player.
-- Torrentio sources: fetches metadata, downloads the selected file sequentially, then plays it (playback starts once the download finishes).
+- Torrentio sources stream: playback starts after a few MB are buffered; the rest downloads ahead of the playhead.
 
 ## Install on your phone & get automatic updates
 1. Install **[Obtainium](https://github.com/ImranR98/Obtainium/releases/latest)** (free, open source).
