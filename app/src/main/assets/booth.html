@@ -1521,11 +1521,15 @@ function playStream(s, label, ctx){
   // Release/file name lets the app pick Hebrew subtitles timed for this exact release.
   const release = s.behaviorHints?.filename || (s.title || s.description || '').split('\n')[0] || '';
   const vid = ctx.videoId || '';
-  if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label, vid, release);
+  // what is playing (for "continue watching") and where to resume from
+  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || ''});
+  const done = progress[vid];
+  const pos = done && done.d && done.t < done.d - 60 ? Math.floor(done.t * 1000) : 0;
+  if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label, vid, release, meta, pos);
   else if(s.url || s.ytId) openPlayer(s, label, ctx);
-  else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label, vid, release);
+  else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label, vid, release, meta, 0);
   else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
-  else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release);
+  else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release, meta, pos);
   else alert('מקורות טורנט מתנגנים באפליקציית המקרן לאנדרואיד.');
 }
 
@@ -2136,6 +2140,20 @@ document.querySelector('.logo').addEventListener('click', async e => {
   }catch(err){}
   location.hash = '#/live';
 });
+/** The player reports how far the viewer got; it feeds "המשך צפייה" and resuming. */
+window.boothProgress = json => {
+  try{
+    const entries = JSON.parse(json);
+    for(const [videoId, e] of Object.entries(entries)){
+      if(!e || !e.d) continue;
+      progress[videoId] = {t: +e.t || 0, d: +e.d || 0, at: +e.at || Date.now(), metaId: e.metaId || videoId, type: e.type || 'movie', name: e.name || '', poster: e.poster || ''};
+      if(progress[videoId].t > progress[videoId].d - 60) delete progress[videoId];      // finished
+    }
+    store.set('progress', progress);
+    if(['', '#/', '#'].includes(location.hash)) route();
+  }catch(e){}
+};
+
 /** The player asks for a channel's catch-up (long press OK while watching). */
 window.boothCatchup = async name => {
   const last = store.get('lastChannel', null);

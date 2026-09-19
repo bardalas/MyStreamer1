@@ -44,17 +44,19 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface fun isTv(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
 
         /** [videoId]/[release] drive the Hebrew subtitle lookup (Stremio id and release/file name). */
-        @JavascriptInterface fun playUrl(url: String, title: String, videoId: String, release: String) {
+        @JavascriptInterface fun playUrl(url: String, title: String, videoId: String, release: String, meta: String, pos: Long) {
             Subtitles.prefetch(applicationContext, videoId, release)
             runOnUiThread {
                 startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
-                    .putExtra("url", url).putExtra("title", title))
+                    .putExtra("url", url).putExtra("title", title)
+                    .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos))
             }
         }
 
         /** [sourcesJson]: the Stremio stream's `sources` array, e.g. ["tracker:udp://…", "dht:…"]. */
         @JavascriptInterface fun playTorrent(
-            infoHash: String, fileIdx: Int, title: String, sourcesJson: String, videoId: String, release: String
+            infoHash: String, fileIdx: Int, title: String, sourcesJson: String, videoId: String, release: String,
+            meta: String, pos: Long
         ) {
             Subtitles.prefetch(applicationContext, videoId, release)
             val sources = runCatching {
@@ -66,7 +68,8 @@ class MainActivity : AppCompatActivity() {
                 onStatus = { showStatus(it) },
                 onReady = { url -> runOnUiThread {
                     startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
-                        .putExtra("url", url).putExtra("title", title).putExtra("torrent", true))
+                        .putExtra("url", url).putExtra("title", title).putExtra("torrent", true)
+                        .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos))
                 } },
                 onError = { showStatus("שגיאת טורנט: $it", error = true) }
             )
@@ -168,6 +171,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Back: let the page close an open panel/keyboard first, then go back, then leave the app.
+    override fun onResume() {
+        super.onResume()
+        // Progress written by the player while watching -> "continue watching" in the page.
+        val prefs = getSharedPreferences("watch", MODE_PRIVATE)
+        val progress = prefs.getString("progress", null)
+        if (!progress.isNullOrBlank() && progress != "{}") {
+            prefs.edit().remove("progress").apply()
+            web.evaluateJavascript("window.boothProgress && boothProgress(${JSONObject.quote(progress)})", null)
+        }
+    }
+
     // The player closed with "catch-up" for a channel: open its programme guide in the page.
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

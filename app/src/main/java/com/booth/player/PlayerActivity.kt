@@ -50,6 +50,8 @@ class PlayerActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     /** Automatic retries for the current channel (IPTV servers may still hold the previous session). */
     private var retries = 0
+    /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
+    private val watchId get() = intent.getStringExtra("vid") ?: ""
     /** Channel bar (live TV): which channel the viewer is pointing at while it is open. */
     private var barIndex = 0
     private val barOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
@@ -69,6 +71,7 @@ class PlayerActivity : AppCompatActivity() {
                 intent.getStringExtra("drm") ?: "")
         })
         if (sources.isEmpty()) { finish(); return }
+        if (savedInstanceState == null) resumePosition = intent.getLongExtra("pos", 0L)
         index = (savedInstanceState?.getInt("index") ?: intent.getIntExtra("index", 0)).coerceIn(0, sources.size - 1)
         resumePosition = savedInstanceState?.getLong("pos") ?: 0L
 
@@ -343,8 +346,24 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         started = false
-        player?.let { resumePosition = it.currentPosition; it.release() }
+        player?.let { resumePosition = it.currentPosition; saveProgress(it.currentPosition, it.duration); it.release() }
         player = null
+    }
+
+    /** Store how far the viewer got, for "continue watching" (the page picks it up on return). */
+    private fun saveProgress(pos: Long, dur: Long) {
+        if (live || watchId.isBlank() || pos < 10_000 || dur <= 0) return
+        val meta = intent.getStringExtra("meta") ?: "{}"
+        val entry = org.json.JSONObject(meta).apply {
+            put("videoId", watchId)
+            put("t", pos / 1000)
+            put("d", dur / 1000)
+            put("at", System.currentTimeMillis())
+        }
+        val prefs = getSharedPreferences("watch", MODE_PRIVATE)
+        val all = org.json.JSONObject(prefs.getString("progress", "{}") ?: "{}")
+        all.put(watchId, entry)
+        prefs.edit().putString("progress", all.toString()).apply()
     }
 
     override fun onDestroy() {
