@@ -1,5 +1,11 @@
 # Booth Android changelog
 
+## 0.13.1 — 2026-09-19
+- Live TV: when a channel fails, retry automatically (twice, 3 s apart) — IPTV servers may still
+  count the previous channel's session. Short pause between channels when zapping.
+- If a channel still fails, the error stays on screen with the HTTP status and reason.
+- Long press on a channel (or hold OK on a remote) opens catch-up: the week's programme guide.
+
 ## 0.13.0 — 2026-09-19
 - Simple Live TV mode: top menu is now סרטים וסדרות | שידור חי | הספרייה | הגדרות.
   Live TV is a channel list (number, logo, name, what's on now + progress) with

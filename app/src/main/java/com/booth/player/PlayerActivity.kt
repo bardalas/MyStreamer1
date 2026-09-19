@@ -21,6 +21,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -44,6 +45,8 @@ class PlayerActivity : AppCompatActivity() {
     private var index = 0
     private val live get() = intent.getBooleanExtra("live", false) || sources.size > 1
     private val handler = Handler(Looper.getMainLooper())
+    /** Automatic retries for the current channel (IPTV servers may still hold the previous session). */
+    private var retries = 0
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -146,10 +149,9 @@ class PlayerActivity : AppCompatActivity() {
                     .setPreferredTextLanguage("he")
                     .build()
                 it.addListener(object : Player.Listener {
-                    override fun onPlayerError(error: PlaybackException) {
-                        val why = generateSequence(error.cause) { c -> c.cause }.mapNotNull { c -> c.message }.firstOrNull()
-                        Toast.makeText(this@PlayerActivity,
-                            "לא ניתן לנגן (${error.errorCodeName})" + (why?.let { m -> "\n$m" } ?: ""), Toast.LENGTH_LONG).show()
+                    override fun onPlayerError(error: PlaybackException) = onError(error)
+                    override fun onPlaybackStateChanged(state: Int) {
+                        if (state == Player.STATE_READY && retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
                     }
                 })
                 findViewById<PlayerView>(R.id.playerView).player = it
@@ -164,18 +166,56 @@ class PlayerActivity : AppCompatActivity() {
     private fun zapBy(step: Int) {
         if (sources.size < 2) return
         index = (index + step + sources.size) % sources.size
+        retries = 0
         player?.release()
         player = null
-        if (started) buildPlayer()
         showOsd()
+        // Give the server a moment to close the previous channel's session before opening the next.
+        handler.removeCallbacks(rebuild)
+        handler.postDelayed(rebuild, 400)
     }
+
+    private val rebuild = Runnable { if (started && player == null) buildPlayer() }
+
+    private fun onError(error: PlaybackException) {
+        // HTTP status (e.g. 403 while the server still counts the previous stream) and the root message.
+        val status = generateSequence<Throwable>(error) { it.cause }
+            .filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode
+        val why = generateSequence(error.cause) { it.cause }.mapNotNull { it.message }.firstOrNull()
+        if (live && retries < 2) {
+            retries++
+            showMessage("מנסה שוב… ($retries/2)", 3_500)
+            player?.release()
+            player = null
+            handler.removeCallbacks(rebuild)
+            handler.postDelayed(rebuild, 3_000)
+            return
+        }
+        showMessage(buildString {
+            append("לא ניתן לנגן את ").append(sources[index].name.ifBlank { "הערוץ" })
+            append("\n").append(error.errorCodeName)
+            if (status != null) append(" · HTTP ").append(status)
+            if (!why.isNullOrBlank()) append("\n").append(why.take(160))
+        }, 0)
+    }
+
+    /** Message over the video; [ms] = 0 keeps it until the next channel or successful playback. */
+    private fun showMessage(text: String, ms: Long) {
+        val osd = findViewById<TextView>(R.id.osd)
+        osd.text = text
+        osd.visibility = View.VISIBLE
+        handler.removeCallbacks(hideOsd)
+        if (ms > 0) handler.postDelayed(hideOsd, ms)
+    }
+
+    private val hideOsd = Runnable { findViewById<TextView>(R.id.osd).visibility = View.GONE }
 
     private fun showOsd() {
         val osd = findViewById<TextView>(R.id.osd)
         osd.text = if (sources.size > 1) "${index + 1} · ${sources[index].name}" else sources[index].name
         osd.visibility = if (osd.text.isNullOrBlank()) View.GONE else View.VISIBLE
-        handler.removeCallbacksAndMessages(null)
-        handler.postDelayed({ osd.visibility = View.GONE }, 3_000)
+        handler.removeCallbacks(hideOsd)
+        handler.postDelayed(hideOsd, 3_000)
     }
 
     // Remote: channel keys always zap; up/down zap while the controls are hidden.

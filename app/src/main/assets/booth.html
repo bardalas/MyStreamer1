@@ -1210,7 +1210,18 @@ async function viewLive(){
           <span class="chinfo"><b>${esc(c.name)}</b><small data-now="${i}">${c.epg ? '' : esc(c.group || '')}</small></span></button>
         ${c.rec ? `<button class="chback" data-back="${i}" aria-label="צפייה אחורה ב${esc(c.name)}" title="צפייה אחורה (${c.rec} ימים)">⟲</button>` : ''}
       </div>`).join('')}</div>` : '<p class="note">אין ערוצים שמתאימים.</p>';
-    $('#chs').querySelectorAll('[data-i]').forEach(b => b.onclick = () => watchChannel(list, +b.dataset.i, sel));
+    $('#chs').querySelectorAll('[data-i]').forEach(b => {
+      const c = list[b.dataset.i];
+      let longPressed = false, timer = null;
+      b.onclick = () => { if(longPressed){ longPressed = false; return; } watchChannel(list, +b.dataset.i, sel); };
+      if(!c.rec) return;
+      // Long press (touch, or holding OK on a remote) opens catch-up: the week's programme guide.
+      const openBack = () => { longPressed = true; openChannel(c); };
+      b.oncontextmenu = e => { e.preventDefault(); openBack(); };
+      b.onpointerdown = () => { longPressed = false; clearTimeout(timer); timer = setTimeout(openBack, 600); };
+      b.onpointerup = b.onpointerleave = b.onpointercancel = () => clearTimeout(timer);
+      b.onkeydown = e => { if(e.key === 'Enter' && e.repeat && !longPressed){ e.preventDefault(); openBack(); } };
+    });
     $('#chs').querySelectorAll('[data-back]').forEach(b => b.onclick = () => openChannel(list[b.dataset.back]));
     // "now playing" line for visible channels
     const showNow = async el => {
@@ -1291,7 +1302,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.13.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.13.1</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
