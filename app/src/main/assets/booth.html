@@ -246,6 +246,26 @@ main{padding:0 28px 60px}
 .readmore{background:none;border:0;color:var(--tungsten);font-weight:600;cursor:pointer;padding:0 4px}
 .orig{display:block;font-family:var(--body);font-size:15px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:6px}
 
+/* RaspberryTV: access key form and catch-up sheet */
+.keyform{display:flex;gap:10px;flex-wrap:wrap;align-items:center;max-width:560px;margin:4px 0 8px}
+.keyform input{width:160px;letter-spacing:.15em;text-align:center;font-variant-numeric:tabular-nums}
+.chan .rec{font-size:11px;color:var(--tungsten)}
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--night);border:1px solid var(--line);border-radius:14px 14px 0 0;width:min(720px,100%);max-height:88vh;display:flex;flex-direction:column}
+.sheet header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.sheet header img{height:32px;max-width:72px;object-fit:contain}
+.sheet header b{flex:1;font-size:17px}
+.sheet header button{background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+.sheet .body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.days button{flex:none;border:1px solid var(--line);background:none;color:var(--muted);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+.days button.on{color:var(--light);border-color:var(--tungsten)}
+.prog{display:flex;gap:12px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:none;color:var(--light);padding:10px 4px;cursor:pointer;font-size:14px}
+.prog:hover,.prog:focus-visible{background:var(--raise)}
+.prog time{flex:0 0 46px;color:var(--muted);font-variant-numeric:tabular-nums}
+.prog.now{color:var(--tungsten)}
+.prog.future{opacity:.4;cursor:default}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -927,10 +947,11 @@ function parseM3U(text){
     const line = raw.trim();
     if(!line) continue;
     if(line.startsWith('#EXTINF')){
-      const attr = k => (line.match(new RegExp(k + '="([^"]*)"')) || [])[1] || '';
+      const attr = k => { const m = line.match(new RegExp(k + '=(?:"([^"]*)"|([^\\s,]+))')); return m ? (m[1] ?? m[2] ?? '') : ''; };
       const bare = line.replace(/[\w-]+="[^"]*"/g, '');
       cur = {name: bare.slice(bare.indexOf(',') + 1).trim() || 'ערוץ', logo: attr('tvg-logo'),
-             group: attr('group-title') || 'ערוצים', ua: attr('http-user-agent'), referer: attr('http-referrer')};
+             group: attr('group-title') || 'ערוצים', ua: attr('http-user-agent'), referer: attr('http-referrer'),
+             epg: attr('tvg-id'), rec: parseInt(attr('tvg-rec')) || 0};
     } else if(line.startsWith('#EXTVLCOPT:')){
       if(!cur) continue;
       const [k, ...v] = line.slice(11).split('=');
@@ -946,6 +967,108 @@ function parseM3U(text){
   return out;
 }
 
+/* ---------- RaspberryTV: live channels + catch-up with the subscriber's access key ----------
+   Same service API the OTT-Play app uses: the playlist is keyed by the 8-character access key,
+   streams are Flussonic-style (index.m3u8 / index-<start>-<duration>.m3u8) with a per-user token,
+   and the programme guide comes from protected-api.com. The key is stored only on this device. */
+const RTV_PLAYLIST = key => `https://play-berry.net/playlist/${encodeURIComponent(key)}.m3u8`;
+const RTV_EPG = id => `http://protected-api.com/epg/${encodeURIComponent(id)}?date=`;
+let rtvCache = null;
+
+async function loadRtv(){
+  const key = store.get('rtvKey', '');
+  if(!key) return null;
+  if(rtvCache) return rtvCache;
+  const chans = parseM3U(await fetchText(RTV_PLAYLIST(key)));
+  for(const c of chans){
+    // http://server:80/<path>/<token>/<channel>.m3u8 -> server, token, channel id
+    const parts = c.url.split('/');
+    if(parts.length > 5){
+      c.server = parts[2].split(':')[0];
+      c.token = parts[4];
+      c.cid = parts[5].split('.')[0];
+      c.url = `http://${c.server}:80/${c.cid}/index.m3u8?token=${c.token}`;
+    }
+  }
+  if(!chans.length) throw new Error('הרשימה ריקה. ודא שהמנוי פעיל ושהקוד נכון');
+  return rtvCache = chans;
+}
+
+function rtvArchiveUrl(c, start, end){
+  const now = Date.now() / 1000;
+  if(start > now - 600) return `http://${c.server}:80/${c.cid}/timeshift_abs-${Math.floor(start)}.m3u8?token=${c.token}`;
+  if(!end || end <= start) end = now + 600;
+  return `http://${c.server}:80/${c.cid}/index-${Math.floor(start)}-${Math.floor(end - start)}.m3u8?token=${c.token}`;
+}
+
+const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+const hhmm = t => new Date(t * 1000).toLocaleTimeString('he-IL', {hour: '2-digit', minute: '2-digit'});
+const dayKey = t => new Date(t * 1000).toDateString();
+
+/** Channel sheet: watch live, or pick a past programme from the guide (catch-up). */
+async function openChannel(c){
+  document.querySelector('.sheet')?.remove();
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(c.name)}">
+      <header>${c.logo ? `<img src="${esc(c.logo)}" alt="">` : ''}<b>${esc(c.name)}</b><button aria-label="סגור">✕</button></header>
+      <div class="body"><button class="playbtn" id="goLive">▶ שידור חי</button>
+        ${c.rec ? `<div id="guide"><p class="note">טוען את לוח השידורים…</p></div>` : ''}</div></div>`;
+  document.body.appendChild(sheet);
+  const close = () => sheet.remove();
+  sheet.querySelector('header button').onclick = close;
+  sheet.onclick = e => { if(e.target === sheet) close(); };
+  sheet.querySelector('#goLive').onclick = () => { close(); playLive(c); };
+  sheet.querySelector('#goLive').focus();
+  if(!c.rec) return;
+
+  const guide = sheet.querySelector('#guide');
+  const now = Date.now() / 1000, from = now - c.rec * 86400;
+  let progs = [];
+  try{
+    const d = JSON.parse(await fetchText(RTV_EPG(c.epg)));
+    progs = (Array.isArray(d) ? d : []).map(g => ({t: +g.time, to: +g.time_to, name: g.name || '', descr: g.descr || ''}))
+      .filter(g => g.t && g.to > from && g.t < now + 3 * 3600).sort((a, b) => a.t - b.t);
+  }catch(e){ /* no guide: fall back to picking a time */ }
+
+  if(!progs.length){
+    // No programme guide: jump back by time instead.
+    guide.innerHTML = `<p class="note" style="margin:0">אין לוח שידורים לערוץ הזה. אפשר לחזור אחורה לפי שעה (עד ${c.rec} ימים):</p>
+      <div class="keyform"><input class="field" type="datetime-local" id="tpick" dir="ltr"><button class="btn primary" id="tgo">נגן מהשעה הזו</button></div>`;
+    const pad = n => String(n).padStart(2, '0');
+    const d = new Date(Date.now() - 3600e3);
+    sheet.querySelector('#tpick').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    sheet.querySelector('#tgo').onclick = () => {
+      const t = new Date(sheet.querySelector('#tpick').value).getTime() / 1000;
+      if(!t || t < from || t > now) return alert(`אפשר לבחור זמן מ־${c.rec} הימים האחרונים בלבד.`);
+      close(); playLive({...c, url: rtvArchiveUrl(c, t, t + 3 * 3600), name: `${c.name} · ${hhmm(t)}`});
+    };
+    return;
+  }
+
+  const days = [...new Set(progs.map(g => dayKey(g.t)))];
+  const today = new Date().toDateString(), yesterday = new Date(Date.now() - 864e5).toDateString();
+  const dayLabel = k => k === today ? 'היום' : k === yesterday ? 'אתמול' : `יום ${DAY_NAMES[new Date(k).getDay()]}`;
+  let sel = today in Object.fromEntries(days.map(k => [k, 1])) ? today : days[days.length - 1];
+  const draw = () => {
+    const list = progs.filter(g => dayKey(g.t) === sel);
+    guide.innerHTML = `<div class="days">${days.map(k => `<button class="${k === sel ? 'on' : ''}" data-day="${esc(k)}">${dayLabel(k)}</button>`).join('')}</div>
+      <div>${list.map((g, i) => {
+        const state = g.t > now ? 'future' : g.to > now ? 'now' : '';
+        return `<button class="prog ${state}" data-p="${progs.indexOf(g)}" ${state === 'future' ? 'disabled' : ''} title="${esc(g.descr)}"><time>${hhmm(g.t)}</time><span>${esc(g.name)}${state === 'now' ? ' · עכשיו' : ''}</span></button>`;
+      }).join('')}</div>`;
+    guide.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { sel = b.dataset.day; draw(); });
+    guide.querySelectorAll('.prog:not(.future)').forEach(b => b.onclick = () => {
+      const g = progs[b.dataset.p];
+      close();
+      playLive({...c, url: rtvArchiveUrl(c, g.t, g.to), name: `${c.name} · ${g.name}`});
+    });
+    guide.querySelector('.prog.now')?.scrollIntoView({block: 'center'});
+  };
+  draw();
+}
+addEventListener('keydown', e => { if(e.key === 'Escape') document.querySelector('.sheet')?.remove(); });
+
 function playLive(ch){
   if(window.BoothAndroid && BoothAndroid.playLive) BoothAndroid.playLive(ch.url, ch.name, ch.ua || '', ch.referer || '');
   else openPlayer({url: ch.url}, ch.name, null);
@@ -954,14 +1077,15 @@ function playLive(ch){
 async function viewLive(msg){
   renderCats('live');
   const app = $('#app');
-  const sources = [{key: 'il', name: 'ערוצים ישראליים'}, ...playlists.map(p => ({key: p.url, name: p.name}))];
+  const sources = [{key: 'il', name: 'ערוצים ישראליים'}, {key: 'rtv', name: 'RaspberryTV'}, ...playlists.map(p => ({key: p.url, name: p.name}))];
   let sel = store.get('livePl', 'il');
   if(!sources.some(x => x.key === sel)) sel = 'il';
   const liveGroup = store.get('liveGroup', '');
   app.innerHTML = `<div class="page"><h1>שידור חי</h1>
     <div class="ltabs" role="group" aria-label="פלייליסטים">${sources.map(x => `<button class="chip ${x.key === sel ? 'on' : ''}" data-pl="${esc(x.key)}">${esc(x.name)}</button>`).join('')}</div>
     <div class="ltools"><input class="field" id="lq" placeholder="סינון ערוצים" aria-label="סינון ערוצים"><select class="field" id="lg" aria-label="קבוצה"></select>
-      ${sel !== 'il' ? `<button class="danger" id="lrm">הסר את הפלייליסט</button>` : ''}</div>
+      ${sel === 'rtv' && store.get('rtvKey', '') ? `<button class="danger" id="rtvOut">החלף קוד גישה</button>` : ''}
+      ${sel !== 'il' && sel !== 'rtv' ? `<button class="danger" id="lrm">הסר את הפלייליסט</button>` : ''}</div>
     <div id="chs"><p class="note">טוען ערוצים…</p></div>
     <h2 style="font-family:var(--display);font-size:20px;margin:34px 0 4px">הוספת פלייליסט</h2>
     <form class="addpl" id="plf"><input class="field" id="pln" placeholder="שם (למשל RaspberryTV)" aria-label="שם הפלייליסט">
@@ -988,10 +1112,27 @@ async function viewLive(msg){
     playlists = playlists.filter(p => p.url !== sel); store.set('playlists', playlists); store.set('livePl', 'il'); viewLive();
   };
 
+  if($('#rtvOut')) $('#rtvOut').onclick = () => { store.set('rtvKey', ''); rtvCache = null; viewLive(); };
+
+  if(sel === 'rtv' && !store.get('rtvKey', '')){
+    $('.ltools').hidden = true;
+    $('#chs').innerHTML = `<p class="note" style="margin:0 0 6px">הזן את קוד הגישה לאפליקציות (8 תווים) מחשבון RaspberryTV שלך: הגדרות החבילה בחשבון.
+        הקוד נשמר רק במכשיר הזה.</p>
+      <form class="keyform" id="rtvf"><input class="field" id="rtvk" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" dir="ltr" aria-label="קוד גישה">
+        <button class="btn primary">התחבר</button></form>`;
+    $('#rtvf').onsubmit = e => {
+      e.preventDefault();
+      const k = $('#rtvk').value.trim();
+      if(k.length !== 8) return alert('קוד הגישה צריך להיות באורך 8 תווים.');
+      store.set('rtvKey', k); rtvCache = null; viewLive();
+    };
+    return;
+  }
+
   let chans;
   try{
-    chans = sel === 'il' ? IL_CHANNELS : (playlistCache[sel] ||= parseM3U(await fetchText(sel)));
-  }catch(err){ $('#chs').innerHTML = `<p class="err">לא ניתן לטעון את הפלייליסט (${esc(err.message)}).</p>`; return; }
+    chans = sel === 'il' ? IL_CHANNELS : sel === 'rtv' ? await loadRtv() : (playlistCache[sel] ||= parseM3U(await fetchText(sel)));
+  }catch(err){ $('#chs').innerHTML = `<p class="err">לא ניתן לטעון את הערוצים (${esc(err.message)}).</p>`; return; }
 
   const groups = [...new Set(chans.map(c => c.group))];
   $('#lg').innerHTML = `<option value="">כל הקבוצות (${chans.length})</option>` + groups.map(g => `<option ${g === liveGroup ? 'selected' : ''}>${esc(g)}</option>`).join('');
@@ -1001,8 +1142,8 @@ async function viewLive(msg){
     const list = chans.filter(c => (!g || c.group === g) && (!q || c.name.toLowerCase().includes(q)));
     $('#chs').innerHTML = list.length ? `<div class="channels">${list.map(c => `<button class="chan" data-i="${chans.indexOf(c)}">
         <span class="logo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:${esc(JSON.stringify(c.name.slice(0, 2)))}}))">` : `<span>${esc(c.name.slice(0, 2))}</span>`}</span>
-        <b>${esc(c.name)}</b><small>${esc(c.group)}</small></button>`).join('')}</div>` : '<p class="note">אין ערוצים שמתאימים.</p>';
-    $('#chs').querySelectorAll('.chan').forEach(b => b.onclick = () => playLive(chans[b.dataset.i]));
+        <b>${esc(c.name)}</b><small>${esc(c.group)}</small>${c.rec ? `<span class="rec">⟲ ${c.rec} ימים אחורה</span>` : ''}</button>`).join('')}</div>` : '<p class="note">אין ערוצים שמתאימים.</p>';
+    $('#chs').querySelectorAll('.chan').forEach(b => b.onclick = () => { const c = chans[b.dataset.i]; c.rec ? openChannel(c) : playLive(c); });
   };
   $('#lq').oninput = draw;
   $('#lg').onchange = () => { store.set('liveGroup', $('#lg').value); draw(); };
@@ -1053,7 +1194,7 @@ function viewSettings(){
     <section class="sset"><h2>כותרים בלי מקורות</h2><div class="seg" role="group" aria-label="כותרים בלי מקורות">${[{id: 'grey', name: 'להאפיר'}, {id: 'hide', name: 'להסתיר'}].map(o =>
       `<button class="${settings.nosrc === o.id ? 'on' : ''}" data-g="nosrc" data-v="${o.id}" aria-pressed="${settings.nosrc === o.id}">${o.name}</button>`).join('')}</div></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.11.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.12.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();

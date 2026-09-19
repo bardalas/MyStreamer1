@@ -1,5 +1,13 @@
 # Booth Android changelog
 
+## 0.12.0 — 2026-09-19
+- RaspberryTV in Live TV: enter your 8-character access key (stored only on the device) to get
+  your channel list, as in OTT-Play.
+- Catch-up: channels with an archive show "⟲ N ימים אחורה"; tapping one opens a sheet with
+  "▶ שידור חי" and the programme guide by day — tap any past programme to watch it.
+  Without a guide, jump back to any time within the archive window.
+- M3U parser: unquoted attributes, tvg-id and tvg-rec (catch-up days).
+
 ## 0.11.0 — 2026-09-19
 - All content is fetched live by the app; nothing is hosted in the repository any more:
   Israeli catalogs, Hebrew titles and Hebrew search come from the Wikidata API, plots from
