@@ -76,21 +76,21 @@ object TorrentEngine {
                 waitForDht(::superseded, onStatus)
                 if (superseded()) return@Thread
 
-                onStatus("Getting torrent info…")
+                onStatus("מקבל את פרטי הטורנט…")
                 val tempDir = File(context.cacheDir, "torrent-meta").apply { mkdirs() }
                 val metadata = session.fetchMagnet(buildMagnet(infoHash, sources), 60, tempDir)
-                    ?: throw IllegalStateException("No peers answered for this source. Try one with more seeders.")
+                    ?: throw IllegalStateException("אף מחשב לא ענה למקור הזה. נסה מקור עם יותר זורעים.")
                 if (superseded()) return@Thread
 
                 val ti = TorrentInfo(metadata)
-                if (ti.numFiles() <= 0) throw IllegalStateException("Torrent contains no files")
+                if (ti.numFiles() <= 0) throw IllegalStateException("הטורנט ריק")
                 val idx = if (fileIdx in 0 until ti.numFiles()) fileIdx else largestVideoFile(ti)
                 val priorities = Priority.array(Priority.IGNORE, ti.numFiles())
                 priorities[idx] = Priority.SEVEN
                 val saveDir = File(context.cacheDir, "torrents/$infoHash").apply { mkdirs() }
 
                 session.download(ti, saveDir, null, priorities, null, TorrentFlags.SEQUENTIAL_DOWNLOAD)
-                val hash = ti.infoHashV1() ?: throw IllegalStateException("Unsupported torrent hash")
+                val hash = ti.infoHashV1() ?: throw IllegalStateException("סוג טורנט לא נתמך")
                 val handle = waitForHandle(hash)
                 handle.prioritizeFiles(priorities)
                 synchronized(this) { currentHash = hash; currentDir = saveDir }
@@ -141,7 +141,7 @@ object TorrentEngine {
         while (System.currentTimeMillis() < deadline && !superseded()) {
             val nodes = session.stats().dhtNodes()
             if (nodes >= 10) return
-            onStatus("Connecting to torrent network… ($nodes nodes)")
+            onStatus("מתחבר לרשת הטורנטים… ($nodes צמתים)")
             Thread.sleep(500)
         }
     }
@@ -151,7 +151,7 @@ object TorrentEngine {
             session.find(hash)?.let { if (it.isValid) return it }
             Thread.sleep(100)
         }
-        throw IllegalStateException("Torrent did not start")
+        throw IllegalStateException("הטורנט לא התחיל")
     }
 
     private fun bufferStart(
@@ -171,7 +171,7 @@ object TorrentEngine {
             val have = (first..last).count { handle.havePiece(it) }
             if (have == total) return
             val st = handle.status()
-            onStatus("Buffering… ${have * 100 / total}% • ${st.downloadRate() / 1024} KB/s • ${st.numPeers()} peers")
+            onStatus("טוען… ${have * 100 / total}% • ${st.downloadRate() / 1024} KB/s • ${st.numPeers()} עמיתים")
             Thread.sleep(500)
         }
     }

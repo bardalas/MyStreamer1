@@ -1,5 +1,5 @@
-MyStreamer Android v0.9.0-alpha
-versionCode: 900
+MyStreamer Android v0.10.0-alpha
+versionCode: 1000
 applicationId: com.booth.player
 
 Versioning policy:

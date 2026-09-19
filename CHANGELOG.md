@@ -1,5 +1,11 @@
 # Booth Android changelog
 
+## 0.10.0 — 2026-09-19
+- Full Hebrew interface, right-to-left: menus, categories, pages, sources list, Live TV,
+  settings, add-ons, messages and the app's torrent/subtitle notices.
+- Genres, content types and catalog names translated; brand names kept intact in RTL.
+- Hebrew-capable fonts (Rubik, Heebo) alongside the existing Latin fonts.
+
 ## 0.9.0 — 2026-09-19
 - Hebrew titles on posters, banners and details pages (Wikidata), with the original title shown under it.
 - Hebrew plot on the details page, from the "עלילה" section of Hebrew Wikipedia (with "קרא עוד" and attribution).

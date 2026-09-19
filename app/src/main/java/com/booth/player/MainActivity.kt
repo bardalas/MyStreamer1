@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
             val sources = runCatching {
                 JSONArray(sourcesJson).let { a -> List(a.length()) { a.getString(it) } }
             }.getOrDefault(emptyList())
-            showStatus("Starting torrent…")
+            showStatus("מתחיל טורנט…")
             TorrentEngine.stream(
                 applicationContext, infoHash, fileIdx, sources,
                 onStatus = { showStatus(it) },
@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
                     startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
                         .putExtra("url", url).putExtra("title", title).putExtra("torrent", true))
                 } },
-                onError = { showStatus("Torrent error: $it", error = true) }
+                onError = { showStatus("שגיאת טורנט: $it", error = true) }
             )
         }
 

@@ -51,7 +51,7 @@ class PlayerActivity : AppCompatActivity() {
             runOnUiThread {
                 subs = found
                 Toast.makeText(this,
-                    if (found.isEmpty()) "No Hebrew subtitles found" else "Hebrew subtitles: ${found.size} found",
+                    if (found.isEmpty()) "לא נמצאו כתוביות בעברית" else "נמצאו ${found.size} כתוביות בעברית",
                     Toast.LENGTH_SHORT).show()
                 if (started) buildPlayer()
             }
