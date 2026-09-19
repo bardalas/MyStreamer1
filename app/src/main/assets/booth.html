@@ -325,6 +325,15 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .eprow small{display:block;color:var(--muted);font-size:13px;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media (max-width:760px){.eprow img{width:120px}.showhead img{width:90px}}
 
+/* channels area: one broadcaster at a time */
+.bctabs{display:flex;gap:6px;margin:0 0 16px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.bctabs a{flex:none;padding:10px 18px;text-decoration:none;color:var(--muted);font-weight:600;font-size:16px;border-bottom:3px solid transparent;margin-bottom:-1px}
+.bctabs a.on{color:var(--light);border-bottom-color:var(--bc, var(--tungsten))}
+.bchead{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 18px}
+.bchead .livebtn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:9px 18px;background:var(--bc, var(--tungsten));color:#fff;font-weight:700;cursor:pointer}
+.bchead .note{margin:0}
+[data-layout="tv"] .bctabs a{font-size:20px;padding:12px 24px}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -345,6 +354,7 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
   <a class="logo" href="#/"><i></i>Booth</a>
   <nav class="nav">
     <a href="#/" data-r="home">סרטים וסדרות</a>
+    <a href="#/tv" data-r="tv">ערוצים</a>
     <a href="#/live" data-r="live">שידור חי</a>
     <a href="#/library" data-r="library">הספרייה</a>
     <a href="#/settings" data-r="settings">הגדרות</a>
@@ -636,15 +646,11 @@ const yt = (kind, ch, title) => ({yt: kind, ch, title: title || (kind === 'lates
 const CATEGORIES = [
   {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, 'booth.he.movies'], [BOOTH_ID, 'booth.he.series'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [BOOTH_ID, 'booth.he.movies.new']]},
-  {id: 'tv', name: 'ערוצי הטלוויזיה', rows: [{r13: 'recent', title: 'רשת 13 · שודר לאחרונה'}, {r13: 'series', title: 'רשת 13 · כל התוכניות'},
-    {kan: /^דרמה/, title: 'כאן 11 · דרמה'}, {kan: /קומדיה/, title: 'כאן 11 · קומדיה וסאטירה'}, {kan: /^דוקו ריאליטי/, title: 'כאן 11 · דוקו ריאליטי'},
-    {kan: /^בידור/, title: 'כאן 11 · בידור'}, {kan: /^סרטים/, title: 'כאן 11 · סרטים'}, {kan: /^דוקו$/, title: 'כאן 11 · דוקו'},
-    yt('latest', 'keshet'), yt('playlists', 'keshet')]},
-  {id: 'comedy', name: 'קומדיה', rows: [{kan: /קומדיה/, title: 'כאן 11 · קומדיה וסאטירה'}, [CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
+  {id: 'comedy', name: 'קומדיה', rows: [[CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [CINEMETA_ID, 'imdbRating', 'genre=Comedy', 'הקומדיות הכי טובות']]},
   {id: 'kids', name: 'ילדים', rows: [yt('latest', 'kankids', 'חדש בכאן חינוכית'), [CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'],
     [CINEMETA_ID, 'top', 'genre=Family', 'לכל המשפחה'], yt('playlists', 'kankids', 'סדרות כאן חינוכית')]},
-  {id: 'docs', name: 'תיעודי', rows: [{kan: /^דוקו$/, title: 'כאן 11 · דוקו'}, [SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
+  {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
   {id: 'netflix', name: 'Netflix', rows: [[SC_ID, /^netflix-top10/], [SC_ID, 'nfx']]},
   {id: 'apple', name: 'Apple TV+', rows: [[SC_ID, 'atp']]},
   {id: 'disney', name: 'Disney+', rows: [[SC_ID, 'dnp']]},
@@ -899,12 +905,53 @@ async function kanPlay(url, title){
     const m = html.match(/https:\/\/[^"'\s<>]+?\.m3u8[^"'\s<>]*/);
     if(!m) throw new Error('לא נמצא וידאו בעמוד');
     const hls = m[0].replace(/&amp;/g, '&');
-    // same route as broadcaster VOD (no subtitle search); no licence needed
-    if(window.BoothAndroid && BoothAndroid.playDrm) BoothAndroid.playDrm(hls, '', title);
+    // broadcaster VOD route (no subtitle search, no licence); Kan's player sends its site as referer
+    if(window.BoothAndroid && BoothAndroid.playVod) BoothAndroid.playVod(hls, '', title, `${KAN}/`);
+    else if(window.BoothAndroid && BoothAndroid.playDrm) BoothAndroid.playDrm(hls, '', title);
     else openPlayer({url: hls}, title, null);
   }catch(e){ alert(`לא ניתן לנגן את הפרק (${e.message}).`); }
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-kan]'); if(b){ e.preventDefault(); kanPlay(b.dataset.kan, b.dataset.title); } });
+
+/* ---------- ערוצים: each broadcaster's own content, separate from films & series ---------- */
+const BC_TABS = [
+  {id: 'kan', name: 'כאן 11', color: '#1b9ad6'},
+  {id: 'reshet', name: 'רשת 13', color: '#d9262f'},
+  {id: 'keshet', name: 'קשת 12', color: '#f29100'},
+];
+async function viewTv(which){
+  renderCats(null);
+  const bc = BC_TABS.find(b => b.id === which) || BC_TABS.find(b => b.id === store.get('tvTab', '')) || BC_TABS[0];
+  store.set('tvTab', bc.id);
+  const tabs = `<div class="page" style="padding-bottom:0"><h1>ערוצים</h1><nav class="bctabs" aria-label="ערוצי שידור">${BC_TABS.map(b =>
+    `<a href="#/tv/${b.id}" class="${b.id === bc.id ? 'on' : ''}" style="--bc:${b.color}">${esc(b.name)}</a>`).join('')}</nav>
+    <div class="bchead" style="--bc:${bc.color}" id="bchead"></div></div>`;
+  let rows = [], note = '';
+  if(bc.id === 'reshet'){
+    rows = [{r13: 'recent', title: 'שודר לאחרונה'}, {r13: 'series', title: 'כל התוכניות'}];
+  }else if(bc.id === 'keshet'){
+    rows = [yt('latest', 'keshet', 'חדש בערוץ'), yt('playlists', 'keshet', 'תוכניות')];
+    note = 'התוכן של קשת 12 מגיע מערוץ היוטיוב הרשמי ומתנגן באפליקציית YouTube.';
+  }else{
+    try{
+      const secs = await kanBox();
+      rows = secs.map(sec => ({kan: new RegExp('^' + sec.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), title: sec.title}));
+    }catch(e){
+      // Kan's site sometimes turns automated requests away (403); show its official YouTube channel instead.
+      rows = [yt('latest', 'kan', 'חדש בערוץ'), yt('playlists', 'kan', 'תוכניות')];
+      note = `האתר של כאן לא זמין כרגע לאפליקציה (${e.message}); מוצג התוכן מערוץ היוטיוב הרשמי.`;
+    }
+  }
+  renderRows(rows, {hero: false, top: tabs});
+  // live button for the broadcaster (Kan 11 and Reshet 13 have official streams)
+  const head = $('#bchead');
+  head.innerHTML = note ? `<p class="note">${esc(note)}</p>` : '';
+  const live = bc.id === 'kan' ? IL_CHANNELS.find(c => c.name === 'Kan 11') : bc.id === 'reshet' ? (await r13channels().catch(() => [])).find(c => c.name === 'רשת 13') : null;
+  if(live && head.isConnected){
+    head.insertAdjacentHTML('afterbegin', `<button class="livebtn" id="bclive">▶ שידור חי · ${esc(bc.name)}</button>`);
+    $('#bclive').onclick = () => watchChannel([live], 0, 'il');
+  }
+}
 
 /* ---------- genres page ---------- */
 const GENRE_TILES = [['Comedy', '😂'], ['Action', '💥'], ['Drama', '🎭'], ['Thriller', '🔪'], ['Horror', '👻'], ['Sci-Fi', '🚀'],
@@ -952,9 +999,10 @@ function renderCats(active){
 }
 
 /** Hero + "continue watching" + a row per catalog; rows load in parallel. */
-function renderRows(rows, {hero = true, cont = [], heading = ''} = {}){
+function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {}){
   const app = $('#app');
   app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
+    ${top}
     ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
     ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || x.r13 || x.kan || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
@@ -1660,7 +1708,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.16.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">Booth Android v0.17.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -1769,7 +1817,7 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
 async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre', 'show', 'r13', 'kan'].includes(r) ? 'home' : r)));
+  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'discover', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['show', 'r13', 'kan'].includes(r) ? 'tv' : r)));
   scrollTo(0, 0);
   if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'discover') viewDiscover(a, b, c);
@@ -1778,6 +1826,7 @@ async function route(){
   else if(r === 'show') viewShow(a, b);
   else if(r === 'r13') viewR13Series(a, b);
   else if(r === 'kan') viewKanProgram(a, b);
+  else if(r === 'tv') viewTv(a);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'live') viewLive();
   else if(r === 'search') viewSearch(a);

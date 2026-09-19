@@ -96,6 +96,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** Broadcaster VOD with the site's referer (Kan's CDN), optional Widevine licence. */
+        @JavascriptInterface fun playVod(url: String, licenseUrl: String, title: String, referer: String) {
+            runOnUiThread {
+                startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
+                    .putExtra("url", url).putExtra("drm", licenseUrl).putExtra("title", title)
+                    .putExtra("referer", referer).putExtra("nosubs", true))
+            }
+        }
+
         /** Live TV with channel zapping: [channelsJson] = [{name, url, ua, referer}], starting at [index]. */
         @JavascriptInterface fun playChannels(channelsJson: String, index: Int) {
             runOnUiThread {

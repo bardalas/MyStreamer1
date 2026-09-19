@@ -1,5 +1,13 @@
 # Booth Android changelog
 
+## 0.17.0 — 2026-09-19
+- New "ערוצים" area in the top menu, separate from films & series: one tab per broadcaster
+  (כאן 11 · רשת 13 · קשת 12), each with its own sections and a "▶ שידור חי" button.
+  Kan shows all its BOX sections; Reshet recently aired + all shows; Keshet via its official YouTube.
+- Broadcaster rows removed from the films & series categories.
+- Kan: when the site turns the app away (Cloudflare 403), fall back to Kan's official YouTube channel;
+  episode playback sends Kan's site as referer, like its own player.
+
 ## 0.16.0 — 2026-09-19
 - Kan BOX (kan.org.il) in ערוצי הטלוויזיה: דרמה, קומדיה וסאטירה, דוקו ריאליטי, בידור, סרטים, דוקו —
   programme pages with seasons and episodes; episodes play in the app (plain HLS from Kan's CDN).
