@@ -82,17 +82,17 @@
 "releaseInfo": "2012"
 },
 {
+"id": "tt3602528",
+"type": "series",
+"name": "כפולים",
+"poster": "https://images.metahub.space/poster/medium/tt3602528/img"
+},
+{
 "id": "tt12398140",
 "type": "series",
 "name": "לאבד את אליס",
 "poster": "https://images.metahub.space/poster/medium/tt12398140/img",
 "releaseInfo": "2020"
-},
-{
-"id": "tt3602528",
-"type": "series",
-"name": "כפולים",
-"poster": "https://images.metahub.space/poster/medium/tt3602528/img"
 },
 {
 "id": "tt8190688",
@@ -114,10 +114,16 @@
 "poster": "https://images.metahub.space/poster/medium/tt3242480/img"
 },
 {
-"id": "tt13660638",
+"id": "tt8220344",
 "type": "series",
-"name": "בלקספייס",
-"poster": "https://images.metahub.space/poster/medium/tt13660638/img"
+"name": "בשבילה גיבורים עפים",
+"poster": "https://images.metahub.space/poster/medium/tt8220344/img"
+},
+{
+"id": "tt8796226",
+"type": "series",
+"name": "קופה ראשית",
+"poster": "https://images.metahub.space/poster/medium/tt8796226/img"
 },
 {
 "id": "tt0303479",
@@ -138,16 +144,10 @@
 "poster": "https://images.metahub.space/poster/medium/tt28688946/img"
 },
 {
-"id": "tt8220344",
+"id": "tt13660638",
 "type": "series",
-"name": "בשבילה גיבורים עפים",
-"poster": "https://images.metahub.space/poster/medium/tt8220344/img"
-},
-{
-"id": "tt8796226",
-"type": "series",
-"name": "קופה ראשית",
-"poster": "https://images.metahub.space/poster/medium/tt8796226/img"
+"name": "בלקספייס",
+"poster": "https://images.metahub.space/poster/medium/tt13660638/img"
 },
 {
 "id": "tt0904447",
@@ -182,35 +182,28 @@
 "poster": "https://images.metahub.space/poster/medium/tt7929952/img"
 },
 {
-"id": "tt10812304",
+"id": "tt7828056",
 "type": "series",
-"name": "חמישים",
-"poster": "https://images.metahub.space/poster/medium/tt10812304/img"
+"name": "כוכב הצפון",
+"poster": "https://images.metahub.space/poster/medium/tt7828056/img"
 },
 {
-"id": "tt12940732",
+"id": "tt4177454",
 "type": "series",
-"name": "מלכת היופי של ירושלים",
-"poster": "https://images.metahub.space/poster/medium/tt12940732/img"
+"name": "היהודים באים",
+"poster": "https://images.metahub.space/poster/medium/tt4177454/img"
 },
 {
-"id": "tt10569810",
+"id": "tt6070434",
 "type": "series",
-"name": "דיבוקים",
-"poster": "https://images.metahub.space/poster/medium/tt10569810/img",
-"releaseInfo": "2020"
+"name": "השוטר הטוב",
+"poster": "https://images.metahub.space/poster/medium/tt6070434/img"
 },
 {
-"id": "tt17074098",
+"id": "tt7865452",
 "type": "series",
-"name": "שעת אפס",
-"poster": "https://images.metahub.space/poster/medium/tt17074098/img"
-},
-{
-"id": "tt21100682",
-"type": "series",
-"name": "רוחות ביירות",
-"poster": "https://images.metahub.space/poster/medium/tt21100682/img"
+"name": "שבאבניקים",
+"poster": "https://images.metahub.space/poster/medium/tt7865452/img"
 },
 {
 "id": "tt2860176",
@@ -243,28 +236,35 @@
 "poster": "https://images.metahub.space/poster/medium/tt0186754/img"
 },
 {
-"id": "tt7828056",
+"id": "tt10812304",
 "type": "series",
-"name": "כוכב הצפון",
-"poster": "https://images.metahub.space/poster/medium/tt7828056/img"
+"name": "חמישים",
+"poster": "https://images.metahub.space/poster/medium/tt10812304/img"
 },
 {
-"id": "tt4177454",
+"id": "tt12940732",
 "type": "series",
-"name": "היהודים באים",
-"poster": "https://images.metahub.space/poster/medium/tt4177454/img"
+"name": "מלכת היופי של ירושלים",
+"poster": "https://images.metahub.space/poster/medium/tt12940732/img"
 },
 {
-"id": "tt6070434",
+"id": "tt10569810",
 "type": "series",
-"name": "השוטר הטוב",
-"poster": "https://images.metahub.space/poster/medium/tt6070434/img"
+"name": "דיבוקים",
+"poster": "https://images.metahub.space/poster/medium/tt10569810/img",
+"releaseInfo": "2020"
 },
 {
-"id": "tt7865452",
+"id": "tt17074098",
 "type": "series",
-"name": "שבאבניקים",
-"poster": "https://images.metahub.space/poster/medium/tt7865452/img"
+"name": "שעת אפס",
+"poster": "https://images.metahub.space/poster/medium/tt17074098/img"
+},
+{
+"id": "tt21100682",
+"type": "series",
+"name": "רוחות ביירות",
+"poster": "https://images.metahub.space/poster/medium/tt21100682/img"
 },
 {
 "id": "tt2012463",
@@ -354,22 +354,34 @@
 "poster": "https://images.metahub.space/poster/medium/tt0075565/img"
 },
 {
-"id": "tt15629318",
+"id": "tt3657702",
 "type": "series",
-"name": "עלומים",
-"poster": "https://images.metahub.space/poster/medium/tt15629318/img"
+"name": "זגורי אימפריה",
+"poster": "https://images.metahub.space/poster/medium/tt3657702/img"
 },
 {
-"id": "tt26672224",
+"id": "tt3830828",
 "type": "series",
-"name": "איסט סייד",
-"poster": "https://images.metahub.space/poster/medium/tt26672224/img"
+"name": "מתים לרגע",
+"poster": "https://images.metahub.space/poster/medium/tt3830828/img"
 },
 {
-"id": "tt23856194",
+"id": "tt6839538",
 "type": "series",
-"name": "גוף שלישי (סדרת טלוויזיה)",
-"poster": "https://images.metahub.space/poster/medium/tt23856194/img"
+"name": "ג'ודה",
+"poster": "https://images.metahub.space/poster/medium/tt6839538/img"
+},
+{
+"id": "tt7616330",
+"type": "series",
+"name": "נבסו",
+"poster": "https://images.metahub.space/poster/medium/tt7616330/img"
+},
+{
+"id": "tt7181728",
+"type": "series",
+"name": "כבודו",
+"poster": "https://images.metahub.space/poster/medium/tt7181728/img"
 },
 {
 "id": "tt1171037",
@@ -481,34 +493,22 @@
 "poster": "https://images.metahub.space/poster/medium/tt35668813/img"
 },
 {
-"id": "tt3657702",
+"id": "tt15629318",
 "type": "series",
-"name": "זגורי אימפריה",
-"poster": "https://images.metahub.space/poster/medium/tt3657702/img"
+"name": "עלומים",
+"poster": "https://images.metahub.space/poster/medium/tt15629318/img"
 },
 {
-"id": "tt3830828",
+"id": "tt26672224",
 "type": "series",
-"name": "מתים לרגע",
-"poster": "https://images.metahub.space/poster/medium/tt3830828/img"
+"name": "איסט סייד",
+"poster": "https://images.metahub.space/poster/medium/tt26672224/img"
 },
 {
-"id": "tt6839538",
+"id": "tt23856194",
 "type": "series",
-"name": "ג'ודה",
-"poster": "https://images.metahub.space/poster/medium/tt6839538/img"
-},
-{
-"id": "tt7616330",
-"type": "series",
-"name": "נבסו",
-"poster": "https://images.metahub.space/poster/medium/tt7616330/img"
-},
-{
-"id": "tt7181728",
-"type": "series",
-"name": "כבודו",
-"poster": "https://images.metahub.space/poster/medium/tt7181728/img"
+"name": "גוף שלישי (סדרת טלוויזיה)",
+"poster": "https://images.metahub.space/poster/medium/tt23856194/img"
 },
 {
 "id": "tt4211288",
