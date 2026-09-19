@@ -1094,7 +1094,74 @@ const BC_TABS = [
   {id: 'kan', name: 'כאן 11', color: '#1b9ad6'},
   {id: 'reshet', name: 'רשת 13', color: '#d9262f'},
   {id: 'keshet', name: 'קשת 12', color: '#f29100'},
+  {id: 'jfc', name: 'ארכיון הסרטים', color: '#9a6bd8'},
 ];
+
+/* ---------- Israeli Film Archive · Jerusalem Cinematheque (jfc.org.il) ----------
+   130 years of films made here: features, documentaries, newsreels and home movies, with a Hebrew
+   synopsis for every one. The archive plays its films on its own site, behind a free account (and a
+   payment for some of the newer features), so the catalogue is read here and the film itself opens
+   in the in-app window, signed in with the viewer's own account. */
+const JFC = 'https://jfc.org.il';
+const JFC_LOBBIES = [
+  ['/lobby/israeli-cinema/', 'סרטי קולנוע'],
+  ['/lobby/archive-materials/', 'חומרי ארכיון'],
+  ['/lobby/a-selection-of-israel-film-service-films/', 'שירות הסרטים הישראלי'],
+  ['/collection/', 'אוספים'],
+];
+const jfcCache = {};
+
+/** One lobby page of the archive, as rows of films (the page is served ready-made). */
+async function jfcLobby(path){
+  if(jfcCache[path]) return jfcCache[path];
+  const html = await fetchText(JFC + path);
+  const rows = [];
+  // a page is a series of "stripes", each with a heading and a row of items
+  const parts = html.split(/<div class="stripe-row/).slice(1);
+  for(const part of parts){
+    const title = (part.match(/<h2 class="stripe-title[^"]*"[^>]*>([\s\S]*?)<\/h2>/) || [])[1];
+    if(!title) continue;
+    const items = jfcItems(part);
+    if(items.length) rows.push({title: jfcText(title), items});
+  }
+  if(!rows.length){                                          // a plain grid page (collections)
+    const items = jfcItems(html);
+    if(items.length) rows.push({title: 'הכל', items});
+  }
+  jfcCache[path] = rows;
+  return rows;
+}
+
+const jfcText = t => t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#0?39;|&apos;/g, "'").replace(/&quot;/g, '"').trim();
+
+/** Every film link on a page, with its poster, kind, year and whether it costs money. */
+function jfcItems(html){
+  const out = [], seen = new Set();
+  // films, newsreel moments, home movies, collections - every kind the archive lists
+  for(const m of html.matchAll(/<a href='(https:\/\/jfc\.org\.il\/(?:movie|news_journal|general_film|collection|compilation|interviews-with-creators)\/[^']+)'([\s\S]*?)<\/a>/g)){
+    const [, url, body] = m;
+    if(seen.has(url) || !/class='item/.test(body)) continue;
+    const title = jfcText((body.match(/<h3 class='item_title'>([\s\S]*?)<\/h3>/) || [])[1] || '');
+    if(!title) continue;
+    seen.add(url);
+    out.push({
+      url, title,
+      poster: (body.match(/(?:background-image: url\(|data-bg=')([^')]+)/) || [])[1] || '',
+      kind: jfcText((body.match(/item_type_with_icon[^>]*>[\s\S]*?<span>([\s\S]*?)<\/span>/) || [])[1] || ''),
+      by: jfcText((body.match(/extra-by-post-container[^>]*>([\s\S]*?)<\/div>/) || [])[1] || ''),
+      len: jfcText((body.match(/<p class='item-length'>([\s\S]*?)<\/p>/) || [])[1] || ''),
+      paid: /item_tag kind[^>]*>\s*בתשלום/.test(body),
+    });
+  }
+  return out;
+}
+
+function jfcCard(x){
+  const art = x.poster ? `<div class="art" data-bg="${esc(x.poster)}">${x.paid ? '<span class="svc">בתשלום</span>' : ''}</div>`
+                       : `<div class="art ph"></div>`;
+  return `<button class="poster" data-site="${esc(x.url)}" title="${esc(x.title)}">${art}
+    <div class="t" dir="rtl">${esc(x.title)}</div><div class="y">${esc([x.by, x.len].filter(Boolean).join(' · '))}</div></button>`;
+}
 async function viewTv(which){
   renderCats(null);
   const bc = BC_TABS.find(b => b.id === which) || BC_TABS.find(b => b.id === store.get('tvTab', '')) || BC_TABS[0];
@@ -1103,6 +1170,7 @@ async function viewTv(which){
     `<a href="#/tv/${b.id}" class="${b.id === bc.id ? 'on' : ''}" style="--bc:${b.color}">${esc(b.name)}</a>`).join('')}</nav>
     <div class="bchead" style="--bc:${bc.color}" id="bchead"></div></div>`;
   let rows = [], note = '', kanSite = false;
+  if(bc.id === 'jfc') return viewJfcTab(tabs);
   if(bc.id === 'reshet'){
     rows = [{r13: 'recent', title: 'שודר לאחרונה'}, {r13: 'series', title: 'כל התוכניות'}];
   }else if(bc.id === 'keshet'){
@@ -1128,6 +1196,26 @@ async function viewTv(which){
     head.insertAdjacentHTML('afterbegin', `<button class="livebtn" id="bclive">▶ שידור חי · ${esc(bc.name)}</button>`);
     $('#bclive').onclick = () => watchChannel([live], 0, 'il');
   }
+}
+
+/** The archive's tab: pick a lobby, see its rows, open a film on the archive's site. */
+async function viewJfcTab(tabs){
+  const path = store.get('jfcLobby', JFC_LOBBIES[0][0]);
+  const picker = `<div class="page" style="padding-top:0">
+    <div class="ltabs" role="group" aria-label="חלקי הארכיון">${JFC_LOBBIES.map(([u, n]) =>
+      `<button class="${u === path ? 'on' : ''}" data-jfc="${esc(u)}">${esc(n)}</button>`).join('')}</div>
+    <p class="note" style="margin:10px 0 0">הסרטים מתנגנים באתר הארכיון, בתוך האפליקציה. חלק מהסרטים דורשים חשבון חינם באתר, וחלק בתשלום.</p></div>`;
+  $('#app').innerHTML = tabs + picker + `<div id="jfcrows"><p class="note" style="padding:0 28px">טוען מהארכיון…</p></div>`;
+  $('#app').querySelectorAll('[data-jfc]').forEach(b => b.onclick = () => { store.set('jfcLobby', b.dataset.jfc); viewJfcTab(tabs); });
+  try{
+    const rows = await jfcLobby(path);
+    const host = $('#jfcrows');
+    if(!host) return;
+    host.innerHTML = rows.slice(0, isTvLayout() ? 8 : 20).map(r => `<div class="row"><h2><bdi>${esc(r.title)}</bdi></h2>
+      <div class="strip">${r.items.slice(0, rowMax()).map(jfcCard).join('')}</div></div>`).join('')
+      || '<p class="note" style="padding:0 28px">אין כרגע תכנים בחלק הזה.</p>';
+    lazyBg(host);
+  }catch(e){ showErr($('#jfcrows'), 'לא ניתן לטעון את ארכיון הסרטים הישראלי', e, () => viewJfcTab(tabs)); }
 }
 
 /* ---------- quick view: tap a poster for the synopsis; tap it again (or the button) to open it ---------- */
