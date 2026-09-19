@@ -1,6 +1,6 @@
 # המקרן (HaMakren) — Android & Android TV
 
-Current release: **v0.19.0-alpha** (`versionCode 1900`).
+Current release: **v0.20.0-alpha** (`versionCode 2000`).
 
 Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 

@@ -1,5 +1,14 @@
 # Booth Android changelog
 
+## 0.20.0 — 2026-09-20
+- Content first: no per-service categories. Home = popular films / series, new films / series on the
+  streaming services (merged), then Israeli, comedy, kids, documentaries. Each title appears once per page.
+- Streaming service shown as a badge on the poster and as "available on" in the quick view and title page.
+- Android TV speed: posters load only when near the screen; at most 24 titles per row and 10 rows on
+  the home screen; no background source checks and fewer lookups on TV; no animations.
+- Remote: search fields no longer pop up the keyboard when focus passes over them — press OK to type;
+  Back closes an open panel before leaving the page; the remote's Search key jumps to search.
+
 ## 0.19.0 — 2026-09-19
 - Keshet 12 from mako.co.il instead of YouTube: all 654 programmes with genre chips (reality, docu,
   drama, comedy, cooking, news) and search; programme pages with seasons and sections

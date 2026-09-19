@@ -106,6 +106,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** Opens the on-screen keyboard for the focused field (TV: only after OK on the field). */
+        @JavascriptInterface fun showKeyboard() {
+            runOnUiThread {
+                web.requestFocus()
+                (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                    .showSoftInput(web, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+
         /** A broadcaster's own web page (its player plays the video) in an in-app window. */
         @JavascriptInterface fun openSite(url: String) {
             runOnUiThread { startActivity(BrowserActivity.intent(this@MainActivity, url)) }
@@ -157,8 +166,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Back: let the page close an open panel/keyboard first, then go back, then leave the app.
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (web.canGoBack()) web.goBack() else super.onBackPressed()
+        web.evaluateJavascript("(window.boothBack && boothBack()) ? 'y' : 'n'") { handled ->
+            if (handled?.contains("y") == true) return@evaluateJavascript
+            if (web.canGoBack()) web.goBack() else finish()
+        }
+    }
+
+    // Remote Search key jumps to the search field.
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.keyCode == android.view.KeyEvent.KEYCODE_SEARCH && event.action == android.view.KeyEvent.ACTION_DOWN) {
+            web.evaluateJavascript("window.boothSearchKey && boothSearchKey()", null)
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 }

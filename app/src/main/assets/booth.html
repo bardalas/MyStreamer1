@@ -354,6 +354,16 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .mkbar input{flex:1;min-width:160px;max-width:320px;padding:7px 12px}
 .openbtn{display:inline-flex;align-items:center;gap:8px}
 
+/* TV: no animations or smooth scrolling (weak GPUs), no scroll snapping while moving with the remote */
+[data-layout="tv"] *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+[data-layout="tv"] .strip{scroll-snap-type:none}
+[data-layout="tv"] input[readonly]{caret-color:transparent;cursor:pointer}
+
+/* where a title streams: a small badge on the poster */
+.art .svc{position:absolute;top:6px;inset-inline-start:6px;background:rgba(0,0,0,.72);color:#fff;font-size:10px;font-weight:700;line-height:1.4;padding:2px 6px;border-radius:4px;direction:ltr}
+[data-layout="tv"] .art .svc{font-size:12px}
+.facts .svcf{background:var(--raise);border:1px solid var(--line)}
+
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -478,7 +488,7 @@ async function pool(items, n, fn){
 async function heLookup(ids){
   const byItem = {};
   // one small search per id: a combined search can't say which item matched which IMDb id
-  await pool(ids, 6, async id => {
+  await pool(ids, isTvLayout() ? 2 : 6, async id => {
     try{
       const s = await getJSON(`${WDAPI}action=query&list=search&srlimit=1&srprop=&srsearch=haswbstatement:P345=${id}`);
       const q = s.query?.search?.[0]?.title;
@@ -636,17 +646,69 @@ const CATALOG_NAMES_HE = {Popular: 'פופולרי', New: 'חדש', Featured: '�
   'Israeli series': 'סדרות ישראליות'};
 const catalogHe = n => CATALOG_NAMES_HE[n] || n;
 
+/* ---------- lazy images: posters load only when they come near the screen (big win on TV boxes) ---------- */
+const bgObserver = new IntersectionObserver(entries => {
+  for(const en of entries) if(en.isIntersecting){
+    const el = en.target;
+    bgObserver.unobserve(el);
+    el.style.backgroundImage = `url("${(el.dataset.bg || '').replace(/"/g, '%22')}")`;
+  }
+}, {rootMargin: '400px 600px'});
+function lazyBg(root){
+  root.querySelectorAll?.('[data-bg]:not([data-bgw])').forEach(el => { el.dataset.bgw = 1; bgObserver.observe(el); });
+}
+new MutationObserver(muts => {
+  for(const m of muts) for(const n of m.addedNodes) if(n.nodeType === 1) lazyBg(n.matches('[data-bg]') ? n.parentNode : n);
+}).observe(document.body, {childList: true, subtree: true});
+const isTvLayout = () => typeof settings !== 'undefined' && settings.layout === 'tv';
+const rowMax = () => isTvLayout() ? 24 : 40;
+
+/* ---------- which streaming service a title is on (from the Streaming Catalogs add-on) ---------- */
+const SERVICES = {nfx: 'Netflix', atp: 'Apple TV+', dnp: 'Disney+', amp: 'Prime Video', hbm: 'HBO Max', pmp: 'Paramount+', cts: 'Curiosity Stream', mgl: 'MagellanTV'};
+let svcMap = (() => { const c = store.get('svcMap', null); return c && Date.now() - c.at < 864e5 ? c.map : {}; })();
+const svcOf = id => svcMap[id] || [];
+function noteServices(id, name){
+  const list = svcMap[id] ||= [];
+  if(!list.includes(name)) list.push(name);
+}
+const svcBadge = id => { const l = svcOf(id); return l.length ? `<span class="svc">${esc(l[0])}${l.length > 1 ? ' +' + (l.length - 1) : ''}</span>` : ''; };
+const svcFacts = id => svcOf(id).map(n => `<span class="svcf">${esc(n)}</span>`).join('');
+function applyBadges(){
+  document.querySelectorAll('a.poster[data-id]').forEach(a => {
+    const art = a.querySelector('.art');
+    if(!art || art.querySelector('.svc')) return;
+    const b = svcBadge(a.dataset.id);
+    if(b) art.insertAdjacentHTML('beforeend', b);
+  });
+}
+/** Once a day: collect every streaming service's catalogue into id -> services. */
+async function loadServices(){
+  const cached = store.get('svcMap', null);
+  if(cached && Date.now() - cached.at < 864e5) return;
+  const sc = addons.find(a => a.manifest.id === SC_ID);
+  if(!sc) return;
+  const map = {};
+  await pool((sc.manifest.catalogs || []).filter(c => SERVICES[c.id]), 3, async c => {
+    try{
+      for(const m of (await catalogFetch(sc, c.type, c.id)).metas || []) (map[m.id] ||= []).includes(SERVICES[c.id]) || map[m.id].push(SERVICES[c.id]);
+    }catch(e){}
+  });
+  svcMap = map;
+  store.set('svcMap', {at: Date.now(), map});
+  applyBadges();
+}
+
 /* ---------- cards ---------- */
 function card(m){
   const p = Object.values(progress).find(x => x.metaId === m.id);
   const pct = p && p.d ? Math.min(100, p.t / p.d * 100) : 0;
   const art = m.poster
-    ? `<div class="art" style="background-image:url('${esc(m.poster)}')">${pct?`<div class="prog" style="width:${pct}%"></div>`:''}</div>`
+    ? `<div class="art" data-bg="${esc(m.poster)}">${pct?`<div class="prog" style="width:${pct}%"></div>`:''}${svcBadge(m.id)}</div>`
     : `<div class="art noart">${esc(m.name)}</div>`;
   const name = heTitle(m.id, m.name);
   const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';
   const none = key && typeof avail !== 'undefined' && isNoSrc(avail[key]);
-  return `<a class="poster${none ? ' nosrc' : ''}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
+  return `<a class="poster${none ? ' nosrc' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
@@ -669,14 +731,11 @@ const CATEGORIES = [
   {id: 'comedy', name: 'קומדיה', rows: [[CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [CINEMETA_ID, 'imdbRating', 'genre=Comedy', 'הקומדיות הכי טובות']]},
   {id: 'kids', name: 'ילדים', rows: [[CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'], [CINEMETA_ID, 'top', 'genre=Family', 'לכל המשפחה']]},
-  {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts'], [SC_ID, 'mgl'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים']]},
-  {id: 'netflix', name: 'Netflix', rows: [[SC_ID, /^netflix-top10/], [SC_ID, 'nfx']]},
-  {id: 'apple', name: 'Apple TV+', rows: [[SC_ID, 'atp']]},
-  {id: 'disney', name: 'Disney+', rows: [[SC_ID, 'dnp']]},
-  {id: 'prime', name: 'Prime Video', rows: [[SC_ID, 'amp']]},
-  {id: 'hbo', name: 'HBO Max', rows: [[SC_ID, 'hbm']]},
-  {id: 'paramount', name: 'Paramount+', rows: [[SC_ID, 'pmp']]},
+  {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts', undefined, 'תיעודיים'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים'], [SC_ID, 'mgl', undefined, 'עוד תיעודיים']]},
 ];
+// "New on the streaming services": every service's catalogue merged into one row per type (services show as badges).
+const STREAMING = ['nfx', 'atp', 'dnp', 'amp', 'hbm', 'pmp'];
+const mergedRow = (type, title) => ({merge: STREAMING, type, title});
 /** Categories in the user's order, without the hidden ones (Settings → מסך הבית). */
 function userCategories(){
   const order = settings.cats || CATEGORIES.map(c => c.id);
@@ -744,7 +803,7 @@ async function ytPlaylist(id){
   return ytCache[key] = ytLockups(ytInitialData(await fetchText(`https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`))).filter(x => x.video);
 }
 function ytCard(x){
-  const art = `<div class="art" style="background-image:url('${esc(x.thumb)}')"></div><div class="t" dir="auto">${esc(x.name)}</div>`;
+  const art = `<div class="art" data-bg="${esc(x.thumb)}"></div><div class="t" dir="auto">${esc(x.name)}</div>`;
   return x.video ? `<button class="poster wide" data-yt="${esc(x.id)}">${art}</button>`
                  : `<a class="poster wide" href="#/show/${encodeURIComponent(x.id)}/${encodeURIComponent(x.name)}">${art}</a>`;
 }
@@ -810,8 +869,8 @@ async function r13playEpisode(id, title){
 }
 function r13card(o){
   if(o.type == R13_SERIES) return `<a class="poster" href="#/r13/${encodeURIComponent(r13meta(o, 'SeriesID'))}/${encodeURIComponent(o.name)}">
-      <div class="art" style="background-image:url('${esc(r13img(o, '2x3', 300, 450))}')"></div><div class="t" dir="auto">${esc(o.name)}</div></a>`;
-  return `<button class="poster wide" data-r13="${o.id}" data-title="${esc(o.name)}"><div class="art" style="background-image:url('${esc(r13img(o, '16x9', 480, 270))}')"></div>
+      <div class="art" data-bg="${esc(r13img(o, '2x3', 300, 450))}"></div><div class="t" dir="auto">${esc(o.name)}</div></a>`;
+  return `<button class="poster wide" data-r13="${o.id}" data-title="${esc(o.name)}"><div class="art" data-bg="${esc(r13img(o, '16x9', 480, 270))}"></div>
       <div class="t" dir="auto">${esc(o.name)}</div></button>`;
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-r13]'); if(b){ e.preventDefault(); r13playEpisode(b.dataset.r13, b.dataset.title); } });
@@ -888,7 +947,7 @@ async function kanBox(){
 }
 function kanCard(x){
   return `<a class="poster" href="#/kan/${encodeURIComponent(x.url.replace(KAN, ''))}/${encodeURIComponent(x.name)}">
-    <div class="art" style="background-image:url('${esc(x.img)}')"></div><div class="t" dir="auto">${esc(x.name)}</div></a>`;
+    <div class="art" data-bg="${esc(x.img)}"></div><div class="t" dir="auto">${esc(x.name)}</div></a>`;
 }
 
 /** Episodes listed on a programme/season page. */
@@ -1032,7 +1091,7 @@ async function openQuickView(card){
     box.querySelector('.qvart').style.backgroundImage = `url('${(meta.background || meta.poster || '').replace(/'/g, '%27')}')`;
     const heName = heTitle(meta.id, meta.name);
     box.querySelector('h3').innerHTML = `${esc(heName)}${heName !== meta.name ? `<small dir="ltr">${esc(meta.name)}</small>` : ''}`;
-    box.querySelector('.facts').innerHTML = [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`, yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`,
+    box.querySelector('.facts').innerHTML = svcFacts(id) + [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`, yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`,
       meta.runtime && `<span>${esc(meta.runtime)}</span>`, ...(meta.genres || meta.genre || []).slice(0, 3).map(g => `<span>${esc(genreHe(g))}</span>`)].filter(Boolean).join('');
   }
   const desc = box.querySelector('.qvdesc');
@@ -1079,7 +1138,7 @@ function openSite(url){
 document.addEventListener('click', e => { const b = e.target.closest('[data-site]'); if(b){ e.preventDefault(); openSite(b.dataset.site); } });
 function makoCard(x){
   return `<a class="poster" href="#/mako/${encodeURIComponent(x.path)}/${encodeURIComponent(x.name)}">
-    <div class="art" style="background-image:url('${esc(x.img)}')"></div><div class="t" dir="auto">${esc(x.name)}</div></a>`;
+    <div class="art" data-bg="${esc(x.img)}"></div><div class="t" dir="auto">${esc(x.name)}</div></a>`;
 }
 
 async function viewMakoTab(top){
@@ -1204,21 +1263,46 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
   app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
     ${top}
     ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || x.r13 || x.kan || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.yt || x.r13 || x.kan || x.merge || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
   let heroDone = !hero;
+  // Each title appears once per page: it stays in the first (highest) row that has it.
+  const claimed = new Map();
+  const dedupe = (i, metas) => metas.filter(m => {
+    const j = claimed.get(m.id);
+    if(j !== undefined && j < i) return false;
+    if(j !== undefined && j > i) document.querySelectorAll(`#row${j} [data-id="${CSS.escape(m.id)}"]`).forEach(e => e.remove());
+    claimed.set(m.id, i);
+    return true;
+  });
   rows.forEach(async (x, i) => {
     const el = $('#row' + i);
+    if(x.merge){
+      try{
+        const sc = addons.find(a => a.manifest.id === SC_ID);
+        const lists = await Promise.all(x.merge.map(async id => {
+          const c = (sc?.manifest.catalogs || []).find(c => c.id === id && c.type === x.type);
+          if(!c) return [];
+          const metas = (await catalogFetch(sc, c.type, c.id).catch(() => ({metas: []}))).metas || [];
+          metas.forEach(m => noteServices(m.id, SERVICES[id]));
+          return metas;
+        }));
+        const merged = [];                                   // round-robin so every service is represented
+        for(let k = 0; merged.length < 200 && lists.some(l => l[k]); k++) for(const l of lists) if(l[k] && !merged.some(m => m.id === l[k].id)) merged.push(l[k]);
+        if(el) el.innerHTML = dedupe(i, merged).slice(0, rowMax()).map(card).join('') || '<p class="note">אין כרגע.</p>';
+      }catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון (${esc(e.message)}).</p>`; }
+      return;
+    }
     if(x.kan){
       try{
         const secs = await kanBox();
         const sec = secs.find(z => x.kan.test(z.title));
-        el.innerHTML = sec ? sec.items.slice(0, 40).map(kanCard).join('') : '<p class="note">אין כרגע.</p>';
+        el.innerHTML = sec ? sec.items.slice(0, rowMax()).map(kanCard).join('') : '<p class="note">אין כרגע.</p>';
       }catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מכאן (${esc(e.message)}).</p>`; }
       return;
     }
     if(x.r13){
-      try{ el.innerHTML = (await r13row(x.r13)).map(r13card).join('') || '<p class="note">אין כרגע.</p>'; }
+      try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || '<p class="note">אין כרגע.</p>'; }
       catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון מרשת 13 (${esc(e.message)}).</p>`; }
       return;
     }
@@ -1230,7 +1314,7 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
     try{
       const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
       const metas = d.metas || [];
-      if(el) el.innerHTML = metas.map(card).join('') || '<p class="note">הקטלוג ריק.</p>';
+      if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || '<p class="note">הקטלוג ריק.</p>';
       if(!heroDone && metas.length){ heroDone = true; renderHero(metas.find(m => m.background) || metas[0]); }
     }catch(e){ if(el) el.innerHTML = `<p class="err">לא ניתן לטעון את הקטלוג (${esc(e.message)}).</p>`; }
   });
@@ -1241,17 +1325,19 @@ async function viewHome(){
   // Cinemeta's popular rows, then the first row of every category.
   if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')), {hero: false});
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
-  const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: 'פופולרי'})) : [];
+  const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: c.type === 'movie' ? 'סרטים פופולריים' : 'סדרות פופולריות'})) : [];
+  if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', 'סרטים חדשים בשירותי הסטרימינג'), mergedRow('series', 'סדרות חדשות בשירותי הסטרימינג'));
   for(const cat of userCategories()){
     const r = rowsFor(cat);
-    if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: x.title.startsWith(cat.name) ? x.title : `${cat.name} · ${x.title}`})));
+    // "קומדיה · קומדיות…" says it twice: prefix the category only when the row title doesn't already
+    if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: x.title.includes(cat.name.slice(0, 4)) ? x.title : `${cat.name} · ${x.title}`})));
   }
   if(!rows.length) for(const a of addons) for(const c of a.manifest.catalogs || []){
     if((c.extra||[]).some(e => e.isRequired) || (c.extraRequired||[]).length) continue;
     if(rows.length < 8) rows.push({a, c, title: catalogHe(c.name) || c.id});
   }
   const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
-  renderRows(rows, {cont, hero: false});
+  renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, hero: false});
 }
 
 function viewCategory(id){
@@ -1349,7 +1435,7 @@ async function viewDetail(type, id){
       <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
       <div>
         <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig" dir="ltr">${esc(meta.name)}</span>` : ''}</h1>
-        <div class="facts">${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreHe(g))}</span>`).join('')}</div>
+        <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreHe(g))}</span>`).join('')}</div>
         <p class="desc" id="desc" dir="auto">${esc(meta.description)}</p>
         <div class="people">${meta.director?.length ? `<div><b>במאי</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>שחקנים</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
         <button class="btn ghost ${saved?'saved':''}" id="lib">${saved ? 'בספרייה שלך' : 'הוסף לספרייה'}</button>
@@ -1523,6 +1609,7 @@ async function hasSources(key){
   return false;
 }
 function queueAvail(keys){
+  if(isTvLayout()) return;                                   // TV boxes: skip background source checks
   for(const k of keys) if(!availKnown(k)) availPending.add(k);
   if(!availBusy) availFlush();
 }
@@ -1908,7 +1995,7 @@ function viewSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>
     <section class="sset"><h2>תוספים</h2><p class="note" style="margin:0">מקורות הקטלוג והצפייה. <a href="#/addons">ניהול תוספים</a></p></section>
     <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>
-    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.19.0</p></div>`;
+    <p><button class="danger" id="sreset">איפוס לברירת המחדל</button></p><p class="note">המקרן · גרסה 0.20.0</p></div>`;
   $('#app').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
     store.set('settings', settings); applySettings(); viewSettings();
@@ -2038,6 +2125,39 @@ async function route(){
   else viewHome();
 }
 addEventListener('hashchange', route);
+// Remote control (Android TV): text fields stay locked while focus passes over them, so the on-screen
+// keyboard doesn't pop up; OK (Enter) unlocks the field and opens the keyboard.
+function armInput(i){
+  if(i.dataset.tvArmed) return;
+  i.dataset.tvArmed = 1;
+  const lock = () => { if(isTvLayout()) i.readOnly = true; };
+  const unlock = e => {
+    if(!isTvLayout() || !i.readOnly) return;
+    e?.preventDefault();
+    i.readOnly = false;
+    i.focus();
+    window.BoothAndroid?.showKeyboard?.();
+  };
+  lock();
+  i.addEventListener('keydown', e => { if(e.key === 'Enter' && i.readOnly) unlock(e); });
+  i.addEventListener('click', unlock);
+  i.addEventListener('blur', lock);
+}
+const armInputs = root => root.querySelectorAll?.('input[type="search"], input.field:not([type="checkbox"]), #q').forEach(armInput);
+armInputs(document);
+new MutationObserver(muts => { for(const m of muts) for(const n of m.addedNodes) if(n.nodeType === 1) armInputs(n.matches('input') ? n.parentNode : n); })
+  .observe(document.body, {childList: true, subtree: true});
+// Back on the remote/phone: close an open panel or keyboard first (called by the app before going back).
+window.boothBack = () => {
+  const sheet = document.querySelector('.sheet');
+  if(sheet){ sheet.remove(); return true; }
+  if(document.querySelector('.qv')){ closeQuickView(); return true; }
+  const a = document.activeElement;
+  if(a && a.tagName === 'INPUT' && !a.readOnly && isTvLayout()){ a.blur(); return true; }
+  return false;
+};
+// Search key on the remote
+window.boothSearchKey = () => { const q = $('#q'); q.focus(); q.readOnly = false; window.BoothAndroid?.showKeyboard?.(); };
 // Remote control (Android TV): if nothing has focus after a page renders, focus its first item.
 addEventListener('hashchange', () => setTimeout(tvFocus, 900));
 function tvFocus(){
@@ -2046,7 +2166,7 @@ function tvFocus(){
 }
 setTimeout(tvFocus, 2500);
 if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');
-loadAddons().then(route);
+loadAddons().then(() => { route(); setTimeout(loadServices, 3000); });
 </script>
 <div id="tstatus" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:10000;max-width:calc(100vw - 32px);padding:12px 14px 12px 18px;border-radius:12px;background:var(--raise);border:1px solid var(--line);color:var(--light);font:14px/1.4 var(--body);box-shadow:0 8px 28px #0008;align-items:center;gap:14px">
   <span id="tstatusMsg"></span>
