@@ -80,6 +80,8 @@ main{padding:0 28px 60px}
 .poster:hover .art,.poster:focus-visible .art{transform:translateY(-2px)}
 .poster .t{margin-top:8px;font-weight:600;font-size:14px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .poster .y{color:var(--muted);font-size:13px}
+.poster .t .rate{margin-inline-start:6px;font-size:11px;font-weight:600;white-space:nowrap}
+.sortnote{margin:-6px 0 14px;color:var(--muted);font-size:13px}
 .poster .prog{position:absolute;inset-inline-start:0;bottom:0;height:4px;background:var(--tungsten)}
 .noart{display:flex;align-items:center;justify-content:center;padding:12px;text-align:center;font-family:var(--display);color:var(--muted)}
 
@@ -349,7 +351,7 @@ main{padding:0 28px 60px}
 .sortpill:hover,.sortpill:focus-visible{border-color:var(--tungsten)}
 .sortpill.clear{background:none}
 .sortpill.clear::after{content:none}
-[data-layout="tv"] .sortpill{font-size:17px;padding:9px 18px}
+[data-layout="tv"] .sortpill{font-size:15px;padding:6px 14px}
 .sortopts{gap:6px}
 .sopt{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:start;background:var(--surface);border:1px solid var(--line);color:var(--light);border-radius:10px;padding:12px 16px;font:inherit;font-size:16px;cursor:pointer}
 .sopt.on{border-color:var(--tungsten);color:var(--tungsten)}
@@ -379,6 +381,9 @@ main{padding:0 28px 60px}
   font:14px/1.4 var(--body);box-shadow:0 12px 32px #000b}
 .tstat.bad{border-color:var(--velvet)}
 .tstat span{min-width:0}
+.tbar{flex:none;width:84px;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.tbar[hidden]{display:none}
+.tbar i{display:block;height:100%;width:0;background:var(--tungsten);transition:width .4s}
 .tstat button{flex:none;background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:8px 20px;font:600 14px var(--body);cursor:pointer}
 [data-layout="tv"] .tstat{font-size:17px} [data-layout="tv"] .tstat button{font-size:17px;padding:10px 24px}
 
@@ -627,6 +632,24 @@ he: {
   'sort.none': 'אין כותרים שעונים על הסינון הזה. נסה לוותר על אחד התנאים.',
   'qv.continue': '▶ המשך צפייה · נותרו {n} דק׳', 'qv.play': '▶ נגן כעת', 'qv.eps': '▶ לפרקים ולצפייה', 'qv.more': 'פרטים מלאים',
   'qv.loadingSummary': 'טוען תקציר…', 'qv.searching': 'מחפש מקור…', 'qv.noSource': 'לא נמצא מקור - לעמוד המלא', 'qv.noSummary': 'אין תקציר.',
+  'tor.dht': 'מתחבר לרשת הטורנטים… ({nodes} צמתים)', 'tor.meta': 'מקבל את פרטי הטורנט…', 'tor.peers': 'מחפש עמיתים…',
+  'tor.buffer': 'טוען את תחילת הסרט · {got}/{need} MB', 'tor.stats': '{kbs} KB/s · {peers} עמיתים',
+  'tor.err.nopeers': 'אף מחשב לא ענה למקור הזה. נסה מקור עם יותר זורעים.', 'tor.err.empty': 'הטורנט ריק',
+  'tor.err.type': 'סוג טורנט לא נתמך', 'tor.err.start': 'הטורנט לא התחיל',
+  'cats.all': 'הכל', 'cats.movies': 'סרטים', 'cats.series': 'סדרות',
+  'cat.israeli': 'ישראלי', 'cat.kids': 'ילדים', 'cat.docs': 'תיעודי',
+  'cat.row.animation': 'אנימציה', 'cat.row.family': 'לכל המשפחה', 'cat.row.docs': 'תיעודיים',
+  'cat.row.docsPop': 'תיעודיים פופולריים', 'cat.row.docsMore': 'עוד תיעודיים',
+  'row.popular': 'פופולריים', 'row.best': 'הכי טובים', 'row.popularMovies': 'סרטים פופולריים', 'row.popularSeries': 'סדרות פופולריות',
+  'row.newStreamingMovies': 'סרטים חדשים בשירותי הסטרימינג', 'row.newStreamingSeries': 'סדרות חדשות בשירותי הסטרימינג',
+  'row.newStreaming': 'חדשים בשירותי הסטרימינג', 'row.continue': 'המשך צפייה',
+  'row.none': 'אין כרגע.', 'row.empty': 'הקטלוג ריק.',
+  'row.failed': 'לא ניתן לטעון את השורה', 'row.failedCat': 'לא ניתן לטעון את הקטלוג',
+  'row.failedKan': 'לא ניתן לטעון מכאן', 'row.failedR13': 'לא ניתן לטעון מרשת 13',
+  'row.noCatalogs': 'אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.',
+  'hero.details': 'לפרטים',
+  'sort.genre': 'ז׳אנר', 'sort.genre.all': 'כל הז׳אנרים',
+  'sort.summary': '{n} כותרים · מיון: {by} · מקורות: {from}',
 },
 en: {
   'common.close': 'Close', 'common.cancel': 'Cancel', 'common.retry': 'Try again', 'common.loading': 'Loading…',
@@ -699,6 +722,24 @@ en: {
   'sort.none': 'No titles match this filter. Try dropping one of the conditions.',
   'qv.continue': '▶ Continue · {n} min left', 'qv.play': '▶ Play now', 'qv.eps': '▶ Episodes & watching', 'qv.more': 'Full details',
   'qv.loadingSummary': 'Loading summary…', 'qv.searching': 'Finding a source…', 'qv.noSource': 'No source found – open the full page', 'qv.noSummary': 'No summary.',
+  'tor.dht': 'Connecting to the torrent network… ({nodes} nodes)', 'tor.meta': 'Getting the torrent details…', 'tor.peers': 'Looking for peers…',
+  'tor.buffer': 'Loading the start · {got}/{need} MB', 'tor.stats': '{kbs} KB/s · {peers} peers',
+  'tor.err.nopeers': 'No one answered for this source. Try one with more seeders.', 'tor.err.empty': 'The torrent is empty',
+  'tor.err.type': 'Unsupported torrent type', 'tor.err.start': 'The torrent did not start',
+  'cats.all': 'All', 'cats.movies': 'Movies', 'cats.series': 'Series',
+  'cat.israeli': 'Israeli', 'cat.kids': 'Kids', 'cat.docs': 'Documentaries',
+  'cat.row.animation': 'Animation', 'cat.row.family': 'For the whole family', 'cat.row.docs': 'Documentaries',
+  'cat.row.docsPop': 'Popular documentaries', 'cat.row.docsMore': 'More documentaries',
+  'row.popular': 'Popular', 'row.best': 'Top rated', 'row.popularMovies': 'Popular movies', 'row.popularSeries': 'Popular series',
+  'row.newStreamingMovies': 'New movies on streaming services', 'row.newStreamingSeries': 'New series on streaming services',
+  'row.newStreaming': 'New on streaming services', 'row.continue': 'Continue watching',
+  'row.none': 'Nothing right now.', 'row.empty': 'The catalogue is empty.',
+  'row.failed': 'Could not load the row', 'row.failedCat': 'Could not load the catalogue',
+  'row.failedKan': 'Could not load from here', 'row.failedR13': 'Could not load from Reshet 13',
+  'row.noCatalogs': 'No catalogues yet. Install an add-on with catalogues on the <a href="#/addons">Add-ons</a> page.',
+  'hero.details': 'Details',
+  'sort.genre': 'Genre', 'sort.genre.all': 'All genres',
+  'sort.summary': '{n} titles · sort: {by} · sources: {from}',
 },
 };
 let UI = (() => { try{ const l = JSON.parse(localStorage.getItem('booth:settings') || '{}').uiLang; return STRINGS[l] ? l : 'he'; }catch(e){ return 'he'; } })();
@@ -965,11 +1006,11 @@ async function hebrewSearch(q){
 /* ---------- built-in Israeli catalogs (live Wikidata search, cached for a day) ---------- */
 const LOCAL_CATALOGS = [
   // country of origin + original language: language alone also matches Hollywood films with a few lines of Hebrew
-  {id: 'booth.he.movies', type: 'movie', name: 'סרטים ישראליים', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
-  {id: 'booth.he.movies.new', type: 'movie', name: 'סרטים ישראליים חדשים', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'create_timestamp_desc'},
-  {id: 'booth.he.series', type: 'series', name: 'סדרות ישראליות', filter: 'P31=Q5398426', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
-  {id: 'booth.he.comedy', type: 'movie', name: 'קומדיות ישראליות', filter: 'P31=Q11424', extra: 'P136=Q157443', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
-  {id: 'booth.he.comedy.series', type: 'series', name: 'סדרות קומדיה ישראליות', filter: 'P31=Q5398426', extra: 'P136=Q170238|P136=Q859369|P136=Q7696995', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+  {id: 'booth.he.movies', type: 'movie', name: 'Israeli movies', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+  {id: 'booth.he.movies.new', type: 'movie', name: 'New Israeli movies', filter: 'P31=Q11424', lang: 'Q9288', countries: ['Q801'], sort: 'create_timestamp_desc'},
+  {id: 'booth.he.series', type: 'series', name: 'Israeli series', filter: 'P31=Q5398426', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+  {id: 'booth.he.comedy', type: 'movie', name: 'Israeli comedies', filter: 'P31=Q11424', extra: 'P136=Q157443', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
+  {id: 'booth.he.comedy.series', type: 'series', name: 'Israeli comedy series', filter: 'P31=Q5398426', extra: 'P136=Q170238|P136=Q859369|P136=Q7696995', lang: 'Q9288', countries: ['Q801'], sort: 'incoming_links_desc'},
 ];
 async function localCatalog(id){
   const c = LOCAL_CATALOGS.find(x => x.id === id);
@@ -994,19 +1035,31 @@ function catalogFetch(a, type, id, extra){
 }
 
 /* ---------- Hebrew labels for add-on data ---------- */
-const GENRES_HE = {Action: 'אקשן', Adventure: 'הרפתקאות', Animation: 'אנימציה', Anime: 'אנימה', Biography: 'ביוגרפיה',
-  Comedy: 'קומדיה', Crime: 'פשע', Documentary: 'תיעודי', Drama: 'דרמה', Family: 'משפחה', Fantasy: 'פנטזיה',
-  'Film-Noir': 'פילם נואר', 'Game-Show': 'שעשועון', History: 'היסטוריה', Horror: 'אימה', Kids: 'ילדים',
-  Music: 'מוזיקה', Musical: 'מחזמר', Mystery: 'מסתורין', News: 'חדשות', 'Reality-TV': 'ריאליטי', Reality: 'ריאליטי',
-  Romance: 'רומנטיקה', 'Sci-Fi': 'מדע בדיוני', 'Science Fiction': 'מדע בדיוני', Short: 'סרט קצר', Sport: 'ספורט',
-  'Talk-Show': 'תוכנית אירוח', Thriller: 'מותחן', War: 'מלחמה', Western: 'מערבון', 'TV Movie': 'סרט טלוויזיה'};
-const genreHe = g => GENRES_HE[g] || g;
-const typeHe = t => ({movie: 'סרטים', series: 'סדרות', channel: 'ערוצים', tv: 'טלוויזיה'}[t] || t);
-const CATALOG_NAMES_HE = {Popular: 'פופולרי', New: 'חדש', Featured: 'מומלצים',
-  'Netflix Top 10 Movies (Global)': 'Netflix – טופ 10', 'Netflix Top 10 Shows (Global)': 'Netflix – טופ 10',
-  'Popular documentaries': 'תיעודיים פופולריים', 'Israeli films': 'סרטים ישראליים', 'New Israeli films': 'סרטים ישראליים חדשים',
-  'Israeli series': 'סדרות ישראליות'};
-const catalogHe = n => CATALOG_NAMES_HE[n] || n;
+/* Names of what the add-ons describe in English - genres, catalogue titles, types. They are shown as they
+   come unless the interface language has a table for them (English is the source language of the data). */
+const NAMES = {
+  he: {
+    genre: {Action: 'אקשן', Adventure: 'הרפתקאות', Animation: 'אנימציה', Anime: 'אנימה', Biography: 'ביוגרפיה',
+      Comedy: 'קומדיה', Crime: 'פשע', Documentary: 'תיעודי', Drama: 'דרמה', Family: 'משפחה', Fantasy: 'פנטזיה',
+      'Film-Noir': 'פילם נואר', 'Game-Show': 'שעשועון', History: 'היסטוריה', Horror: 'אימה', Kids: 'ילדים',
+      Music: 'מוזיקה', Musical: 'מחזמר', Mystery: 'מסתורין', News: 'חדשות', 'Reality-TV': 'ריאליטי', Reality: 'ריאליטי',
+      Romance: 'רומנטיקה', 'Sci-Fi': 'מדע בדיוני', 'Science Fiction': 'מדע בדיוני', Short: 'סרט קצר', Sport: 'ספורט',
+      'Talk-Show': 'תוכנית אירוח', Thriller: 'מותחן', War: 'מלחמה', Western: 'מערבון', 'TV Movie': 'סרט טלוויזיה'},
+    type: {movie: 'סרטים', series: 'סדרות', channel: 'ערוצים', tv: 'טלוויזיה'},
+    catalog: {Popular: 'פופולרי', New: 'חדש', Featured: 'מומלצים',
+      'Netflix Top 10 Movies (Global)': 'Netflix – טופ 10', 'Netflix Top 10 Shows (Global)': 'Netflix – טופ 10',
+      'Popular documentaries': 'תיעודיים פופולריים', 'Israeli films': 'סרטים ישראליים', 'New Israeli films': 'סרטים ישראליים חדשים',
+      'Israeli series': 'סדרות ישראליות', 'Israeli movies': 'סרטים ישראליים', 'New Israeli movies': 'סרטים ישראליים חדשים',
+      'Israeli comedies': 'קומדיות ישראליות', 'Israeli comedy series': 'סדרות קומדיה ישראליות'},
+  },
+  en: {type: {movie: 'Movies', series: 'Series', channel: 'Channels', tv: 'TV'}},
+};
+const nameOf = (kind, s) => NAMES[UI]?.[kind]?.[s] ?? s;
+const genreName = g => nameOf('genre', g);
+const typeName = t => nameOf('type', t);
+const catalogName = n => nameOf('catalog', n);
+/** Where a catalogue comes from, for people: the built-in ones are Wikidata searches. */
+const srcName = a => a.local ? 'Wikidata' : a.manifest.name;
 
 /* ---------- lazy images: posters load only when they come near the screen (big win on TV boxes) ---------- */
 const bgObserver = new IntersectionObserver(entries => {
@@ -1067,13 +1120,18 @@ async function loadServices(){
 /* ---------- sorting and filtering ----------
    Real IMDb ratings and years come with the catalogue itself, so a category can be re-ordered
    without asking anything else: one tap per choice, and the rows become one ranked grid. */
+const GENRES = ['Comedy', 'Action', 'Drama', 'Thriller', 'Horror', 'Sci-Fi', 'Romance', 'Animation', 'Family', 'Crime', 'Adventure',
+  'Fantasy', 'Documentary', 'Mystery', 'History', 'War', 'Music', 'Sport', 'Western'];
 const SORT_GROUPS = [
-  {key: 'by', label: 'sort.by', opts: [['pop', 'sort.by.pop'], ['rating', 'sort.by.rating'], ['year', 'sort.by.year'], ['az', 'sort.by.az']]},
+  {key: 'genre', label: 'sort.genre', opts: [['', 'sort.genre.all'], ...GENRES.map(g => [g, ''])]},
   {key: 'year', label: 'sort.year', opts: [['', 'sort.year.all'], ['2020', 'sort.year.2020'], ['2010', 'sort.year.2010'], ['2000', 'sort.year.2000'], ['old', 'sort.year.old']]},
   {key: 'rate', label: 'sort.rate', opts: [['', 'sort.rate.all'], ['7', 'sort.rate.7'], ['8', 'sort.rate.8']]},
+  {key: 'by', label: 'sort.by', opts: [['pop', 'sort.by.pop'], ['rating', 'sort.by.rating'], ['year', 'sort.by.year'], ['az', 'sort.by.az']]},
 ];
-let sortState = Object.assign({by: 'pop', year: '', rate: ''}, store.get('sort', {}));
-const sortActive = () => sortState.by !== 'pop' || !!sortState.year || !!sortState.rate;
+/** The words of one choice: genres come from the names table, everything else from the strings. */
+const optLabel = (g, [v, n]) => g.key === 'genre' && v ? genreName(v) : tr(n);
+let sortState = Object.assign({genre: '', by: 'pop', year: '', rate: ''}, store.get('sort', {}));
+const sortActive = () => sortState.by !== 'pop' || !!sortState.year || !!sortState.rate || !!sortState.genre;
 const yearOfMeta = m => +String(m.year || m.releaseInfo || '').slice(0, 4) || 0;
 const rateOf = m => parseFloat(m.imdbRating) || 0;
 
@@ -1081,7 +1139,7 @@ const rateOf = m => parseFloat(m.imdbRating) || 0;
 function sortBar(){
   const pills = SORT_GROUPS.map(g => {
     const cur = g.opts.find(([v]) => v === sortState[g.key]) || g.opts[0];
-    return `<button class="sortpill${sortState[g.key] !== g.opts[0][0] ? ' on' : ''}" data-sk="${g.key}" aria-haspopup="dialog"><span>${tr(g.label)}</span><b>${tr(cur[1])}</b></button>`;
+    return `<button class="sortpill${sortState[g.key] !== g.opts[0][0] ? ' on' : ''}" data-sk="${g.key}" aria-haspopup="dialog"><span>${tr(g.label)}</span><b>${esc(optLabel(g, cur))}</b></button>`;
   }).join('');
   return `<div class="sortbar" role="group" aria-label="${esc(tr('sort.aria'))}">${pills}${sortActive() ? `<button class="sortpill clear" data-sclear>${tr('sort.clear')}</button>` : ''}</div>`;
 }
@@ -1089,7 +1147,7 @@ function sortBar(){
 function wireSortBar(redraw){
   document.querySelectorAll('.sortpill[data-sk]').forEach(b => b.onclick = () => openSortSheet(b.dataset.sk, redraw));
   const clear = document.querySelector('[data-sclear]');
-  if(clear) clear.onclick = () => { sortState = {by: 'pop', year: '', rate: ''}; store.set('sort', sortState); redraw(); };
+  if(clear) clear.onclick = () => { sortState = {genre: '', by: 'pop', year: '', rate: ''}; store.set('sort', sortState); redraw(); };
 }
 /** The choices of one subject, in a sheet the remote stays inside (Back closes it). */
 function openSortSheet(key, redraw){
@@ -1097,7 +1155,7 @@ function openSortSheet(key, redraw){
   const sheet = document.createElement('div');
   sheet.className = 'sheet';
   sheet.innerHTML = `<div role="dialog" aria-label="${esc(tr(g.label))}"><header><b>${tr(g.label)}</b><button aria-label="${esc(tr('common.close'))}">✕</button></header>
-    <div class="body sortopts">${g.opts.map(([v, n]) => `<button class="sopt${sortState[key] === v ? ' on' : ''}" data-v="${v}">${tr(n)}</button>`).join('')}</div></div>`;
+    <div class="body sortopts">${g.opts.map(([v, n]) => `<button class="sopt${sortState[key] === v ? ' on' : ''}" data-v="${v}">${esc(optLabel(g, [v, n]))}</button>`).join('')}</div></div>`;
   document.body.appendChild(sheet);
   sheet.onclick = e => { if(e.target === sheet) sheet.remove(); };
   sheet.querySelector('header button').onclick = () => sheet.remove();
@@ -1110,9 +1168,10 @@ function openSortSheet(key, redraw){
 }
 /** Apply the current choice to a list of titles. */
 function applySort(list){
-  const {by, year, rate} = sortState;
+  const {by, year, rate, genre} = sortState;
   let out = list.filter(m => {
     const y = yearOfMeta(m);
+    if(genre && !(m.genres || m.genre || []).includes(genre)) return false;
     if(year === '2020' && y < 2020) return false;
     if(year === '2010' && (y < 2010 || y > 2019)) return false;
     if(year === '2000' && (y < 2000 || y > 2009)) return false;
@@ -1126,21 +1185,34 @@ function applySort(list){
   return out;
 }
 
-/** Everything a set of rows holds, as one grid: used when a sort or a filter is on. */
-async function gridFrom(rows, heading){
+/** Everything a set of rows holds, as one ranked grid: used whenever a filter or a sort is on. A genre widens
+    the set with that genre's popular and top-rated titles, so it works from any page. [redraw] shows the page again. */
+async function gridFrom(rows, heading, redraw){
   const app = $('#app');
-  app.innerHTML = `<div class="page"><h1>${esc(heading)}</h1>${sortBar()}<div class="grid" id="grid">${skeletons(18)}</div></div>`;
-  wireSortBar(() => gridFrom(rows, heading));
-  const lists = await Promise.all(rows.filter(x => x.a && x.c).map(x =>
+  const all = withGenreRows(rows);
+  app.innerHTML = `<div class="page"><h1>${esc(heading)}</h1>${sortBar()}<p class="sortnote" id="gnote"></p><div class="grid" id="grid">${skeletons(18)}</div></div>`;
+  wireSortBar(redraw);
+  const lists = await Promise.all(all.filter(x => x.a && x.c).map(x =>
     catalogFetch(x.a, x.c.type, x.c.id, x.extra).then(d => d.metas || []).catch(() => [])));
-  const seen = new Set(), all = [];
-  for(const l of lists) for(const m of l) if(!seen.has(m.id)){ seen.add(m.id); all.push(m); }
+  const seen = new Set(), metas = [];
+  for(const l of lists) for(const m of l) if(!seen.has(m.id)){ seen.add(m.id); metas.push(m); }
   const grid = $('#grid');
   if(!grid) return;
-  const out = applySort(all);
-  grid.innerHTML = out.length ? out.slice(0, 200).map(card).join('')
-    : `<p class="note">${tr('sort.none')}</p>`;
+  const out = applySort(metas);
+  grid.innerHTML = out.length ? out.slice(0, 200).map(card).join('') : `<p class="note">${tr('sort.none')}</p>`;
+  const by = SORT_GROUPS.find(g => g.key === 'by');
+  $('#gnote').textContent = tr('sort.summary', {n: Math.min(out.length, 200), by: optLabel(by, by.opts.find(([v]) => v === sortState.by)),
+    from: [...new Set(all.filter(x => x.a).map(x => srcName(x.a)))].join(', ')});
   lazyBg(grid);
+}
+/** A chosen genre adds Cinemeta's popular and top-rated titles of that genre to whatever the page holds. */
+function withGenreRows(rows){
+  const cm = sortState.genre && addons.find(a => a.manifest.id === CINEMETA_ID);
+  if(!cm) return rows;
+  const extra = [];
+  for(const id of ['top', 'imdbRating']) for(const c of cm.manifest.catalogs || [])
+    if(c.id === id) extra.push({a: cm, c, extra: `genre=${encodeURIComponent(sortState.genre)}`});
+  return [...rows, ...extra];
 }
 
 /* ---------- cards ---------- */
@@ -1156,23 +1228,24 @@ function card(m){
   const name = heTitle(m.id, m.name);
   const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';
   const none = key && typeof avail !== 'undefined' && isNoSrc(avail[key]);
-  const rating = m.imdbRating ? ` · <span class="rate">★ ${esc(m.imdbRating)}</span>` : '';
-  return `<a class="poster${none ? ' nosrc' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t" data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</div><div class="y">${esc(yearOf(m))}${rating}</div></a>`;
+  const rating = m.imdbRating ? `<small class="rate" title="IMDb">★ ${esc(m.imdbRating)}</small>` : '';
+  return `<a class="poster${none ? ' nosrc' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t"><span data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</span>${rating}</div><div class="y">${esc(yearOf(m))}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
 /* ---------- views ---------- */
 /* ---------- categories ---------- */
 const SC_ID = 'pw.ers.netflix-catalog', BOOTH_ID = 'org.booth.catalogs', CINEMETA_ID = 'com.linvo.cinemeta';
-// rows: [add-on id, catalog id (or pattern), extra args, title override]
+// rows: [add-on id, catalog id (or pattern), extra args, title (a strings key)]. These are collections of
+// their own; a genre is not one - it is a filter (the Genre pill), and works inside every collection.
+// [prefix]: the collection's name is put before its rows' titles on the home page.
 const CATEGORIES = [
-  {id: 'israeli', name: 'ישראלי', rows: [[BOOTH_ID, 'booth.he.movies'], [BOOTH_ID, 'booth.he.series'], [BOOTH_ID, 'booth.he.comedy'],
+  {id: 'israeli', rows: [[BOOTH_ID, 'booth.he.movies'], [BOOTH_ID, 'booth.he.series'], [BOOTH_ID, 'booth.he.comedy'],
     [BOOTH_ID, 'booth.he.comedy.series'], [BOOTH_ID, 'booth.he.movies.new']]},
-  {id: 'comedy', name: 'קומדיה', rows: [[CINEMETA_ID, 'top', 'genre=Comedy', 'קומדיות פופולריות'], [BOOTH_ID, 'booth.he.comedy'],
-    [BOOTH_ID, 'booth.he.comedy.series'], [CINEMETA_ID, 'imdbRating', 'genre=Comedy', 'הקומדיות הכי טובות']]},
-  {id: 'kids', name: 'ילדים', rows: [[CINEMETA_ID, 'top', 'genre=Animation', 'אנימציה'], [CINEMETA_ID, 'top', 'genre=Family', 'לכל המשפחה']]},
-  {id: 'docs', name: 'תיעודי', rows: [[SC_ID, 'cts', undefined, 'תיעודיים'], [CINEMETA_ID, 'top', 'genre=Documentary', 'תיעודיים פופולריים'], [SC_ID, 'mgl', undefined, 'עוד תיעודיים']]},
+  {id: 'kids', prefix: true, rows: [[CINEMETA_ID, 'top', 'genre=Animation', 'cat.row.animation'], [CINEMETA_ID, 'top', 'genre=Family', 'cat.row.family']]},
+  {id: 'docs', rows: [[SC_ID, 'cts', undefined, 'cat.row.docs'], [CINEMETA_ID, 'top', 'genre=Documentary', 'cat.row.docsPop'], [SC_ID, 'mgl', undefined, 'cat.row.docsMore']]},
 ];
+const catName = c => tr('cat.' + c.id);
 // "New on the streaming services": every service's catalogue merged into one row per type (services show as badges).
 const STREAMING = ['nfx', 'atp', 'dnp', 'amp', 'hbm', 'pmp'];
 const mergedRow = (type, title) => ({merge: STREAMING, type, title});
@@ -1277,7 +1350,7 @@ async function viewR13Series(sid, title){
           <small dir="auto">${esc(r13meta(o, 'ShortSummary') || o.description || '')}</small></span></button>`).join('');
     };
     draw();
-  }catch(e){ showErr($('#eps'), 'לא ניתן לטעון מרשת 13', e, () => viewR13Series(sid, title)); }
+  }catch(e){ showErr($('#eps'), tr('row.failedR13'), e, () => viewR13Series(sid, title)); }
 }
 
 /* ---------- Kan BOX (kan.org.il) — the public website's pages; episodes are plain HLS ---------- */
@@ -1357,7 +1430,7 @@ async function viewKanProgram(path, title){
     };
     draw();
     await load(cur);
-  }catch(e){ showErr($('#eps'), 'לא ניתן לטעון מכאן', e, () => viewKanProgram(path, title)); }
+  }catch(e){ showErr($('#eps'), tr('row.failedKan'), e, () => viewKanProgram(path, title)); }
 }
 
 /** Episode page -> its HLS URL (no DRM). */
@@ -1548,7 +1621,7 @@ function quickPick(type, videoId){
 /** The sensible default: 1080p when its file is small enough to stream, else the best-ranked. */
 function bestForNow(list){
   const ok = list.filter(x => x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a));
-  const fits = x => !x.size || x.size < 8 * GB;               // big enough files stall when streamed
+  const fits = x => !x.size || x.size < 5 * GB;               // big files start slowly and stall when streamed
   return ok.find(x => x.q === '1080p' && fits(x)) || ok.find(fits) || ok[0] || null;
 }
 
@@ -1565,7 +1638,7 @@ async function openQuickView(card){
   const href = card.getAttribute('href');
   const [, , type, idEnc] = href.split('/');
   const id = decodeURIComponent(idEnc);
-  const name = card.querySelector('.t')?.textContent || '';
+  const name = card.querySelector('[data-heid]')?.textContent || card.querySelector('.t')?.textContent || '';
   warmSources(type, type === 'series' ? `${id}:1:1` : id);
   const sheet = document.createElement('div');
   sheet.className = 'sheet titleSheet';
@@ -1615,7 +1688,7 @@ async function openQuickView(card){
     sheet.querySelector('header b').textContent = heTitle(meta.id, meta.name);
     sheet.querySelector('.facts').innerHTML = svcFacts(id) + [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`,
       yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`, meta.runtime && `<span>${esc(meta.runtime)}</span>`,
-      ...(meta.genres || meta.genre || []).slice(0, 3).map(g => `<span>${esc(genreHe(g))}</span>`)].filter(Boolean).join('');
+      ...(meta.genres || meta.genre || []).slice(0, 3).map(g => `<span>${esc(genreName(g))}</span>`)].filter(Boolean).join('');
   }
   const desc = sheet.querySelector('.qvdesc');
   desc.classList.remove('note');
@@ -1735,25 +1808,13 @@ async function viewMakoProgram(path, title){
   }
 }
 
-/* ---------- genres page ---------- */
-const GENRE_TILES = [['Comedy', '😂'], ['Action', '💥'], ['Drama', '🎭'], ['Thriller', '🔪'], ['Horror', '👻'], ['Sci-Fi', '🚀'],
-  ['Romance', '💕'], ['Animation', '🎨'], ['Family', '👨‍👩‍👧'], ['Crime', '🕵️'], ['Adventure', '🗺️'], ['Fantasy', '🐉'],
-  ['Documentary', '🎥'], ['Mystery', '🔍'], ['History', '📜'], ['War', '⚔️'], ['Music', '🎵'], ['Sport', '⚽'], ['Western', '🤠']];
-function viewGenres(){
-  renderCats('genres');
-  $('#app').innerHTML = `<div class="page"><h1>ז׳אנרים</h1><div class="genres">${GENRE_TILES.map(([g, icon]) =>
-    `<a href="#/genre/${encodeURIComponent(g)}"><span aria-hidden="true">${icon}</span>${esc(genreHe(g))}</a>`).join('')}</div></div>`;
-}
+/* Genres used to be a page of their own beside the collections. They are a filter now (the Genre pill on every
+   listing), so old links simply land on the home page with that genre chosen. */
+function viewGenres(){ viewHome(); }
 function viewGenre(g){
-  renderCats('genres');
-  const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
-  if(!cm) return viewGenres();
-  const rows = [];
-  for(const id of ['top', 'imdbRating']) for(const c of cm.manifest.catalogs || []) if(c.id === id)
-    rows.push({a: cm, c, extra: `genre=${encodeURIComponent(g)}`, title: `${genreHe(g)} · ${id === 'top' ? 'פופולרי' : 'הכי טובים'}`});
-  if(sortActive()) return gridFrom(rows, genreHe(g));
-  renderRows(rows, {hero: false, heading: genreHe(g), top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
-  wireSortBar(() => viewGenre(g));
+  sortState.genre = GENRES.includes(g) ? g : '';
+  store.set('sort', sortState);
+  viewHome();
 }
 
 /** Resolve a category's row specs against the installed add-ons. */
@@ -1765,7 +1826,7 @@ function rowsFor(cat){
     const a = addons.find(x => x.manifest.id === aid);
     if(!a) continue;
     for(const c of a.manifest.catalogs || [])
-      if(cid instanceof RegExp ? cid.test(c.id) : c.id === cid) out.push({a, c, extra, title: title || catalogHe(c.name)});
+      if(cid instanceof RegExp ? cid.test(c.id) : c.id === cid) out.push({a, c, extra, title: title ? tr(title) : catalogName(c.name)});
   }
   return out;
 }
@@ -1783,21 +1844,30 @@ function renderCats(active){
   if(active == null) return;
   if(settings.kids === 'on'){ nav.hidden = true; document.body.classList.remove('railed'); return; }
   const avail = userCategories().filter(c => rowsFor(c).length);
-  nav.innerHTML = [`<a href="#/" class="${active === 'home' ? 'on' : ''}">הכל</a>`,
-    ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}"><bdi>${esc(c.name)}</bdi></a>`),
-    `<a href="#/genres" class="${active === 'genres' ? 'on' : ''}">ז׳אנרים</a>`].join('');
+  // what you are browsing: everything, one type, or a collection - the pills on the page refine it
+  nav.innerHTML = [`<a href="#/" class="${active === 'home' ? 'on' : ''}">${tr('cats.all')}</a>`,
+    `<a href="#/cat/movies" class="${active === 'movies' ? 'on' : ''}">${tr('cats.movies')}</a>`,
+    `<a href="#/cat/series" class="${active === 'series' ? 'on' : ''}">${tr('cats.series')}</a>`,
+    ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}"><bdi>${esc(catName(c))}</bdi></a>`)].join('');
   nav.querySelector('.on')?.scrollIntoView({inline: 'center', block: 'nearest'});
   if(hadFocus) nav.querySelector('.on')?.focus({preventScroll: true});
 }
 
+/** After a row's title, quietly: what it holds and where it comes from (a catalogue's add-on, or the services merged in it). */
+const rowTag = x => {
+  const parts = [];
+  if(x.merge) parts.push(x.merge.map(id => SERVICES[id]).join(' · '));
+  else if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); parts.push(srcName(x.a)); }
+  return parts.length ? ` <small>${esc(parts.join(' · '))}</small>` : '';
+};
 /** Hero + "continue watching" + a row per catalog; rows load in parallel. */
 function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {}){
   const app = $('#app');
   app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
     ${top}
-    ${cont.length ? `<div class="row"><h2>המשך צפייה</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${x.r13 || x.kan || x.merge || /סרט|סדר/.test(x.title) ? '' : ` <small>${esc(typeHe(x.c.type))}</small>`}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
-    ${!rows.length ? `<p class="note">אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.</p>` : ''}`;
+    ${cont.length ? `<div class="row"><h2>${tr('row.continue')}</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${!rows.length ? `<p class="note">${tr('row.noCatalogs')}</p>` : ''}`;
   let heroDone = !hero;
   // Each title appears once per page: it stays in the first (highest) row that has it.
   const claimed = new Map();
@@ -1823,31 +1893,43 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
         }));
         const merged = [];                                   // round-robin so every service is represented
         for(let k = 0; merged.length < 200 && lists.some(l => l[k]); k++) for(const l of lists) if(l[k] && !merged.some(m => m.id === l[k].id)) merged.push(l[k]);
-        if(el) el.innerHTML = dedupe(i, merged).slice(0, rowMax()).map(card).join('') || '<p class="note">אין כרגע.</p>';
-      }catch(e){ showErr(el, 'לא ניתן לטעון את השורה', e, again); }
+        if(el) el.innerHTML = dedupe(i, merged).slice(0, rowMax()).map(card).join('') || `<p class="note">${tr('row.none')}</p>`;
+      }catch(e){ showErr(el, tr('row.failed'), e, again); }
       return;
     }
     if(x.kan){
       try{
         const secs = await kanBox();
         const sec = secs.find(z => x.kan.test(z.title));
-        el.innerHTML = sec ? sec.items.slice(0, rowMax()).map(kanCard).join('') : '<p class="note">אין כרגע.</p>';
-      }catch(e){ showErr(el, 'לא ניתן לטעון מכאן', e, again); }
+        el.innerHTML = sec ? sec.items.slice(0, rowMax()).map(kanCard).join('') : `<p class="note">${tr('row.none')}</p>`;
+      }catch(e){ showErr(el, tr('row.failedKan'), e, again); }
       return;
     }
     if(x.r13){
-      try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || '<p class="note">אין כרגע.</p>'; }
-      catch(e){ showErr(el, 'לא ניתן לטעון מרשת 13', e, again); }
+      try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || `<p class="note">${tr('row.none')}</p>`; }
+      catch(e){ showErr(el, tr('row.failedR13'), e, again); }
       return;
     }
     try{
       const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
       const metas = d.metas || [];
-      if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || '<p class="note">הקטלוג ריק.</p>';
+      if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || `<p class="note">${tr('row.empty')}</p>`;
       if(!heroDone && metas.length){ heroDone = true; renderHero(metas.find(m => m.background) || metas[0]); }
-    }catch(e){ showErr(el, 'לא ניתן לטעון את הקטלוג', e, again); }
+    }catch(e){ showErr(el, tr('row.failedCat'), e, again); }
   };
   rows.forEach((x, i) => fillRow(x, i));
+}
+
+/** Movies and Series: the same catalogues, one type at a time. */
+function typeRows(type){
+  const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
+  const rows = [];
+  if(cm) for(const id of ['top', 'imdbRating']) for(const c of cm.manifest.catalogs || [])
+    if(c.id === id && c.type === type) rows.push({a: cm, c, title: tr(id === 'top' ? 'row.popular' : 'row.best'), notype: true});
+  if(addons.some(a => a.manifest.id === SC_ID)) rows.push({...mergedRow(type, tr('row.newStreaming')), notype: true});
+  const local = addons.find(a => a.manifest.id === BOOTH_ID);
+  if(local) for(const c of local.manifest.catalogs || []) if(c.type === type) rows.push({a: local, c, title: catalogName(c.name)});
+  return rows;
 }
 
 async function viewHome(){
@@ -1855,43 +1937,47 @@ async function viewHome(){
   // Cinemeta's popular rows, then the first row of every category.
   if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')), {hero: false});
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
-  const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: c.type === 'movie' ? 'סרטים פופולריים' : 'סדרות פופולריות'})) : [];
-  if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', 'סרטים חדשים בשירותי הסטרימינג'), mergedRow('series', 'סדרות חדשות בשירותי הסטרימינג'));
+  const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: tr(c.type === 'movie' ? 'row.popularMovies' : 'row.popularSeries'), notype: true})) : [];
+  if(addons.some(a => a.manifest.id === SC_ID)) rows.push({...mergedRow('movie', tr('row.newStreamingMovies')), notype: true}, {...mergedRow('series', tr('row.newStreamingSeries')), notype: true});
   for(const cat of userCategories()){
     const r = rowsFor(cat);
-    // "קומדיה · קומדיות…" says it twice: prefix the category only when the row title doesn't already
-    if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: x.title.includes(cat.name.slice(0, 4)) ? x.title : `${cat.name} · ${x.title}`})));
+    if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: cat.prefix ? `${catName(cat)} · ${x.title}` : x.title})));
   }
   if(!rows.length) for(const a of addons) for(const c of a.manifest.catalogs || []){
     if((c.extra||[]).some(e => e.isRequired) || (c.extraRequired||[]).length) continue;
-    if(rows.length < 8) rows.push({a, c, title: catalogHe(c.name) || c.id});
+    if(rows.length < 8) rows.push({a, c, title: catalogName(c.name) || c.id});
   }
+  if(sortActive()) return gridFrom(rows, tr('cats.all'), viewHome);
   const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
-  renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, hero: settings.layout === 'cinema'});
+  renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, hero: settings.layout === 'cinema', top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
+  wireSortBar(viewHome);
 }
 
 function viewCategory(id){
+  const type = id === 'movies' ? 'movie' : id === 'series' ? 'series' : null;
   const cat = CATEGORIES.find(c => c.id === id);
-  if(!cat) return viewHome();
+  if(!type && !cat) return viewHome();
   renderCats(id);
-  const rows = rowsFor(cat);
-  if(sortActive()) return gridFrom(rows, cat.name);
-  renderRows(rows, {hero: false, top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
-  wireSortBar(() => viewCategory(id));
+  const rows = type ? typeRows(type) : rowsFor(cat);
+  const name = type ? tr('cats.' + id) : catName(cat);
+  const redraw = () => viewCategory(id);
+  if(sortActive()) return gridFrom(rows, name, redraw);
+  renderRows(rows, {hero: false, heading: name, top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
+  wireSortBar(redraw);
 }
 
 function renderHero(m){
   const h = $('#hero'); if(!h) return;
   h.innerHTML = `<div class="bg" style="background-image:url('${esc(m.background || m.poster)}')"></div><div class="beam"></div>
     <div class="copy"><h1 data-heid="${esc(m.id)}" dir="auto">${esc(heTitle(m.id, m.name))}</h1><p dir="auto">${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
-    <a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">לפרטים</a></div>`;
+    <a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${tr('hero.details')}</a></div>`;
 }
 
 async function viewSearch(q){
   $('#q').value = q;
   const app = $('#app');
   const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => (c.extra||[]).some(e => e.name === 'search') || (c.extraSupported||[]).includes('search')).map(c => ({a, c})));
-  app.innerHTML = `<div class="page"><h1>תוצאות עבור „${esc(q)}”</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(typeHe(x.c.type))} <small>${esc(x.a.manifest.name)}</small></h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || '<p class="note">אף אחד מהתוספים שלך לא תומך בחיפוש.</p>'}</div>`;
+  app.innerHTML = `<div class="page"><h1>תוצאות עבור „${esc(q)}”</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(typeName(x.c.type))} <small>${esc(x.a.manifest.name)}</small></h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || '<p class="note">אף אחד מהתוספים שלך לא תומך בחיפוש.</p>'}</div>`;
   if(hasHebrew(q)){
     app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>בעברית <small>Wikidata</small></h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
     hebrewSearch(q).then(ms => { $('#sHe').innerHTML = ms.map(card).join('') || '<p class="note">לא נמצאו תוצאות.</p>'; })
@@ -1935,7 +2021,7 @@ async function viewDetail(type, id){
       <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
       <div class="dinfo">
         <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig" dir="ltr">${esc(meta.name)}</span>` : ''}</h1>
-        <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreHe(g))}</span>`).join('')}</div>
+        <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
         <div class="playrow"><span id="streams" class="psrc"><span class="srcstat">${tr('src.searching')}</span></span>
           <button class="btn ghost ${saved?'saved':''}" id="lib">${libLabel(saved)}</button>
           ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">${tr('detail.trailer')}</button>` : ''}</div>
@@ -2036,8 +2122,11 @@ function rank(x){
   if(x.direct) return 1e9;
   const seeds = x.seeds ?? 0;
   if(seeds < 1) return -1;
-  const quality = {'1080p': 1, '720p': .85, '4K': .75, 'SD': .45, 'Other': .35}[x.q] ?? .3;
-  const size = x.size && x.size > 20 * GB ? .5 : 1;        // huge remuxes stall when streamed
+  const quality = {'1080p': 1, '720p': .92, '4K': .6, 'SD': .45, 'Other': .35}[x.q] ?? .3;
+  // A stream starts when the first piece has arrived, and pieces grow with the file: a small file starts
+  // sooner (and huge remuxes stall), so size counts against a source as well as seeders for it.
+  const gb = x.size ? x.size / GB : 0;
+  const size = !gb || gb <= 3 ? 1 : gb <= 6 ? .85 : gb <= 12 ? .6 : .35;
   return Math.log10(seeds + 1) * quality * size;
 }
 
@@ -2649,7 +2738,7 @@ function paintSettings(){
     home: () => `<section class="sset"><h2>${tr('set.home.title')}</h2>
       <p class="note" style="margin:0 0 10px">${tr('set.home.note')}</p>
       <div class="catorder">${ordered.map((c, i) => `<div>
-        <label><input type="checkbox" data-cat="${c.id}" ${hidden.has(c.id) ? '' : 'checked'}><bdi>${esc(c.name)}</bdi></label>
+        <label><input type="checkbox" data-cat="${c.id}" ${hidden.has(c.id) ? '' : 'checked'}><bdi>${esc(catName(c))}</bdi></label>
         <button data-up="${i}" aria-label="${esc(tr('set.home.up'))}" ${i ? '' : 'disabled'}>▲</button><button data-down="${i}" aria-label="${esc(tr('set.home.down'))}" ${i < ordered.length - 1 ? '' : 'disabled'}>▼</button></div>`).join('')}</div></section>`,
 
     live: () => `<section class="sset"><h2>RaspberryTV</h2>
@@ -3135,7 +3224,6 @@ function parentHash(){
   if(!r) return null;                                                  // home
   if(['r13', 'kan', 'mako'].includes(r)) return '#/tv';
   if(r === 'addons') return '#/settings';
-  if(r === 'genre') return '#/genres';
   if(r === 'detail') return listHash;
   return '#/';
 }
@@ -3172,19 +3260,38 @@ addEventListener('visibilitychange', () => { if(document.visibilityState === 'vi
 </script>
 <div id="tstatus" role="status" aria-live="polite" class="tstat">
   <span id="tstatusMsg"></span>
+  <span class="tbar" id="tbar" hidden><i id="tbarFill"></i></span>
   <button id="tstatusBtn"></button>
 </div>
 <script>
 // Torrent progress from the Android engine. Empty message hides the bar.
-window.boothTorrentStatus = (msg, isError) => {
-  const bar = document.getElementById('tstatus');
-  document.getElementById('tstatusMsg').textContent = msg;
-  bar.style.display = msg ? 'flex' : 'none';
-  bar.classList.toggle('bad', !!isError);
-  const btn = document.getElementById('tstatusBtn');
-  btn.textContent = isError ? tr('common.close') : tr('common.cancel');
-  btn.onclick = () => { if (!isError && window.BoothAndroid) BoothAndroid.cancelTorrent(); bar.style.display = 'none'; tvFocus(); };
-  if(msg) btn.focus();                                // the way out is the first thing the remote holds
+/** The engine reports JSON phases ("e:<code>" for a failure); the words, and the language, are the page's. */
+function torrentText(raw, isError){
+  if(!raw || raw[0] !== '{') return {msg: isError && /^e:\w+$/.test(raw || '') ? tr('tor.err.' + raw.slice(2)) : raw, frac: null};
+  const o = JSON.parse(raw), mb = b => (b / 1048576).toFixed(1);
+  if(o.p === 'dht') return {msg: tr('tor.dht', o), frac: null};
+  if(o.p === 'meta') return {msg: tr('tor.meta'), frac: null};
+  if(!o.peers) return {msg: tr('tor.peers'), frac: null};
+  return {msg: `${tr('tor.buffer', {got: mb(o.got), need: mb(o.need)})} · ${tr('tor.stats', o)}`, frac: o.need ? Math.min(1, o.got / o.need) : null};
+}
+let tstatTimer = 0;
+window.boothTorrentStatus = (raw, isError) => {
+  const bar = document.getElementById('tstatus'), btn = document.getElementById('tstatusBtn');
+  const {msg, frac} = torrentText(raw, isError);
+  clearTimeout(tstatTimer);
+  if(!msg){ bar.style.display = 'none'; delete bar.dataset.held; return; }
+  const paint = () => {
+    document.getElementById('tstatusMsg').textContent = msg;
+    const track = document.getElementById('tbar');
+    track.hidden = frac == null;
+    if(frac != null) document.getElementById('tbarFill').style.width = (frac * 100).toFixed(0) + '%';
+    bar.classList.toggle('bad', !!isError);
+    btn.textContent = isError ? tr('common.close') : tr('common.cancel');
+    btn.onclick = () => { if (!isError && window.BoothAndroid) BoothAndroid.cancelTorrent(); bar.style.display = 'none'; delete bar.dataset.held; tvFocus(); };
+  };
+  const show = () => { paint(); bar.style.display = 'flex'; if(!bar.dataset.held || isError){ btn.focus(); bar.dataset.held = 1; } };
+  // a wait shorter than a second needs no announcement; a failure always does
+  if(bar.style.display === 'flex' || isError) show(); else tstatTimer = setTimeout(show, 900);
 };
 </script>
 </body>

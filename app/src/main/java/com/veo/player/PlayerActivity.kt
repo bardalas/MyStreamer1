@@ -9,9 +9,10 @@ import android.view.GestureDetector
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.widget.HorizontalScrollView
+import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.annotation.OptIn
@@ -57,11 +58,13 @@ class PlayerActivity : AppCompatActivity() {
     private var retries = 0
     /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
     private val watchId get() = intent.getStringExtra("vid") ?: ""
-    /** Channel bar (live TV): which channel the viewer is pointing at while it is open. */
+    /** Live TV: while Up/Down page through the channels, [barIndex] is the one pointed at (the video does not change until OK). */
+    private var browsing = false
     private var barIndex = 0
-    private val barOpen get() = findViewById<View>(R.id.chScroll).visibility == View.VISIBLE
-    /** The channel the banner describes: the one being pointed at while the list is open, else the one playing. */
-    private val shownIndex get() = if (barOpen) barIndex else index
+    /** The channel the banner describes: the one being pointed at while paging, else the one playing. */
+    private val shownIndex get() = if (browsing) barIndex else index
+    /** OK is decided on release, so that holding it can mean something else. */
+    private var okLong = false
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,12 +103,10 @@ class PlayerActivity : AppCompatActivity() {
             findViewById<View>(R.id.chDown).setOnClickListener { zapBy(1) }
         }
 
-        if (sources.size > 1) buildChannelBar()
-
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) {
             subs = emptyList()
-            if (live) showBanner(withList = false) else showOsd()    // the banner introduces the channel
+            if (live) showBanner(browse = false) else showOsd()      // the banner introduces the channel
             return
         }
 
@@ -259,14 +260,15 @@ class PlayerActivity : AppCompatActivity() {
         }
         findViewById<TextView>(R.id.infoNow).text =
             if (sources.size < 2) "לחיצה ארוכה על OK: צפייה אחורה"
-            else if (barOpen && barIndex != index) "OK: מעבר לערוץ הזה · מעלה/מטה: עוד ערוצים · חזרה: ביטול"
-            else "מעלה/מטה: דפדוף בערוצים · OK: בחירה · לחיצה ארוכה על OK: צפייה אחורה"
+            else if (browsing && barIndex != index) "OK: מעבר לערוץ הזה · מעלה/מטה: עוד ערוצים · חזרה: ביטול"
+            else "מעלה/מטה: דפדוף בערוצים · OK: בחירה · לחיצה ארוכה על OK: רשימת ערוצים"
     }
 
     private fun hhmm(epochSeconds: Long): String =
         android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date(epochSeconds * 1000))
 
     private fun loadGuide(url: String) {
+        if (!loadingGuides.add(url)) return
         Thread {
             val list = runCatching {
                 val text = java.net.URL(url).openStream().bufferedReader().use { it.readText() }
@@ -281,6 +283,7 @@ class PlayerActivity : AppCompatActivity() {
             runOnUiThread {
                 guides[url] = list
                 if (bannerOpen) paintNow()
+                (findViewById<ListView>(R.id.chList).adapter as? BaseAdapter)?.notifyDataSetChanged()
             }
         }.start()
     }
@@ -299,18 +302,18 @@ class PlayerActivity : AppCompatActivity() {
         }.start()
     }
 
-    /** Raise the banner (every channel change does), and take it down again after a few seconds. */
-    private fun showBanner(withList: Boolean) {
+    /** Raise the banner (every channel change does), and take it down again after a few seconds.
+     *  With [browse] Up/Down are paging through the channels, so it stays a little longer and OK will tune. */
+    private fun showBanner(browse: Boolean) {
         if (!live) return
+        browsing = browse
         barIndex = index
         findViewById<View>(R.id.infobar).visibility = View.VISIBLE
-        findViewById<View>(R.id.chScroll).visibility = if (withList && sources.size > 1) View.VISIBLE else View.GONE
         paintBanner()
-        if (withList) paintChannelBar()
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
         handler.postDelayed(tickBanner, 30_000)
-        handler.postDelayed(hideBanner, if (withList) 12_000L else 6_000L)   // browsing the list ends by itself when left alone
+        handler.postDelayed(hideBanner, if (browse) 12_000L else 6_000L)
     }
 
     private val hideBanner = Runnable { hideChannelBar() }
@@ -318,79 +321,109 @@ class PlayerActivity : AppCompatActivity() {
     private val tickBanner: Runnable = Runnable { if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, 30_000) } }
     private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
 
-    /** Channel bar: the channel list along the bottom, for choosing with the remote. */
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
-    /** The channel strip: just number and name, with a thin line under the one being pointed at. */
-    private fun buildChannelBar() {
-        val row = findViewById<LinearLayout>(R.id.chRow)
-        row.removeAllViews()
-        sources.forEachIndexed { i, src ->
-            val item = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(0, 0, dp(26), 0)
-                setOnClickListener { pickChannel(i) }
-            }
-            item.addView(TextView(this).apply {
-                text = if (src.num > 0) "${src.num}   ${src.name}" else src.name
-                textSize = 15f
-                maxLines = 1
-                setPadding(0, 0, 0, dp(6))
-            })
-            item.addView(View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(2))
-            })
-            row.addView(item)
-        }
-    }
-
-    private fun showChannelBar() = showBanner(withList = true)
-
     private fun hideChannelBar() {
+        browsing = false
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
         findViewById<View>(R.id.infobar).visibility = View.GONE
-        findViewById<View>(R.id.chScroll).visibility = View.GONE
-    }
-
-    private fun paintChannelBar() {
-        val row = findViewById<LinearLayout>(R.id.chRow)
-        for (i in 0 until row.childCount) {
-            val item = row.getChildAt(i) as LinearLayout
-            val label = item.getChildAt(0) as TextView
-            val on = i == barIndex
-            label.setTextColor(if (on) Color.WHITE else Color.parseColor("#7F8899"))
-            label.typeface = if (on) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
-            item.getChildAt(1).setBackgroundColor(if (on) Color.parseColor("#F0B429") else Color.TRANSPARENT)
-        }
-        row.getChildAt(barIndex)?.let { v ->
-            findViewById<HorizontalScrollView>(R.id.chScroll).smoothScrollTo(v.left - 200, 0)
-        }
-    }
-
-    private fun moveChannelBar(step: Int) {
-        barIndex = (barIndex + step + sources.size) % sources.size
-        paintChannelBar()
-        paintBanner()                                            // the banner describes the channel pointed at
-        handler.removeCallbacks(hideBanner)
-        handler.postDelayed(hideBanner, 12_000)
     }
 
     /** Up/Down: raise the banner and page through the channels in it - nothing changes until OK. */
     private fun browseBy(step: Int) {
-        if (!barOpen) showChannelBar()
-        moveChannelBar(step)
+        if (!browsing) showBanner(browse = true)
+        barIndex = (barIndex + step + sources.size) % sources.size
+        paintBanner()                                            // the banner describes the channel pointed at
+        handler.removeCallbacks(hideBanner)
+        handler.postDelayed(hideBanner, 12_000)                  // paging that is left alone ends by itself
     }
 
     private fun pickChannel(i: Int) {
         hideChannelBar()
-        if (i != index) zapBy(i - index) else showOsd()
+        if (i != index) zapBy(i - index) else showBanner(browse = false)
     }
 
-    /** Long press OK: back to the app, opening this channel's catch-up (programme guide). */
-    private fun openCatchUp() {
-        setResult(RESULT_OK, android.content.Intent().putExtra("catchup", sources[index].name))
+    /** Long press OK on a channel of the list: back to the app, opening that channel's catch-up (programme guide). */
+    private fun openCatchUp(i: Int) {
+        setResult(RESULT_OK, android.content.Intent().putExtra("catchup", sources[i].name))
         finish()
+    }
+
+    // ---- the channel list: a floating panel over the picture, opened by holding OK ----
+    private val panelOpen get() = findViewById<View>(R.id.chPanel).visibility == View.VISIBLE
+    private val loadingGuides = HashSet<String>()
+
+    private inner class ChannelAdapter : BaseAdapter() {
+        override fun getCount() = sources.size
+        override fun getItem(position: Int) = sources[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup?): View {
+            val src = sources[position]
+            val row = (convertView as? LinearLayout) ?: LinearLayout(this@PlayerActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp(22), dp(9), dp(22), dp(9))
+                addView(TextView(context).apply { textSize = 17f; gravity = android.view.Gravity.CENTER; minWidth = dp(44) })
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(14), 0, 0, 0)
+                    addView(TextView(context).apply { textSize = 18f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+                    addView(TextView(context).apply { textSize = 13f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+                }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            }
+            val num = row.getChildAt(0) as TextView
+            val text = row.getChildAt(1) as LinearLayout
+            val name = text.getChildAt(0) as TextView
+            val now = text.getChildAt(1) as TextView
+            val current = position == index
+            num.text = if (src.num > 0) "${src.num}" else "—"
+            num.setTextColor(Color.parseColor(if (current) "#F0B429" else "#7F8899"))
+            name.text = src.name
+            name.setTextColor(if (current) Color.WHITE else Color.parseColor("#D8DCE6"))
+            name.typeface = if (current) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+            val seconds = System.currentTimeMillis() / 1000
+            val playing = guides[src.epg]?.firstOrNull { seconds in it.from until it.to }
+            now.text = playing?.name ?: ""
+            now.setTextColor(Color.parseColor("#8E93A8"))
+            now.visibility = if (playing != null) View.VISIBLE else View.GONE
+            if (src.epg.isNotBlank() && !guides.containsKey(src.epg)) loadGuide(src.epg)
+            return row
+        }
+    }
+
+    private fun openPanel() {
+        hideChannelBar()
+        val list = findViewById<ListView>(R.id.chList)
+        if (list.adapter == null) {
+            list.adapter = ChannelAdapter()
+            list.setOnItemClickListener { _, _, i, _ -> closePanel(); if (i != index) zapBy(i - index) else showBanner(browse = false) }
+            list.setOnItemLongClickListener { _, _, i, _ -> openCatchUp(i); true }
+        }
+        (list.adapter as BaseAdapter).notifyDataSetChanged()
+        findViewById<View>(R.id.chPanel).visibility = View.VISIBLE
+        list.requestFocus()
+        list.setSelection(index)
+    }
+
+    private fun closePanel() { findViewById<View>(R.id.chPanel).visibility = View.GONE }
+
+    /** Step along the stream: a press steps a little, a held key leaps. A live stream keeps a window behind its edge. */
+    private fun seekBy(direction: Int, held: Boolean) {
+        val p = player ?: return
+        val step = if (held) 60_000L else 10_000L
+        p.seekTo((p.currentPosition + direction * step).coerceAtLeast(0))
+        val behind = p.currentLiveOffset
+        showMessage(
+            if (behind == C.TIME_UNSET) fmtClock(p.currentPosition)
+            else if (behind < 5_000) "בשידור חי" else "${behind / 1000} שנ׳ מאחורי השידור החי",
+            if (p.playWhenReady) 2_500 else 0                   // while paused the note stays: it is also the pause sign
+        )
+    }
+
+    private fun fmtClock(ms: Long): String {
+        val s = ms / 1000
+        return if (s >= 3600) "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60) else "%d:%02d".format(s / 60, s % 60)
     }
 
     /** Live TV: switch to the previous/next channel in the list (wraps around). */
@@ -400,9 +433,8 @@ class PlayerActivity : AppCompatActivity() {
         retries = 0
         player?.release()
         player = null
-        if (live) showBanner(withList = barOpen && findViewById<View>(R.id.chScroll).visibility == View.VISIBLE)
+        if (live) showBanner(browse = false)
         else showOsd()
-        if (barOpen) { barIndex = index; paintChannelBar() }
         // Give the server a moment to close the previous channel's session before opening the next.
         handler.removeCallbacks(rebuild)
         handler.postDelayed(rebuild, 250)
@@ -490,30 +522,47 @@ class PlayerActivity : AppCompatActivity() {
         handler.postDelayed(hideOsd, 3_000)
     }
 
-    // Remote: up/down (or OK) raise the banner and page through the channels, OK on one switches to it,
-    // long press OK opens catch-up, the channel keys switch straight away, play/pause pauses the live stream.
+    // Remote (live TV): Up/Down raise the banner and page through the channels, OK on one switches to it, holding
+    // OK opens the channel list over the picture, the channel keys switch straight away, the play/pause key
+    // pauses, and Left/Right then step back and forth (held: further). VOD keeps the player's own controls.
     @OptIn(UnstableApi::class)
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
+        val code = event.keyCode
+        val down = event.action == KeyEvent.ACTION_DOWN
+        val ok = code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER ||
+            code == KeyEvent.KEYCODE_NUMPAD_ENTER || code == KeyEvent.KEYCODE_BUTTON_A
         if (findViewById<View>(R.id.errbox).visibility == View.VISIBLE) {
-            if (event.keyCode == KeyEvent.KEYCODE_BACK) { hideErrorPanel(); finish(); return true }
+            if (down && code == KeyEvent.KEYCODE_BACK) { hideErrorPanel(); finish(); return true }
             return super.dispatchKeyEvent(event)                 // arrows move between the panel's buttons
         }
+        if (panelOpen) {
+            if (code == KeyEvent.KEYCODE_BACK) { if (down) closePanel(); return true }
+            if (ok && !down && okLong) { okLong = false; return true }      // the release that ended the long press
+            return super.dispatchKeyEvent(event)                 // the list handles the arrows and OK
+        }
+        if (ok && sources.size > 1) {
+            if (down) {
+                if (event.repeatCount == 0) okLong = false
+                else if (!okLong) { okLong = true; openPanel() }             // held down
+            } else {
+                if (!okLong) { if (browsing) pickChannel(barIndex) else showBanner(browse = false) }
+                okLong = false
+            }
+            return true
+        }
+        if (!down) return super.dispatchKeyEvent(event)
         val controls = findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible
-        when (event.keyCode) {
+        when (code) {
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                player?.let { it.playWhenReady = !it.playWhenReady; showMessage(if (it.playWhenReady) "ממשיך" else "מושהה", 2_000) }
+                player?.let {
+                    it.playWhenReady = !it.playWhenReady
+                    showMessage(if (it.playWhenReady) "ממשיך" else "מושהה", if (it.playWhenReady) 2_000 else 0)
+                }
                 return true
             }
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BUTTON_A -> {
-                if (sources.size < 2) return super.dispatchKeyEvent(event)
-                if (event.repeatCount > 0) { openCatchUp(); return true }        // held down
-                if (barOpen) pickChannel(barIndex) else showChannelBar()
-                return true
-            }
-            KeyEvent.KEYCODE_BACK -> if (barOpen) { hideChannelBar(); return true }
-            KeyEvent.KEYCODE_DPAD_LEFT -> if (barOpen) { moveChannelBar(1); return true }    // right-to-left list
-            KeyEvent.KEYCODE_DPAD_RIGHT -> if (barOpen) { moveChannelBar(-1); return true }
+            KeyEvent.KEYCODE_BACK -> if (browsing) { hideChannelBar(); return true }
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }

@@ -4,6 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.frostwire.jlibtorrent.AnnounceEntry
 import com.frostwire.jlibtorrent.Priority
+import com.frostwire.jlibtorrent.SettingsPack
+import com.frostwire.jlibtorrent.swig.settings_pack
+import org.json.JSONObject
 import com.frostwire.jlibtorrent.SessionManager
 import com.frostwire.jlibtorrent.Sha1Hash
 import com.frostwire.jlibtorrent.TorrentFlags
@@ -61,9 +64,22 @@ object TorrentEngine {
     @Synchronized private fun ensureStarted() {
         if (!started) {
             session.start()
+            // Peers are what a stream waits for: ask every tracker of every tier (not just the first that
+            // answers) and open connections faster than the defaults do.
+            session.applySettings(
+                SettingsPack()
+                    .setBoolean(settings_pack.bool_types.announce_to_all_trackers.swigValue(), true)
+                    .setBoolean(settings_pack.bool_types.announce_to_all_tiers.swigValue(), true)
+                    .setInteger(settings_pack.int_types.connection_speed.swigValue(), 200)
+                    .setInteger(settings_pack.int_types.torrent_connect_boost.swigValue(), 100)
+                    .setInteger(settings_pack.int_types.connections_limit.swigValue(), 400)
+            )
             started = true
         }
     }
+
+    /** Status for the page: JSON the page words itself (it owns the language), errors as "e:<code>". */
+    private fun status(vararg pairs: Pair<String, Any>) = JSONObject(mapOf(*pairs)).toString()
 
     fun stream(
         context: Context,
@@ -87,22 +103,22 @@ object TorrentEngine {
                 lap("dht wait over (${session.stats().dhtNodes()} nodes)")
                 if (superseded()) return@Thread
 
-                onStatus("מקבל את פרטי הטורנט…")
+                onStatus(status("p" to "meta"))
                 val tempDir = File(context.cacheDir, "torrent-meta").apply { mkdirs() }
                 val metadata = session.fetchMagnet(buildMagnet(infoHash, sources), 60, tempDir)
-                    ?: throw IllegalStateException("אף מחשב לא ענה למקור הזה. נסה מקור עם יותר זורעים.")
+                    ?: throw IllegalStateException("e:nopeers")
                 if (superseded()) return@Thread
                 lap("metadata")
 
                 val ti = TorrentInfo(metadata)
-                if (ti.numFiles() <= 0) throw IllegalStateException("הטורנט ריק")
+                if (ti.numFiles() <= 0) throw IllegalStateException("e:empty")
                 val idx = if (fileIdx in 0 until ti.numFiles()) fileIdx else largestVideoFile(ti)
                 val priorities = Priority.array(Priority.IGNORE, ti.numFiles())
                 priorities[idx] = Priority.SEVEN
                 val saveDir = File(context.cacheDir, "torrents/$infoHash").apply { mkdirs() }
 
                 session.download(ti, saveDir, null, priorities, null, TorrentFlags.SEQUENTIAL_DOWNLOAD)
-                val hash = ti.infoHashV1() ?: throw IllegalStateException("סוג טורנט לא נתמך")
+                val hash = ti.infoHashV1() ?: throw IllegalStateException("e:type")
                 val handle = waitForHandle(hash)
                 handle.prioritizeFiles(priorities)
                 // The metadata carries no trackers (they lived in the magnet), so without this the download
@@ -159,7 +175,7 @@ object TorrentEngine {
         while (System.currentTimeMillis() < deadline && !superseded()) {
             val nodes = session.stats().dhtNodes()
             if (nodes >= 5) return
-            onStatus("מתחבר לרשת הטורנטים… ($nodes צמתים)")
+            onStatus(status("p" to "dht", "nodes" to nodes))
             Thread.sleep(500)
         }
     }
@@ -169,7 +185,7 @@ object TorrentEngine {
             session.find(hash)?.let { if (it.isValid) return it }
             Thread.sleep(100)
         }
-        throw IllegalStateException("הטורנט לא התחיל")
+        throw IllegalStateException("e:start")
     }
 
     private fun bufferStart(
@@ -185,11 +201,14 @@ object TorrentEngine {
         handle.setPieceDeadline(media.lastPiece, 2000)
 
         val total = last - first + 1
+        val need = total * media.pieceLength
         while (!superseded()) {
             val have = (first..last).count { handle.havePiece(it) }
             if (have == total) return
             val st = handle.status()
-            onStatus("טוען… ${have * 100 / total}% • ${st.downloadRate() / 1024} KB/s • ${st.numPeers()} עמיתים")
+            // whole pieces only count once complete, so show the bytes that have arrived towards them
+            onStatus(status("p" to "buffer", "peers" to st.numPeers(), "kbs" to st.downloadRate() / 1024,
+                "got" to st.totalPayloadDownload().coerceAtMost(need), "need" to need))
             Thread.sleep(500)
         }
     }

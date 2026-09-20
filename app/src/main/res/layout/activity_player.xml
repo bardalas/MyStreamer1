@@ -61,8 +61,8 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Live TV: the info banner. Rises on every channel change and on OK: which channel, what is
-         on now with how far along it is, and what follows. OK again opens the channel strip. -->
+    <!-- Live TV: the info banner. Rises on every channel change and on Up/Down or OK: which channel, what is
+         on now with how far along it is, and what follows. Up/Down page through the channels in it. -->
     <LinearLayout
         android:id="@+id/infobar"
         android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -119,15 +119,19 @@
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:textColor="#5F6875" android:textSize="12sp" />
-
-        <HorizontalScrollView
-            android:id="@+id/chScroll"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" android:scrollbars="none" android:visibility="gone">
-            <LinearLayout
-                android:id="@+id/chRow"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:orientation="horizontal" />
-        </HorizontalScrollView>
     </LinearLayout>
+
+    <!-- Live TV: the channel list, floating over the picture (long press OK). -->
+    <FrameLayout
+        android:id="@+id/chPanel"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:background="#99000000" android:visibility="gone">
+        <ListView
+            android:id="@+id/chList"
+            android:layout_width="380dp" android:layout_height="match_parent"
+            android:layout_gravity="start" android:layoutDirection="rtl"
+            android:background="#F2070910" android:divider="#1FFFFFFF" android:dividerHeight="1dp"
+            android:listSelector="#33F0B429" android:scrollbars="none"
+            android:paddingVertical="10dp" android:clipToPadding="false" />
+    </FrameLayout>
 </FrameLayout>
