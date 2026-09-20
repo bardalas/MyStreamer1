@@ -1,5 +1,5 @@
-VEO Android v0.40.3
-versionCode: 4003
+VEO Android v0.40.4
+versionCode: 4004
 applicationId: com.veo.player
 
 Versioning policy:
