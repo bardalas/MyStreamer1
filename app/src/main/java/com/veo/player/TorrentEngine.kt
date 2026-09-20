@@ -134,7 +134,7 @@ object TorrentEngine {
                     pieceLength = ti.pieceLength().toLong(),
                 )
                 lap("download started")
-                bufferStart(handle, media, ::superseded, onStatus)
+                bufferStart(handle, media, ti.numPieces(), priorities, ::superseded, onStatus)
                 if (superseded()) return@Thread
                 lap("start buffered")
 
@@ -191,11 +191,20 @@ object TorrentEngine {
     private fun bufferStart(
         handle: TorrentHandle,
         media: StreamServer.Media,
+        numPieces: Int,
+        filePriorities: Array<Priority>,
         superseded: () -> Boolean,
         onStatus: (String) -> Unit
     ) {
         val first = media.firstPiece
         val last = media.pieceAt(minOf(media.size, START_BUFFER_BYTES) - 1)
+        // Until the start is in, want nothing else. libtorrent hands each peer a piece of its own, so with the whole
+        // file wanted, dozens of slow peers each crawl through a different piece and the first one completes last;
+        // with only the first pieces (and the index at the end) wanted, every peer works on those.
+        val focus = Priority.array(Priority.IGNORE, numPieces)
+        for (p in first..minOf(last + 2, media.lastPiece)) focus[p] = Priority.SEVEN
+        focus[media.lastPiece] = Priority.SEVEN
+        handle.prioritizePieces(focus)
         for (p in first..last) handle.setPieceDeadline(p, 1000 + (p - first) * 100)
         // The end of the file often holds the index (MP4 "moov"); fetch it early too.
         handle.setPieceDeadline(media.lastPiece, 2000)
@@ -204,8 +213,11 @@ object TorrentEngine {
         val need = total * media.pieceLength
         while (!superseded()) {
             val have = (first..last).count { handle.havePiece(it) }
-            if (have == total) return
+            if (have == total) { handle.prioritizeFiles(filePriorities); return }   // the start is in: the whole file again
             val st = handle.status()
+            if (System.currentTimeMillis() / 500 % 6 == 0L) Log.i(TAG, "buffering $have/$total pieces [$first..$last] pieceLen=${media.pieceLength} state=${st.state()} " +
+                "peers=${st.numPeers()} seeds=${st.numSeeds()} done=${st.totalDone()} payload=${st.totalPayloadDownload()} failed=${st.totalFailedBytes()} " +
+                "redundant=${st.totalRedundantBytes()} pieces=${st.numPieces()} kbs=${st.downloadRate() / 1024}")
             // whole pieces only count once complete, so show the bytes that have arrived towards them
             onStatus(status("p" to "buffer", "peers" to st.numPeers(), "kbs" to st.downloadRate() / 1024,
                 "got" to st.totalPayloadDownload().coerceAtMost(need), "need" to need))

@@ -125,6 +125,11 @@ The status bar is shown only for waits over ~0.9s. Sources are ranked in `rank()
 files, because a stream starts when the first *piece* has arrived and pieces grow with the file.
 The metadata comes from `fetchMagnet`, which drops the magnet's trackers — they are re-added to the
 handle after `session.download`, otherwise the download finds peers through DHT alone.
+**Start-up focus (the big one):** until the first pieces are in, `bufferStart` gives every other piece
+priority 0 (`prioritizePieces`), then restores the file priorities. Left alone, libtorrent hands each of
+dozens of slow peers a piece of its own and the *first* piece completes last: a 2 MB piece took 40-80s
+with ~10 MB already downloaded. Focused, the same titles start in 6-8s on the emulator. Timeouts
+(`request_timeout`, `piece_timeout`) made no difference; do not spend time there again.
 
 ### Torrent playback path
 `TorrentEngine` downloads sequentially/prioritized starting from the requested byte range;
