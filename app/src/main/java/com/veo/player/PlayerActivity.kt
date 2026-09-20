@@ -205,33 +205,117 @@ class PlayerActivity : AppCompatActivity() {
             ?.setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subScale)
     }
 
-    /** Subtitles panel: which translation is shown, how far it is moved, and how large it is drawn. */
-    private fun openSubsPanel() {
-        val found = subs.orEmpty()
-        if (found.isEmpty()) { showMessage(if (subs == null) "מחפש כתוביות…" else "לא נמצאו כתוביות לסרט הזה", 2_500); return }
-        val rows = ArrayList<Pair<String, () -> Unit>>()
-        found.forEachIndexed { i, s ->
-            val mark = if (i == subPick) "● " else "○ "
-            rows.add("$mark${s.label}" to { useCaptions(i); openSubsPanel() })
+/**
+     * The subtitles panel.
+     *
+     * Three questions, asked once each: which translation, how far it has to be moved, and how large
+     * it should be drawn. The two that are a quantity are one line apiece, with their value written at
+     * the end of the line and the left and right arrows changing it - a remote then holds the arrow
+     * rather than pressing OK on "a tenth of a second later" nine times, and the line always says what
+     * it is set to. The list is not rebuilt as it is used; each line says its own value when asked.
+     */
+    private sealed class SubsRow {
+        class Head(val text: String) : SubsRow()
+        class Pick(val text: String, val on: () -> Boolean, val act: () -> Unit) : SubsRow()
+        class Step(val text: String, val value: () -> String, val by: (Int) -> Unit) : SubsRow()
+    }
+
+    private fun subsRows(): List<SubsRow> {
+        val out = ArrayList<SubsRow>()
+        out.add(SubsRow.Head("כתוביות"))
+        subs.orEmpty().forEachIndexed { i, s ->
+            out.add(SubsRow.Pick(s.label, { subPick == i }, { useCaptions(i) }))
         }
-        rows.add((if (subPick < 0) "● " else "○ ") + "ללא כתוביות" to { useCaptions(-1); openSubsPanel() })
-        val now = "%+.1f".format(subShift / 1000.0)
-        rows.add("הכתוביות מאחרות · הקדם 0.5 שנ׳ · כעת $now" to { shiftCaptions(-500); openSubsPanel() })
-        rows.add("הכתוביות מקדימות · אחר 0.5 שנ׳ · כעת $now" to { shiftCaptions(500); openSubsPanel() })
-        rows.add("כוונון עדין · 0.1 שנ׳ אחורה" to { shiftCaptions(-100); openSubsPanel() })
-        rows.add("כוונון עדין · 0.1 שנ׳ קדימה" to { shiftCaptions(100); openSubsPanel() })
-        if (subShift != 0L) rows.add("בטל סנכרון" to { shiftCaptions(-subShift); openSubsPanel() })
-        val size = "%d%%".format((subScale * 100).toInt())
-        rows.add("כתוביות גדולות יותר · $size" to { setSubScale(subScale + 0.15f); openSubsPanel() })
-        rows.add("כתוביות קטנות יותר · $size" to { setSubScale(subScale - 0.15f); openSubsPanel() })
+        out.add(SubsRow.Pick("ללא כתוביות", { subPick < 0 }, { useCaptions(-1) }))
+        out.add(SubsRow.Head("סנכרון"))
+        out.add(SubsRow.Step("הזזת כתוביות", { "%+.1f שנ׳".format(subShift / 1000.0) },
+            { step -> shiftCaptions(step * 100L) }))
+        out.add(SubsRow.Pick("אפס את הסנכרון", { subShift == 0L }, { shiftCaptions(-subShift) }))
+        out.add(SubsRow.Head("גודל"))
+        out.add(SubsRow.Step("גודל הכתוביות", { "%d%%".format((subScale * 100).toInt()) },
+            { step -> setSubScale(subScale + step * 0.1f) }))
+        return out
+    }
+
+    private fun openSubsPanel() {
+        if (subs.orEmpty().isEmpty()) {
+            showMessage(if (subs == null) "מחפש כתוביות…" else "לא נמצאו כתוביות לסרט הזה", 2_500)
+            return
+        }
+        val rows = subsRows()
+        val adapter = SubsAdapter(rows)
         val list = findViewById<ListView>(R.id.chList)
-        val at = if (list.adapter is MenuAdapter) list.selectedItemPosition.coerceAtLeast(0) else 0
-        list.adapter = MenuAdapter(rows.map { it.first })
-        list.setOnItemClickListener { _, _, i, _ -> rows[i].second() }
+        list.adapter = adapter
+        list.setOnItemClickListener { _, _, i, _ ->
+            (rows[i] as? SubsRow.Pick)?.act?.invoke()
+            adapter.notifyDataSetChanged()
+        }
         list.setOnItemLongClickListener { _, _, _, _ -> true }
+        // a quantity is changed where it is written, by the arrows, without leaving the line
+        list.setOnKeyListener { _, code, ev ->
+            val step = when (code) {
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (skin.rtl) -1 else 1
+                KeyEvent.KEYCODE_DPAD_LEFT -> if (skin.rtl) 1 else -1
+                else -> 0
+            }
+            val row = rows.getOrNull(list.selectedItemPosition) as? SubsRow.Step
+            if (step != 0 && row != null && ev.action == KeyEvent.ACTION_DOWN) {
+                row.by(step)
+                adapter.notifyDataSetChanged()
+                true
+            } else false
+        }
         findViewById<View>(R.id.chPanel).visibility = View.VISIBLE
         list.requestFocus()
-        list.setSelection(at.coerceAtMost(rows.size - 1))
+        if (list.selectedItemPosition < 0) list.setSelection(1)     // past the first heading
+    }
+
+    /** The panel's lines: a heading, a choice with its mark, or a quantity with its value. */
+    private inner class SubsAdapter(private val rows: List<SubsRow>) : BaseAdapter() {
+        override fun getCount() = rows.size
+        override fun getItem(position: Int) = rows[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun areAllItemsEnabled() = false
+        override fun isEnabled(position: Int) = rows[position] !is SubsRow.Head
+        override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup?): View {
+            val row = rows[position]
+            val box = (convertView as? LinearLayout) ?: LinearLayout(this@PlayerActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(TextView(this@PlayerActivity).apply {
+                    textSize = 18f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
+                addView(TextView(this@PlayerActivity).apply { textSize = 16f })
+            }
+            val name = box.getChildAt(0) as TextView
+            val value = box.getChildAt(1) as TextView
+            when (row) {
+                is SubsRow.Head -> {
+                    box.setPadding(dp(22), dp(16), dp(22), dp(4))
+                    name.text = row.text
+                    name.textSize = 13f
+                    name.setTextColor(skin.muted)
+                    value.text = ""
+                }
+                is SubsRow.Pick -> {
+                    box.setPadding(dp(22), dp(11), dp(22), dp(11))
+                    name.text = row.text
+                    name.textSize = 18f
+                    name.setTextColor(if (row.on()) skin.accent else skin.light)
+                    value.text = if (row.on()) "●" else ""
+                    value.setTextColor(skin.accent)
+                }
+                is SubsRow.Step -> {
+                    box.setPadding(dp(22), dp(11), dp(22), dp(11))
+                    name.text = row.text
+                    name.textSize = 18f
+                    name.setTextColor(skin.light)
+                    value.text = "‹ ${row.value()} ›"
+                    value.setTextColor(skin.accent)
+                }
+            }
+            return box
+        }
     }
 
     /** A plain list of choices, in the same dress as the channel list. */
@@ -883,10 +967,14 @@ class PlayerActivity : AppCompatActivity() {
         }
         // Left and Right are decided on release, so that holding them can mean something else; both the
         // press and the release are taken, or the player's own controls would come up on the release.
-        // They are mirrored with the layout: where the writing runs right to left, the right arrow goes back.
+        // Live mirrors them with the layout (see below); a film does not.
         val arrow = code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT
         if (arrow && !findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible) {
-            val back = (code == KeyEvent.KEYCODE_DPAD_RIGHT) == skin.rtl
+            // A film's timeline runs the way the picture does, not the way the writing does: the right
+            // arrow goes forward, in Hebrew as anywhere else. Live is deliberately the other way - there
+            // the right arrow steps back through what has already been broadcast.
+            val back = if (live) (code == KeyEvent.KEYCODE_DPAD_RIGHT) == skin.rtl
+                       else code == KeyEvent.KEYCODE_DPAD_LEFT
             val dir = if (back) -1 else 1
             if (down) {
                 if (event.repeatCount == 0) { seekLong = false; if (!live) scrubStart(dir) }
@@ -899,8 +987,19 @@ class PlayerActivity : AppCompatActivity() {
             }
             return true
         }
+        val bar = findViewById<PlayerView>(R.id.playerView)
+        // OK on a film pauses it - and brings up the controls with it, so that a viewer who stopped to
+        // look at something can see where they are; pressing it again plays on and puts them away.
+        if (ok && !live && !walking && !bar.isControllerFullyVisible) {
+            if (down && event.repeatCount == 0) player?.let {
+                val wasPlaying = it.playWhenReady
+                it.playWhenReady = !wasPlaying
+                if (wasPlaying) bar.showController() else bar.hideController()
+            }
+            return true
+        }
         if (!down) return super.dispatchKeyEvent(event)
-        val controls = findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible
+        val controls = bar.isControllerFullyVisible
         when (code) {
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> {
                 player?.let {

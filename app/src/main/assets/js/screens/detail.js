@@ -144,9 +144,12 @@ export async function viewDetail(type, id){
     const w = progress[vid];
     const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
     const seen = pct > 92;
-    $('#eps').innerHTML = epCard({id: vid, name: heTitle(meta.id, meta.name),
+    // The name of the film is already the heading of the page; the line under it is the one thing
+    // there is to do with it, so it says that - and being the only line, it wears no band of its own.
+    $('#eps').innerHTML = epCard({id: vid, name: tr('detail.startFilm'),
       released: null, episode: ''}, meta).replace('<small></small>',
-      `<small>${[yearOf(meta), meta.runtime].filter(Boolean).map(esc).join(' · ')}</small>`);
+      `<small>${[yearOf(meta), meta.runtime].filter(Boolean).map(esc).join(' · ')}</small>`)
+      .replace('class="epcard', 'class="epcard solo');
     const row = $('#eps').querySelector('.epcard');
     chosen = {id: vid, label: meta.name};
     showProgress(vid);

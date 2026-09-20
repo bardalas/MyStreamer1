@@ -1,5 +1,21 @@
 # VEO Android changelog
 
+## 0.41.2 — 2026-09-21
+- **A film's line says what pressing it does** — “התחל לנגן” — instead of repeating the name already
+  at the top of the page, and being the only line there is, it no longer wears a band of colour
+  across the screen.
+- **The arrows go the way the film does.** Right runs forward, left back — the timeline is not
+  written in Hebrew. Live TV keeps its mirrored arrows, which was a deliberate choice.
+- **OK pauses and shows the controls**, so a viewer who stopped can see where they are; pressing it
+  again plays on and puts them away.
+- **The subtitles panel reads like a settings page**: which translation, how far it is moved, how
+  large it is drawn. The two that are quantities are one line each, with the value at the end of
+  the line and the arrows changing it — a remote holds an arrow instead of pressing OK nine times.
+- **The taste stops the moment a title is asked for**, rather than playing under the search for a
+  source.
+- **Rows sit closer together**, and posters are one size — the middle one, which every screen was
+  designed around. The choice is gone with the layouts it belonged to.
+
 ## 0.41.1 — 2026-09-21
 - **The page opens on its titles.** What is half-watched was announced twice: half a screen of
   banner at the top, and then the same thing again in its row. The banner is gone.

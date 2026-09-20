@@ -63,6 +63,9 @@
 [data-layout="tv"] .epanel .epcard.on{background:none !important}
 [data-layout="tv"] .epanel .epcard.on b{color:var(--tungsten) !important}
 [data-layout="tv"] .epanel .epcard:focus,[data-layout="tv"] .epanel .epcard:focus-visible{background:var(--raise) !important;box-shadow:inset calc(3px * var(--flip)) 0 0 var(--tungsten) !important}
+/* A film is a list of one. A band of colour across the whole width, to mark the only line there is,
+   marks nothing - so it keeps the accent and drops the background. */
+[data-layout="tv"] .epanel .epcard.solo:focus,[data-layout="tv"] .epanel .epcard.solo:focus-visible{background:none !important}
 [data-layout="tv"] .epanel .epcard:focus b,[data-layout="tv"] .epanel .epcard:focus-visible b{color:var(--tungsten) !important}
 [data-layout="tv"] .epanel .epcard .t b{font-size:15px !important;font-weight:500;color:var(--light)}
 [data-layout="tv"] .epanel .epcard .t small{font-size:11.5px !important;color:var(--muted)}

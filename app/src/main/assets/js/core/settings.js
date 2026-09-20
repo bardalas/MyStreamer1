@@ -21,9 +21,11 @@ export const SKINS = [
    while the others quietly stopped matching the page around them. A choice that leads to a screen
    that does not work is not a choice, so it is gone - and anyone who had made it is brought back. */
 export const LAYOUT = 'tv';
-export const POSTER_SIZES = ['s', 'm', 'l'];
+/* Posters are one size. Three sizes meant three layouts to keep working, and the middle one is the
+   size every screen was designed around. */
+export const POSTER_SIZE = 'm';
 export const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-export let settings = Object.assign({skin: 'veo', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'}, store.get('settings', {}), {layout: LAYOUT});
+export let settings = Object.assign({skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'}, store.get('settings', {}), {layout: LAYOUT, poster: POSTER_SIZE});
 /** The player draws its own banner and channel list in native views: hand it this skin and direction. */
 export function syncNativeTheme(){
   const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();

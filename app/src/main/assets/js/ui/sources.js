@@ -12,6 +12,7 @@ import {kanBox} from '../providers/kan.js';
 import {makoPrograms} from '../providers/mako.js';
 import {r13meta, r13row} from '../providers/reshet.js';
 import {openPlayer} from './player.js';
+import {endTaste} from './taste.js';
 
 export function quickPick(type, videoId){
   return new Promise(resolve => {
@@ -101,6 +102,7 @@ export function rank(x){
 }
 
 export function playStream(s, label, ctx){
+  endTaste();                    // the trailer's work is done the moment the title itself is asked for
   // Release/file name lets the app pick Hebrew subtitles timed for this exact release.
   const release = s.behaviorHints?.filename || (s.title || s.description || '').split('\n')[0] || '';
   const vid = ctx.videoId || '';
@@ -179,6 +181,7 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
 
 
 export async function loadStreams({type, meta}, videoId, label, autoplay = false){
+  if(autoplay) endTaste();                          // they are watching this, not sampling it
   const token = ++streamsToken;                     // invalidate the previous request before any exit
   lastStreams = null;
   const box = $('#streams');
