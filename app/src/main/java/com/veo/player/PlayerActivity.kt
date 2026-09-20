@@ -28,6 +28,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
@@ -72,9 +73,16 @@ class PlayerActivity : AppCompatActivity() {
     private var archTry = 0
     /** Left/Right are decided on release too: a press steps a programme, holding them runs inside it. */
     private var seekLong = false
+    /** Where the arrows are heading in a film, and how fast. The film itself does not move until they
+     *  stop - see [scrubHold]. */
+    private var scrubTo = -1L
+    private var scrubDir = 0
+    private var scrubTicks = 0
     /** Subtitles: which of the found files is on (-1 = none) and how far they are moved, in milliseconds. */
     private var subPick = 0
     private var subShift = 0L
+    /** How large they are drawn, as a multiple of the player's own size; kept between films. */
+    private var subScale = 1.25f
     /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
     private val skin by lazy { Skin(getSharedPreferences("veo", MODE_PRIVATE)) }
 
@@ -103,11 +111,12 @@ class PlayerActivity : AppCompatActivity() {
         applySkin()
 
         val view = findViewById<PlayerView>(R.id.playerView)
+        subScale = getSharedPreferences("veo", MODE_PRIVATE).getFloat("subScale", 1.25f)
         view.setShowSubtitleButton(!live)
         view.subtitleView?.apply {
             setStyle(CaptionStyleCompat(Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT,
                 CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, null))
-            setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.25f)
+            setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subScale)
         }
 
         if (live) view.useController = false     // live has nothing to seek, and controls eat the D-pad
@@ -155,7 +164,16 @@ class PlayerActivity : AppCompatActivity() {
         return out
     }
 
-    /** Subtitles panel: pick which file is shown, and move it half a second at a time. */
+    /** How large the subtitles are drawn: it takes effect as it is pressed, and is remembered. */
+    @OptIn(UnstableApi::class)
+    private fun setSubScale(v: Float) {
+        subScale = v.coerceIn(0.8f, 2.4f)
+        getSharedPreferences("veo", MODE_PRIVATE).edit().putFloat("subScale", subScale).apply()
+        findViewById<PlayerView>(R.id.playerView).subtitleView
+            ?.setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subScale)
+    }
+
+    /** Subtitles panel: which translation is shown, how far it is moved, and how large it is drawn. */
     private fun openSubsPanel() {
         val found = subs.orEmpty()
         if (found.isEmpty()) { showMessage(if (subs == null) "מחפש כתוביות…" else "לא נמצאו כתוביות לסרט הזה", 2_500); return }
@@ -169,6 +187,9 @@ class PlayerActivity : AppCompatActivity() {
         rows.add("הקדם כתוביות · כעת $now שנ׳" to { subShift -= 500; reloadWithSubs(); openSubsPanel() })
         rows.add("אחר כתוביות · כעת $now שנ׳" to { subShift += 500; reloadWithSubs(); openSubsPanel() })
         if (subShift != 0L) rows.add("בטל סנכרון" to { subShift = 0; reloadWithSubs(); openSubsPanel() })
+        val size = "%d%%".format((subScale * 100).toInt())
+        rows.add("כתוביות גדולות יותר · $size" to { setSubScale(subScale + 0.15f); openSubsPanel() })
+        rows.add("כתוביות קטנות יותר · $size" to { setSubScale(subScale - 0.15f); openSubsPanel() })
         val list = findViewById<ListView>(R.id.chList)
         val at = if (list.adapter is MenuAdapter) list.selectedItemPosition.coerceAtLeast(0) else 0
         list.adapter = MenuAdapter(rows.map { it.first })
@@ -279,6 +300,9 @@ class PlayerActivity : AppCompatActivity() {
                         if (retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
                     }
                 })
+                // a jump lands on the nearest picture the file starts from: far less to fetch, and it is
+                // a second either way in a film
+                if (!live) it.setSeekParameters(SeekParameters.PREVIOUS_SYNC)
                 findViewById<PlayerView>(R.id.playerView).apply { player = it; if (!live) hideController() }
                 it.setMediaItem(item)
                 if (!live) it.seekTo(resumePosition)
@@ -363,6 +387,7 @@ class PlayerActivity : AppCompatActivity() {
 
     /** The "now / next" part, refreshed every minute while the banner is up. */
     private fun paintNow() {
+        findViewById<TextView>(R.id.nowTitle).textDirection = View.TEXT_DIRECTION_LOCALE
         val src = sources.getOrNull(index) ?: return
         val now = System.currentTimeMillis() / 1000
         val progs = guides[src.epg]
@@ -452,8 +477,8 @@ class PlayerActivity : AppCompatActivity() {
             paintFilm()
             handler.removeCallbacks(hideBanner)
             handler.removeCallbacks(tickBanner)
-            handler.postDelayed(tickBanner, 1_000)
-            handler.postDelayed(hideBanner, 5_000)
+            handler.postDelayed(tickBanner, if (scrubTo >= 0) 200 else 1_000)
+            handler.postDelayed(hideBanner, if (scrubTo >= 0) 9_000 else 5_000)
             return
         }
         paintBanner()
@@ -471,7 +496,7 @@ class PlayerActivity : AppCompatActivity() {
     // playing the bar is where the viewer is inside it, so it is redrawn every second, not every minute.
     private val tickBanner: Runnable = Runnable {
         if (!bannerOpen) return@Runnable
-        if (!live) { paintFilm(); handler.postDelayed(tickBanner, 1_000); return@Runnable }
+        if (!live) { paintFilm(); handler.postDelayed(tickBanner, if (scrubTo >= 0) 200 else 1_000); return@Runnable }
         paintNow()
         handler.postDelayed(tickBanner, if (catchUp != null && !walking) 1_000 else 30_000)
     }
@@ -480,7 +505,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun paintFilm() {
         val p = player ?: return
         val dur = p.duration.coerceAtLeast(0)
-        val pos = p.currentPosition.coerceIn(0, if (dur > 0) dur else Long.MAX_VALUE)
+        val aim = scrubTo >= 0
+        val pos = (if (aim) scrubTo else p.currentPosition).coerceIn(0, if (dur > 0) dur else Long.MAX_VALUE)
         findViewById<TextView>(R.id.chNum).text = if (p.playWhenReady) "▶" else "❚❚"
         findViewById<TextView>(R.id.chName).text = intent.getStringExtra("title").orEmpty()
         findViewById<ImageView>(R.id.chLogo).visibility = View.GONE
@@ -489,9 +515,15 @@ class PlayerActivity : AppCompatActivity() {
         val bar = findViewById<ProgressBar>(R.id.nowBar)
         bar.visibility = if (dur > 0) View.VISIBLE else View.GONE
         if (dur > 0) bar.progress = ((pos * 100) / dur).toInt().coerceIn(0, 100)
-        findViewById<TextView>(R.id.nowTitle).text =
-            if (dur > 0) "${fmtClock(pos)} / ${fmtClock(dur)}" else fmtClock(pos)
-        findViewById<TextView>(R.id.nextTitle).text = if (dur > 0) "נותרו ${fmtClock(dur - pos)}" else ""
+        // times read left to right even on a right-to-left screen, where they would otherwise be reordered
+        findViewById<TextView>(R.id.nowTitle).apply {
+            textDirection = View.TEXT_DIRECTION_LTR
+            text = if (dur > 0) "${fmtClock(pos)} / ${fmtClock(dur)}" else fmtClock(pos)
+        }
+        val moved = pos - p.currentPosition
+        findViewById<TextView>(R.id.nextTitle).text =
+            if (aim) (if (moved >= 0) "קדימה " else "אחורה ") + fmtClock(kotlin.math.abs(moved))
+            else if (dur > 0) "נותרו ${fmtClock(dur - pos)}" else ""
     }
     private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
 
@@ -608,6 +640,55 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacks(rebuild)
         handler.postDelayed(rebuild, 150)
         return true
+    }
+
+    /**
+     * Running through a film. Every jump in a torrent has to be fetched from the swarm, so holding the
+     * arrow must not mean fetching again and again: holding only moves where the banner is pointing -
+     * slowly at first, then minutes at a time - while the picture keeps playing underneath, and the film
+     * is taken there once, when the key is let go.
+     */
+    private fun nudgeScrub(delta: Long) {
+        val p = player ?: return
+        val dur = p.duration
+        val from = if (scrubTo >= 0) scrubTo else p.currentPosition
+        var to = (from + delta).coerceAtLeast(0)
+        if (dur > 0) to = to.coerceAtMost(dur - 2_000)
+        scrubTo = to
+        showBanner()
+    }
+
+    /** While the key is held the aim runs on, faster the longer it is held (up to five minutes a second). */
+    private val scrubHold: Runnable = object : Runnable {
+        override fun run() {
+            scrubTicks++
+            val step = (2_000L + scrubTicks * 800L).coerceAtMost(30_000L)
+            nudgeScrub(scrubDir * step)
+            handler.postDelayed(this, 100)
+        }
+    }
+
+    private fun scrubStart(direction: Int) {
+        scrubDir = direction
+        scrubTicks = 0
+        handler.removeCallbacks(commitScrub)
+        handler.removeCallbacks(scrubHold)
+        handler.postDelayed(scrubHold, 350)          // a short press is a step, not a run
+    }
+
+    private fun scrubEnd(direction: Int) {
+        handler.removeCallbacks(scrubHold)
+        if (scrubTicks == 0) nudgeScrub(direction * 30_000L)      // one press: half a minute
+        scrubTicks = 0
+        handler.removeCallbacks(commitScrub)
+        handler.postDelayed(commitScrub, 700)      // several presses in a row are one jump, not ten
+    }
+
+    private val commitScrub = Runnable {
+        val to = scrubTo
+        scrubTo = -1L
+        if (to >= 0) player?.seekTo(to)
+        showBanner()
     }
 
     /** Step along the stream: a press steps a little, a held key leaps. A live stream keeps a window behind its edge. */
@@ -772,16 +853,20 @@ class PlayerActivity : AppCompatActivity() {
             }
             return true
         }
-        // Left and Right are decided on release, so that holding them can mean something else. They are
-        // mirrored with the layout: where the writing runs right to left, the right arrow goes back.
+        // Left and Right are decided on release, so that holding them can mean something else; both the
+        // press and the release are taken, or the player's own controls would come up on the release.
+        // They are mirrored with the layout: where the writing runs right to left, the right arrow goes back.
         val arrow = code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT
-        if (arrow && live && !findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible) {
+        if (arrow && !findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible) {
             val back = (code == KeyEvent.KEYCODE_DPAD_RIGHT) == skin.rtl
+            val dir = if (back) -1 else 1
             if (down) {
-                if (event.repeatCount == 0) seekLong = false
-                else { seekLong = true; seekBy(if (back) -1 else 1, held = true) }
+                if (event.repeatCount == 0) { seekLong = false; if (!live) scrubStart(dir) }
+                else if (live) { seekLong = true; seekBy(dir, held = true) }
+            } else if (!live) {
+                scrubEnd(dir)
             } else {
-                if (!seekLong) { if (canWalk()) walkGuide(back) else seekBy(if (back) -1 else 1, held = false) }
+                if (!seekLong) { if (canWalk()) walkGuide(back) else seekBy(dir, held = false) }
                 seekLong = false
             }
             return true
@@ -800,8 +885,6 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_BACK -> if (walking) { walking = false; walkAt = null; showBanner(); return true }
             KeyEvent.KEYCODE_MEDIA_REWIND -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
             KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
-            KeyEvent.KEYCODE_DPAD_LEFT -> if (!controls) { seekBy(if (skin.rtl) 1 else -1, event.repeatCount > 0); return true }
-            KeyEvent.KEYCODE_DPAD_RIGHT -> if (!controls) { seekBy(if (skin.rtl) -1 else 1, event.repeatCount > 0); return true }
             // a film: the subtitles panel - which translation, and how far it is moved
             KeyEvent.KEYCODE_CAPTIONS -> if (!live) { openSubsPanel(); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)

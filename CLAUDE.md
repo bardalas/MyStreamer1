@@ -76,6 +76,16 @@ watching"; it used to be a `delete`, so a finished film left no trace at all. `i
 a title to the newest thing watched under it, so a series shows its last episode; a series never gets
 a tick, because one finished episode is not a watched series. `pruneProgress()` keeps 400.
 
+### Starting and moving in a torrent (`TorrentEngine`, `StreamServer`, `PlayerActivity`)
+The magnet is added to the session **once** (`session.download(magnet, dir, SEQUENTIAL_DOWNLOAD)`) and the
+details are waited for on that same handle: `fetchMagnet` used a session of its own and threw its peers
+away, so the download began by finding them all over again. Playback waits only for the piece under the
+opening (`START_BUFFER_BYTES` is half a megabyte, i.e. one piece) plus the last piece, which usually holds
+the index; everything else arrives while it plays. A jump cancels the stale piece deadlines and raises the
+priority of the pieces where the reader landed (`StreamServer.awaitPiece`), and the player asks for the
+previous sync point rather than an exact frame. In the activity, arrows do not seek: they move `scrubTo`,
+the banner shows where they are heading, and `commitScrub` makes the one seek 700ms after they stop.
+
 ### The page's address (`MainActivity`)
 The page is served to itself by `WebViewAssetLoader` at `https://appassets.androidplatform.net/assets/`,
 not opened as `file://`. A file has no origin, so every iframe and every fetch from it arrived with none:

@@ -35,7 +35,9 @@ object TorrentEngine {
      * first frames: [StreamServer] blocks every later read until its piece arrives, and the player's own
      * read timeout is two minutes, so opening early only moves the waiting into the player.
      */
-    private const val START_BUFFER_BYTES = 1536L * 1024
+    // The piece under the start is what playback cannot begin without; everything after it arrives while
+    // it is already playing. A larger buffer here is a longer black screen, not a smoother film.
+    private const val START_BUFFER_BYTES = 512L * 1024
 
     private val PUBLIC_TRACKERS = listOf(
         "udp://tracker.opentrackr.org:1337/announce",
@@ -97,28 +99,26 @@ object TorrentEngine {
                 waitForDht(::superseded, onStatus)
                 if (superseded()) return@Thread
 
+                // The magnet is added to the session once and kept: fetching the details separately and
+                // then starting the download would throw away every peer just found and look for them all
+                // over again - which is most of the wait before a film starts.
                 onStatus(status("p" to "meta"))
-                val tempDir = File(context.cacheDir, "torrent-meta").apply { mkdirs() }
-                val metadata = session.fetchMagnet(buildMagnet(infoHash, sources), 60, tempDir)
-                    ?: throw IllegalStateException("e:nopeers")
-                if (superseded()) return@Thread
+                val saveDir = File(context.cacheDir, "torrents/$infoHash").apply { mkdirs() }
+                session.download(buildMagnet(infoHash, sources), saveDir, TorrentFlags.SEQUENTIAL_DOWNLOAD)
+                val hash = Sha1Hash(infoHash)
+                val handle = waitForHandle(hash)
+                handle.setFlags(TorrentFlags.SEQUENTIAL_DOWNLOAD)
+                trackersOf(sources).forEach { handle.addTracker(AnnounceEntry(it)) }
+                handle.forceReannounce()
+                synchronized(this) { currentHash = hash; currentDir = saveDir }
 
-                val ti = TorrentInfo(metadata)
+                // what is in the torrent is known a moment after the first peer answers
+                val ti = waitForMetadata(handle, ::superseded, onStatus) ?: return@Thread
                 if (ti.numFiles() <= 0) throw IllegalStateException("e:empty")
                 val idx = if (fileIdx in 0 until ti.numFiles()) fileIdx else largestVideoFile(ti)
                 val priorities = Priority.array(Priority.IGNORE, ti.numFiles())
                 priorities[idx] = Priority.SEVEN
-                val saveDir = File(context.cacheDir, "torrents/$infoHash").apply { mkdirs() }
-
-                session.download(ti, saveDir, null, priorities, null, TorrentFlags.SEQUENTIAL_DOWNLOAD)
-                val hash = ti.infoHashV1() ?: throw IllegalStateException("e:type")
-                val handle = waitForHandle(hash)
                 handle.prioritizeFiles(priorities)
-                // The metadata carries no trackers (they lived in the magnet), so without this the download
-                // finds peers through DHT alone and sits at zero peers for tens of seconds.
-                trackersOf(sources).forEach { handle.addTracker(AnnounceEntry(it)) }
-                handle.forceReannounce()
-                synchronized(this) { currentHash = hash; currentDir = saveDir }
 
                 val media = StreamServer.Media(
                     file = File(saveDir, ti.files().filePath(idx)),
@@ -169,6 +169,19 @@ object TorrentEngine {
             onStatus(status("p" to "dht", "nodes" to nodes))
             Thread.sleep(500)
         }
+    }
+
+    /** The torrent's own details, once a peer has sent them (a magnet carries only its name). */
+    private fun waitForMetadata(handle: TorrentHandle, superseded: () -> Boolean, onStatus: (String) -> Unit): TorrentInfo? {
+        val deadline = System.currentTimeMillis() + 90_000
+        while (System.currentTimeMillis() < deadline) {
+            if (superseded()) return null
+            val st = handle.status()
+            if (st.hasMetadata()) return handle.torrentFile() ?: throw IllegalStateException("e:type")
+            onStatus(status("p" to "meta", "peers" to st.numPeers()))
+            Thread.sleep(200)
+        }
+        throw IllegalStateException("e:nopeers")
     }
 
     private fun waitForHandle(hash: Sha1Hash): TorrentHandle {

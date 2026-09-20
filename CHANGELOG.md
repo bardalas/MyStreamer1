@@ -1,5 +1,25 @@
 # VEO Android changelog
 
+## 0.38.0 — 2026-09-20
+- **A film starts much sooner.** The torrent is added to the session once and kept: until now its details
+  were fetched in a session of their own, thrown away, and the download then looked for every peer a
+  second time - most of the wait before a film began. It also starts on the first piece under the
+  opening rather than on a minute and a half of it.
+- **Running through a film.** Holding an arrow runs the banner forward - slowly at first, then minutes at
+  a time - while the picture keeps playing underneath, and the film is taken there once, when the key is
+  let go. A jump lands on the nearest picture the file starts from, and asks the swarm for the pieces
+  where it landed. One press is half a minute; several presses in a row are one jump, not ten.
+- The banner of a film no longer brings the player's own controls up with it, and its times read left to
+  right on a right-to-left screen.
+- **The taste has sound**, lasts ten seconds and does not repeat.
+- **Subtitles**: their size can be set from the same panel (Up while a film plays), alongside the
+  translation and the sync.
+- The marker keeps up with the remote now instead of gliding after it.
+- A channel card is the channel: the catch-up button is gone from it (holding OK on a channel still opens
+  its guide), so walking the list no longer walks through a button on every card.
+- **Catch-up on RaspberryTV**: the app asks the service which spelling of the archive it answers to, the
+  first time the channel list is opened, and remembers it - instead of guessing at the moment of playing.
+
 ## 0.37.0 — 2026-09-20
 - **The app has an address.** Until now its page was opened as a file, which is why YouTube refused to
   play anything inside it ("error 153"). It is now served to itself over https, so **trailers and the

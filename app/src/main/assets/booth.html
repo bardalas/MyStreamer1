@@ -517,10 +517,6 @@ main{padding:0 28px 60px}
 .chinfo small{color:var(--text2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chinfo .bar{display:block;position:static;padding:0;border:0;height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:6px}
 .chinfo .bar i{display:block;height:100%;background:var(--tungsten)}
-/* catch-up: a mark in the corner of the card, not a column of its own */
-.chback{position:absolute;inset-block-start:8px;inset-inline-end:8px;width:32px;height:32px;border-radius:50%;
-  background:#00000059;border:1px solid var(--line);color:var(--muted);font-size:15px;cursor:pointer;z-index:1}
-.chback:hover,.chback:focus-visible{color:var(--light);background:var(--raise);border-color:var(--tungsten)}
 [data-layout="tv"] .chlist{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
 [data-layout="tv"] .chinfo b{font-size:19px}
 [data-layout="tv"] .chinfo small{font-size:14px}
@@ -614,12 +610,13 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 
 /* The travelling marker: where you are slides from one thing to the next instead of blinking somewhere
    else. It is drawn by the page, so the ring of the browser itself is taken off once it exists. */
-#halo{position:fixed;top:0;left:0;z-index:9500;pointer-events:none;opacity:0;border-radius:12px;
-  background:#ffffff0f;box-shadow:0 0 0 2px var(--tungsten),0 12px 34px -14px var(--tungsten);
-  transition:transform var(--travel) var(--ease),width var(--travel) var(--ease),
-    height var(--travel) var(--ease),opacity var(--quick) ease,border-radius var(--quick) ease;
+/* It has to arrive with the press, not after it: a short, flat travel, and the exact shape of what it
+   is around. Anything slower reads as the marker lagging behind the remote. */
+#halo{position:fixed;top:0;left:0;z-index:9500;pointer-events:none;opacity:0;border-radius:10px;
+  background:#ffffff0a;box-shadow:0 0 0 2px var(--tungsten),0 8px 24px -14px var(--tungsten);
+  transition:transform .11s linear,width .11s linear,height .11s linear,opacity .1s linear;
   will-change:transform,width,height}
-#halo.quick{transition:opacity var(--quick) ease}
+#halo.quick{transition:opacity .1s linear}
 body.motion :focus-visible{outline:none}
 body.motion .search:focus-within{box-shadow:0 0 0 3px var(--tungsten)}
 
@@ -2349,10 +2346,12 @@ let tasteTimer = 0, tasteStop = null;
 /** Drop whatever the taste left behind: its timers, its listener and the frame itself. */
 function endTaste(){ clearTimeout(tasteTimer); tasteStop?.(); tasteStop = null; }
 /**
- * A taste of [yt] behind whatever is in [host]: muted, low quality (it must appear quickly, and nobody
- * is going to study it), out of the remote's reach, and revealed only once the player reports itself
- * playing - a trailer that cannot be embedded would otherwise put a black box where the artwork was.
- * One taste at a time: starting another, or leaving the screen, ends this one.
+ * A taste of [yt] behind whatever is in [host]: ten seconds of the trailer, with its sound, at the
+ * quality that starts fastest - nobody is going to study it - and out of the remote's reach. It starts
+ * muted because that is the only way a page is allowed to start anything, and is unmuted the moment it
+ * is really playing; that same moment is when it is revealed, so a trailer that cannot be embedded
+ * leaves the artwork alone instead of putting a black box over it. One taste at a time: starting
+ * another, or leaving the screen, ends this one.
  */
 function startTaste(hostSel, yt, delay = 1500){
   endTaste();
@@ -2361,7 +2360,7 @@ function startTaste(hostSel, yt, delay = 1500){
     const host = $(hostSel);
     if(!host || host.querySelector('.taste') || document.visibilityState !== 'visible') return;
     host.insertAdjacentHTML('afterbegin', `<iframe class="taste" tabindex="-1" allow="autoplay" title=""
-      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&loop=1&enablejsapi=1&vq=small&playlist=${encodeURIComponent(yt)}&start=6"></iframe>`);
+      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&vq=small&start=6"></iframe>`);
     const frame = host.querySelector('.taste');
     // cover the box it was put in: a letterboxed trailer beside the artwork looks like a mistake
     const box = host.getBoundingClientRect();
@@ -2369,16 +2368,22 @@ function startTaste(hostSel, yt, delay = 1500){
     frame.style.height = Math.ceil(Math.max(box.height, box.width * 9 / 16)) + 'px';
     const say = msg => frame.contentWindow?.postMessage(JSON.stringify(msg), '*');
     frame.onload = () => say({event: 'listening', id: 1, channel: 'widget'});
+    let over = 0;
     const heard = e => {
       if(!frame.isConnected || !/youtube/.test(e.origin) || !/"playerState":\s*1/.test(String(e.data))) return;
-      say({event: 'command', func: 'setPlaybackQuality', args: ['small'], id: 1, channel: 'widget'});
+      const cmd = (func, args = []) => say({event: 'command', func, args, id: 1, channel: 'widget'});
+      cmd('setPlaybackQuality', ['small']);
+      cmd('unMute');
+      cmd('setVolume', [60]);
       frame.classList.add('on');
+      // a taste is ten seconds: it fades back into the artwork rather than playing on and on
+      over = setTimeout(() => { frame.classList.remove('on'); setTimeout(() => frame.remove(), 700); }, 10000);
       done();
     };
     const giveUp = setTimeout(() => { frame.remove(); done(); }, 8000);
-    const done = () => { clearTimeout(giveUp); removeEventListener('message', heard); tasteStop = null; };
+    const done = () => { clearTimeout(giveUp); removeEventListener('message', heard); tasteStop = over ? tasteStop : null; };
     addEventListener('message', heard);
-    tasteStop = () => { done(); frame.remove(); };
+    tasteStop = () => { clearTimeout(over); clearTimeout(giveUp); removeEventListener('message', heard); frame.remove(); tasteStop = null; };
   }, delay);
 }
 function renderHero(m){
@@ -2902,24 +2907,47 @@ const BROWSER_UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, l
  * says, so every likely one is handed to the player, in order, and it moves to the next if a programme
  * does not open: the channel's own folder, the channel as a folder, and the service's direct address.
  */
-function rtvArchiveUrls(c, file){
+function rtvArchiveUrls(c, file, from){
   const [path, query] = c.url.split('?');
   const q = query ? '?' + query : '';
+  const alt = file.replace(/^index-/, 'archive-');
   const out = [path.replace(/[^/]+$/, file) + q,                     // …/<channel>/<file>
-               path.replace(/\.m3u8$/, '') + '/' + file + q];        // …/<channel>.m3u8 is itself the folder
+               path.replace(/\.m3u8$/, '') + '/' + file + q,         // …/<channel>.m3u8 is itself the folder
+               path.replace(/[^/]+$/, alt) + q,
+               path.replace(/\.m3u8$/, '') + '/' + alt + q];
+  // some panels take the time as a parameter of the live address instead of a file of its own
+  if(from) out.push(c.url + (query ? '&' : '?') + `utc=${from}&lutc=${Math.floor(Date.now() / 1000)}`);
   if(c.cid) out.push(`http://${c.server}:80/${c.cid}/${file}?token=${c.token}`);
-  return [...new Set(out)];
+  const order = store.get('archFmt', -1);
+  const list = [...new Set(out)];
+  // the shape that answered last time is tried first
+  return order >= 0 && order < list.length ? [list[order], ...list.filter((_, i) => i !== order)] : list;
 }
-/** The same addresses, with the times left for the player to fill in: it walks the guide by itself. */
-function rtvArchiveTemplate(c){
-  return c.rec ? rtvArchiveUrls(c, 'index-{from}-{dur}.m3u8').join('|') : '';
-}
-function rtvArchiveUrl(c, start, end){
+/**
+ * Which of those addresses this service actually answers to is not something its playlist says, so the
+ * app asks: the first one that gives back a playlist is the one used, and which of them it was is
+ * remembered for the next programme.
+ */
+async function rtvArchiveProbe(c, start, end){
   const now = Date.now() / 1000;
   start = Math.floor(start);
   if(!end || end <= start) end = now + 600;
   const file = start > now - 600 ? `timeshift_abs-${start}.m3u8` : `index-${start}-${Math.floor(end - start)}.m3u8`;
-  return rtvArchiveUrls(c, file)[0];
+  const urls = rtvArchiveUrls(c, file, start);
+  for(const u of urls){
+    try{
+      const text = await fetchText(u);
+      if(!/#EXTM3U/.test(text.slice(0, 200))) continue;
+      const plain = rtvArchiveUrls(c, file, start);          // the order this one was found in
+      store.set('archFmt', plain.indexOf(u));
+      return u;
+    }catch(e){}
+  }
+  return urls[0];
+}
+/** The same addresses, with the times left for the player to fill in: it walks the guide by itself. */
+function rtvArchiveTemplate(c){
+  return c.rec ? rtvArchiveUrls(c, 'index-{from}-{dur}.m3u8', '{from}').join('|') : '';
 }
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -3006,10 +3034,10 @@ async function openChannel(c){
     const pad = n => String(n).padStart(2, '0');
     const d = new Date(Date.now() - 3600e3);
     sheet.querySelector('#tpick').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    sheet.querySelector('#tgo').onclick = () => {
+    sheet.querySelector('#tgo').onclick = async () => {
       const t = new Date(sheet.querySelector('#tpick').value).getTime() / 1000;
       if(!t || t < from || t > now) return alert(`אפשר לבחור זמן מ־${c.rec} הימים האחרונים בלבד.`);
-      close(); playLive({...c, url: rtvArchiveUrl(c, t, t + 3 * 3600), name: `${c.name} · ${hhmm(t)}`});
+      close(); playLive({...c, url: await rtvArchiveProbe(c, t, t + 3 * 3600), name: `${c.name} · ${hhmm(t)}`});
     };
     return;
   }
@@ -3026,10 +3054,10 @@ async function openChannel(c){
         return `<button class="prog ${state}" data-p="${progs.indexOf(g)}" ${state === 'future' ? 'disabled' : ''} title="${esc(g.descr)}"><time>${hhmm(g.t)}</time><span>${esc(g.name)}${state === 'now' ? ' · עכשיו' : ''}</span></button>`;
       }).join('')}</div>`;
     guide.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { sel = b.dataset.day; draw(); });
-    guide.querySelectorAll('.prog:not(.future)').forEach(b => b.onclick = () => {
+    guide.querySelectorAll('.prog:not(.future)').forEach(b => b.onclick = async () => {
       const g = progs[b.dataset.p];
       close();
-      playLive({...c, url: rtvArchiveUrl(c, g.t, g.to), name: `${c.name} · ${g.name}`});
+      playLive({...c, url: await rtvArchiveProbe(c, g.t, g.to), name: `${c.name} · ${g.name}`});
     });
     guide.querySelector('.prog.now')?.scrollIntoView({block: 'center'});
   };
@@ -3123,6 +3151,14 @@ async function viewLive(){
     });
   }
 
+  // Which spelling of the archive this service answers to is asked once, quietly, while the channels are
+  // being read - so that walking back through a channel plays the first time it is tried.
+  const withRec = chans.find(c => c.rec && c.url);
+  if(withRec && store.get('archFmt', -1) < 0){
+    const hour = Math.floor(Date.now() / 1000) - 3600;
+    rtvArchiveProbe(withRec, hour, hour + 1800).catch(() => {});
+  }
+
   const last = store.get('lastChannel', null);
   const lastIdx = last && last.src === sel ? chans.findIndex(c => c.name === last.name) : -1;
   $('#cont').innerHTML = lastIdx >= 0 ? `<button class="continue" id="goLast">▶ המשך לצפות · <span>${esc(chans[lastIdx].name)}</span></button>` : '';
@@ -3140,7 +3176,6 @@ async function viewLive(){
           <span class="chhead"><span class="chlogo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials(c)}'}))">` : `<span>${initials(c)}</span>`}</span>
             <span class="chinfo"><b>${esc(c.name)}</b><span class="chnum">${numbers.get(c)}${c.group ? ` · ${esc(c.group)}` : ''}</span></span></span>
           <span class="chinfo"><small data-now="${i}">${c.epg ? '' : ''}</small></span></button>
-        ${c.rec ? `<button class="chback" data-back="${i}" aria-label="צפייה אחורה ב${esc(c.name)}" title="צפייה אחורה (${c.rec} ימים)">⟲</button>` : ''}
       </div>`).join('')}</div>` : '<p class="note">אין ערוצים שמתאימים.</p>';
     $('#chs').querySelectorAll('[data-i]').forEach(b => {
       const c = list[b.dataset.i];
@@ -3154,7 +3189,6 @@ async function viewLive(){
       b.onpointerup = b.onpointerleave = b.onpointercancel = () => clearTimeout(timer);
       b.onkeydown = e => { if(e.key === 'Enter' && e.repeat && !longPressed){ e.preventDefault(); openBack(); } };
     });
-    $('#chs').querySelectorAll('[data-back]').forEach(b => b.onclick = () => openChannel(list[b.dataset.back]));
     // "now playing" line for visible channels
     const showNow = async el => {
       const p = await nowPlaying(list[el.dataset.now]);
@@ -3693,7 +3727,7 @@ function moveHalo(el, quick){
     halo.style.opacity = '0';
     return;
   }
-  const r = el.getBoundingClientRect(), pad = 5;
+  const r = el.getBoundingClientRect(), pad = 3;
   halo.classList.toggle('quick', !!quick);
   halo.style.width = (r.width + pad * 2) + 'px';
   halo.style.height = (r.height + pad * 2) + 'px';
