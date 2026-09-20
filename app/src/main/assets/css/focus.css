@@ -1,0 +1,33 @@
+/* ---------- what "here" looks like ----------
+   Nothing is drawn around the thing you are on - moving onto it is what marks it. A control fills
+   with the accent, a row lights up with a line along the edge you came from, and a title grows a
+   little and brightens. The browser's own ring is taken off once the page is running (body.motion),
+   so a page without its scripts still shows focus the ordinary way. */
+body.motion :focus-visible{outline:none}
+
+/* controls: the one you are on is the one wearing the accent */
+.btn:focus-visible,.qbtn:focus-visible,.altbtn:focus-visible,.chip:focus-visible,.sortpill:focus-visible,
+.sopt:focus-visible,.nav a:focus-visible,.cats a:focus-visible,.bctabs a:focus-visible,
+.stabs button:focus-visible,.seasonbar button:focus-visible,.days button:focus-visible,
+.keypad button:focus-visible,.playbtn:focus-visible,.livebtn:focus-visible,.readmore:focus-visible,
+.update button:focus-visible,.tstat button:focus-visible,.oops button:focus-visible,
+.catorder button:focus-visible,.danger:focus-visible{
+  background:var(--tungsten);color:var(--on-accent);border-color:transparent;box-shadow:none}
+.sortpill:focus-visible b,.playbtn:focus-visible small,.btn:focus-visible .rate{color:inherit;opacity:.85}
+.cats a:focus-visible .ic{color:var(--on-accent)}
+
+/* rows and cards: they light up, with a mark down the side you arrived from */
+.ep:focus-visible,.eprow:focus-visible,.srow:focus-visible,.prog:focus-visible,.chan:focus-visible,
+.continue:focus-visible,.chmain:focus-visible,.plrow:focus-visible,.setopt:focus-visible,
+.addon:focus-within{
+  background:var(--raise);box-shadow:inset calc(3px * var(--flip)) 0 0 var(--tungsten)}
+.setopt:focus-visible{border-color:var(--tungsten)}
+
+/* a title: it comes forward, and says its name in the accent */
+.poster:focus-visible .art{transform:translateY(-3px) scale(1.03);filter:brightness(1.08);
+  box-shadow:0 14px 34px -14px #000c}
+.poster:focus-visible .t{color:var(--tungsten)}
+[data-layout="tv"] .poster:focus .t,[data-layout="tv"] .poster:focus-visible .t{color:var(--tungsten)}
+
+/* the search box is a field: it keeps a field's outline */
+body.motion .search:focus-within{box-shadow:0 0 0 3px var(--tungsten)}

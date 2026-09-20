@@ -46,6 +46,14 @@ class MainActivity : AppCompatActivity() {
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
         web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW   // IPTV and LAN devices are http
+        // The page is served from inside the app, so the WebView is allowed to keep it - and would go on
+        // showing the old one after an update. A new version throws that copy away, once.
+        val built = packageManager.getPackageInfo(packageName, 0).longVersionCode
+        val seen = getSharedPreferences("veo", MODE_PRIVATE)
+        if (seen.getLong("built", 0L) != built) {
+            web.clearCache(true)
+            seen.edit().putLong("built", built).apply()
+        }
         web.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
                 assetsAt.shouldInterceptRequest(request.url)

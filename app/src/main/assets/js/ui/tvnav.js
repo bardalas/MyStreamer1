@@ -69,7 +69,6 @@ export function focusItem(el){
   const how = isTvLayout() ? 'auto' : 'smooth';
   const strip = el.closest('.strip, .chlist, #cats, .nav, .bar, .stabs');
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: how});
-  requestAnimationFrame(() => moveHalo(document.activeElement, true));   // after the page has moved
   if(el.closest('.bar')) return glide(0);
   const row = el.closest('.row');
   if(row){
@@ -80,43 +79,9 @@ export function focusItem(el){
   const r = el.getBoundingClientRect();
   if(r.top < barHeight() + 20 || r.bottom > innerHeight - 20) el.scrollIntoView({block: 'center', behavior: how});
 }
-/* ---------- the travelling marker ----------
-   One soft rectangle follows the focus from one thing to the next, so that moving through the app reads
-   as movement and not as a ring blinking somewhere else. Posters keep their own frame: they grow when
-   they are chosen, and a rectangle measured before the growth would always land a moment behind them.
-   While the page itself is moving the marker sticks to its element instead of chasing it. */
-export const HALO_SKIP = '.poster, .taste, iframe, video';
-export let halo = null, haloRest = 0;
-export function moveHalo(el, quick){
-  if(!halo) return;
-  if(!el || el === document.body || !el.getClientRects?.().length || el.closest?.(HALO_SKIP)){
-    halo.style.opacity = '0';
-    return;
-  }
-  const r = el.getBoundingClientRect(), pad = 3;
-  halo.classList.toggle('quick', !!quick);
-  halo.style.width = (r.width + pad * 2) + 'px';
-  halo.style.height = (r.height + pad * 2) + 'px';
-  halo.style.borderRadius = getComputedStyle(el).borderRadius;
-  halo.style.transform = `translate3d(${Math.round(r.left - pad)}px,${Math.round(r.top - pad)}px,0)`;
-  halo.style.opacity = '1';
-}
-(function startHalo(){
-  halo = document.createElement('div');
-  halo.id = 'halo';
-  halo.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(halo);
-  document.body.classList.add('motion');          // the page draws the marker now, so the browser need not
-  addEventListener('focusin', e => moveHalo(e.target));
-  addEventListener('focusout', () => setTimeout(() => moveHalo(document.activeElement), 0));
-  const track = () => {
-    moveHalo(document.activeElement, true);
-    clearTimeout(haloRest);
-    haloRest = setTimeout(() => halo.classList.remove('quick'), 150);
-  };
-  addEventListener('scroll', track, {passive: true, capture: true});
-  addEventListener('resize', track);
-})();
+/* The page draws its own focus (see css/focus.css), so the browser's ring is taken off. */
+document.body.classList.add('motion');
+
 export function tvMove(dir){
   const rows = tvRows();
   if(!rows.length) return false;

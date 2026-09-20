@@ -30,6 +30,7 @@ import './ui/torrent.js';
 import './ui/player.js';
 import './ui/sources.js';
 import './ui/rail.js';
+import './ui/quickview.js';
 import './providers/kan.js';
 import './providers/reshet.js';
 import './providers/mako.js';

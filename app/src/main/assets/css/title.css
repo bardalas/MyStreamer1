@@ -1,17 +1,21 @@
 /* ---------- A title: its page, its episodes, its sources ---------- */
 /* A title: its page, its episodes and the sources it can be watched from. */
 /* detail */
-.detail{display:grid;grid-template-columns:260px 1fr;gap:40px;position:relative;z-index:2;margin-top:-30vh;padding-top:12px}
+/* The banner is the banner: nothing is written over it, and the words begin under it. */
+.detail{display:grid;grid-template-columns:200px 1fr;gap:32px;position:relative;z-index:2;margin-top:18px;padding-top:0}
 .detail .poster-lg{border-radius:8px;aspect-ratio:2/3;background:var(--surface) center/cover;box-shadow:0 20px 50px -10px #000}
 .detail h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,48px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
 .facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+/* under the synopsis, the facts are labels rather than a headline of their own */
+.dinfo .facts{margin:10px 0 16px;font-size:12.5px;gap:6px}
+.dinfo .facts span{padding:3px 8px;font-size:12.5px}
 .facts span{background:var(--raise);border-radius:4px;padding:3px 9px;font-size:13px;color:var(--text2)}
 .facts .imdb{font-weight:600}
 .desc{max-width:68ch;color:var(--text2)}
 .people{color:var(--muted);font-size:14px;margin:12px 0 22px;max-width:68ch}
 .people b{color:var(--light);font-weight:500}
-.backdrop{height:50vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative;overflow:hidden}
-.backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night) 12%,var(--shade-50) 60%,var(--shade-20))}
+.backdrop{height:42vh;margin:0 -28px;background-size:cover;background-position:center 22%;position:relative;overflow:hidden}
+.backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night),transparent 45%)}
 .dinfo{min-width:0}
 .dinfo .playrow{margin:10px 0}
 .dinfo .playrow .btn{margin-inline-start:2px}
@@ -21,6 +25,10 @@
 .psrc{display:contents}
 .epanel{margin-top:22px}
 .panel{background:var(--surface);border-radius:10px;padding:18px}
+/* the list of what there is to watch floats over the page: a line between its rows is enough */
+.epanel{background:none;border:0;padding:0}
+.epanel .ep{background:#ffffff08;border:1px solid transparent}
+.epanel .ep:hover{background:#ffffff12}
 .panel h3{margin:0 0 12px;font-family:var(--display);font-size:19px}
 .eps{overflow:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:none}
 .eps::-webkit-scrollbar{width:0}

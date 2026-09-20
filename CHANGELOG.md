@@ -1,5 +1,19 @@
 # VEO Android changelog
 
+## 0.39.1 — 2026-09-20
+- **A title page is a banner, then the words, then what there is to watch.** Nothing is written over
+  the artwork any more; the facts are small labels under the synopsis; and the row above the list
+  chooses the quality rather than playing - because what plays is the thing you choose from the list:
+  an episode, or, for a film, the film itself as a single line. Opening a title puts the remote on the
+  episode you are up to.
+- **The title card is back**: a press on a poster opens it again (the refactor had left its module
+  unreached - and `tools/orphans.py` now says so before a build can).
+- One progress bar in a film: on a television the banner is the only one, on a touch screen the
+  player's own controls are, and the bar itself runs left to right whatever the writing does.
+- A new version of the app throws away the copy of the page the WebView was keeping, so an update
+  cannot leave yesterday's screen behind.
+- The taste asks for a medium picture instead of the largest one, which is what made it stall.
+
 ## 0.39.0 — 2026-09-20
 - **The app has a shape.** What was one four-thousand-line page is now a stylesheet per layer and
   forty small modules in `core / data / providers / ui / screens`, with one file on top that says

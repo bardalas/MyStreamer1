@@ -119,8 +119,9 @@ class PlayerActivity : AppCompatActivity() {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subScale)
         }
 
-        if (live) view.useController = false     // live has nothing to seek, and controls eat the D-pad
-        else view.controllerAutoShow = false     // a film opens on the film: the controls wait to be asked for
+        val remote = packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+        if (live || remote) view.useController = false   // a remote has the banner; a touch screen has the controls
+        else view.controllerAutoShow = false             // and a film opens on the film either way
 
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) {
@@ -458,6 +459,9 @@ class PlayerActivity : AppCompatActivity() {
      *  again after a few seconds. While the arrows are walking the guide it stays longer: OK is what
      *  it is waiting for. */
     private fun showBanner() {
+        // a film on a touch screen is followed by the player's own bar: two of them, facing opposite
+        // ways, is one too many
+        if (!live && findViewById<PlayerView>(R.id.playerView).useController) return
         findViewById<View>(R.id.infobar).visibility = View.VISIBLE
         if (!live) {
             paintFilm()

@@ -56,6 +56,7 @@ export function startTaste(hostSel, yt, delay = 1500){
       if(!frame.isConnected || !/youtube/.test(e.origin) || !/"playerState":\s*1/.test(String(e.data))) return;
       const cmd = (func, args = []) => say({event: 'command', func, args, id: 1, channel: 'widget'});
       cmd('setPlaybackQuality', ['small']);
+      cmd('setPlaybackQuality', ['medium']);        // a full-screen frame otherwise asks for HD, and stalls
       cmd('unMute');
       cmd('setVolume', [60]);
       frame.classList.add('on');

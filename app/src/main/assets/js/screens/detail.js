@@ -42,21 +42,21 @@ export async function viewDetail(type, id){
       <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
       <div class="dinfo">
         <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig"><bdi>${esc(meta.name)}</bdi></span>` : ''}</h1>
-        <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
-        <div class="playrow"><span id="streams" class="psrc"><span class="srcstat">${tr('src.searching')}</span></span>
-          <button class="btn ghost ${saved?'saved':''}" id="lib">${libLabel(saved)}</button>
-          ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">${tr('detail.trailer')}</button>` : ''}</div>
-        <div id="palt"></div>
         <p class="desc" id="desc" dir="auto">${esc(meta.description)}</p>
         <div class="src" id="dsrc"></div>
+        <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
         <div class="people">${meta.director?.length ? `<div><b>${tr('detail.director')}</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>${tr('detail.cast')}</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
       </div>
     </div>
-    ${seasons.length ? `<div class="panel epanel"><div class="epwrap">
+    <div class="playrow"><span id="streams" class="psrc"><span class="srcstat">${tr('src.searching')}</span></span>
+      <button class="btn ghost ${saved?'saved':''}" id="lib">${libLabel(saved)}</button>
+      ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">${tr('detail.trailer')}</button>` : ''}</div>
+    <div id="palt"></div>
+    <div class="panel epanel"><div class="epwrap">
         ${seasons.length > 1 ? `<div class="seasonbar" role="group" aria-label="${esc(tr('detail.season'))}" data-pane="#eps">${seasons.map(s =>
           `<button data-season="${s}">${s === 0 ? tr('detail.specials') : tr('detail.seasonN', {n: s})}</button>`).join('')}</div>` : ''}
-        <div class="eps" id="eps"></div></div></div>` : ''}`;
-  document.body.classList.toggle('titlefit', seasons.length > 0);      // on the TV a series page fits the screen
+        <div class="eps" id="eps"></div></div></div>`;
+  document.body.classList.add('titlefit');             // on the TV a title page fits the screen, and its list scrolls
   startTaste('.backdrop', trailerId(meta), 400);                       // the artwork gives way to a taste
 
   $('#lib').onclick = e => {
@@ -95,7 +95,11 @@ export async function viewDetail(type, id){
       const started = eps.find(v => { const w = progress[v.id]; return w && w.d && w.t / w.d <= .92; });
       const next = started || eps.find(v => !progress[v.id]) || eps[0];
       const btn = next && $('#eps').querySelector(`.ep[data-id="${CSS.escape(next.id)}"]`);
-      if(btn) pick(btn);
+      if(btn){
+        pick(btn);
+        // the remote lands on the episode you would watch, before any source has answered
+        if(isTvLayout() && (!document.activeElement || document.activeElement === document.body)) btn.focus();
+      }
     };
     const first = seasons.find(s => s !== 0) ?? seasons[0];
     const pickSeason = s => {
@@ -105,6 +109,19 @@ export async function viewDetail(type, id){
     pickSeason(first);
     $('#app').querySelectorAll('.seasonbar [data-season]').forEach(b => b.onclick = () => pickSeason(b.dataset.season));
   } else {
-    loadStreams(ctx, meta.behaviorHints?.defaultVideoId || meta.id, meta.name);
+    // A film is a list of one: the same choice, and the same way of starting it.
+    const vid = meta.behaviorHints?.defaultVideoId || meta.id;
+    const w = progress[vid];
+    const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
+    const seen = pct > 92;
+    $('#eps').innerHTML = `<button class="ep${seen ? ' seen' : ''}" data-id="${esc(vid)}"><span class="n">▶</span><span>
+      <div>${esc(heTitle(meta.id, meta.name))}</div>
+      <div class="d">${[yearOf(meta), meta.runtime].filter(Boolean).map(esc).join(' · ')}${pct && !seen ? ` · ${tr('detail.minLeft', {n: Math.max(1, Math.round((w.d - w.t) / 60))})}` : ''}</div>
+      ${pct && !seen ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}</span></button>`;
+    const row = $('#eps').querySelector('.ep');
+    row.onclick = () => { row.classList.add('on'); loadStreams(ctx, vid, meta.name, true); };
+    row.classList.add('on');
+    if(isTvLayout() && (!document.activeElement || document.activeElement === document.body)) row.focus();
+    loadStreams(ctx, vid, meta.name);                    // the sources are looked for straight away
   }
 }

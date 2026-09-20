@@ -41,20 +41,7 @@
   transition:transform var(--quick) var(--ease),background-color var(--quick) linear,
     border-color var(--quick) linear,color var(--quick) linear}
 .btn:active,.qbtn:active,.sortpill:active,.sopt:active,.chip:active,.playbtn:active{transform:scale(.97)}
-.poster .art{transition:transform var(--travel) var(--ease),box-shadow var(--travel) var(--ease)}
-.poster:focus-visible .art{box-shadow:0 0 0 3px var(--tungsten),0 14px 34px -12px var(--glow-soft)}
-
-/* The travelling marker: where you are slides from one thing to the next instead of blinking somewhere
-   else. It is drawn by the page, so the ring of the browser itself is taken off once it exists. */
-/* It has to arrive with the press, not after it: a short, flat travel, and the exact shape of what it
-   is around. Anything slower reads as the marker lagging behind the remote. */
-#halo{position:fixed;top:0;left:0;z-index:9500;pointer-events:none;opacity:0;border-radius:10px;
-  background:#ffffff0a;box-shadow:0 0 0 2px var(--tungsten),0 8px 24px -14px var(--tungsten);
-  transition:transform .11s linear,width .11s linear,height .11s linear,opacity .1s linear;
-  will-change:transform,width,height}
-#halo.quick{transition:opacity .1s linear}
-body.motion :focus-visible{outline:none}
-body.motion .search:focus-within{box-shadow:0 0 0 3px var(--tungsten)}
+.poster .art{transition:transform var(--travel) var(--ease),box-shadow var(--travel) var(--ease),filter var(--quick) linear}
 
 [data-layout="tv"]{scrollbar-width:none}
 [data-layout="tv"] ::-webkit-scrollbar{width:0;height:0}
