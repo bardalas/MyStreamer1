@@ -8,7 +8,7 @@ body.motion :focus-visible{outline:none}
 /* Where you are is white; what is chosen wears the accent. Two different questions, two answers -
    and never the same colour, or "here" and "on" would be impossible to tell apart. */
 .btn:focus-visible,.qbtn:focus-visible,.altbtn:focus-visible,.chip:focus-visible,.sortpill:focus-visible,
-.sopt:focus-visible,.nav a:focus-visible,.cats a:focus-visible,.bctabs a:focus-visible,
+.sopt:focus-visible,.nav a:focus-visible,.search .ic:focus-visible,.railbtn:focus-visible,.bctabs a:focus-visible,
 .stabs button:focus-visible,.seasonbar button:focus-visible,.days button:focus-visible,
 .keypad button:focus-visible,.playbtn:focus-visible,.livebtn:focus-visible,.readmore:focus-visible,
 .update button:focus-visible,.tstat button:focus-visible,.oops button:focus-visible,
@@ -16,7 +16,7 @@ body.motion :focus-visible{outline:none}
   background:var(--light);color:var(--night);border-color:transparent;box-shadow:none}
 .tact:focus-visible .sub,.seg button:focus-visible .sub{color:#0009}
 .sortpill:focus-visible b,.playbtn:focus-visible small,.btn:focus-visible .rate{color:inherit;opacity:.85}
-.cats a:focus-visible .ic{color:var(--on-accent)}
+.nav a:focus-visible .ic{color:var(--on-accent)}
 
 /* rows and cards: they light up, with a mark down the side you arrived from */
 .ep:focus-visible,.eprow:focus-visible,.srow:focus-visible,.prog:focus-visible,.chan:focus-visible,
@@ -33,4 +33,4 @@ body.motion :focus-visible{outline:none}
 [data-layout="tv"] .poster:focus .t,[data-layout="tv"] .poster:focus-visible .t{color:var(--tungsten)}
 
 /* the search box is a field: it keeps a field's outline */
-body.motion .search:focus-within{box-shadow:0 0 0 3px var(--tungsten)}
+body.motion .search input:focus{border-color:var(--tungsten);box-shadow:0 0 0 2px var(--tungsten)}

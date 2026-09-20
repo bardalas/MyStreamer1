@@ -16,7 +16,7 @@
 .addpl{display:grid;grid-template-columns:1fr 2fr auto;gap:10px;max-width:900px;margin:8px 0 6px}
 .hint{font-size:13px;color:var(--muted);max-width:900px;margin:0 0 24px}
 .hint code{background:var(--raise);padding:1px 6px;border-radius:4px;font-size:12px}
-@media (max-width:760px){.cats{top:104px;padding:4px 16px 10px}.addpl{grid-template-columns:1fr}}
+@media (max-width:760px){.addpl{grid-template-columns:1fr}}
 
 
 /* An access key, typed with the remote. */

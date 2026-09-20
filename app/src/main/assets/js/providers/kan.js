@@ -3,7 +3,6 @@ import {sitePull} from '../core/bridge.js';
 import {$, esc, showErr} from '../core/dom.js';
 import {tr} from '../i18n.js';
 import {hls, openPlayer} from '../ui/player.js';
-import {renderCats} from '../ui/rail.js';
 
 /* ---------- Kan (kan.org.il) — the broadcaster's own catalogue, inside VEO ----------
    Kan's pages carry the whole of Kan BOX in their HTML, but the site answers a plain request with a
@@ -76,7 +75,6 @@ export const kanProgReader = path => `
   return JSON.stringify({desc: md ? md.getAttribute('content') : '', seasons: Object.keys(seasons), eps: eps});`;
 
 export async function viewKanProgram(path, title){
-  renderCats(null);
   $('#app').innerHTML = `<div class="page"><div class="showhead"><div><h1 dir="auto">${esc(title || '')}</h1><p id="kdesc"></p></div></div>
     <div class="seasons" id="seasons"></div><div class="eplist" id="eps"><p class="note">טוען פרקים…</p></div></div>`;
   try{

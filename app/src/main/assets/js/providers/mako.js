@@ -3,7 +3,6 @@ import {fetchText} from '../core/bridge.js';
 import {$, esc, showErr} from '../core/dom.js';
 import {store} from '../core/store.js';
 import {skeletons} from '../ui/cards.js';
-import {renderCats} from '../ui/rail.js';
 
 /* ---------- Keshet 12 (mako.co.il): catalogue from the site's public pages; episodes play on
    mako's own page and player, in an in-app window (their player handles their protection) ---------- */
@@ -65,7 +64,6 @@ export async function viewMakoTab(top){
 }
 
 export async function viewMakoProgram(path, title){
-  renderCats(null);
   $('#app').innerHTML = `<div class="page"><div class="showhead"><div><h1 dir="auto">${esc(title || '')}</h1><p id="mdesc"></p></div></div>
     <div class="seasons" id="mseasons"></div><div class="seasons" id="msections"></div><div class="eplist" id="eps"><p class="note">טוען פרקים…</p></div></div>`;
   const page = async p => (makoCache['p' + p] ||= nextData(await fetchText(MAKO + p)).data);

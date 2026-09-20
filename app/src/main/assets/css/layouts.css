@@ -29,11 +29,8 @@
 [data-layout="tv"] .grid{grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr))}
 [data-layout="tv"] .strip{gap:24px;padding:8px 6px 18px}
 [data-layout="tv"] .row h2{font-size:28px}
-[data-layout="tv"] .nav a{padding:10px 20px;font-size:18px}
 /* the focus ring sits between neighbours instead of over them */
-[data-layout="tv"] .bar{gap:30px}
-[data-layout="tv"] .nav{gap:16px}
-[data-layout="tv"] .bar :focus-visible{outline-width:3px;outline-offset:2px}
+[data-layout="tv"] .rail :focus-visible{outline-width:3px;outline-offset:2px}
 [data-layout="tv"] :focus-visible{outline-width:4px;outline-offset:4px}
 [data-layout="tv"] .poster:focus .art,[data-layout="tv"] .poster:focus-visible .art{transform:scale(1.07);box-shadow:0 18px 44px -12px #000d;filter:brightness(1.1)}
 [data-layout="tv"] .poster:focus-visible{outline:none}

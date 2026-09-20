@@ -48,7 +48,7 @@
 /* Settings: the side menu and the page beside it. */
 /* settings: categories in a side menu, one page at a time */
 .sgrid{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start}
-.stabs{display:flex;flex-direction:column;gap:6px;position:sticky;top:84px}
+.stabs{display:flex;flex-direction:column;gap:6px;position:sticky;top:20px}
 .stabs button{text-align:start;background:none;border:0;border-radius:10px;padding:12px 15px;color:var(--muted);font:inherit;cursor:pointer}
 .stabs button.on{background:var(--raise);color:var(--light);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
 .stabs button:hover{color:var(--light)}

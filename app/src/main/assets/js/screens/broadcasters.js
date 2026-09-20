@@ -7,7 +7,6 @@ import {KAN, kanBox} from '../providers/kan.js';
 import {IL_CHANNELS, watchChannel} from '../providers/live.js';
 import {viewMakoTab} from '../providers/mako.js';
 import {r13, r13channels} from '../providers/reshet.js';
-import {renderCats} from '../ui/rail.js';
 import {renderRows} from '../ui/rows.js';
 
 /* ---------- ערוצים: each broadcaster's own content, separate from films & series ---------- */
@@ -20,7 +19,6 @@ export const BC_TABS = [
 
 
 export async function viewTv(which){
-  renderCats(null);
   const bc = BC_TABS.find(b => b.id === which) || BC_TABS.find(b => b.id === store.get('tvTab', '')) || BC_TABS[0];
   store.set('tvTab', bc.id);
   const tabs = `<div class="page" style="padding-bottom:0"><h1>ערוצים</h1><nav class="bctabs" aria-label="ערוצי שידור">${BC_TABS.map(b =>

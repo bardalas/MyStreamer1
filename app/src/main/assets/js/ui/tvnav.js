@@ -11,7 +11,7 @@ export const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidd
    these, or the D-pad cannot reach it; tvRows() keeps only the innermost match, so nesting two
    of them is safe. Grouped by the screen that renders them. */
 export const ROWS_SEL = [
-  '.bar', '#cats', '.stabs',                                               // chrome: top bar, rail, settings menu
+  '#rail', '.stabs',                                                       // chrome: the side menu, the settings menu
   '.bctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',              // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
@@ -81,8 +81,6 @@ export const bestIn = (row, from) => {
 };
 /* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
    under the top bar (so the category is always readable), anything else is just brought into view. */
-export const barHeight = () => document.querySelector('.bar')?.offsetHeight || 0;
-export const catsHeight = () => { const c = $('#cats'); return c && c.offsetHeight && getComputedStyle(c).position === 'sticky' ? c.offsetHeight : 0; };
 /** Travel to [y]: a short way is slid, a long way is jumped - a viewer should not watch the page fly. */
 export function glide(y){
   const to = Math.max(0, Math.round(y));
@@ -95,17 +93,18 @@ export function focusItem(el){
   // A television scrolls instantly: a smooth scroll under a held arrow arrives after the next press,
   // which is what makes moving through a list feel heavy.
   const how = isTvLayout() ? 'auto' : 'smooth';
-  const strip = el.closest('.strip, .chlist, #cats, .nav, .bar, .stabs');
+  // the menu scrolls inside itself; the page behind it stays where the viewer left it
+  if(el.closest('#rail')) return el.scrollIntoView({block: 'nearest', behavior: how});
+  const strip = el.closest('.strip, .chlist, .stabs');
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: how});
-  if(el.closest('.bar')) return glide(0);
   const row = el.closest('.row');
   if(row){
-    const want = Math.max(0, Math.round(row.getBoundingClientRect().top + scrollY - barHeight() - catsHeight() - 14));
+    const want = Math.max(0, Math.round(row.getBoundingClientRect().top + scrollY - 14));
     if(Math.abs(scrollY - want) > 4) glide(want);
     return;
   }
   const r = el.getBoundingClientRect();
-  if(r.top < barHeight() + 20 || r.bottom > innerHeight - 20) el.scrollIntoView({block: 'center', behavior: how});
+  if(r.top < 20 || r.bottom > innerHeight - 20) el.scrollIntoView({block: 'center', behavior: how});
 }
 /* The page draws its own focus (see css/focus.css), so the browser's ring is taken off. */
 document.body.classList.add('motion');
@@ -148,21 +147,22 @@ export function tvMove(dir){
   if(!row){ focusItem(itemsOf(rows[0])[0]); return true; }
   const items = itemsOf(row);
   const i = items.indexOf(active);
-  // A side menu is a column: up/down pick an entry (and open it), left steps into what it
-  // controls - #cats drives the page, .stabs the settings pane, .seasonbar the episode list.
+  // A side menu is a column: up/down pick an entry, left steps into what it controls - #rail drives
+  // the page, .stabs the settings pane, .seasonbar the episode list.
   const pane = row.classList.contains('stabs') ? '#spane'
              : row.classList.contains('seasonbar') ? row.dataset.pane
-             : (row.id === 'cats' && document.body.classList.contains('railed')) ? '#app' : null;
+             : (row.id === 'rail' && document.body.classList.contains('railed')) ? '#app' : null;
   if(pane){
     if(dir === 'up' || dir === 'down'){
       const n = items[i + (dir === 'down' ? 1 : -1)];
       if(n){
-        n.click();                                  // moving down the menu opens that entry
-        n.focus();                                  // click() alone doesn't reliably move focus;
-        return true;                                // #cats additionally restores it after its rebuild
+        if(row.id === 'rail'){ focusItem(n); return true; }   // a place in the app waits for OK
+        n.click();                                  // a tab, though, opens as you arrive on it
+        n.focus();                                  // click() alone doesn't reliably move focus
+        return true;
       }
       // the ends of a menu lead on to the row above or below it - never into what the menu itself controls
-      const next = row.id === 'cats' ? null : rows[rows.indexOf(row) + (dir === 'down' ? 1 : -1)];
+      const next = row.id === 'rail' ? null : rows[rows.indexOf(row) + (dir === 'down' ? 1 : -1)];
       if(next && !$(pane)?.contains(next)) focusItem(bestIn(next, active));
       return true;
     }
@@ -187,7 +187,7 @@ export function tvMove(dir){
       const tab = document.querySelector('.stabs button.on') || document.querySelector('.stabs button');
       if(tab && $('#spane')?.contains(active)) focusItem(tab);
       else if(document.body.classList.contains('railed') && $('#app').contains(active))
-        focusItem($('#cats a.on') || $('#cats a'));
+        focusItem($('#rail a.on') || $('#rail a'));
     }
     return true;                                    // stay put at the row's edge
   }
@@ -207,7 +207,7 @@ export function tvMove(dir){
     return true;
   }
   const railed = document.body.classList.contains('railed');
-  const flow = rows.filter(r => r === row || !(railed && r.id === 'cats'));
+  const flow = rows.filter(r => r === row || !(railed && r.id === 'rail'));
   const ri = flow.indexOf(row);
   const next = flow[ri + (dir === 'down' ? 1 : -1)];
   if(!next) return true;
@@ -271,7 +271,7 @@ export function parentHash(){
   // A title goes back to the list it was opened from; everything else to what it sits under.
   const r = (location.hash.split('/')[1] || '').split('?')[0];
   if(!r) return null;                                                  // home
-  if(['r13', 'kan', 'mako'].includes(r)) return '#/tv';
+  if(['r13', 'kan', 'mako'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
   if(r === 'addons') return '#/settings';
   if(r === 'detail') return listHash;
   return '#/';
@@ -288,7 +288,7 @@ window.boothSearchKey = () => { const q = $('#q'); q.focus(); q.readOnly = false
 addEventListener('hashchange', () => setTimeout(tvFocus, 900));
 export function tvFocus(){
   if(settings.layout !== 'tv' || (document.activeElement && document.activeElement !== document.body)) return;
-  document.querySelector('#app a[href], #app button, .nav a.on')?.focus();
+  document.querySelector('#app a[href], #app button, #rail a.on')?.focus();
 }
 setTimeout(tvFocus, 2500);
 if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');

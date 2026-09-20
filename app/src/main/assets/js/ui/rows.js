@@ -6,7 +6,9 @@ import {SC_ID} from '../data/catalogs.js';
 import {srcName, typeName} from '../data/names.js';
 import {SERVICES, noteServices} from '../data/services.js';
 import {tr} from '../i18n.js';
+import {JFC_LOBBIES, jfcCard, jfcLobby} from '../providers/jfc.js';
 import {kanBox, kanCard} from '../providers/kan.js';
+import {makoCard, makoPrograms} from '../providers/mako.js';
 import {r13, r13card, r13row} from '../providers/reshet.js';
 import {card, skeletons} from './cards.js';
 import {pickFeatured, renderHero} from './hero.js';
@@ -15,7 +17,9 @@ export const rowTag = x => {
   const parts = [];
   if(x.merge) parts.push(x.merge.map(id => SERVICES[id]).join(' · '));
   else if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); parts.push(srcName(x.a)); }
-  return parts.length ? ` <small>${esc(parts.join(' · '))}</small>` : '';
+  // a broadcaster's row is a taste of everything they have: its heading leads to the rest
+  const more = x.more ? ` <a class="rowmore" href="${esc(x.more)}">${tr('row.all')}</a>` : '';
+  return (parts.length ? ` <small>${esc(parts.join(' · '))}</small>` : '') + more;
 };
 /** Hero + "continue watching" + a row per catalog; rows load in parallel. */
 export function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {}){
@@ -62,6 +66,31 @@ export function renderRows(rows, {hero = true, cont = [], heading = '', top = ''
         const sec = secs.find(z => x.kan.test(z.title));
         el.innerHTML = sec ? sec.items.slice(0, rowMax()).map(kanCard).join('') : `<p class="note">${tr('row.none')}</p>`;
       }catch(e){ showErr(el, tr('row.failedKan'), e, again); }
+      return;
+    }
+    // Kan without its films: everything else the broadcaster has, as one row under the series
+    if(x.kanAll){
+      try{
+        const secs = await kanBox();
+        const seen = new Set(), items = [];
+        for(const sec of secs){
+          if(/סרטים/.test(sec.title)) continue;
+          for(const it of sec.items) if(!seen.has(it.url)){ seen.add(it.url); items.push(it); }
+        }
+        if(el) el.innerHTML = items.slice(0, rowMax()).map(kanCard).join('') || `<p class="note">${tr('row.none')}</p>`;
+      }catch(e){ showErr(el, tr('row.failedKan'), e, again); }
+      return;
+    }
+    if(x.mako){
+      try{ if(el) el.innerHTML = (await makoPrograms('')).slice(0, rowMax()).map(makoCard).join('') || `<p class="note">${tr('row.none')}</p>`; }
+      catch(e){ showErr(el, tr('row.failedMako'), e, again); }
+      return;
+    }
+    if(x.jfc){
+      try{
+        const items = (await jfcLobby(JFC_LOBBIES[0][0])).flatMap(r => r.items);
+        if(el) el.innerHTML = items.slice(0, rowMax()).map(jfcCard).join('') || `<p class="note">${tr('row.none')}</p>`;
+      }catch(e){ showErr(el, tr('row.failedJfc'), e, again); }
       return;
     }
     if(x.r13){

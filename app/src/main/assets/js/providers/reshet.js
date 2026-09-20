@@ -2,7 +2,6 @@
 import {$, esc, showErr} from '../core/dom.js';
 import {store} from '../core/store.js';
 import {tr} from '../i18n.js';
-import {renderCats} from '../ui/rail.js';
 
 /* ---------- YouTube (official broadcaster channels) — fetched live, played in the YouTube app ---------- */
 /* ---------- Reshet 13 VOD & live (13tv.co.il) — the site's own Kaltura OTT API, as a guest ---------- */
@@ -76,7 +75,6 @@ export async function r13channels(){
 }
 
 export async function viewR13Series(sid, title){
-  renderCats(null);
   $('#app').innerHTML = `<div class="page"><div class="showhead" id="shead"><div><h1 dir="auto">${esc(title || '')}</h1></div></div>
     <div class="seasons" id="seasons"></div><div class="eplist" id="eps"><p class="note">טוען פרקים…</p></div></div>`;
   try{

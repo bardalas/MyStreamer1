@@ -27,6 +27,8 @@
 .row h2,.page h1{font-family:var(--display);font-weight:700;letter-spacing:-.02em;margin:0 0 12px}
 .row h2{font-size:22px}
 .row h2 small{font-family:var(--body);font-weight:500;font-size:13px;color:var(--muted);margin-inline-start:8px}
+.row h2 .rowmore{font-family:var(--body);font-weight:500;font-size:13px;color:var(--tungsten);margin-inline-start:10px;text-decoration:none}
+.row h2 .rowmore:hover{text-decoration:underline}
 .strip{display:flex;gap:16px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x proximity}
 .strip{scrollbar-width:none} .strip::-webkit-scrollbar{width:0;height:0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr));gap:22px 16px}

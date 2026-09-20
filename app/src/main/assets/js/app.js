@@ -23,13 +23,12 @@ import {viewLive} from './screens/live.js';
 import {viewSearch} from './screens/search.js';
 import {viewSettings} from './screens/settings.js';
 import {endTaste} from './ui/hero.js';
-import {renderCats} from './ui/rail.js';
+import {markNav} from './ui/rail.js';
 import {checkUpdate} from './ui/update.js';
 import './ui/tvnav.js';
 import './ui/torrent.js';
 import './ui/player.js';
 import './ui/sources.js';
-import './ui/rail.js';
 import './ui/quickview.js';
 import './providers/kan.js';
 import './providers/reshet.js';
@@ -62,9 +61,9 @@ export async function route(){
   const canvas = $('#app');
   canvas.classList.remove('fresh'); void canvas.offsetWidth; canvas.classList.add('fresh');
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
-  document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
+  // the menu lights the place you are in; a title or a search keeps the one it was opened from
+  markNav(r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : ['live', 'library', 'settings'].includes(r) ? r : '');
   if(['', 'cat', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
-  if(!['', 'cat', 'genres', 'genre'].includes(r)) renderCats(null);
   if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
   else if(r === 'r13') viewR13Series(a, b);

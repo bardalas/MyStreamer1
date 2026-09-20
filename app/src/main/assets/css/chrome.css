@@ -1,55 +1,74 @@
-/* ---------- The chrome around every screen: top bar and side rail ---------- */
-/* The top bar: the mark, the tabs and the search that sit above every screen. */
-/* top bar */
-.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;padding:12px 28px;background:var(--night);border-bottom:1px solid var(--line)}
-.logo{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
-.logo svg{flex:none;transform:scaleX(-1)}   /* beam points toward the menu in RTL */
-.nav{display:flex;gap:4px}
-.nav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--muted);font-weight:500}
-.nav a.on{color:var(--light);background:var(--raise)}
-.search{flex:0 1 300px;min-width:150px;margin-inline-start:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding-block:4px;padding-inline:16px 4px;width:min(340px,40vw)}
-.search input{flex:1;background:none;border:0;outline:0;min-width:0}
-.search:focus-within{border-color:var(--tungsten);box-shadow:0 0 0 2px var(--tungsten)}
-[data-layout="tv"] .search:focus-within{box-shadow:0 0 0 4px var(--tungsten)}
-.search button{background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:6px 14px;font-weight:600;cursor:pointer}
+/* ---------- The chrome around every screen: one menu, down the side ----------
+   There is no bar above the page any more. The mark, the search and the five places the app has all
+   live in a single column on the side the writing starts from - the right, in Hebrew. On a wide
+   screen it rests as a column of marks and opens over the page when the pointer or the remote
+   arrives on it, never pushing the page: the content keeps the width of the closed rail, so nothing
+   moves under the viewer. On a phone it waits off-screen and the button in the corner brings it in. */
+
+.rail{display:flex;flex-direction:column;gap:2px;background:var(--night);color:var(--light);z-index:30}
+.logo{display:flex;align-items:center;gap:12px;padding:6px 12px 10px;font-family:var(--display);font-weight:800;
+  font-size:24px;letter-spacing:-.02em;cursor:pointer;user-select:none}
+.logo img{flex:none}
+
+/* the search: its mark is the first thing in the column, the field opens out of it */
+.search{display:flex;align-items:center;gap:14px;padding:4px 12px 10px}
+.search .ic{flex:none;display:flex;padding:0;border:0;border-radius:8px;background:none;color:var(--muted);cursor:pointer}
+.search .ic svg{width:21px;height:21px}
+.search input{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:8px 14px;color:inherit;font:inherit;outline:0}
+
+/* every entry of the menu, whether it is a place in the app or a collection */
+.rail a{display:flex;align-items:center;gap:14px;text-decoration:none;padding:10px 12px;border-radius:10px;
+  color:var(--muted);font-weight:500;font-size:15px;white-space:nowrap}
+.rail a:hover{color:var(--light)}
+.rail a.on{background:var(--raise);color:var(--light);box-shadow:inset calc(3px * var(--flip)) 0 var(--tungsten)}
+.rail a.on .ic{color:var(--tungsten)}
+.rail .ic{flex:none;display:flex}
+.rail .ic svg{width:21px;height:21px}
+.rail .nav{display:flex;flex-direction:column;gap:2px}
 
 main{padding:0 28px 60px}
 
-
-/* The side rail of categories. */
-
-.cats{position:sticky;top:var(--barh,64px);z-index:15;display:flex;gap:8px;overflow-x:auto;padding:8px 28px;background:var(--night);border-bottom:1px solid var(--line);scrollbar-width:none}
-.cats::-webkit-scrollbar{display:none}
-.cats[hidden]{display:none}
-.cats a{flex:none;display:flex;align-items:center;gap:8px;text-decoration:none;padding:6px 10px;border-radius:0;color:var(--muted);font-size:14px;font-weight:500;white-space:nowrap}
-.cats .ic{flex:none;display:flex}
-.cats .ic svg{width:19px;height:19px}
-.cats a:hover{color:var(--light)}
-.cats a.on{color:var(--light);box-shadow:inset 0 -2px var(--tungsten)}
-[data-layout="tv"] .cats a{padding:10px 20px;font-size:17px}
-
-
-/* The rail as a column that opens when you arrive on it. */
-/* The secondary menu as a rail on the side: a quiet column of icons that opens into the full menu when
-   the pointer or the remote arrives on it. It opens over the page, never pushing it: the content keeps
-   the width of the closed rail, so nothing moves under the viewer. */
+/* ---------- a wide screen: the column, closed, opening on arrival ---------- */
 @media(min-width:900px){
-  .cats{position:fixed;top:var(--barh,72px);inset-inline-start:0;width:var(--rail-shut,72px);height:calc(100vh - var(--barh,72px));
-    flex-direction:column;gap:2px;padding:14px 12px 60px;overflow-y:auto;overflow-x:hidden;background:var(--night);
-    border-inline-end:1px solid var(--line);scrollbar-width:none;
-    transition:width var(--settle) var(--ease),box-shadow var(--settle) var(--ease)}
-  .cats:hover,.cats:focus-within{width:var(--rail,190px);box-shadow:0 0 34px #0009}
-  .cats a{padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:none;gap:14px}
-  /* the words spread out of the icons rather than appearing beside them */
-  .cats .lbl{opacity:0;white-space:nowrap;transform:translateX(calc(-10px * var(--flip)));
+  .rail{position:fixed;inset-block:0;inset-inline-start:0;width:var(--rail-shut,76px);
+    padding:16px 12px 40px;overflow-y:auto;overflow-x:hidden;border-inline-end:1px solid var(--line);
+    scrollbar-width:none;transition:width var(--settle) var(--ease),box-shadow var(--settle) var(--ease)}
+  .rail::-webkit-scrollbar{display:none}
+  .rail:hover,.rail:focus-within{width:var(--rail,210px);box-shadow:0 0 34px #0009}
+  /* the words spread out of the marks rather than appearing beside them */
+  .rail .lbl{opacity:0;white-space:nowrap;transform:translateX(calc(-10px * var(--flip)));
     transition:opacity var(--travel) var(--ease),transform var(--travel) var(--ease)}
-  .cats:hover .lbl,.cats:focus-within .lbl{opacity:1;transform:none}
-  .cats:hover a:nth-child(n+3) .lbl,.cats:focus-within a:nth-child(n+3) .lbl{transition-delay:.04s}
-  .cats:hover a:nth-child(n+6) .lbl,.cats:focus-within a:nth-child(n+6) .lbl{transition-delay:.08s}
-  .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset calc(3px * var(--flip)) 0 var(--tungsten)}
-  .cats a.on .ic{color:var(--tungsten)}
-  body.railed main{margin-inline-start:var(--rail-shut,72px)}
+  .rail:hover .lbl,.rail:focus-within .lbl{opacity:1;transform:none}
+  .rail:hover .nav a:nth-child(n+3) .lbl,.rail:focus-within .nav a:nth-child(n+3) .lbl{transition-delay:.04s}
+  /* the field is there even while it is out of sight, so the remote can reach it and open the menu */
+  .search input{width:150px;flex:0 0 150px;opacity:0;transition:opacity var(--travel) var(--ease)}
+  .rail:hover .search input,.rail:focus-within .search input{opacity:1}
+  main{margin-inline-start:var(--rail-shut,76px)}
+  .railbtn,.scrim{display:none}
 }
-[data-layout="tv"]{--rail:250px;--rail-shut:86px}
-[data-layout="tv"] .cats a{font-size:18px;padding:13px 18px}
-[data-layout="tv"] .cats .ic svg{width:26px;height:26px}
+
+/* ---------- a phone: the menu waits off-screen ---------- */
+@media(max-width:899px){
+  .rail{position:fixed;inset-block:0;inset-inline-start:0;width:min(78vw,300px);padding:60px 14px 40px;
+    overflow-y:auto;border-inline-end:1px solid var(--line);
+    transform:translateX(calc(100% * var(--flip)));transition:transform var(--settle) var(--ease)}
+  body.railopen .rail{transform:none;box-shadow:0 0 40px #000b}
+  .railbtn{position:fixed;inset-block-start:10px;inset-inline-start:12px;z-index:35;display:grid;place-items:center;
+    width:42px;height:42px;border:0;border-radius:12px;background:var(--shade-55);backdrop-filter:blur(6px);
+    color:var(--light);cursor:pointer}
+  .railbtn svg{width:22px;height:22px}
+  .scrim{position:fixed;inset:0;z-index:25;background:#0009}
+  .scrim[hidden]{display:none}
+  /* the artwork still reaches the top of the screen; the button floats over it */
+  main{padding-top:52px}
+  .hero,.backdrop{margin-top:-52px}
+}
+
+/* ---------- the television: the same column, at arm's length ---------- */
+[data-layout="tv"]{--rail:270px;--rail-shut:92px}
+[data-layout="tv"] .rail a{font-size:18px;padding:13px 16px}
+[data-layout="tv"] .rail .ic svg{width:26px;height:26px}
+[data-layout="tv"] .rail .search .ic svg{width:26px;height:26px}
+[data-layout="tv"] .search input{font-size:17px;padding:10px 16px}
+[data-layout="tv"] .search:focus-within{box-shadow:none}
