@@ -98,12 +98,6 @@
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="8dp" android:maxLines="1" android:ellipsize="end"
             android:textColor="#AAB0BD" android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/infoNow"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:textColor="#5F6875" android:textSize="12sp" />
     </LinearLayout>
 
     <!-- Live TV: the channel list, floating over the picture (long press OK). -->

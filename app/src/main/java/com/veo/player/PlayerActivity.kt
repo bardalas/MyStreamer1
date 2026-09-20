@@ -39,7 +39,7 @@ class PlayerActivity : AppCompatActivity() {
     /** One playable item. Live TV passes a whole channel list so the viewer can zap through it. */
     private data class Source(
         val name: String, val url: String, val ua: String, val referer: String, val drm: String = "",
-        val num: Int = 0, val logo: String = "", val epg: String = "",
+        val num: Int = 0, val logo: String = "", val epg: String = "", val arch: String = "", val rec: Int = 0,
     )
     /** One programme from a channel's guide. */
     private data class Prog(val from: Long, val to: Long, val name: String)
@@ -65,6 +65,8 @@ class PlayerActivity : AppCompatActivity() {
     private val shownIndex get() = if (browsing) barIndex else index
     /** OK is decided on release, so that holding it can mean something else. */
     private var okLong = false
+    /** Catch-up: the past programme being played, or null while the channel is live. */
+    private var catchUp: Prog? = null
     /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
     private val skin by lazy { Skin(getSharedPreferences("veo", MODE_PRIVATE)) }
 
@@ -78,7 +80,8 @@ class PlayerActivity : AppCompatActivity() {
             List(a.length()) { i ->
                 a.getJSONObject(i).run {
                     Source(optString("name"), optString("url"), optString("ua"), optString("referer"),
-                        optString("drm"), optInt("num", i + 1), optString("logo"), optString("epg"))
+                        optString("drm"), optInt("num", i + 1), optString("logo"), optString("epg"),
+                        optString("arch"), optInt("rec"))
                 }
             }
         } ?: listOfNotNull(intent.getStringExtra("url")?.let {
@@ -146,7 +149,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun buildPlayer() {
         if (player != null) return
         val src = sources[index]
-        val url = src.url
+        // a past programme is the same channel's archive, asked for by the minute it started
+        val url = catchUp?.let { src.arch.replace("{from}", "${it.from}").replace("{dur}", "${it.to - it.from}") } ?: src.url
         // Torrent streams come from localhost and a read may wait for the next piece: long
         // timeouts. Live is the opposite - a stalled connection must FAIL fast (seconds) so the
         // automatic retry can rebuild, instead of hanging two minutes looking frozen.
@@ -243,7 +247,6 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.nowClock).setTextColor(skin.muted)
         findViewById<TextView>(R.id.nextTitle).setTextColor(skin.muted)
         findViewById<TextView>(R.id.errWhy).setTextColor(skin.muted)
-        findViewById<TextView>(R.id.infoNow).setTextColor(fade(skin.muted, 0xB0))
         findViewById<ProgressBar>(R.id.nowBar).apply {
             progressTintList = android.content.res.ColorStateList.valueOf(skin.accent)
             progressBackgroundTintList = android.content.res.ColorStateList.valueOf(skin.line)
@@ -281,7 +284,9 @@ class PlayerActivity : AppCompatActivity() {
         val src = sources.getOrNull(shownIndex) ?: return
         val now = System.currentTimeMillis() / 1000
         val progs = guides[src.epg]
-        val playing = progs?.firstOrNull { now in it.from until it.to }
+        // while a past programme is playing, the banner is about that programme, not about the hour
+        val back = catchUp?.takeIf { !browsing }
+        val playing = back ?: progs?.firstOrNull { now in it.from until it.to }
         val next = progs?.firstOrNull { it.from >= (playing?.to ?: now) }
         val title = findViewById<TextView>(R.id.nowTitle)
         val bar = findViewById<ProgressBar>(R.id.nowBar)
@@ -289,9 +294,11 @@ class PlayerActivity : AppCompatActivity() {
         if (playing != null) {
             title.text = "${hhmm(playing.from)} · ${playing.name}"
             bar.visibility = View.VISIBLE
-            bar.progress = (((now - playing.from) * 100) / (playing.to - playing.from).coerceAtLeast(1)).toInt()
-            val left = ((playing.to - now) / 60).coerceAtLeast(0)
-            after.text = if (next != null) "עוד $left דק׳ · אחר כך ${hhmm(next.from)} ${next.name}"
+            val pos = if (back != null) (player?.currentPosition ?: 0L) / 1000 else now - playing.from
+            bar.progress = ((pos * 100) / (playing.to - playing.from).coerceAtLeast(1)).toInt().coerceIn(0, 100)
+            val left = (((playing.to - playing.from) - pos) / 60).coerceAtLeast(0)
+            after.text = if (back != null) "צפייה אחורה · נותרו $left דק׳"
+                         else if (next != null) "עוד $left דק׳ · אחר כך ${hhmm(next.from)} ${next.name}"
                          else "נותרו $left דק׳"
         } else {
             title.text = if (progs == null && src.epg.isNotBlank()) "טוען לוח שידורים…"
@@ -300,10 +307,6 @@ class PlayerActivity : AppCompatActivity() {
             bar.visibility = View.GONE
             after.text = ""
         }
-        findViewById<TextView>(R.id.infoNow).text =
-            if (sources.size < 2) "לחיצה ארוכה על OK: צפייה אחורה"
-            else if (browsing && barIndex != index) "OK: מעבר לערוץ הזה · מעלה/מטה: עוד ערוצים · חזרה: ביטול"
-            else "מעלה/מטה: דפדוף בערוצים · OK: בחירה · לחיצה ארוכה על OK: רשימת ערוצים"
     }
 
     private fun hhmm(epochSeconds: Long): String =
@@ -453,6 +456,36 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun closePanel() { findViewById<View>(R.id.chPanel).visibility = View.GONE }
 
+    /** Catch-up (RaspberryTV and any playlist with an archive): the programme before or after the one playing. */
+    private fun canWalk() = bannerOpen && sources[index].arch.isNotBlank() && !guides[sources[index].epg].isNullOrEmpty()
+
+    private fun walkGuide(back: Boolean): Boolean {
+        val src = sources[index]
+        val progs = guides[src.epg] ?: return false
+        val now = System.currentTimeMillis() / 1000
+        val here = catchUp ?: progs.firstOrNull { now in it.from until it.to } ?: return false
+        val next = if (back) progs.lastOrNull { it.to <= here.from } else progs.firstOrNull { it.from >= here.to }
+        if (next == null) { if (!back) backToLive(); return true }
+        if (next.from > now) { backToLive(); return true }              // nothing is broadcast yet: the live edge
+        catchUp = next
+        retries = 0
+        player?.release(); player = null
+        showBanner(browse = false)
+        handler.removeCallbacks(rebuild)
+        handler.postDelayed(rebuild, 150)
+        return true
+    }
+
+    private fun backToLive() {
+        if (catchUp == null) return
+        catchUp = null
+        retries = 0
+        player?.release(); player = null
+        showBanner(browse = false)
+        handler.removeCallbacks(rebuild)
+        handler.postDelayed(rebuild, 150)
+    }
+
     /** Step along the stream: a press steps a little, a held key leaps. A live stream keeps a window behind its edge. */
     private fun seekBy(direction: Int, held: Boolean) {
         val p = player ?: return
@@ -475,6 +508,7 @@ class PlayerActivity : AppCompatActivity() {
     /** Live TV: switch to the previous/next channel in the list (wraps around). */
     private fun zapBy(step: Int) {
         if (sources.size < 2) return
+        catchUp = null                                           // another channel starts at its live edge
         index = (index + step + sources.size) % sources.size
         retries = 0
         player?.release()
@@ -607,8 +641,13 @@ class PlayerActivity : AppCompatActivity() {
                 return true
             }
             KeyEvent.KEYCODE_BACK -> if (browsing) { hideChannelBar(); return true }
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
-            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
+            // with the banner up on a channel that keeps an archive, left and right walk its programmes
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND ->
+                if (code == KeyEvent.KEYCODE_DPAD_LEFT && canWalk()) { walkGuide(back = !skin.rtl); return true }
+                else if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD ->
+                if (code == KeyEvent.KEYCODE_DPAD_RIGHT && canWalk()) { walkGuide(back = skin.rtl); return true }
+                else if (!controls) { seekBy(1, event.repeatCount > 0); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }

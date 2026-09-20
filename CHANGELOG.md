@@ -1,5 +1,25 @@
 # VEO Android changelog
 
+## 0.35.0 — 2026-09-20
+- **A featured title** takes the top of the home screen and of every collection: a different one on each
+  visit, with its year, rating and genres, and - when the title came with a trailer - a quiet taste of it
+  playing behind the words. The taste is only shown once it is really playing, so a trailer that cannot be
+  embedded leaves the artwork alone; it can be turned off in Settings → Startup & viewing.
+- A screen left open for a quarter of an hour draws itself again when you come back to it, with fresh
+  titles and another featured one.
+- **More sources.** ThePirateBay+ and WatchHub are installed alongside Torrentio. A source nobody is
+  seeding right now is listed last instead of being hidden - that alone is why Curiosity Stream and other
+  rarities looked unplayable - and a title that is only on a subscription service now offers to open it
+  there ("Watch on …") instead of saying there is nothing.
+- The service a title streams on is a small mark beside its name, in the service's own colour, instead of
+  a label over the artwork, and a Service filter joins the pills: choosing one brings in that service's
+  own catalogue.
+- **Live TV catch-up**: with the banner up on a channel that keeps an archive, left and right walk through
+  its programmes and back to the live edge.
+- The lines explaining which key does what are gone from the player.
+- On a phone: an add-on's description no longer widens the page, the search takes its own line on narrow
+  screens, and a large system font no longer stretches the text out of its boxes.
+
 ## 0.34.3 — 2026-09-20
 - The side menu rests as a narrow column of marks, one per collection, and opens into the full menu
   when the pointer or the remote arrives on it. It opens over the page instead of pushing it, so

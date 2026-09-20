@@ -76,6 +76,23 @@ watching"; it used to be a `delete`, so a finished film left no trace at all. `i
 a title to the newest thing watched under it, so a series shows its last episode; a series never gets
 a tick, because one finished episode is not a watched series. `pruneProgress()` keeps 400.
 
+### The featured title and its taste (`booth.html`)
+`pickFeatured()` chooses the title that takes the top of a listing: it wants artwork, a description and
+(when any row offers one) a trailer, remembers the last twelve in `heroSeen` so the same one does not come
+back, and returns null rather than letting a row of bare Wikidata entries claim the spot - a plain title
+takes it after six seconds if nothing better arrived. `renderHero()` then starts the taste: a muted
+YouTube embed behind the words, `pointer-events:none` and `tabindex="-1"` so the remote never lands in it.
+It is only faded in once the player reports itself playing (`enablejsapi` + a `listening` handshake);
+if nothing answers within eight seconds the frame is removed and the artwork stays. `endTaste()` clears it
+on every navigation and whenever the app goes to the background.
+
+### Sources that are not streams
+WatchHub answers with the subscription service a title is on, as a stream carrying only an `externalUrl`.
+`parseStream` marks those `external`: they stay out of the ranking and out of "is this title available",
+and render as "Watch on …" buttons that open the service (never handed to the player, which cannot play a
+web page). A torrent with no seeders ranks below everything but is still listed - for a rare documentary
+it is the only thing there is.
+
 ### Browsing model (`booth.html`)
 The rail lists *collections* (All, Movies, Series, and `CATEGORIES`: Israeli, Kids, Documentaries); the
 pills on every page (`SORT_GROUPS`: Genre, Year, Rating, Sort) *refine* the current collection. When any

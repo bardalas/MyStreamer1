@@ -60,6 +60,12 @@ main{padding:0 28px 60px}
   linear-gradient(0deg,var(--night) 2%,transparent 45%)}
 .hero .beam{display:none;position:absolute;z-index:1;left:-10%;transform:scaleX(-1);top:-30%;width:70%;height:160%;background:conic-gradient(from 200deg at 100% 0%,transparent 0deg,var(--beam) 14deg,transparent 30deg);pointer-events:none}
 .hero .copy{position:relative;z-index:2;flex:1;min-width:0;padding:0 28px 48px;max-width:760px}
+.hero .facts{margin-bottom:10px}
+.hero .acts{display:flex;flex-wrap:wrap;gap:10px}
+/* the taste: the trailer covers the artwork, quiet and out of reach - the gradient above it keeps the words readable */
+.hero .taste{position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100%;min-width:177.78vh;
+  transform:translate(-50%,-50%);border:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .9s}
+.hero .taste.on{opacity:1}
 .hero h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,56px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
 .hero p{color:var(--text2);max-width:56ch;margin:0 0 18px;font-size:14px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;text-decoration:none}
@@ -659,7 +665,8 @@ he: {
   'addons.hidden': '{n} תוספים לא זמינים כרגע ומוסתרים.', 'addons.already': 'התוסף הזה כבר מותקן.',
   'addons.invalid': 'זה לא קובץ manifest תקין', 'addons.installed': '{name} הותקן.',
   'addons.failed': 'ההתקנה נכשלה: {err}. ודא שהקישור מסתיים ב־manifest.json.',
-  'src.play': 'נגן', 'src.more': 'מקורות ({n})', 'src.direct': 'ישיר',
+  'src.play': 'נגן', 'src.more': 'מקורות ({n})', 'src.direct': 'ישיר', 'src.watchOn': 'צפייה ב־{svc}',
+  'src.weak': 'מעט זורעים',
   'src.searching': 'מחפש מקורות…', 'src.searchingMore': 'מחפש עוד…', 'src.none': 'אין מקורות זמינים כרגע', 'src.failed': 'לא ניתן לטעון מקורות',
   'src.noAddon': 'לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.',
   'src.torrentApp': 'מקורות טורנט מתנגנים באפליקציית VEO לאנדרואיד.',
@@ -691,7 +698,9 @@ he: {
   'row.failed': 'לא ניתן לטעון את השורה', 'row.failedCat': 'לא ניתן לטעון את הקטלוג',
   'row.failedKan': 'לא ניתן לטעון מכאן', 'row.failedR13': 'לא ניתן לטעון מרשת 13',
   'row.noCatalogs': 'אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.',
-  'hero.details': 'לפרטים',
+  'hero.details': 'לפרטים', 'hero.play': '▶ נגן',
+  'set.preview.title': 'טעימה בדף הבית', 'set.preview.note': 'הטריילר של הכותר המומלץ מתנגן ברקע, בלי קול.',
+  'common.on': 'פעיל', 'common.off': 'כבוי',
   'sort.genre': 'ז׳אנר', 'sort.genre.all': 'כל הז׳אנרים',
   'sort.svc': 'שירות', 'sort.svc.all': 'כל השירותים',
   'sort.summary': '{n} כותרים · מיון: {by} · מקורות: {from}',
@@ -752,7 +761,8 @@ en: {
   'addons.hidden': '{n} add-ons are unavailable right now and hidden.', 'addons.already': 'This add-on is already installed.',
   'addons.invalid': 'This is not a valid manifest file', 'addons.installed': '{name} installed.',
   'addons.failed': 'Installation failed: {err}. Make sure the link ends with manifest.json.',
-  'src.play': 'Play', 'src.more': 'Sources ({n})', 'src.direct': 'Direct',
+  'src.play': 'Play', 'src.more': 'Sources ({n})', 'src.direct': 'Direct', 'src.watchOn': 'Watch on {svc}',
+  'src.weak': 'Few seeders',
   'src.searching': 'Looking for sources…', 'src.searchingMore': 'Looking for more…', 'src.none': 'No sources available right now', 'src.failed': 'Could not load sources',
   'src.noAddon': 'No sources add-on is installed. You can add one on the <a href="#/addons">Add-ons</a> page.',
   'src.torrentApp': 'Torrent sources play in the VEO app for Android.',
@@ -784,7 +794,9 @@ en: {
   'row.failed': 'Could not load the row', 'row.failedCat': 'Could not load the catalogue',
   'row.failedKan': 'Could not load from here', 'row.failedR13': 'Could not load from Reshet 13',
   'row.noCatalogs': 'No catalogues yet. Install an add-on with catalogues on the <a href="#/addons">Add-ons</a> page.',
-  'hero.details': 'Details',
+  'hero.details': 'Details', 'hero.play': '▶ Play',
+  'set.preview.title': 'Preview on the home screen', 'set.preview.note': 'The featured title\'s trailer plays quietly behind it, without sound.',
+  'common.on': 'On', 'common.off': 'Off',
   'sort.genre': 'Genre', 'sort.genre.all': 'All genres',
   'sort.svc': 'Service', 'sort.svc.all': 'All services',
   'sort.summary': '{n} titles · sort: {by} · sources: {from}',
@@ -838,9 +850,13 @@ function capMap(obj, max){
 }
 const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json';
 const TORRENTIO = 'https://torrentio.strem.fun/manifest.json';
+// A second torrent index (it finds releases Torrentio misses), and WatchHub, which answers with the
+// subscription service a title is on - the only answer there is for a service's own productions.
+const TPB = 'https://thepiratebay-plus.strem.fun/manifest.json';
+const WATCHHUB = 'https://watchhub.strem.io/manifest.json';
 // Netflix, Apple TV+, Disney+, Prime, HBO Max, Paramount+, Curiosity Stream, MagellanTV (Israel region).
 const STREAMING_CATALOGS = 'https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/bmZ4LGF0cCxkbnAsYW1wLGhibSxwbXAsY3RzLG1nbDo6SUw6MTc4OTg0MTUwODAwMDoxOjA6/manifest.json';
-let addonUrls = store.get('addons', [CINEMETA, TORRENTIO, STREAMING_CATALOGS]);
+let addonUrls = store.get('addons', [CINEMETA, TORRENTIO, TPB, WATCHHUB, STREAMING_CATALOGS]);
 if(store.get('defaultsRev', 1) < 2){
   if(!addonUrls.includes(STREAMING_CATALOGS)) addonUrls.push(STREAMING_CATALOGS);
   store.set('defaultsRev', 2);
@@ -849,6 +865,10 @@ if(store.get('defaultsRev', 1) < 3){
   // Israeli/Arabic catalogs are now built into the app (live from Wikidata); drop the old repo-hosted add-on.
   addonUrls = addonUrls.filter(u => !u.includes('raw.githubusercontent.com/bardalas/MyStreamer1'));
   store.set('addons', addonUrls); store.set('defaultsRev', 3);
+}
+if(store.get('defaultsRev', 1) < 4){
+  for(const u of [TPB, WATCHHUB]) if(!addonUrls.includes(u)) addonUrls.push(u);
+  store.set('addons', addonUrls); store.set('defaultsRev', 4);
 }
 let library = store.get('library', {});
 let progress = store.get('progress', {});
@@ -1974,7 +1994,9 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
     ${cont.length ? `<div class="row"><h2>${tr('row.continue')}</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
     ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
     ${!rows.length ? `<p class="note">${tr('row.noCatalogs')}</p>` : ''}`;
-  let heroDone = !hero;
+  let heroDone = !hero, heroPlain = null;
+  // nothing with artwork answered: rather than an empty banner, the first title of the page takes it
+  if(hero) setTimeout(() => { if(!heroDone && heroPlain){ heroDone = true; renderHero(heroPlain); } }, 6000);
   // Each title appears once per page: it stays in the first (highest) row that has it.
   const claimed = new Map();
   const dedupe = (i, metas) => metas.filter(m => {
@@ -2020,7 +2042,10 @@ function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {})
       const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
       const metas = d.metas || [];
       if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || `<p class="note">${tr('row.empty')}</p>`;
-      if(!heroDone && metas.length){ heroDone = true; renderHero(metas.find(m => m.background) || metas[0]); }
+      if(!heroDone && metas.length){
+        const star = pickFeatured(metas);
+        if(star){ heroDone = true; renderHero(star); } else heroPlain ||= metas[0];
+      }
     }catch(e){ showErr(el, tr('row.failedCat'), e, again); }
   };
   rows.forEach((x, i) => fillRow(x, i));
@@ -2068,15 +2093,65 @@ function viewCategory(id){
   const name = type ? tr('cats.' + id) : catName(cat);
   const redraw = () => viewCategory(id);
   if(sortActive()) return gridFrom(rows, name, redraw);
-  renderRows(rows, {hero: false, heading: name, top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
+  renderRows(rows, {hero: settings.layout === 'cinema', heading: name, top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
   wireSortBar(redraw);
 }
 
+/** The title with the place of honour: a different one on every visit, out of the best the page holds.
+    Nothing without artwork and a few words about it can hold the spot; null means "not from this row". */
+function pickFeatured(metas){
+  const rich = metas.filter(m => m.background && m.description).slice(0, 20);
+  // one that came with a trailer, so the taste has something to play; otherwise any with artwork
+  const pool = rich.filter(trailerId).length ? rich.filter(trailerId) : rich;
+  if(!pool.length) return null;
+  const seen = store.get('heroSeen', []);
+  const fresh = pool.filter(m => !seen.includes(m.id));
+  const from = fresh.length ? fresh : pool;
+  const m = from[Math.floor(Math.random() * from.length)];
+  store.set('heroSeen', [m.id, ...seen.filter(id => id !== m.id)].slice(0, 12));
+  return m;
+}
+/** A title's trailer on YouTube, if it came with one. */
+const trailerId = m => {
+  const id = m.trailerStreams?.[0]?.ytId || (m.trailers || []).map(t => t.source).find(Boolean) || '';
+  return /^[\w-]{6,20}$/.test(id) ? id : '';
+};
+let tasteTimer = 0, tasteStop = null;
+/** Drop whatever the taste left behind: its timers, its listener and the frame itself. */
+function endTaste(){ clearTimeout(tasteTimer); tasteStop?.(); tasteStop = null; }
 function renderHero(m){
   const h = $('#hero'); if(!h) return;
+  const facts = [yearOf(m), m.imdbRating && `IMDb ${m.imdbRating}`, ...(m.genres || m.genre || []).slice(0, 2).map(genreName)]
+    .filter(Boolean).map(f => `<span>${esc(f)}</span>`).join('');
   h.innerHTML = `<div class="bg" style="background-image:url('${esc(m.background || m.poster)}')"></div><div class="beam"></div>
-    <div class="copy"><h1 data-heid="${esc(m.id)}" dir="auto">${esc(heTitle(m.id, m.name))}</h1><p dir="auto">${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
-    <a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${tr('hero.details')}</a></div>`;
+    <div class="copy"><h1 data-heid="${esc(m.id)}" dir="auto">${esc(heTitle(m.id, m.name))}${svcMarks(m.id)}</h1>
+    <div class="facts">${facts}</div>
+    <p dir="auto">${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
+    <div class="acts"><a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${tr('hero.details')}</a></div></div>`;
+  // A taste of it starts once the screen has settled, quietly and without taking the focus. It is only
+  // shown once it is really playing: a trailer that cannot be embedded would otherwise put a black box
+  // (or its own error) where the artwork was.
+  endTaste();
+  const yt = settings.preview !== 'off' && trailerId(m);
+  if(!yt) return;
+  tasteTimer = setTimeout(() => {
+    const host = $('#hero');
+    if(!host || host.querySelector('.taste') || document.visibilityState !== 'visible') return;
+    host.insertAdjacentHTML('afterbegin', `<iframe class="taste" tabindex="-1" allow="autoplay" title=""
+      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&loop=1&enablejsapi=1&playlist=${encodeURIComponent(yt)}&start=6"></iframe>`);
+    const frame = host.querySelector('.taste');
+    // the player only reports itself once asked to
+    frame.onload = () => frame.contentWindow?.postMessage('{"event":"listening","id":1,"channel":"widget"}', '*');
+    const heard = e => {
+      if(!frame.isConnected || !/youtube/.test(e.origin) || !/"playerState":\s*1/.test(String(e.data))) return;
+      frame.classList.add('on');
+      done();
+    };
+    const giveUp = setTimeout(() => { frame.remove(); done(); }, 8000);
+    const done = () => { clearTimeout(giveUp); removeEventListener('message', heard); tasteStop = null; };
+    addEventListener('message', heard);
+    tasteStop = () => { done(); frame.remove(); };
+  }, 2800);
 }
 
 async function viewSearch(q){
@@ -2213,13 +2288,16 @@ function parseStream(s, addon, i){
                   : (s.behaviorHints?.videoSize || null);
   const tags = [[/\b(dv|dovi|dolby.?vision)\b/, 'DV'], [/\bhdr(10\+?)?(?![a-z])/, 'HDR'], [/x265|hevc|h\.?265/, 'HEVC'],
                 [/remux/, 'REMUX'], [/\b3d\b/, '3D']].filter(([re]) => re.test(text)).map(([, t]) => t);
+  // A stream that is only a link (WatchHub answers with the service a title is on) is an offer to watch
+  // it there, not something this app can play: it is named after the service and kept out of the ranking.
+  const external = !!s.externalUrl && !s.url && !s.infoHash && !s.ytId;
   return {
-    s, addon, i, q, size, tags,
+    s, addon, i, q, size, tags, external,
     seeds: seeds != null ? +seeds : null,
     provider: (title.match(/⚙️\s*([^\n]+)/)?.[1] || '').trim(),
     flags: title.match(/[\u{1F1E6}-\u{1F1FF}]{2}/gu) || [],
-    name: (title.split('\n')[0] || s.name || addon).trim(),
-    direct: !!(s.url || s.externalUrl || s.ytId),
+    name: (external ? s.name : title.split('\n')[0] || s.name || addon).trim(),
+    direct: !!(s.url || s.ytId),
   };
 }
 
@@ -2227,6 +2305,8 @@ function parseStream(s, addon, i){
 function rank(x){
   if(x.direct) return 1e9;
   const seeds = x.seeds ?? 0;
+  // Nobody is sharing it right now: it goes last and never plays by itself, but a documentary with one
+  // seeder is all there is for that title, so it is still offered rather than hidden.
   if(seeds < 1) return -1;
   const quality = {'1080p': 1, '720p': .92, '4K': .6, 'SD': .45, 'Other': .35}[x.q] ?? .3;
   // A stream starts when the first piece has arrived, and pieces grow with the file: a small file starts
@@ -2246,7 +2326,8 @@ function playStream(s, label, ctx){
   const pos = done && done.d && done.t < done.d - 60 ? Math.floor(done.t * 1000) : 0;
   if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label, vid, release, meta, pos);
   else if(s.url || s.ytId) openPlayer(s, label, ctx);
-  else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label, vid, release, meta, 0);
+  // a page on a service, not a video: it belongs to whatever opens that service on this device
+  else if(s.externalUrl && window.BoothAndroid) BoothAndroid.openExternal(s.externalUrl);
   else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
   else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release, meta, pos);
   else alert(tr('src.torrentApp'));
@@ -2258,24 +2339,27 @@ function renderStreams(box, all, pending, label, ctx, errors = [], retry){
   const alt = $('#palt');
   const wasOpen = $('#altToggle')?.getAttribute('aria-expanded') === 'true';
   if(alt) alt.innerHTML = '';
-  const list = all.filter(x => x.q !== 'CAM' && rank(x) >= 0).sort((a, b) => rank(b) - rank(a));
+  const list = all.filter(x => !x.external && x.q !== 'CAM').sort((a, b) => rank(b) - rank(a));
+  const links = all.filter(x => x.external)
+    .map(x => `<button class="qbtn" data-i="${x.i}">${esc(tr('src.watchOn', {svc: x.name || x.addon}))}</button>`).join('');
   const best = list[0];
   if(!best){
-    if(!pending && errors.length){
+    if(!pending && errors.length && !links){
       box.innerHTML = `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>`;
       $('#sretry').onclick = retry;
       return;
     }
-    box.innerHTML = `<span class="srcstat${pending ? '' : ' idle'}">${tr(pending ? 'src.searching' : 'src.none')}</span>`;
+    box.innerHTML = `<span class="srcstat${pending ? '' : ' idle'}">${tr(pending ? 'src.searching' : 'src.none')}</span>${links}`;
+    box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx));
     return;
   }
   const byQuality = ['4K', '1080p', '720p', 'SD'].map(q => list.find(x => x.q === q)).filter(Boolean);
   const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
   box.innerHTML = `<button class="playbtn" data-i="${best.i}">▶ ${tr('src.play')} <small>${esc(detail(best))}</small></button>
-      ${byQuality.length > 1 ? byQuality.map(x => `<button class="qbtn" data-i="${x.i}">${x.q}</button>`).join('') : ''}
+      ${byQuality.length > 1 ? byQuality.map(x => `<button class="qbtn" data-i="${x.i}">${x.q}</button>`).join('') : ''}${links}
       ${list.length > 1 ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr('src.more', {n: list.length - 1})}</button>` : ''}
       ${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
-  if(alt && list.length > 1) alt.innerHTML = `<div class="altlist"${wasOpen ? '' : ' hidden'}>${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? tr('src.direct') : '👤 ' + (x.seeds ?? 0)}</span></button>`).join('')}</div>`;
+  if(alt && list.length > 1) alt.innerHTML = `<div class="altlist"${wasOpen ? '' : ' hidden'}>${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? tr('src.direct') : (x.seeds ?? 0) < 1 ? tr('src.weak') : '👤 ' + x.seeds}</span></button>`).join('')}</div>`;
   [box, alt].forEach(el => el?.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx)));
   if($('#altToggle')) $('#altToggle').onclick = e => {
     const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true', more = alt.querySelector('.altlist');
@@ -2345,7 +2429,7 @@ async function loadStreams({type, meta}, videoId, label){
     pending--;
     render();
   }));
-  if(type === 'movie' && !errors.length) setAvail(`${type}:${meta.id}`, all.some(x => x.q !== 'CAM' && rank(x) >= 0));
+  if(type === 'movie' && !errors.length) setAvail(`${type}:${meta.id}`, all.some(x => !x.external && x.q !== 'CAM' && rank(x) >= 0));
 }
 
 /* ---------- which titles have sources (greys out / hides the rest) ---------- */
@@ -2370,7 +2454,7 @@ async function hasSources(key){
   const vid = type === 'series' ? `${id}:1:1` : id;          // a series counts as available if S1E1 is
   for(const a of addons.filter(a => supports(a.manifest, 'stream', type, vid))){
     try{
-      if((await fetchStreams(a, type, vid)).some(s => !isCam(s))) return true;
+      if((await fetchStreams(a, type, vid)).some(s => !isCam(s) && !(s.externalUrl && !s.url && !s.infoHash))) return true;
     }catch(e){ return null; }                                 // unknown: don't grey out on a network error
   }
   return false;
@@ -2498,6 +2582,14 @@ async function loadRtv(){
 const BROWSER_UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36';
 
 /** Flussonic-style catch-up URL: timeshift for the last minutes, otherwise a start+duration window. */
+/** The same address, with the times left for the player to fill in: it walks the guide by itself. */
+function rtvArchiveTemplate(c){
+  if(!c.rec) return '';
+  const file = 'index-{from}-{dur}.m3u8';
+  if(c.cid) return `http://${c.server}:80/${c.cid}/${file}?token=${c.token}`;
+  const [path, query] = c.url.split('?');
+  return path.replace(/[^/]+$/, file) + (query ? '?' + query : '');
+}
 function rtvArchiveUrl(c, start, end){
   const now = Date.now() / 1000;
   start = Math.floor(start);
@@ -2668,7 +2760,8 @@ function watchChannel(list, i, sourceKey){
     // logo + guide endpoint travel with the channel so the player's banner can show what is on
     BoothAndroid.playChannels(JSON.stringify(list.map((c, n) => ({
       name: c.name, url: c.url, ua: c.ua || '', referer: c.referer || '',
-      num: n + 1, logo: c.logo || '', epg: c.epg ? RTV_EPG(c.epg) : ''
+      num: n + 1, logo: c.logo || '', epg: c.epg ? RTV_EPG(c.epg) : '',
+      arch: rtvArchiveTemplate(c), rec: c.rec || 0
     }))), i);
   else playLive(list[i]);
 }
@@ -2780,7 +2873,7 @@ const LAYOUTS = [
 ];
 const POSTER_SIZES = ['s', 'm', 'l'];
 const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-let settings = Object.assign({skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off'}, store.get('settings', {}));
+let settings = Object.assign({skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'}, store.get('settings', {}));
 /** The player draws its own banner and channel list in native views: hand it this skin and direction. */
 function syncNativeTheme(){
   const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();
@@ -2845,6 +2938,7 @@ function paintSettings(){
     start: () => seg('uiLang', tr('set.uilang.title'), UI_LANGS, tr('set.uilang.note'))
       + seg('start', tr('set.start.title'), [['vod', tr('nav.home')], ['live', tr('nav.live')]], tr('set.start.note'))
       + seg('kids', tr('set.kids.title'), [['off', tr('set.kids.off')], ['on', tr('set.kids.on')]], tr('set.kids.note'))
+      + seg('preview', tr('set.preview.title'), [['on', tr('common.on')], ['off', tr('common.off')]], tr('set.preview.note'))
       + seg('lang', tr('set.lang.title'), [['he', tr('set.lang.he')], ['en', tr('set.lang.en')]], tr('set.lang.note')),
 
     look: () => `<section class="sset"><h2>${tr('set.skin.title')}</h2><div class="sopts">${SKINS.map(o => optCard('skin', o, swatch(o))).join('')}</div></section>
@@ -2929,7 +3023,7 @@ function paintSettings(){
     $('#supd').textContent = document.querySelector('.update') ? tr('set.about.found') : tr('set.about.latest');
   };
   if($('#sreset')) $('#sreset').onclick = () => {          // the language stays: resetting must never strand someone in a language they cannot read
-    settings = {skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: settings.uiLang, nosrc: 'grey', start: 'vod', kids: 'off'};
+    settings = {skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: settings.uiLang, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'};
     store.set('settings', settings); applySettings(); paintSettings();
   };
   if(focusKey) pane.querySelector(focusKey)?.focus();
@@ -3053,6 +3147,7 @@ async function checkUpdate(force){
 $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
 /** Let go of the previous screen's observers; the MutationObserver re-arms whatever the new one renders. */
 function resetObservers(){
+  endTaste();                                        // whatever was about to start playing, is not
   for(const o of [bgObserver, heObserver, availObserver]) o.disconnect();
   document.querySelectorAll('[data-bgw]').forEach(el => { if(!el.style.backgroundImage) delete el.dataset.bgw; });
   requestAnimationFrame(() => { lazyBg(document); armHeAndAvail(document); });
@@ -3087,6 +3182,7 @@ function restoreScreen(){
 }
 
 let listHash = '#/';                                 // the list a title was opened from
+let lastPaint = 0;                                   // when this screen was drawn, so a stale one is redrawn
 async function route(){
   rememberScreen();
   resetObservers();
@@ -3110,6 +3206,7 @@ async function route(){
   else if(r === 'settings') viewSettings(a);
   else viewHome();
   restoreScreen();
+  lastPaint = Date.now();
 }
 /** The projector logo: back to the last live channel (or home, if nothing was watched yet). */
 document.querySelector('.logo').addEventListener('click', async e => {
@@ -3377,7 +3474,12 @@ async function boot(){
   setTimeout(() => checkUpdate(true), 2500);
 }
 boot();
-addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkUpdate(); });
+addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible'){ endTaste(); return; }
+  checkUpdate();
+  // a screen left open for a while is old news: draw it again, with fresh titles and another featured one
+  if(Date.now() - lastPaint > 15 * 60e3) route();
+});
 </script>
 <div id="tstatus" role="status" aria-live="polite" class="tstat">
   <span id="tstatusMsg"></span>
