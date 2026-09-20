@@ -2910,7 +2910,7 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
 
 /* ---------- new version ----------
    On every start the app asks GitHub for the latest release. If it is newer than this build, a card
-   offers it; "עדכן" hands the APK to Android's own downloader and installer, which asks before it
+   offers it (just that, no release notes); "עדכן" hands the APK to Android's own downloader and installer, which asks before it
    installs. Nothing is downloaded or installed behind the viewer's back. */
 const RELEASES = 'https://api.github.com/repos/bardalas/VEO/releases/latest';
 const APK_URL = 'https://github.com/bardalas/VEO/releases/latest/download/VEO.apk';
@@ -2934,11 +2934,9 @@ async function checkUpdate(force){
   store.set('updCheck', Date.now());
   const tag = (rel.tag_name || '').replace(/^v/, '');
   if(!tag || !isNewer(tag, APP_VERSION) || store.get('updSkip', '') === tag) return;
-  const what = (rel.body || '').split('\n').map(l => l.replace(/^[-*]\s*/, '').trim())
-    .filter(l => l && !/^co-authored|^🤖|^https?:/i.test(l)).slice(0, 2).join(' · ');
   const card = document.createElement('div');
   card.className = 'update';
-  card.innerHTML = `<span><b>${tr('update.available', {tag: esc(tag)})}</b>${what ? ` · ${esc(what.slice(0, 120))}` : ''}</span>
+  card.innerHTML = `<span><b>${tr('update.available', {tag: esc(tag)})}</b></span>
     <span class="btns"><button class="go" id="updGo">${tr('update.now')}</button><button id="updLater">${tr('update.later')}</button></span>`;
   document.body.appendChild(card);
   $('#updGo').onclick = () => {

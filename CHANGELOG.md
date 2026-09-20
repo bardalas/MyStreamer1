@@ -1,5 +1,12 @@
 # VEO Android changelog
 
+## 0.34.1 — 2026-09-20
+- The update card says a new version is out and offers it, and nothing else: what changed belongs in
+  the release notes, not on the television.
+- Updating from inside the app works again. 0.33.0 handed the downloaded file to Android's installer
+  under a provider name it never filled in, so the install never started ("couldn't find meta-data for
+  provider with authority $packageName.files"); 0.34.x has to be installed by hand once.
+
 ## 0.34.0 — 2026-09-20
 - **Interface language**: every word the app itself writes now comes from a per-language table, with
   Hebrew and English to choose from (Settings → Startup & viewing). The layout direction follows the
