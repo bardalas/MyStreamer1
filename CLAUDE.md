@@ -68,6 +68,14 @@ summaries* from Wikidata. CSS mirrors physical offsets with `--flip` (1 in RTL, 
 "forward" key is `FWD()` (ArrowLeft in RTL). Still Hebrew-only: the Channels/Live TV pages, the library
 and search pages, the native player's strings and status messages.
 
+### What was watched (`booth.html`)
+`progress[videoId]` holds `{t, d, at, metaId, type, name, poster, done}` and is written by
+`window.boothProgress` (the player, through the bridge) and by the in-page player. `done` (watched to
+within a minute of the end) is what puts a tick on a poster and keeps the title out of "continue
+watching"; it used to be a `delete`, so a finished film left no trace at all. `indexProgress()` maps
+a title to the newest thing watched under it, so a series shows its last episode; a series never gets
+a tick, because one finished episode is not a watched series. `pruneProgress()` keeps 400.
+
 ### Browsing model (`booth.html`)
 The rail lists *collections* (All, Movies, Series, and `CATEGORIES`: Israeli, Kids, Documentaries); the
 pills on every page (`SORT_GROUPS`: Genre, Year, Rating, Sort) *refine* the current collection. When any

@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.34.2 — 2026-09-20
+- A film watched to the end carries a tick in the corner of its poster and steps out of "continue
+  watching"; one left in the middle carries a bar showing how far it got, and how long is left.
+  What was watched used to be forgotten the moment it finished; the newest 400 videos are kept now.
+
 ## 0.34.1 — 2026-09-20
 - The update card says a new version is out and offers it, and nothing else: what changed belongs in
   the release notes, not on the television.

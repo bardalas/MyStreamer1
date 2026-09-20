@@ -82,7 +82,13 @@ main{padding:0 28px 60px}
 .poster .y{color:var(--muted);font-size:13px}
 .poster .t .rate{margin-inline-start:6px;font-size:11px;font-weight:600;white-space:nowrap}
 .sortnote{margin:-6px 0 14px;color:var(--muted);font-size:13px}
-.poster .prog{position:absolute;inset-inline-start:0;bottom:0;height:4px;background:var(--tungsten)}
+.poster .track{position:absolute;inset-inline:0;bottom:0;height:5px;background:var(--shade-55)}
+.poster .track i{display:block;height:100%;background:var(--tungsten)}
+.poster .seen{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;background:var(--tungsten);color:var(--on-accent);font-size:13px;font-weight:700;line-height:1}
+[data-layout="tv"] .poster .seen{width:28px;height:28px;font-size:16px}
+[data-layout="tv"] .poster .track{height:6px}
+.poster.watched .art{opacity:.75}
 .noart{display:flex;align-items:center;justify-content:center;padding:12px;text-align:center;font-family:var(--display);color:var(--muted)}
 
 /* page filters */
@@ -573,6 +579,7 @@ he: {
   'search.placeholder': 'חיפוש סרטים וסדרות', 'search.aria': 'חיפוש', 'search.button': 'חפש',
   'cats.aria': 'קטגוריות',
   'net.offline': 'אין חיבור לאינטרנט', 'net.offbar': 'אין חיבור לאינטרנט. VEO ימשיך ברגע שהחיבור יחזור.', 'net.noResponse': 'אין תגובה',
+  'card.watched': 'נצפה', 'card.left': 'נותרו {n} דק׳',
   'update.available': 'גרסה {tag} זמינה', 'update.now': 'עדכן עכשיו', 'update.later': 'לא עכשיו',
   'player.badFormat': 'הדפדפן לא יכול לנגן את הפורמט הזה. נסה מקור אחר.',
   'skin.veo.name': 'VEO', 'skin.veo.note': 'כחול המותג על כחול לילה עמוק',
@@ -664,6 +671,7 @@ en: {
   'search.placeholder': 'Search movies & series', 'search.aria': 'Search', 'search.button': 'Search',
   'cats.aria': 'Categories',
   'net.offline': 'No internet connection', 'net.offbar': 'No internet connection. VEO will carry on as soon as it is back.', 'net.noResponse': 'No response',
+  'card.watched': 'Watched', 'card.left': '{n} min left',
   'update.available': 'Version {tag} is available', 'update.now': 'Update now', 'update.later': 'Not now',
   'player.badFormat': 'The browser cannot play this format. Try another source.',
   'skin.veo.name': 'VEO', 'skin.veo.note': 'The brand blue on deep night',
@@ -1223,19 +1231,34 @@ function withGenreRows(rows){
 
 /* ---------- cards ---------- */
 let progressIdx = new Map();
-function indexProgress(){ progressIdx = new Map(Object.values(progress).map(x => [x.metaId, x])); }
+/** A title shows the newest thing watched under it (a series: its last episode). */
+function indexProgress(){
+  progressIdx = new Map();
+  for(const x of Object.values(progress).sort((a, b) => (a.at || 0) - (b.at || 0))) progressIdx.set(x.metaId, x);
+}
+/** The watch history is kept for the marks on posters, so it needs a limit: the newest 400 videos. */
+function pruneProgress(){
+  const ids = Object.keys(progress);
+  if(ids.length <= 400) return;
+  for(const id of ids.sort((a, b) => (progress[b].at || 0) - (progress[a].at || 0)).slice(400)) delete progress[id];
+}
 indexProgress();
 function card(m){
   const p = progressIdx.get(m.id);
-  const pct = p && p.d ? Math.min(100, p.t / p.d * 100) : 0;
+  // A film that was watched to the end carries a tick; one left in the middle carries how far it got.
+  // A series' entry is whichever episode was last played, so it never means the whole series is watched.
+  const done = !!p?.done && p.type !== 'series';
+  const pct = p && p.d && !p.done ? Math.min(100, p.t / p.d * 100) : 0;
+  const marks = (done ? `<span class="seen" title="${esc(tr('card.watched'))}">✓</span>` : '')
+    + (pct ? `<span class="track" title="${esc(tr('card.left', {n: Math.max(1, Math.round((p.d - p.t) / 60))}))}"><i style="width:${pct.toFixed(0)}%"></i></span>` : '');
   const art = m.poster
-    ? `<div class="art" data-bg="${esc(m.poster)}">${pct?`<div class="prog" style="width:${pct}%"></div>`:''}${svcBadge(m.id)}</div>`
-    : `<div class="art noart">${esc(m.name)}</div>`;
+    ? `<div class="art" data-bg="${esc(m.poster)}">${marks}${svcBadge(m.id)}</div>`
+    : `<div class="art noart">${esc(m.name)}${marks}</div>`;
   const name = heTitle(m.id, m.name);
   const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';
   const none = key && typeof avail !== 'undefined' && isNoSrc(avail[key]);
   const rating = m.imdbRating ? `<small class="rate" title="IMDb">★ ${esc(m.imdbRating)}</small>` : '';
-  return `<a class="poster${none ? ' nosrc' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t"><span data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</span>${rating}</div><div class="y">${esc(yearOf(m))}</div></a>`;
+  return `<a class="poster${none ? ' nosrc' : ''}${done ? ' watched' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t"><span data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</span>${rating}</div><div class="y">${esc(yearOf(m))}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
@@ -1954,7 +1977,7 @@ async function viewHome(){
     if(rows.length < 8) rows.push({a, c, title: catalogName(c.name) || c.id});
   }
   if(sortActive()) return gridFrom(rows, tr('cats.all'), viewHome);
-  const cont = Object.values(progress).sort((x,y) => y.at - x.at).slice(0, 12);
+  const cont = Object.values(progress).filter(x => !x.done).sort((x,y) => y.at - x.at).slice(0, 12);
   renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, hero: settings.layout === 'cinema', top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
   wireSortBar(viewHome);
 }
@@ -2892,7 +2915,8 @@ function openPlayer(s, title, ctx){
       let last = 0;
       v.addEventListener('timeupdate', () => {
         if(Math.abs(v.currentTime - last) < 5) return; last = v.currentTime;
-        progress[ctx.videoId] = {t: v.currentTime, d: v.duration, at: Date.now(), metaId: ctx.meta.id, type: ctx.type, name: ctx.meta.name, poster: ctx.meta.poster};
+        progress[ctx.videoId] = {t: v.currentTime, d: v.duration, at: Date.now(), metaId: ctx.meta.id, type: ctx.type,
+          name: ctx.meta.name, poster: ctx.meta.poster, done: v.currentTime > v.duration - 60};
         store.set('progress', progress);
         indexProgress();
       });
@@ -3028,9 +3052,11 @@ window.boothProgress = json => {
     const entries = JSON.parse(json);
     for(const [videoId, e] of Object.entries(entries)){
       if(!e || !e.d) continue;
-      progress[videoId] = {t: +e.t || 0, d: +e.d || 0, at: +e.at || Date.now(), metaId: e.metaId || videoId, type: e.type || 'movie', name: e.name || '', poster: e.poster || ''};
-      if(progress[videoId].t > progress[videoId].d - 60) delete progress[videoId];      // finished
+      const w = {t: +e.t || 0, d: +e.d || 0, at: +e.at || Date.now(), metaId: e.metaId || videoId, type: e.type || 'movie', name: e.name || '', poster: e.poster || ''};
+      w.done = w.t > w.d - 60;            // watched to the end: a tick on the poster, and out of "continue watching"
+      progress[videoId] = w;
     }
+    pruneProgress();
     store.set('progress', progress);
     indexProgress();
     if(['', '#/', '#'].includes(location.hash)) route();
