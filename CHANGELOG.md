@@ -1,5 +1,32 @@
 # VEO Android changelog
 
+## 0.34.0 — 2026-09-20
+- **Interface language**: every word the app itself writes now comes from a per-language table, with
+  Hebrew and English to choose from (Settings → Startup & viewing). The layout direction follows the
+  language, including the remote's Left/Right and the live channel list, which keeps to the side the
+  layout runs from. Still Hebrew-only: the Channels and Live TV pages, the library and search.
+- **Browsing**: the side rail lists collections (All, Movies, Series, Israeli, Kids, Documentaries) and
+  genres became a filter instead of a second, overlapping branch. Genre, years, rating and sorting are
+  pills on every listing; a filtered listing is one ranked grid that says how many titles it holds, how
+  they are sorted and which sources they came from. Rows carry their type and source, and each poster
+  shows its IMDb score beside the title.
+- **A title's page** fits a television screen: play, the quality shortcuts, the library and the trailer
+  in one row, and a series' episodes in a single column that fills the rest of the screen without
+  scrolling the page.
+- **Torrents start in seconds instead of a minute or more.** The engine used to let every peer work on a
+  different piece, so the first one finished last; it now wants only the beginning of the file until
+  playback can start. Sources with smaller, well-seeded files rank higher, and the status is a slim bar
+  that only appears when the wait is noticeable.
+- **Live TV**: Up/Down page through the channels in the banner (nothing changes until OK), holding OK
+  opens the channel list over the picture, the channel keys switch straight away, and the play/pause key
+  pauses with Left/Right stepping back and forth.
+- **A VEO skin**, taken from the icon's own blues, is the default; the player's banner and channel list
+  follow the chosen skin. The launcher icon has more room around the mark, and Android TV's home screen
+  shows the VEO logo.
+- Fixes: search works with the remote again; Down from the top menu no longer lands in the search box;
+  the live banner showed "src.num" instead of the channel number; leaving a torrent while it was loading
+  could close the app.
+
 ## 0.33.0 — 2026-09-20
 - Renamed from המקרן (HaMakren / "Booth") to **VEO**: app label, in-app header mark and icon
   (adaptive + legacy launcher icons regenerated from the approved VEO media kit), release

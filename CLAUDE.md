@@ -58,6 +58,10 @@ follows the static markup) read through `tr(key, vars)`; static markup uses `dat
 so layout follows (`dirOf`). `missingStrings()` in the console lists keys one language lacks. Adding a
 language = one table + one row in `UI_LANGS`. **Never name anything `t`** in new code that also calls
 `tr()`; the file has many local `t` variables (that is why the function is `tr`).
+The player draws its own views, so `syncNativeTheme()` (in `applySettings`) hands the current skin's
+colours and the direction to `BoothAndroid.setTheme`, which keeps them in the `veo` preferences;
+`PlayerActivity.applySkin()` paints the banner, the channel list and the error panel from them and puts
+the list on the side the layout runs from.
 `NAMES` holds names of things add-ons describe in English (genres, types, catalogues): shown as they
 come unless a table has them. `settings.lang` is a different thing: Hebrew vs original *titles and
 summaries* from Wikidata. CSS mirrors physical offsets with `--flip` (1 in RTL, -1 in LTR); the D-pad

@@ -124,6 +124,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /** The page's skin and direction, kept for PlayerActivity (which draws its own views). */
+        @JavascriptInterface fun setTheme(json: String) {
+            val o = JSONObject(json)
+            getSharedPreferences("veo", MODE_PRIVATE).edit().apply {
+                for (k in o.keys()) putString(k, o.optString(k))
+            }.apply()
+        }
+
         /** This build's version name, so the page can tell whether a newer one was released. */
         @JavascriptInterface fun appVersion(): String =
             runCatching { packageManager.getPackageInfo(packageName, 0).versionName ?: "" }.getOrDefault("")

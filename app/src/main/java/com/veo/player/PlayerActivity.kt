@@ -65,6 +65,8 @@ class PlayerActivity : AppCompatActivity() {
     private val shownIndex get() = if (browsing) barIndex else index
     /** OK is decided on release, so that holding it can mean something else. */
     private var okLong = false
+    /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
+    private val skin by lazy { Skin(getSharedPreferences("veo", MODE_PRIVATE)) }
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,6 +89,8 @@ class PlayerActivity : AppCompatActivity() {
         index = (savedInstanceState?.getInt("index") ?: intent.getIntExtra("index", 0)).coerceIn(0, sources.size - 1)
         resumePosition = savedInstanceState?.getLong("pos") ?: intent.getLongExtra("pos", 0L)
 
+        applySkin()
+
         val view = findViewById<PlayerView>(R.id.playerView)
         view.setShowSubtitleButton(!live)
         view.subtitleView?.apply {
@@ -96,12 +100,6 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         if (live) view.useController = false     // live has nothing to seek, and controls eat the D-pad
-        if (sources.size > 1 && !live) {
-            val zap = findViewById<View>(R.id.zap)
-            view.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { zap.visibility = it })
-            findViewById<View>(R.id.chUp).setOnClickListener { zapBy(-1) }
-            findViewById<View>(R.id.chDown).setOnClickListener { zapBy(1) }
-        }
 
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) {
@@ -217,6 +215,50 @@ class PlayerActivity : AppCompatActivity() {
     /** Guide per channel (by its endpoint), fetched once and kept for the session. */
     private val guides = HashMap<String, List<Prog>>()
     private val logos = HashMap<String, android.graphics.Bitmap?>()
+
+    /** What the page last told us about its skin; its defaults are the amber skin, for a first run. */
+    private class Skin(private val p: android.content.SharedPreferences) {
+        val rtl = p.getString("dir", "rtl") != "ltr"
+        private fun c(key: String, fallback: String) =
+            runCatching { Color.parseColor(p.getString(key, fallback)!!) }.getOrDefault(Color.parseColor(fallback))
+        val night = c("night", "#14161F")
+        val line = c("line", "#323850")
+        val light = c("light", "#EFE6CF")
+        val muted = c("muted", "#8E93A8")
+        val accent = c("accent", "#F0B429")
+        val onAccent = c("onAccent", "#14161F")
+    }
+    /** The same colour at a given opacity (the panels sit over the picture). */
+    private fun fade(color: Int, alpha: Int) = (color and 0xFFFFFF) or (alpha shl 24)
+
+    /** Paint the views this activity owns, and put them on the side the layout runs from. */
+    private fun applySkin() {
+        val dir = if (skin.rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
+        findViewById<View>(R.id.infobar).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xEB)) }
+        findViewById<View>(R.id.errbox).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xF0)) }
+        findViewById<TextView>(R.id.chNum).apply { setBackgroundColor(skin.accent); setTextColor(skin.onAccent) }
+        findViewById<TextView>(R.id.chName).setTextColor(skin.light)
+        findViewById<TextView>(R.id.nowTitle).setTextColor(skin.light)
+        findViewById<TextView>(R.id.errTitle).setTextColor(skin.light)
+        findViewById<TextView>(R.id.nowClock).setTextColor(skin.muted)
+        findViewById<TextView>(R.id.nextTitle).setTextColor(skin.muted)
+        findViewById<TextView>(R.id.errWhy).setTextColor(skin.muted)
+        findViewById<TextView>(R.id.infoNow).setTextColor(fade(skin.muted, 0xB0))
+        findViewById<ProgressBar>(R.id.nowBar).apply {
+            progressTintList = android.content.res.ColorStateList.valueOf(skin.accent)
+            progressBackgroundTintList = android.content.res.ColorStateList.valueOf(skin.line)
+        }
+        findViewById<TextView>(R.id.osd).apply { setBackgroundColor(fade(skin.night, 0xC8)); setTextColor(skin.light) }
+        // The list keeps to the side the layout runs from, so it never covers what the banner says.
+        findViewById<ListView>(R.id.chList).apply {
+            layoutDirection = dir
+            setBackgroundColor(fade(skin.night, 0xF5))
+            divider = android.graphics.drawable.ColorDrawable(fade(skin.line, 0x80))
+            dividerHeight = dp(1)
+            selector = android.graphics.drawable.ColorDrawable(fade(skin.accent, 0x33))
+        }
+        findViewById<View>(R.id.chPanel).layoutDirection = dir
+    }
 
     /** Fill the banner with the channel and what is on it, then fetch the guide if it is not in yet. */
     private fun paintBanner() {
@@ -381,14 +423,14 @@ class PlayerActivity : AppCompatActivity() {
             val now = text.getChildAt(1) as TextView
             val current = position == index
             num.text = if (src.num > 0) "${src.num}" else "—"
-            num.setTextColor(Color.parseColor(if (current) "#F0B429" else "#7F8899"))
+            num.setTextColor(if (current) skin.accent else fade(skin.muted, 0xCC))
             name.text = src.name
-            name.setTextColor(if (current) Color.WHITE else Color.parseColor("#D8DCE6"))
+            name.setTextColor(if (current) skin.light else fade(skin.light, 0xCC))
             name.typeface = if (current) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
             val seconds = System.currentTimeMillis() / 1000
             val playing = guides[src.epg]?.firstOrNull { seconds in it.from until it.to }
             now.text = playing?.name ?: ""
-            now.setTextColor(Color.parseColor("#8E93A8"))
+            now.setTextColor(skin.muted)
             now.visibility = if (playing != null) View.VISIBLE else View.GONE
             if (src.epg.isNotBlank() && !guides.containsKey(src.epg)) loadGuide(src.epg)
             return row

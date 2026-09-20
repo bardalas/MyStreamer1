@@ -15,27 +15,12 @@
         android:background="#B3000000" android:paddingHorizontal="16dp" android:paddingVertical="8dp"
         android:textColor="#FFFFFF" android:textSize="20sp" android:visibility="gone" />
 
-    <!-- Live TV: channel up / down, shown together with the player controls -->
-    <LinearLayout
-        android:id="@+id/zap"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical|start" android:layout_marginStart="16dp"
-        android:orientation="vertical" android:visibility="gone">
-        <Button
-            android:id="@+id/chUp" android:layout_width="64dp" android:layout_height="64dp"
-            android:text="▲" android:textSize="22sp" android:contentDescription="ערוץ קודם" />
-        <Button
-            android:id="@+id/chDown" android:layout_width="64dp" android:layout_height="64dp"
-            android:layout_marginTop="12dp"
-            android:text="▼" android:textSize="22sp" android:contentDescription="ערוץ הבא" />
-    </LinearLayout>
-
     <!-- Playback failed: what happened, and what the viewer can do about it -->
     <LinearLayout
         android:id="@+id/errbox"
         android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_gravity="center" android:orientation="vertical"
-        android:background="#E6000000" android:padding="28dp" android:layoutDirection="rtl"
+        android:background="#E6000000" android:padding="28dp"
         android:visibility="gone">
         <TextView
             android:id="@+id/errTitle"
@@ -68,7 +53,7 @@
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_gravity="bottom" android:orientation="vertical"
         android:background="#E6070910" android:paddingHorizontal="26dp" android:paddingVertical="14dp"
-        android:layoutDirection="rtl" android:visibility="gone">
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -129,7 +114,7 @@
         <ListView
             android:id="@+id/chList"
             android:layout_width="380dp" android:layout_height="match_parent"
-            android:layout_gravity="start" android:layoutDirection="rtl"
+            android:layout_gravity="start"
             android:background="#F2070910" android:divider="#1FFFFFFF" android:dividerHeight="1dp"
             android:listSelector="#33F0B429" android:scrollbars="none"
             android:paddingVertical="10dp" android:clipToPadding="false" />

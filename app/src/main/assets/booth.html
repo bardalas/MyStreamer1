@@ -14,7 +14,7 @@ try{
   const s = JSON.parse(localStorage.getItem('booth:settings') || '{}'), r = document.documentElement;
   r.lang = s.uiLang || 'he'; r.dir = dirOf(r.lang);
   const tv = !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-  r.dataset.skin = s.skin || 'tungsten'; r.dataset.layout = s.layout || (tv ? 'tv' : 'cinema'); r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
+  r.dataset.skin = s.skin || 'veo'; r.dataset.layout = s.layout || (tv ? 'tv' : 'cinema'); r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
 }catch(e){}
 </script>
 <style>
@@ -105,6 +105,7 @@ main{padding:0 28px 60px}
 .backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night) 12%,var(--shade-50) 60%,var(--shade-20))}
 .dinfo{min-width:0}
 .dinfo .playrow{margin:10px 0}
+.dinfo .playrow .btn{margin-inline-start:2px}
 .dinfo .src{display:block;margin:-6px 0 8px;font-size:12px;color:var(--muted)}
 .dinfo .src a{color:var(--muted)}
 [data-layout="tv"] .desc .readmore{display:none}
@@ -185,6 +186,9 @@ main{padding:0 28px 60px}
 .player video,.player iframe{flex:1;width:100%;border:0;background:#000;min-height:0}
 
 /* ---------- skins (Settings) ---------- */
+:root[data-skin="veo"]{--night:#050a16;--surface:#0d1524;--raise:#16203a;--line:#22304f;--light:#e9f0ff;--muted:#8695b5;--tungsten:#3d8bff;--velvet:#c040f0;
+  --on-accent:#04070f;--text2:#c2cfe8;--shade-55:rgba(5,10,22,.55);--shade-50:rgba(5,10,22,.5);--shade-20:rgba(5,10,22,.2);
+  --glow:rgba(61,139,255,.45);--glow-soft:rgba(61,139,255,.35);--beam:rgba(61,139,255,.13);--ghost:rgba(233,240,255,.1)}
 :root[data-skin="midnight"]{--night:#000;--surface:#0e1116;--raise:#171b22;--line:#262c36;--light:#e8eef5;--muted:#7f8a98;--tungsten:#3dd6d0;--velvet:#e0457b;
   --on-accent:#001614;--text2:#c3ccd6;--shade-55:rgba(0,0,0,.55);--shade-50:rgba(0,0,0,.5);--shade-20:rgba(0,0,0,.2);
   --glow:rgba(61,214,208,.45);--glow-soft:rgba(61,214,208,.35);--beam:rgba(61,214,208,.12);--ghost:rgba(232,238,245,.1)}
@@ -468,12 +472,6 @@ main{padding:0 28px 60px}
 .poster.wide{flex-basis:calc(var(--poster-w) * 1.55)}
 .poster.wide .art{aspect-ratio:16/9}
 button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;cursor:pointer;font:inherit}
-/* genres page */
-.genres{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;max-width:1000px}
-.genres a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:96px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-decoration:none;font-weight:600;font-size:16px}
-.genres a span{font-size:28px;line-height:1}
-.genres a:hover,.genres a:focus-visible{border-color:var(--tungsten)}
-[data-layout="tv"] .genres a{height:120px;font-size:19px}
 /* settings: home categories order */
 .catorder{display:flex;flex-direction:column;max-width:520px}
 .catorder div{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
@@ -577,6 +575,7 @@ he: {
   'net.offline': 'אין חיבור לאינטרנט', 'net.offbar': 'אין חיבור לאינטרנט. VEO ימשיך ברגע שהחיבור יחזור.', 'net.noResponse': 'אין תגובה',
   'update.available': 'גרסה {tag} זמינה', 'update.now': 'עדכן עכשיו', 'update.later': 'לא עכשיו',
   'player.badFormat': 'הדפדפן לא יכול לנגן את הפורמט הזה. נסה מקור אחר.',
+  'skin.veo.name': 'VEO', 'skin.veo.note': 'כחול המותג על כחול לילה עמוק',
   'skin.tungsten.name': 'טונגסטן', 'skin.tungsten.note': 'ענבר חם על כחול לילה',
   'skin.midnight.name': 'חצות', 'skin.midnight.note': 'שחור מלא למסכי OLED, טורקיז',
   'skin.velvet.name': 'קטיפה', 'skin.velvet.note': 'אדום יין עם זהב',
@@ -667,6 +666,7 @@ en: {
   'net.offline': 'No internet connection', 'net.offbar': 'No internet connection. VEO will carry on as soon as it is back.', 'net.noResponse': 'No response',
   'update.available': 'Version {tag} is available', 'update.now': 'Update now', 'update.later': 'Not now',
   'player.badFormat': 'The browser cannot play this format. Try another source.',
+  'skin.veo.name': 'VEO', 'skin.veo.note': 'The brand blue on deep night',
   'skin.tungsten.name': 'Tungsten', 'skin.tungsten.note': 'Warm amber on night blue',
   'skin.midnight.name': 'Midnight', 'skin.midnight.note': 'Pure black for OLED screens, teal',
   'skin.velvet.name': 'Velvet', 'skin.velvet.note': 'Wine red with gold',
@@ -2665,6 +2665,7 @@ async function viewLive(){
 
 /* ---------- settings: skins & layouts ---------- */
 const SKINS = [
+  {id: 'veo', c: ['#050a16', '#16203a', '#3d8bff', '#e9f0ff']},
   {id: 'tungsten', c: ['#14161f', '#272c3f', '#f0b429', '#efe6cf']},
   {id: 'midnight', c: ['#000000', '#171b22', '#3dd6d0', '#e8eef5']},
   {id: 'velvet', c: ['#1a0f14', '#331e27', '#e8b86b', '#f6e7dc']},
@@ -2679,11 +2680,21 @@ const LAYOUTS = [
 ];
 const POSTER_SIZES = ['s', 'm', 'l'];
 const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off'}, store.get('settings', {}));
+let settings = Object.assign({skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off'}, store.get('settings', {}));
+/** The player draws its own banner and channel list in native views: hand it this skin and direction. */
+function syncNativeTheme(){
+  const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();
+  try{
+    window.BoothAndroid?.setTheme?.(JSON.stringify({dir: document.documentElement.dir,
+      night: v('--night'), raise: v('--raise'), line: v('--line'),
+      light: v('--light'), muted: v('--muted'), accent: v('--tungsten'), onAccent: v('--on-accent')}));
+  }catch(e){}
+}
 function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
   if(STRINGS[settings.uiLang] && settings.uiLang !== UI){ UI = settings.uiLang; applyUiLang(); }
+  syncNativeTheme();
 }
 applySettings();
 
@@ -2818,7 +2829,7 @@ function paintSettings(){
     $('#supd').textContent = document.querySelector('.update') ? tr('set.about.found') : tr('set.about.latest');
   };
   if($('#sreset')) $('#sreset').onclick = () => {          // the language stays: resetting must never strand someone in a language they cannot read
-    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: settings.uiLang, nosrc: 'grey', start: 'vod', kids: 'off'};
+    settings = {skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: settings.uiLang, nosrc: 'grey', start: 'vod', kids: 'off'};
     store.set('settings', settings); applySettings(); paintSettings();
   };
   if(focusKey) pane.querySelector(focusKey)?.focus();
@@ -3056,12 +3067,12 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), 
    of them is safe. Grouped by the screen that renders them. */
 const ROWS_SEL = [
   '.bar', '#cats', '.stabs',                                               // chrome: top bar, rail, settings menu
-  '.bctabs', '.strip', '.grid', '.genres', '.sopts', '.seg', '.sortbar',   // browsing rows and pickers
+  '.bctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',              // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
-  '#desc', '.detact', '.seasonbar', '.seasons', '.eps', '.eplist',         // a title: text, actions, episodes
-  '.qvact', '.playrow', '.quals', '.altlist',                              // title card + sources panel
-  '.live-top', '#cont', '#bchead', '.chrow',                        // live TV
-  '.days', '.progs', '.guide', '.keypad', '.keyform',                      // catch-up guide, key entry
+  '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
+  '.qvact', '.playrow', '.altlist',                                        // title card + sources
+  '.live-top', '#cont', '#bchead', '.chrow',                               // live TV
+  '.days', '.progs', '.keypad', '.keyform',                                // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update',                    // sheets and floating cards
   '.catorder', '.addpl', '.add', '.plrow', '.addon',                       // settings lists, add-ons
 ].join(', ');

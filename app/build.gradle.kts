@@ -11,8 +11,8 @@ android {
         applicationId = "com.veo.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3300
-        versionName = "0.33.0"
+        versionCode = 3400
+        versionName = "0.34.0"
     }
     signingConfigs {
         create("release") {
@@ -51,6 +51,8 @@ dependencies {
     // Emulators on a PC are x86_64, where the ARM natives cannot load and torrents would be the one
     // thing that could not be tested. Debug builds carry them; the release stays lean for real TVs.
     debugImplementation("com.frostwire:jlibtorrent-android-x86_64:$jlibtorrentVersion")
+    // 32-bit x86 emulator images (e.g. the Android Studio "Television" AVD) need this one instead.
+    debugImplementation("com.frostwire:jlibtorrent-android-x86:$jlibtorrentVersion")
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
     implementation("androidx.media3:media3-exoplayer-dash:1.11.1")

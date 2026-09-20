@@ -1,7 +1,6 @@
 package com.veo.player
 
 import android.content.Context
-import android.util.Log
 import com.frostwire.jlibtorrent.AnnounceEntry
 import com.frostwire.jlibtorrent.Priority
 import com.frostwire.jlibtorrent.SettingsPack
@@ -22,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger
  * ([StreamServer]) so playback starts after a few MB instead of after the whole download.
  */
 object TorrentEngine {
-    private const val TAG = "VEOTorrent"
     private val session = SessionManager()
     @Volatile private var started = false
     /** Bumped on every new request so a superseded request stops quietly. */
@@ -92,15 +90,11 @@ object TorrentEngine {
     ) {
         val gen = generation.incrementAndGet()
         fun superseded() = gen != generation.get()
-        val t0 = System.currentTimeMillis()
-        fun lap(what: String) = Log.i(TAG, "$what after ${System.currentTimeMillis() - t0} ms")
         Thread {
             try {
                 ensureStarted()
                 stopCurrent()
-                lap("session ready")
                 waitForDht(::superseded, onStatus)
-                lap("dht wait over (${session.stats().dhtNodes()} nodes)")
                 if (superseded()) return@Thread
 
                 onStatus(status("p" to "meta"))
@@ -108,7 +102,6 @@ object TorrentEngine {
                 val metadata = session.fetchMagnet(buildMagnet(infoHash, sources), 60, tempDir)
                     ?: throw IllegalStateException("e:nopeers")
                 if (superseded()) return@Thread
-                lap("metadata")
 
                 val ti = TorrentInfo(metadata)
                 if (ti.numFiles() <= 0) throw IllegalStateException("e:empty")
@@ -133,10 +126,8 @@ object TorrentEngine {
                     size = ti.files().fileSize(idx),
                     pieceLength = ti.pieceLength().toLong(),
                 )
-                lap("download started")
                 bufferStart(handle, media, ti.numPieces(), priorities, ::superseded, onStatus)
                 if (superseded()) return@Thread
-                lap("start buffered")
 
                 val srv = StreamServer(handle, media).also { it.start() }
                 synchronized(this) { server = srv }
@@ -215,9 +206,6 @@ object TorrentEngine {
             val have = (first..last).count { handle.havePiece(it) }
             if (have == total) { handle.prioritizeFiles(filePriorities); return }   // the start is in: the whole file again
             val st = handle.status()
-            if (System.currentTimeMillis() / 500 % 6 == 0L) Log.i(TAG, "buffering $have/$total pieces [$first..$last] pieceLen=${media.pieceLength} state=${st.state()} " +
-                "peers=${st.numPeers()} seeds=${st.numSeeds()} done=${st.totalDone()} payload=${st.totalPayloadDownload()} failed=${st.totalFailedBytes()} " +
-                "redundant=${st.totalRedundantBytes()} pieces=${st.numPieces()} kbs=${st.downloadRate() / 1024}")
             // whole pieces only count once complete, so show the bytes that have arrived towards them
             onStatus(status("p" to "buffer", "peers" to st.numPeers(), "kbs" to st.downloadRate() / 1024,
                 "got" to st.totalPayloadDownload().coerceAtMost(need), "need" to need))

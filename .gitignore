@@ -10,3 +10,6 @@ local.properties
 *.p12
 *.jks
 *.keystore
+
+# Android Studio picks its own build JDK here
+gradle/
