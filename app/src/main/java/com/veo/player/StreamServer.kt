@@ -1,6 +1,7 @@
 package com.veo.player
 
 import android.net.Uri
+import com.frostwire.jlibtorrent.Priority
 import com.frostwire.jlibtorrent.TorrentHandle
 import java.io.BufferedOutputStream
 import java.io.EOFException
@@ -16,7 +17,12 @@ import java.net.Socket
  * downloading. A read blocks until the needed piece is present and gives that piece and the
  * next few a deadline, so seeking in the player re-prioritises the download.
  */
-class StreamServer(private val handle: TorrentHandle, private val media: Media) {
+class StreamServer(
+    private val handle: TorrentHandle,
+    private val media: Media,
+    /** Says what the reader is waiting for, so a jump forward is not a frozen picture. */
+    private val onStatus: (String) -> Unit = {},
+) {
 
     /** The streamed file's position inside the torrent's piece space. */
     data class Media(val file: File, val offset: Long, val size: Long, val pieceLength: Long) {
@@ -116,17 +122,41 @@ class StreamServer(private val handle: TorrentHandle, private val media: Media) 
         }
     }
 
-    /** Blocks until [piece] is downloaded, prioritising it and a read-ahead window after it. */
+    /** The piece the reader last asked for: anything far from it is a jump, not a read. */
+    @Volatile private var atPiece = -1
+
+    /**
+     * Blocks until [piece] is downloaded, having asked for it and the window after it first.
+     *
+     * A jump is what makes streaming a torrent feel slow: after the opening minutes the whole file is
+     * wanted equally, so the swarm hands out pieces from everywhere and the ones under the playhead
+     * arrive last. Every jump therefore cancels the old queue and puts the pieces at the new position
+     * at the top of it - the same trick that gets the first minutes in quickly.
+     */
     private fun awaitPiece(piece: Int) {
-        if (handle.havePiece(piece)) return
+        if (handle.havePiece(piece)) { atPiece = piece; return }
+        val jumped = piece < atPiece || piece > atPiece + READ_AHEAD_PIECES
+        atPiece = piece
+        if (jumped) runCatching { handle.clearPieceDeadlines() }
         for (i in 0 until READ_AHEAD_PIECES) {
             val p = piece + i
-            if (p <= media.lastPiece && !handle.havePiece(p)) handle.setPieceDeadline(p, i * 300)
+            if (p > media.lastPiece || handle.havePiece(p)) continue
+            runCatching { handle.piecePriority(p, if (i < 4) Priority.SEVEN else Priority.SIX) }
+            handle.setPieceDeadline(p, i * 200)
         }
+        val began = System.currentTimeMillis()
+        var told = false
         while (!handle.havePiece(piece)) {
             if (closed) throw IOException("stream stopped")
+            // a wait long enough to be noticed says so, and says how the pieces are coming in
+            if (System.currentTimeMillis() - began > 700) {
+                told = true
+                val st = handle.status()
+                onStatus("""{"p":"seek","kbs":${st.downloadRate() / 1024},"peers":${st.numPeers()}}""")
+            }
             Thread.sleep(100)
         }
+        if (told) onStatus("")
     }
 
     private fun mimeType(name: String) = when (name.substringAfterLast('.').lowercase()) {

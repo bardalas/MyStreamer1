@@ -1,5 +1,37 @@
 # VEO Android changelog
 
+## 0.37.0 — 2026-09-20
+- **The app has an address.** Until now its page was opened as a file, which is why YouTube refused to
+  play anything inside it ("error 153"). It is now served to itself over https, so **trailers and the
+  taste behind a title actually play**, and add-ons that turned away a request with no origin answer it.
+  Everything kept on the device - library, watch history, settings, the RaspberryTV key - is carried over
+  the first time the new version runs.
+- **Movement.** The app moves now: the marker slides from one thing to the next instead of blinking
+  somewhere else, screens arrive from just below themselves, titles are dealt out one after another, the
+  side menu spreads open instead of jumping, and a press gives a little under the finger. A television
+  gets all of it (only transform and opacity are animated, which its GPU carries), and whoever asked
+  their system for less motion still gets none.
+- **Playing and choosing are two things.** The blue button plays; the quality pills only say in what
+  quality, and the one in use wears the accent. Choosing an episode watches it, at that quality.
+- **A title with nothing to watch says so** instead of offering a button that fails: sources nobody is
+  sharing are listed as weak, never as "play", and such a title is dimmed in the lists (on the television
+  too, which never checked before). "Remind me when a source appears" keeps it on a list that is looked
+  at when the app starts, and the first title that became watchable announces itself.
+- Each streaming service is its **own app icon** beside the title - small, square, on its own colour.
+- **Live TV is a wall of channels**, each with its logo, number and what is on now, instead of a table.
+- **In the player**: up and down change the channel at once; left and right walk the channel's archive in
+  the banner and OK tunes to what it stopped at; holding them runs inside what is playing. A film has the
+  same banner - where you are, and how much is left - and **jumping forward in a film is quick**: a jump
+  now cancels the old queue and asks the swarm for the pieces where you landed.
+- The programme guide loads three channels at a time and is kept for half an hour.
+- Settings: themes are a list you read down, and the layouts differ - Wall hides every title until you
+  arrive on it, List gives each title a line of its own.
+- A card over the picture (an update, a source opening) keeps the remote inside it until it is answered.
+- **Coming out of a title lands where you were** - the same place in the list, on the very title you opened.
+- **Faster.** A catalogue the app already has is shown at once and refreshed quietly behind it, so a screen
+  that was open before comes back without the network; sources are remembered for ten minutes, so a title
+  opened twice answers immediately.
+
 ## 0.36.0 — 2026-09-20
 - **Kan, inside VEO.** Kan's site turns plain requests away, so the app now opens its pages in a browser
   window of its own and reads them there: כאן BOX arrives as rows of programmes, a programme opens on its

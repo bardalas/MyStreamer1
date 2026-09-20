@@ -76,6 +76,22 @@ watching"; it used to be a `delete`, so a finished film left no trace at all. `i
 a title to the newest thing watched under it, so a series shows its last episode; a series never gets
 a tick, because one finished episode is not a watched series. `pruneProgress()` keeps 400.
 
+### The page's address (`MainActivity`)
+The page is served to itself by `WebViewAssetLoader` at `https://appassets.androidplatform.net/assets/`,
+not opened as `file://`. A file has no origin, so every iframe and every fetch from it arrived with none:
+YouTube answered embeds with "error 153" and some add-ons refused the request outright. Because storage
+belongs to an origin, `migrateStore()` carries the old `file://` keys over on the first run at the new
+address (through the same hidden window as `siteExtract`, reading `export.html`) and reloads. It is called
+from `boot()`, not at the top of the script: what it uses is declared further down.
+
+### Motion (`booth.html`)
+One ease and three durations (`--ease`, `--quick/--travel/--settle`) drive everything. Only transform and
+opacity are animated - a television's GPU carries those and nothing else - which is why the blanket
+"no animation on TV" rule is gone. The focus marker is a single fixed `#halo` that is moved (and resized)
+to the focused element on `focusin`; while the page scrolls it is moved without its transition, so it
+sticks to its element instead of chasing it. Posters are excluded: they grow when chosen, and a rectangle
+measured before the growth would always land behind them.
+
 ### A broadcaster's own site (`booth.html` + `MainActivity.sitePage`)
 Kan puts its whole catalogue in its HTML but answers a plain request with a bot check. `siteExtract(url,
 reader, id)` therefore opens the page in an off-screen WebView - which passes the check by being a browser -

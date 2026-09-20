@@ -20,6 +20,8 @@ try{
 <style>
 :root{
   --flip:1;   /* 1 in right-to-left, -1 in left-to-right: mirrors physical offsets that logical properties cannot express */
+  --ease:cubic-bezier(.22,1,.36,1);  /* everything travels out quickly and lands slowly */
+  --quick:.16s; --travel:.26s; --settle:.36s;
   --night:#14161f; --surface:#1d2130; --raise:#272c3f; --line:#323850;
   --light:#efe6cf; --muted:#8e93a8; --tungsten:#f0b429; --velvet:#a3384b;
   --on-accent:#14161f; --text2:#d4cdb9; --err:#ff9d8a; --ghost:rgba(239,230,207,.1);
@@ -156,6 +158,8 @@ main{padding:0 28px 60px}
 [data-layout="tv"] .playbtn{font-size:16px;padding:8px 18px}
 .qbtn{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:5px 11px;font-size:13px;cursor:pointer}
 .qbtn:hover,.qbtn:focus-visible{border-color:var(--tungsten)}
+/* the quality in use wears the accent; the others are only offers */
+.qbtn.on{background:var(--tungsten);color:var(--on-accent);border-color:transparent;font-weight:600}
 .playrow .btn{padding:6px 14px;font-size:14px}
 [data-layout="tv"] .qbtn,[data-layout="tv"] .playrow .btn{font-size:14px}
 [data-layout="tv"] .playrow .btn{padding:5px 12px}
@@ -222,15 +226,25 @@ main{padding:0 28px 60px}
 :root[data-poster="s"]{--poster-w:104px}
 :root[data-poster="l"]{--poster-w:168px}
 /* Poster wall: no banner, every row wraps into a grid */
+/* Wall: no banner, no titles under the artwork - the posters themselves, edge to edge, with the name
+   over the picture only where the eye already is. */
 [data-layout="grid"] .hero{display:none}
 [data-layout="grid"] main{padding-top:8px}
 [data-layout="grid"] .strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr));gap:22px 16px;overflow:visible}
+[data-layout="grid"] .poster{position:relative}
+[data-layout="grid"] .poster .t{position:absolute;inset-inline:0;bottom:0;margin:0;padding:22px 8px 7px;
+  background:linear-gradient(transparent,#000d);font-size:13px;opacity:0;transition:opacity var(--travel) var(--ease)}
+[data-layout="grid"] .poster .y{display:none}
+[data-layout="grid"] .poster:hover .t,[data-layout="grid"] .poster:focus-visible .t,
+[data-layout="grid"] .poster:focus-within .t{opacity:1}
 /* List: compact rows with small art, title and year */
 [data-layout="list"] .hero{display:none}
 [data-layout="list"] main{padding-top:8px}
 [data-layout="list"] .strip,[data-layout="list"] .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px 16px;overflow:visible}
-[data-layout="list"] .poster{display:grid;grid-template-columns:52px 1fr;grid-template-rows:auto 1fr;column-gap:12px;padding:8px;border-radius:8px;background:var(--surface)}
-[data-layout="list"] .poster .art{grid-row:1 / span 2;width:52px}
+[data-layout="list"] .poster{display:grid;grid-template-columns:72px 1fr;grid-template-rows:auto 1fr;column-gap:14px;padding:10px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+[data-layout="list"] .poster .art{grid-row:1 / span 2;width:72px}
+[data-layout="list"] .poster .t{font-size:15px;font-weight:600}
+[data-layout="list"] .row h2{font-size:17px}
 [data-layout="list"] .poster .t{margin-top:2px}
 [data-layout="list"] .poster:hover .art,[data-layout="list"] .poster:focus-visible .art{transform:none;box-shadow:none}
 [data-layout="list"] .poster:hover,[data-layout="list"] .poster:focus-visible{background:var(--raise)}
@@ -253,6 +267,15 @@ main{padding:0 28px 60px}
 .sset{margin:0 0 32px;max-width:1000px}
 .sset h2{font-family:var(--display);font-size:20px;font-weight:700;margin:0 0 12px}
 .sopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+/* a theme is chosen from a list, the way a menu is read: one under the other, each showing its colours */
+.slist{display:flex;flex-direction:column;gap:8px;max-width:620px}
+.slist .setopt{flex-direction:row;align-items:center;gap:14px;padding:10px 14px;border-width:1px}
+.slist .swatch{height:40px;width:112px;flex:none;padding:7px;gap:5px}
+.slist .swatch i{width:14px;height:14px}
+.slist .swatch b{font-size:19px}
+.slist .txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+[data-layout="tv"] .slist{max-width:760px}
+[data-layout="tv"] .slist .swatch{height:52px;width:140px}
 .setopt{display:flex;flex-direction:column;gap:6px;text-align:start;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;color:var(--light)}
 .setopt:hover{border-color:var(--muted)}
 .setopt.on{border-color:var(--tungsten);box-shadow:0 0 0 1px var(--tungsten)}
@@ -329,11 +352,16 @@ main{padding:0 28px 60px}
 @media(min-width:900px){
   .cats{position:fixed;top:var(--barh,72px);inset-inline-start:0;width:var(--rail-shut,72px);height:calc(100vh - var(--barh,72px));
     flex-direction:column;gap:2px;padding:14px 12px 60px;overflow-y:auto;overflow-x:hidden;background:var(--night);
-    border-inline-end:1px solid var(--line);scrollbar-width:none;transition:width .16s}
+    border-inline-end:1px solid var(--line);scrollbar-width:none;
+    transition:width var(--settle) var(--ease),box-shadow var(--settle) var(--ease)}
   .cats:hover,.cats:focus-within{width:var(--rail,190px);box-shadow:0 0 34px #0009}
   .cats a{padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:none;gap:14px}
-  .cats .lbl{opacity:0;transition:opacity .12s}
-  .cats:hover .lbl,.cats:focus-within .lbl{opacity:1}
+  /* the words spread out of the icons rather than appearing beside them */
+  .cats .lbl{opacity:0;white-space:nowrap;transform:translateX(calc(-10px * var(--flip)));
+    transition:opacity var(--travel) var(--ease),transform var(--travel) var(--ease)}
+  .cats:hover .lbl,.cats:focus-within .lbl{opacity:1;transform:none}
+  .cats:hover a:nth-child(n+3) .lbl,.cats:focus-within a:nth-child(n+3) .lbl{transition-delay:.04s}
+  .cats:hover a:nth-child(n+6) .lbl,.cats:focus-within a:nth-child(n+6) .lbl{transition-delay:.08s}
   .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset calc(3px * var(--flip)) 0 var(--tungsten)}
   .cats a.on .ic{color:var(--tungsten)}
   body.railed main{margin-inline-start:var(--rail-shut,72px)}
@@ -474,24 +502,30 @@ main{padding:0 28px 60px}
 .continue{display:flex;align-items:center;gap:10px;width:100%;max-width:900px;border:1px solid var(--line);background:var(--surface);color:var(--light);border-radius:10px;padding:12px 16px;margin:0 0 14px;cursor:pointer;font-size:15px;text-align:start}
 .continue:hover,.continue:focus-visible{border-color:var(--tungsten)}
 .continue span{color:var(--tungsten);font-weight:700}
-.chlist{display:flex;flex-direction:column;max-width:900px}
-.chrow{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
-.chmain{flex:1;display:flex;align-items:center;gap:14px;background:none;border:0;color:var(--light);padding:10px 6px;text-align:start;cursor:pointer;min-width:0}
-.chmain:hover,.chmain:focus-visible{background:var(--raise)}
-.chnum{flex:none;width:28px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:center;font-size:14px}
-.chlogo{flex:none;width:64px;height:40px;display:flex;align-items:center;justify-content:center}
-.chlogo img{max-width:64px;max-height:40px;object-fit:contain}
-.chlogo span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--raise);color:var(--tungsten);font-weight:700}
-.chinfo{display:flex;flex-direction:column;min-width:0;gap:3px}
-.chinfo b{font-weight:600;font-size:15px}
-.chinfo small{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chinfo .bar{display:block;height:3px;width:160px;max-width:100%;background:var(--line);border-radius:2px;overflow:hidden}
+.chlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.chrow{position:relative;display:flex;min-width:0}
+.chmain{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0;cursor:pointer;text-align:start;
+  padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--light)}
+.chmain:hover,.chmain:focus-visible{background:var(--raise);border-color:var(--tungsten)}
+.chhead{display:flex;align-items:center;gap:12px;min-width:0}
+.chlogo{flex:none;width:48px;height:48px;border-radius:12px;background:#ffffff0f;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.chlogo img{max-width:40px;max-height:40px;object-fit:contain}
+.chlogo span{color:var(--tungsten);font-weight:700;font-size:17px}
+.chinfo{display:flex;flex-direction:column;min-width:0;gap:2px;flex:1}
+.chinfo b{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chnum{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.chinfo small{color:var(--text2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chinfo .bar{display:block;position:static;padding:0;border:0;height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:6px}
 .chinfo .bar i{display:block;height:100%;background:var(--tungsten)}
-.chback{flex:none;width:56px;background:none;border:0;border-inline-start:1px solid var(--line);color:var(--muted);font-size:20px;cursor:pointer}
-.chback:hover,.chback:focus-visible{color:var(--light);background:var(--raise)}
+/* catch-up: a mark in the corner of the card, not a column of its own */
+.chback{position:absolute;inset-block-start:8px;inset-inline-end:8px;width:32px;height:32px;border-radius:50%;
+  background:#00000059;border:1px solid var(--line);color:var(--muted);font-size:15px;cursor:pointer;z-index:1}
+.chback:hover,.chback:focus-visible{color:var(--light);background:var(--raise);border-color:var(--tungsten)}
+[data-layout="tv"] .chlist{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
 [data-layout="tv"] .chinfo b{font-size:19px}
-[data-layout="tv"] .chlogo{width:84px;height:52px}
-[data-layout="tv"] .chlogo img{max-width:84px;max-height:52px}
+[data-layout="tv"] .chinfo small{font-size:14px}
+[data-layout="tv"] .chlogo{width:60px;height:60px}
+[data-layout="tv"] .chlogo img{max-width:50px;max-height:50px}
 .plrow{display:flex;align-items:center;gap:10px;max-width:760px;padding:8px 0;border-bottom:1px solid var(--line)}
 .plrow b{flex:1;font-weight:500}
 .plrow code{color:var(--muted);font-size:12px;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -537,8 +571,58 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .mkbar input{flex:1;min-width:160px;max-width:320px;padding:7px 12px}
 .openbtn{display:inline-flex;align-items:center;gap:8px}
 
-/* TV: no animations or smooth scrolling (weak GPUs), no scroll snapping while moving with the remote */
-[data-layout="tv"] *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+/* ---------- motion ----------
+   One way of moving, everywhere: a short travel with a soft landing. Only transform and opacity are
+   animated - a television's GPU carries those at full speed, while widths, shadows and filters it does
+   not - and whoever asked their system for less motion is given none of it (the rule at the end). */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes popCenter{from{opacity:0;transform:translate(-50%,-46%) scale(.97)}to{opacity:1;transform:translate(-50%,-50%)}}
+@keyframes riseCenterX{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes zoomSettle{from{transform:scale(1.045)}to{transform:none}}
+@keyframes settleIn{from{opacity:0;transform:scale(1.045)}to{opacity:1;transform:none}}
+
+/* a screen arrives from just below itself, its parts a breath after one another */
+#app.fresh > *{animation:rise var(--settle) var(--ease) both}
+#app.fresh > *:nth-child(2){animation-delay:.05s}
+#app.fresh > *:nth-child(3){animation-delay:.09s}
+#app.fresh > *:nth-child(n+4){animation-delay:.12s}
+/* titles land one after the next, like a hand dealing them out */
+.strip > *,.grid > *{animation:cardIn .36s var(--ease) both}
+.strip > *:nth-child(2),.grid > *:nth-child(2){animation-delay:.03s}
+.strip > *:nth-child(3),.grid > *:nth-child(3){animation-delay:.06s}
+.strip > *:nth-child(4),.grid > *:nth-child(4){animation-delay:.09s}
+.strip > *:nth-child(5),.grid > *:nth-child(5){animation-delay:.12s}
+.strip > *:nth-child(n+6),.grid > *:nth-child(n+6){animation-delay:.15s}
+.eplist > *,.eps > *,.chlist > *{animation:fadeIn .3s ease both}
+.hero .bg{animation:settleIn 1.1s var(--ease) both}
+.backdrop{animation:zoomSettle 1.1s var(--ease) both}
+.sheet{animation:fadeIn var(--quick) ease both}
+.sheet>div{animation:sheetIn var(--settle) var(--ease) both}
+.update{animation:popCenter var(--settle) var(--ease) both}
+.tstat{animation:riseCenterX var(--settle) var(--ease) both}
+
+/* what a press feels like: the thing under the finger gives a little, and lets go softly */
+.btn,.qbtn,.sortpill,.sopt,.chip,.altbtn,.nav a,.cats a,.bctabs a,.stabs button,.seasonbar button{
+  transition:transform var(--quick) var(--ease),background-color var(--quick) linear,
+    border-color var(--quick) linear,color var(--quick) linear}
+.btn:active,.qbtn:active,.sortpill:active,.sopt:active,.chip:active,.playbtn:active{transform:scale(.97)}
+.poster .art{transition:transform var(--travel) var(--ease),box-shadow var(--travel) var(--ease)}
+.poster:focus-visible .art{box-shadow:0 0 0 3px var(--tungsten),0 14px 34px -12px var(--glow-soft)}
+
+/* The travelling marker: where you are slides from one thing to the next instead of blinking somewhere
+   else. It is drawn by the page, so the ring of the browser itself is taken off once it exists. */
+#halo{position:fixed;top:0;left:0;z-index:9500;pointer-events:none;opacity:0;border-radius:12px;
+  background:#ffffff0f;box-shadow:0 0 0 2px var(--tungsten),0 12px 34px -14px var(--tungsten);
+  transition:transform var(--travel) var(--ease),width var(--travel) var(--ease),
+    height var(--travel) var(--ease),opacity var(--quick) ease,border-radius var(--quick) ease;
+  will-change:transform,width,height}
+#halo.quick{transition:opacity var(--quick) ease}
+body.motion :focus-visible{outline:none}
+body.motion .search:focus-within{box-shadow:0 0 0 3px var(--tungsten)}
+
 [data-layout="tv"]{scrollbar-width:none}
 [data-layout="tv"] ::-webkit-scrollbar{width:0;height:0}
 [data-layout="tv"] .art{contain:paint}                      /* keep a focus move from repainting the row */
@@ -550,12 +634,11 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .svcs{display:inline-flex;gap:3px;margin-inline-start:6px;vertical-align:-2px;direction:ltr}
 .svcm{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 4px;
   border-radius:5px;color:#fff;font:700 10px/1 var(--body);letter-spacing:.02em}
-/* a logo needs a card behind it: most are black wordmarks, one is written in white */
-.svcm.logo{background:#fff;padding:2px 5px}
-.svcm.logo.night{background:#0b1220}
-.svcm.logo img{height:14px;width:auto;max-width:54px;object-fit:contain;display:block}
+/* the service's own app icon, at the size of a letter: a small square, not a signboard */
+.svcm.logo{width:18px;min-width:18px;height:18px;padding:0;border-radius:5px;overflow:hidden;background:#000}
+.svcm.logo img{width:100%;height:100%;object-fit:cover;display:block}
 [data-layout="tv"] .svcm{min-width:20px;height:20px;font-size:11px}
-[data-layout="tv"] .svcm.logo img{height:17px;max-width:64px}
+[data-layout="tv"] .svcm.logo{width:22px;min-width:22px;height:22px;border-radius:6px}
 .facts .svcf{background:var(--raise);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px}
 
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
@@ -686,7 +769,10 @@ he: {
   'addons.invalid': 'זה לא קובץ manifest תקין', 'addons.installed': '{name} הותקן.',
   'addons.failed': 'ההתקנה נכשלה: {err}. ודא שהקישור מסתיים ב־manifest.json.',
   'src.play': 'נגן', 'src.more': 'מקורות ({n})', 'src.direct': 'ישיר', 'src.watchOn': 'צפייה ב־{svc}',
-  'src.weak': 'מעט זורעים',
+  'src.weak': 'מעט זורעים', 'src.weakN': 'מקורות חלשים ({n})', 'src.playNow': '▶ נגן כעת',
+  'src.quality': 'איכות', 'src.auto': 'אוטומטי',
+  'remind.add': '🔔 הזכר לי כשיהיה מקור', 'remind.on': '🔔 נזכיר לך', 'remind.found': 'נמצא מקור ל„{name}”',
+  'remind.watch': 'לצפייה', 'lib.waiting': 'ממתינים למקור',
   'src.searching': 'מחפש מקורות…', 'src.searchingMore': 'מחפש עוד…', 'src.none': 'אין מקורות זמינים כרגע', 'src.failed': 'לא ניתן לטעון מקורות',
   'src.noAddon': 'לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.',
   'src.torrentApp': 'מקורות טורנט מתנגנים באפליקציית VEO לאנדרואיד.',
@@ -707,6 +793,7 @@ he: {
   'qv.loadingSummary': 'טוען תקציר…', 'qv.searching': 'מחפש מקור…', 'qv.noSource': 'לא נמצא מקור - לעמוד המלא', 'qv.noSummary': 'אין תקציר.',
   'tor.dht': 'מתחבר לרשת הטורנטים… ({nodes} צמתים)', 'tor.meta': 'מקבל את פרטי הטורנט…', 'tor.peers': 'מחפש עמיתים…',
   'tor.buffer': 'טוען את תחילת הסרט · {got}/{need} MB', 'tor.stats': '{kbs} KB/s · {peers} עמיתים',
+  'tor.seek': 'מביא את הקטע הזה…',
   'tor.err.nopeers': 'אף מחשב לא ענה למקור הזה. נסה מקור עם יותר זורעים.', 'tor.err.empty': 'הטורנט ריק',
   'tor.err.type': 'סוג טורנט לא נתמך', 'tor.err.start': 'הטורנט לא התחיל',
   'cats.all': 'הכל', 'cats.movies': 'סרטים', 'cats.series': 'סדרות',
@@ -784,7 +871,10 @@ en: {
   'addons.invalid': 'This is not a valid manifest file', 'addons.installed': '{name} installed.',
   'addons.failed': 'Installation failed: {err}. Make sure the link ends with manifest.json.',
   'src.play': 'Play', 'src.more': 'Sources ({n})', 'src.direct': 'Direct', 'src.watchOn': 'Watch on {svc}',
-  'src.weak': 'Few seeders',
+  'src.weak': 'Few seeders', 'src.weakN': 'Weak sources ({n})', 'src.playNow': '▶ Play now',
+  'src.quality': 'Quality', 'src.auto': 'Automatic',
+  'remind.add': '🔔 Remind me when a source appears', 'remind.on': '🔔 We will remind you',
+  'remind.found': 'A source is available for “{name}”', 'remind.watch': 'Watch', 'lib.waiting': 'Waiting for a source',
   'src.searching': 'Looking for sources…', 'src.searchingMore': 'Looking for more…', 'src.none': 'No sources available right now', 'src.failed': 'Could not load sources',
   'src.noAddon': 'No sources add-on is installed. You can add one on the <a href="#/addons">Add-ons</a> page.',
   'src.torrentApp': 'Torrent sources play in the VEO app for Android.',
@@ -805,6 +895,7 @@ en: {
   'qv.loadingSummary': 'Loading summary…', 'qv.searching': 'Finding a source…', 'qv.noSource': 'No source found – open the full page', 'qv.noSummary': 'No summary.',
   'tor.dht': 'Connecting to the torrent network… ({nodes} nodes)', 'tor.meta': 'Getting the torrent details…', 'tor.peers': 'Looking for peers…',
   'tor.buffer': 'Loading the start · {got}/{need} MB', 'tor.stats': '{kbs} KB/s · {peers} peers',
+  'tor.seek': 'Fetching this part…',
   'tor.err.nopeers': 'No one answered for this source. Try one with more seeders.', 'tor.err.empty': 'The torrent is empty',
   'tor.err.type': 'Unsupported torrent type', 'tor.err.start': 'The torrent did not start',
   'cats.all': 'All', 'cats.movies': 'Movies', 'cats.series': 'Series',
@@ -861,10 +952,29 @@ const store = {
   /** Storage is full: drop the rebuildable caches, never the library/progress/settings. */
   prune(){
     for(const k of ['heMeta', 'avail', 'svcMap']) try{ localStorage.removeItem('booth:' + k); }catch(e){}
+    for(const k of Object.keys(localStorage)) if(k.startsWith('booth:catx:')) try{ localStorage.removeItem(k); }catch(e){}
   },
 };
 addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') store.flush(); });
 addEventListener('pagehide', () => store.flush());
+/**
+ * Until 0.37 this page was opened as a file, and what a file keeps belongs to a different address than
+ * what a page keeps. The first time it runs at its new address - and only then - the library, the watch
+ * history, the settings and the RaspberryTV key are carried over from the old one. It is called from
+ * boot(), not from here: what it uses is declared further down the script.
+ */
+async function migrateStore(){
+  if(!window.BoothAndroid?.siteExtract || store.get('moved', 0) || localStorage.getItem('booth:settings')) return;
+  try{
+    const old = await sitePull('file:///android_asset/export.html', 'return JSON.stringify(localStorage)');
+    let moved = 0;
+    for(const [k, v] of Object.entries(old || {})) if(k.startsWith('booth:') && !localStorage.getItem(k)){
+      try{ localStorage.setItem(k, v); moved++; }catch(e){}
+    }
+    if(moved){ store.set('moved', 1); location.reload(); return true; }
+  }catch(e){}                                          // the old page was busy: try again next time
+  return false;
+}
 /** Keep a plain object cache under a size limit (oldest-inserted entries go first). */
 function capMap(obj, max){
   const keys = Object.keys(obj);
@@ -1121,9 +1231,37 @@ const LOCAL_ADDON = {url: 'local:booth', local: localCatalog, manifest: {id: 'or
   types: ['movie', 'series'], catalogs: LOCAL_CATALOGS.map(({id, type, name}) => ({id, type, name}))}};
 
 /** Catalog page from an add-on (HTTP) or from the built-in catalogs. */
+/**
+ * A catalogue, from the quickest place that has it. Within the session it is asked for once; across
+ * sessions the last answer is kept on the device and shown at once, while a fresh one is fetched
+ * quietly behind it - so a screen that was open before comes back instantly instead of over the
+ * network. Searches and paged requests are never kept: they are not the same question twice.
+ */
+const catMem = new Map();
+const CAT_SESSION = 10 * 60e3, CAT_DISK = 6 * 3600e3;
 function catalogFetch(a, type, id, extra){
   if(a.local) return extra && /skip=/.test(extra) ? Promise.resolve({metas: []}) : a.local(id);
-  return getJSON(`${a.base}/catalog/${type}/${id}${extra ? '/' + extra : ''}.json`);
+  const url = `${a.base}/catalog/${type}/${id}${extra ? '/' + extra : ''}.json`;
+  if(extra && /search=|skip=/.test(extra)) return getJSON(url);
+  const hit = catMem.get(url);
+  if(hit && Date.now() - hit.at < CAT_SESSION) return hit.p;
+  const keep = d => { if(d?.metas?.length) store.lazy('catx:' + url, {at: Date.now(), metas: d.metas.slice(0, 40)}); return d; };
+  const fresh = () => {
+    const p = getJSON(url).then(keep);
+    p.catch(() => { if(catMem.get(url)?.p === p) catMem.delete(url); });
+    return p;
+  };
+  const disk = store.get('catx:' + url, null);
+  if(disk && Date.now() - disk.at < CAT_DISK){
+    const p = Promise.resolve({metas: disk.metas});
+    catMem.set(url, {at: Date.now(), p});
+    fresh().then(d => catMem.set(url, {at: Date.now(), p: Promise.resolve(d)})).catch(() => {});
+    return p;
+  }
+  const p = fresh();
+  catMem.set(url, {at: Date.now(), p});
+  if(catMem.size > 60) catMem.delete(catMem.keys().next().value);
+  return p;
 }
 
 /* ---------- Hebrew labels for add-on data ---------- */
@@ -1189,13 +1327,12 @@ function noteServices(id, name){
    own falls back to its initials on its colour. */
 const SVC_LOGO = {'Netflix': 'nfx', 'Apple TV+': 'atp', 'Disney+': 'dnp', 'Prime Video': 'amp',
   'HBO Max': 'hbm', 'Paramount+': 'pmp', 'Curiosity Stream': 'cts'};
-const SVC_NIGHT = ['Curiosity Stream'];          // written in white: it needs the dark card
 const SVC_MARK = {'Netflix': ['N', '#e50914'], 'Apple TV+': ['TV', '#4f5157'], 'Disney+': ['D+', '#1f4bd8'],
   'Prime Video': ['PV', '#0b8fd0'], 'HBO Max': ['HBO', '#7b2ff2'], 'Paramount+': ['P+', '#1266ff'],
   'Curiosity Stream': ['CS', '#0f9bb8'], 'MagellanTV': ['MG', '#b5842a']};
 const svcMark = name => {
   const file = SVC_LOGO[name];
-  if(file) return `<span class="svcm logo${SVC_NIGHT.includes(name) ? ' night' : ''}" title="${esc(name)}"><img src="svc/${file}.png" alt="${esc(name)}" loading="lazy"></span>`;
+  if(file) return `<span class="svcm logo" title="${esc(name)}"><img src="svc/${file}.png" alt="${esc(name)}" loading="lazy"></span>`;
   const [txt, bg] = SVC_MARK[name] || [name.slice(0, 2).toUpperCase(), '#5a6072'];
   return `<span class="svcm" style="background:${bg}" title="${esc(name)}">${esc(txt)}</span>`;
 };
@@ -1806,6 +1943,12 @@ function quickPick(type, videoId){
   });
 }
 
+/** Which quality the viewer asked for, if any: kept between titles, because a taste for 1080p is a taste. */
+let prefQ = store.get('quality', '');
+const QUALITIES = ['4K', '1080p', '720p', 'SD'];
+/** The source to play: the best one of the chosen quality, or simply the best. */
+const pickQ = list => (prefQ && list.find(x => x.q === prefQ)) || list[0];
+
 /** The sensible default: 1080p when its file is small enough to stream, else the best-ranked. */
 function bestForNow(list){
   const ok = list.filter(x => x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a));
@@ -1898,6 +2041,7 @@ document.addEventListener('click', e => {
   const card = e.target.closest('a.poster[href^="#/detail/"]');
   if(!card || !card.closest('.strip, .grid')) return;
   e.preventDefault();
+  lastOpened = {hash: location.hash, id: card.dataset.id};   // where to come back to
   openQuickView(card);
 });
 
@@ -2339,12 +2483,13 @@ async function viewDetail(type, id){
           <div class="d">${v.released ? esc(new Date(v.released).toLocaleDateString()) : ''}${pct && !seen ? ` · ${tr('detail.minLeft', {n: Math.max(1, Math.round((w.d - w.t) / 60))})}` : ''}</div>
           ${pct && !seen ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}</span></button>`;
       }).join('');
-      const pick = b => {
+      const pick = (b, watch) => {
         $('#eps').querySelectorAll('.ep').forEach(x => x.classList.remove('on')); b.classList.add('on');
         const v = videos.find(x => x.id === b.dataset.id);
-        loadStreams(ctx, v.id, `${meta.name} S${v.season}E${v.episode ?? v.number}`);
+        loadStreams(ctx, v.id, `${meta.name} S${v.season}E${v.episode ?? v.number}`, watch);
       };
-      $('#eps').querySelectorAll('.ep').forEach(b => b.onclick = () => pick(b));
+      // choosing an episode is asking to watch it; arriving on the page only lines the first one up
+      $('#eps').querySelectorAll('.ep').forEach(b => b.onclick = () => pick(b, true));
       // open on the episode you are in the middle of, otherwise the first one you have not seen
       const started = eps.find(v => { const w = progress[v.id]; return w && w.d && w.t / w.d <= .92; });
       const next = started || eps.find(v => !progress[v.id]) || eps[0];
@@ -2366,6 +2511,8 @@ async function viewDetail(type, id){
 /* ---------- sources: pick the best automatically ---------- */
 const GB = 1024 ** 3;
 let streamsToken = 0;
+/** Draw the sources row again (the quality pills change what it says, not what it plays from). */
+let lastStreams = null;
 const fmtSize = b => b >= GB ? (b / GB).toFixed(1) + ' GB' : Math.round(b / 1024 ** 2) + ' MB';
 const isCam = s => /\b(hd)?cam(rip)?\b|\b(hd)?ts\b|telesync|\bscr\b|screener|\btc\b|telecine/i.test(`${s.name || ''}\n${s.title || s.description || ''}`);
 
@@ -2436,26 +2583,39 @@ function renderStreams(box, all, pending, label, ctx, errors = [], retry){
   const wasOpen = $('#altToggle')?.getAttribute('aria-expanded') === 'true';
   if(alt) alt.innerHTML = '';
   const list = all.filter(x => !x.external && x.q !== 'CAM').sort((a, b) => rank(b) - rank(a));
+  // Somebody has to be sharing a source for it to play. The rest are still listed - for a rare
+  // documentary one seeder is all there is - but never behind a button that says "play", and never
+  // counted as "this title can be watched".
+  const playable = list.filter(x => rank(x) > 0);
   const links = all.filter(x => x.external)
     .map(x => `<button class="qbtn" data-i="${x.i}">${esc(tr('src.watchOn', {svc: x.name || x.addon}))}</button>`).join('');
-  const best = list[0];
-  if(!best){
-    if(!pending && errors.length && !links){
-      box.innerHTML = `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>`;
-      $('#sretry').onclick = retry;
-      return;
-    }
-    box.innerHTML = `<span class="srcstat${pending ? '' : ' idle'}">${tr(pending ? 'src.searching' : 'src.none')}</span>${links}`;
-    box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx));
+  const best = pickQ(playable);
+  const rest = best ? list.filter(x => x !== best) : list;
+  const more = rest.length ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr(best ? 'src.more' : 'src.weakN', {n: rest.length})}</button>` : '';
+  if(!best && !pending && errors.length && !links && !list.length){
+    box.innerHTML = `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>`;
+    $('#sretry').onclick = retry;
     return;
   }
-  const byQuality = ['4K', '1080p', '720p', 'SD'].map(q => list.find(x => x.q === q)).filter(Boolean);
-  const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
-  box.innerHTML = `<button class="playbtn" data-i="${best.i}">▶ ${tr('src.play')} <small>${esc(detail(best))}</small></button>
-      ${byQuality.length > 1 ? byQuality.map(x => `<button class="qbtn" data-i="${x.i}">${x.q}</button>`).join('') : ''}${links}
-      ${list.length > 1 ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr('src.more', {n: list.length - 1})}</button>` : ''}
+  if(!best){
+    box.innerHTML = `<span class="srcstat${pending ? '' : ' idle'}">${tr(pending ? 'src.searching' : 'src.none')}</span>${links}${more}${pending ? '' : remindButton(ctx)}`;
+  }else{
+    // Playing and choosing an image are two different things: the first button plays, the pills only say
+    // in what quality. The one in use wears the accent, so it is clear which of them is being played.
+    const byQuality = QUALITIES.filter(q => playable.some(x => x.q === q));
+    const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
+    box.innerHTML = `<button class="playbtn" data-i="${best.i}">${tr('src.playNow')} <small>${esc(detail(best))}</small></button>
+      ${byQuality.length > 1 ? byQuality.map(q => `<button class="qbtn${q === best.q ? ' on' : ''}" data-q="${q}">${q}</button>`).join('') : ''}${links}
+      ${more}
       ${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
-  if(alt && list.length > 1) alt.innerHTML = `<div class="altlist"${wasOpen ? '' : ' hidden'}>${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? tr('src.direct') : (x.seeds ?? 0) < 1 ? tr('src.weak') : '👤 ' + x.seeds}</span></button>`).join('')}</div>`;
+    box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+      prefQ = b.dataset.q === prefQ ? '' : b.dataset.q;         // pressing the one in use returns to automatic
+      store.set('quality', prefQ);
+      lastStreams?.();
+    });
+  }
+  wireRemind(box, ctx);
+  if(alt && rest.length) alt.innerHTML = `<div class="altlist"${wasOpen ? '' : ' hidden'}>${rest.slice(0, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? tr('src.direct') : (x.seeds ?? 0) < 1 ? tr('src.weak') : '👤 ' + x.seeds}</span></button>`).join('')}</div>`;
   [box, alt].forEach(el => el?.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx)));
   if($('#altToggle')) $('#altToggle').onclick = e => {
     const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true', more = alt.querySelector('.altlist');
@@ -2498,7 +2658,7 @@ const warmFrom = e => {
 addEventListener('focusin', warmFrom);
 addEventListener('mouseover', e => { if(!isTvLayout()) warmFrom(e); });
 
-async function loadStreams({type, meta}, videoId, label){
+async function loadStreams({type, meta}, videoId, label, autoplay = false){
   const box = $('#streams');
   const takeFocus = isTvLayout() && (!document.activeElement || document.activeElement === document.body
     || document.activeElement.closest('.eps'));
@@ -2509,10 +2669,21 @@ async function loadStreams({type, meta}, videoId, label){
   const all = [], errors = [];
   let pending = src.length;
   const retry = () => loadStreams({type, meta}, videoId, label);
-  let focused = false;
+  let focused = false, played = false;
   const render = () => {
     if(token !== streamsToken || !box.isConnected) return;
+    lastStreams = render;
     renderStreams(box, all, pending > 0, label, ctx, errors, retry);
+    // An episode that was chosen is meant to be watched: it starts as soon as a source worth starting
+    // has arrived - the one in the chosen quality, or, once everybody has answered, the best there is.
+    if(autoplay && !played){
+      const ready = pickQ(all.filter(x => !x.external && x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a)));
+      if(ready && (!pending || ready.direct || ready.q === prefQ)){
+        played = true;
+        playStream(ready.s, label, ctx);
+        return;
+      }
+    }
     // the first thing the remote holds on a title is "play"
     const play = box.querySelector('.playbtn:not([disabled])');
     if(play && takeFocus && !focused){ focused = true; play.focus(); }
@@ -2525,7 +2696,54 @@ async function loadStreams({type, meta}, videoId, label){
     pending--;
     render();
   }));
-  if(type === 'movie' && !errors.length) setAvail(`${type}:${meta.id}`, all.some(x => !x.external && x.q !== 'CAM' && rank(x) >= 0));
+  if(type === 'movie' && !errors.length) setAvail(`${type}:${meta.id}`, all.some(x => !x.external && x.q !== 'CAM' && rank(x) > 0));
+}
+
+/* ---------- waiting for a source ----------
+   A title nobody is sharing cannot be watched, and the app says so rather than offering a button that
+   fails. Whoever wants it anyway can be reminded: the list is looked at when the app starts, at most
+   once every six hours, and the first title that became watchable announces itself. */
+let remind = store.get('remind', {});
+const remindKey = ctx => ctx?.meta?.id ? `${ctx.type}:${ctx.meta.id}` : '';
+function remindButton(ctx){
+  const k = remindKey(ctx);
+  return k ? `<button class="qbtn" id="remindBtn" aria-pressed="${!!remind[k]}">${tr(remind[k] ? 'remind.on' : 'remind.add')}</button>` : '';
+}
+function wireRemind(box, ctx){
+  const btn = box.querySelector('#remindBtn');
+  if(!btn) return;
+  btn.onclick = () => {
+    const k = remindKey(ctx), m = ctx.meta;
+    if(remind[k]) delete remind[k];
+    else remind[k] = {type: ctx.type, id: m.id, name: heTitle(m.id, m.name), poster: m.poster || '', at: Date.now()};
+    store.set('remind', remind);
+    btn.textContent = tr(remind[k] ? 'remind.on' : 'remind.add');
+    btn.setAttribute('aria-pressed', String(!!remind[k]));
+  };
+}
+async function checkReminders(){
+  const keys = Object.keys(remind);
+  if(!keys.length || Date.now() - (store.get('remindAt', 0) || 0) < 6 * 3600e3) return;
+  store.set('remindAt', Date.now());
+  for(const k of keys.slice(0, 12)){
+    if(await hasSources(k).catch(() => null) !== true) continue;
+    const it = remind[k];
+    delete remind[k];
+    store.set('remind', remind);
+    announceSource(it);
+    return;                                  // one at a time: a wall of cards is not an announcement
+  }
+}
+function announceSource(it){
+  if(document.querySelector('.update')) return;             // one card at a time
+  const card = document.createElement('div');
+  card.className = 'update';
+  card.innerHTML = `<span><b>${esc(tr('remind.found', {name: it.name || ''}))}</b></span>
+    <span class="btns"><button class="go" id="remGo">${tr('remind.watch')}</button><button id="remShut">${tr('common.close')}</button></span>`;
+  document.body.appendChild(card);
+  card.querySelector('#remGo').onclick = () => { card.remove(); location.hash = `#/detail/${it.type}/${encodeURIComponent(it.id)}`; };
+  card.querySelector('#remShut').onclick = () => { card.remove(); tvFocus(); };
+  if(isTvLayout()) card.querySelector('#remGo').focus();
 }
 
 /* ---------- which titles have sources (greys out / hides the rest) ---------- */
@@ -2550,7 +2768,8 @@ async function hasSources(key){
   const vid = type === 'series' ? `${id}:1:1` : id;          // a series counts as available if S1E1 is
   for(const a of addons.filter(a => supports(a.manifest, 'stream', type, vid))){
     try{
-      if((await fetchStreams(a, type, vid)).some(s => !isCam(s) && !(s.externalUrl && !s.url && !s.infoHash))) return true;
+      const found = (await fetchStreams(a, type, vid)).map((s, i) => parseStream(s, a.manifest.name, i));
+      if(found.some(x => !x.external && x.q !== 'CAM' && rank(x) > 0)) return true;
     }catch(e){ return null; }                                 // unknown: don't grey out on a network error
   }
   return false;
@@ -2558,8 +2777,7 @@ async function hasSources(key){
 let availScreen = 0;                                          // how many probes this screen already used
 addEventListener('hashchange', () => { availPending.clear(); availScreen = 0; });
 function queueAvail(keys){
-  if(isTvLayout()) return;                                   // TV boxes: skip background source checks
-  if(availScreen > 40) return;                               // and never turn a screen into a request storm
+  if(availScreen > 24) return;                               // never turn a screen into a request storm
   availScreen += keys.length;
   for(const k of keys) if(!availKnown(k)) availPending.add(k);
   if(!availBusy) availFlush();
@@ -2593,7 +2811,9 @@ new MutationObserver(muts => {
 
 function viewLibrary(){
   const items = Object.values(library).sort((a,b) => b.added - a.added);
-  $('#app').innerHTML = `<div class="page"><h1>הספרייה</h1>${items.length ? `<div class="grid">${items.map(card).join('')}</div>` : `<p class="note">הספרייה ריקה. פתח כותר ובחר „הוסף לספרייה”.</p>`}</div>`;
+  const waiting = Object.values(remind).sort((a,b) => b.at - a.at);
+  $('#app').innerHTML = `<div class="page"><h1>הספרייה</h1>${items.length ? `<div class="grid">${items.map(card).join('')}</div>` : `<p class="note">הספרייה ריקה. פתח כותר ובחר „הוסף לספרייה”.</p>`}
+    ${waiting.length ? `<h2 style="margin:28px 0 12px">${esc(tr('lib.waiting'))}</h2><div class="grid">${waiting.map(card).join('')}</div>` : ''}</div>`;
 }
 
 /* ---------- live tv: built-in Israeli channels + user M3U playlists ---------- */
@@ -2916,9 +3136,10 @@ async function viewLive(){
     const q = $('#lq').value.trim().toLowerCase(), g = $('#lg').hidden ? '' : $('#lg').querySelector('.on')?.dataset.g || '';
     const list = chans.filter(c => (!g || c.group === g) && (!q || c.name.toLowerCase().includes(q)));
     $('#chs').innerHTML = list.length ? `<div class="chlist">${list.map((c, i) => `<div class="chrow">
-        <button class="chmain" data-i="${i}"><span class="chnum">${numbers.get(c)}</span>
-          <span class="chlogo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials(c)}'}))">` : `<span>${initials(c)}</span>`}</span>
-          <span class="chinfo"><b>${esc(c.name)}</b><small data-now="${i}">${c.epg ? '' : esc(c.group || '')}</small></span></button>
+        <button class="chmain" data-i="${i}">
+          <span class="chhead"><span class="chlogo">${c.logo ? `<img src="${esc(c.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials(c)}'}))">` : `<span>${initials(c)}</span>`}</span>
+            <span class="chinfo"><b>${esc(c.name)}</b><span class="chnum">${numbers.get(c)}${c.group ? ` · ${esc(c.group)}` : ''}</span></span></span>
+          <span class="chinfo"><small data-now="${i}">${c.epg ? '' : ''}</small></span></button>
         ${c.rec ? `<button class="chback" data-back="${i}" aria-label="צפייה אחורה ב${esc(c.name)}" title="צפייה אחורה (${c.rec} ימים)">⟲</button>` : ''}
       </div>`).join('')}</div>` : '<p class="note">אין ערוצים שמתאימים.</p>';
     $('#chs').querySelectorAll('[data-i]').forEach(b => {
@@ -3029,6 +3250,8 @@ function paintSettings(){
     ${note ? `<p class="note" style="margin:8px 0 0">${note}</p>` : ''}</section>`;
   const optCard = (g, o, preview) => `<button class="setopt ${settings[g] === o.id ? 'on' : ''}" data-g="${g}" data-v="${o.id}" aria-pressed="${settings[g] === o.id}">
       ${preview}<span class="sn">${tr(`${g}.${o.id}.name`)}</span><span class="sd">${tr(`${g}.${o.id}.note`)}</span></button>`;
+  const optRow = (g, o, preview) => `<button class="setopt ${settings[g] === o.id ? 'on' : ''}" data-g="${g}" data-v="${o.id}" aria-pressed="${settings[g] === o.id}">
+      ${preview}<span class="txt"><span class="sn">${tr(`${g}.${o.id}.name`)}</span><span class="sd">${tr(`${g}.${o.id}.note`)}</span></span></button>`;
   const swatch = o => `<span class="swatch" style="background:${o.c[0]}" aria-hidden="true"><i style="background:${o.c[1]}"></i><i style="background:${o.c[2]}"></i><b style="color:${o.c[3]}">Aa</b></span>`;
   const hidden = new Set(settings.hiddenCats || []);
   const ordered = [...(settings.cats || []), ...CATEGORIES.map(c => c.id).filter(id => !(settings.cats || []).includes(id))]
@@ -3042,7 +3265,7 @@ function paintSettings(){
       + seg('preview', tr('set.preview.title'), [['on', tr('common.on')], ['off', tr('common.off')]], tr('set.preview.note'))
       + seg('lang', tr('set.lang.title'), [['he', tr('set.lang.he')], ['en', tr('set.lang.en')]], tr('set.lang.note')),
 
-    look: () => `<section class="sset"><h2>${tr('set.skin.title')}</h2><div class="sopts">${SKINS.map(o => optCard('skin', o, swatch(o))).join('')}</div></section>
+    look: () => `<section class="sset"><h2>${tr('set.skin.title')}</h2><div class="sopts slist">${SKINS.map(o => optRow('skin', o, swatch(o))).join('')}</div></section>
       <section class="sset"><h2>${tr('set.layout.title')}</h2><div class="sopts">${LAYOUTS.map(o => optCard('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>`
       + seg('poster', tr('set.poster.title'), POSTER_SIZES.map(id => [id, tr('poster.' + id)]))
       + seg('nosrc', tr('set.nosrc.title'), [['grey', tr('set.nosrc.grey')], ['hide', tr('set.nosrc.hide')]], tr('set.nosrc.note')),
@@ -3055,6 +3278,7 @@ function paintSettings(){
 
     live: () => `<section class="sset"><h2>RaspberryTV</h2>
       ${rtv ? `<p class="note" style="margin:0 0 10px">${tr('set.rtv.connected', {code: `<b dir="ltr">${esc(rtv.slice(0, 2))}••••••</b>`})}</p>
+        <p class="note" id="rtvShape" dir="ltr" style="margin:0 0 10px;font-size:12px;opacity:.65;word-break:break-all;white-space:pre-line"></p>
         <button class="danger" id="rtvClear">${tr('set.rtv.clear')}</button>`
       : `<p class="note" style="margin:0 0 10px">${tr('set.rtv.help')}</p>
         <div class="keyform"><button class="btn primary" id="rtvSet">${tr('set.rtv.enter')}</button></div>`}</section>
@@ -3088,6 +3312,15 @@ function paintSettings(){
     } else paintSettings();
   });
   if($('#rtvSet')) $('#rtvSet').onclick = () => openRtvKey(paintSettings);
+  // The shape of a channel's addresses, with every key and token blotted out: which spelling of the
+  // archive a service answers to is the one thing its playlist does not say, and this is how to see it.
+  if($('#rtvShape')) loadRtv().then(ch => {
+    const c = (ch || []).find(x => x.rec) || (ch || [])[0];
+    const box = $('#rtvShape');
+    if(!c || !box?.isConnected) return;
+    const hide = u => u.replace(/[A-Za-z0-9_-]{8,}/g, m => m.slice(0, 3) + '…');
+    box.textContent = [`${c.name}${c.rec ? ` · ${c.rec}h` : ''}`, hide(c.url), ...rtvArchiveTemplate(c).split('|').filter(Boolean).map(hide)].join('\n');
+  }).catch(() => {});
   if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); rtvCache = null; paintSettings(); };
   pane.querySelectorAll('[data-plrm]').forEach(b => b.onclick = () => {
     playlists = playlists.filter(p => p.url !== b.dataset.plrm); store.set('playlists', playlists); paintSettings();
@@ -3265,26 +3498,33 @@ function resetObservers(){
    back where you were instead of at the top of the page. */
 const screenMem = new Map();
 let memHash = location.hash;
+/** The title the viewer went into, so that coming back out lands on it rather than at the top. */
+let lastOpened = null;
 function rememberScreen(){
   const card = document.activeElement?.closest?.('.poster, .ep, .chmain');
-  screenMem.set(memHash, {y: scrollY, id: card?.dataset.id || null});
+  const opened = lastOpened?.hash === memHash ? lastOpened.id : null;
+  screenMem.set(memHash, {y: scrollY, id: card?.dataset.id || opened});
   memHash = location.hash;
 }
 function restoreScreen(){
   const mem = screenMem.get(location.hash);
   if(!mem || (!mem.y && !mem.id)){ scrollTo(0, 0); return; }
+  // The rows of a screen come back one answer at a time, and the one the viewer was on may be the last
+  // of them - so the place is looked for until it is there (about six seconds), and given up the moment
+  // the viewer moves themselves.
   let tries = 0, stop = false;
   const cancel = () => { stop = true; };
   addEventListener('wheel', cancel, {once: true});
   addEventListener('touchstart', cancel, {once: true});
+  addEventListener('keydown', cancel, {once: true});
   const tick = () => {
     if(stop) return;
     if(mem.id){
       const el = document.querySelector(`.poster[data-id="${CSS.escape(mem.id)}"]`);
-      if(el){ isTvLayout() ? focusItem(el) : el.scrollIntoView({block: 'center'}); stop = true; return; }
+      if(el){ isTvLayout() ? focusItem(el) : el.scrollIntoView({block: 'center', behavior: 'smooth'}); stop = true; return; }
     }
-    if(scrollY !== mem.y) scrollTo(0, mem.y);
-    if(++tries < 8) setTimeout(tick, 180);
+    if(Math.abs(scrollY - mem.y) > 4 && document.documentElement.scrollHeight > mem.y) scrollTo(0, mem.y);
+    if(++tries < 24) setTimeout(tick, 250);
   };
   tick();
 }
@@ -3295,6 +3535,9 @@ async function route(){
   rememberScreen();
   resetObservers();
   document.body.classList.remove('titlefit');
+  // the new screen comes up from just below itself; restarting the class restarts the movement
+  const canvas = $('#app');
+  canvas.classList.remove('fresh'); void canvas.offsetWidth; canvas.classList.add('fresh');
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
   if(['', 'cat', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
@@ -3377,7 +3620,7 @@ const ROWS_SEL = [
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
   '.qvact', '.playrow', '.altlist',                                        // title card + sources
-  '.live-top', '#cont', '#bchead', '.chrow',                               // live TV
+  '.live-top', '#cont', '#bchead', '.chlist',                              // live TV
   '.days', '.progs', '.keypad', '.keyform',                                // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
   '.catorder', '.addpl', '.add', '.plrow', '.addon',                       // settings lists, add-ons
@@ -3386,10 +3629,19 @@ const ROWS_SEL = [
 // screen - the rail, the update card and the torrent-status card are all fixed. A size check
 // on the box itself, ignoring layout position, doesn't have that blind spot.
 const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
-// While a sheet or the quick view is open the remote stays inside it: nothing behind it can take focus.
-const tvScope = () => document.querySelector('.sheet') || document;
+/* While a card is over the picture - a title card, the update notice, a source being opened - the remote
+   stays inside it: nothing behind it can take the focus, so the only ways on are its own buttons. */
+function openCard(){
+  const sheet = document.querySelector('.sheet') || document.querySelector('.update');
+  if(sheet) return sheet;
+  const st = document.getElementById('tstatus');
+  return st && getComputedStyle(st).display !== 'none' ? st : null;
+}
+const tvScope = () => openCard() || document;
 const tvRows = () => {
-  const all = [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && [...c.querySelectorAll(FOCUSABLE)].some(visible));
+  const scope = tvScope();
+  const own = scope !== document && scope.matches(ROWS_SEL) ? [scope] : [];
+  const all = [...own, ...scope.querySelectorAll(ROWS_SEL)].filter(c => visible(c) && [...c.querySelectorAll(FOCUSABLE)].some(visible));
   // Only the innermost match is a row. Document order IS the order on screen - no CSS reorders
   // rows against the markup - and unlike measuring positions it cannot be shuffled by scrolling
   // or by a sticky bar reporting itself at the top of the viewport.
@@ -3407,21 +3659,64 @@ const bestIn = (row, from) => {
    under the top bar (so the category is always readable), anything else is just brought into view. */
 const barHeight = () => document.querySelector('.bar')?.offsetHeight || 0;
 const catsHeight = () => { const c = $('#cats'); return c && c.offsetHeight && getComputedStyle(c).position === 'sticky' ? c.offsetHeight : 0; };
+/** Travel to [y]: a short way is slid, a long way is jumped - a viewer should not watch the page fly. */
+function glide(y){
+  const to = Math.max(0, Math.round(y));
+  scrollTo({top: to, behavior: Math.abs(scrollY - to) > innerHeight * 1.6 ? 'auto' : 'smooth'});
+}
 function focusItem(el){
   if(!el) return;
   el.focus({preventScroll: true});
   const strip = el.closest('.strip, .chlist, #cats, .nav, .bar, .stabs');
-  if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center'});
-  if(el.closest('.bar')) return scrollTo(0, 0);
+  if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: 'smooth'});
+  if(el.closest('.bar')) return glide(0);
   const row = el.closest('.row');
   if(row){
     const want = Math.max(0, Math.round(row.getBoundingClientRect().top + scrollY - barHeight() - catsHeight() - 14));
-    if(Math.abs(scrollY - want) > 4) scrollTo(0, want);
+    if(Math.abs(scrollY - want) > 4) glide(want);
     return;
   }
   const r = el.getBoundingClientRect();
-  if(r.top < barHeight() + 20 || r.bottom > innerHeight - 20) el.scrollIntoView({block: 'center'});
+  if(r.top < barHeight() + 20 || r.bottom > innerHeight - 20) el.scrollIntoView({block: 'center', behavior: 'smooth'});
 }
+
+/* ---------- the travelling marker ----------
+   One soft rectangle follows the focus from one thing to the next, so that moving through the app reads
+   as movement and not as a ring blinking somewhere else. Posters keep their own frame: they grow when
+   they are chosen, and a rectangle measured before the growth would always land a moment behind them.
+   While the page itself is moving the marker sticks to its element instead of chasing it. */
+const HALO_SKIP = '.poster, .taste, iframe, video';
+let halo = null, haloRest = 0;
+function moveHalo(el, quick){
+  if(!halo) return;
+  if(!el || el === document.body || !el.getClientRects?.().length || el.closest?.(HALO_SKIP)){
+    halo.style.opacity = '0';
+    return;
+  }
+  const r = el.getBoundingClientRect(), pad = 5;
+  halo.classList.toggle('quick', !!quick);
+  halo.style.width = (r.width + pad * 2) + 'px';
+  halo.style.height = (r.height + pad * 2) + 'px';
+  halo.style.borderRadius = getComputedStyle(el).borderRadius;
+  halo.style.transform = `translate3d(${Math.round(r.left - pad)}px,${Math.round(r.top - pad)}px,0)`;
+  halo.style.opacity = '1';
+}
+(function startHalo(){
+  halo = document.createElement('div');
+  halo.id = 'halo';
+  halo.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(halo);
+  document.body.classList.add('motion');          // the page draws the marker now, so the browser need not
+  addEventListener('focusin', e => moveHalo(e.target));
+  addEventListener('focusout', () => setTimeout(() => moveHalo(document.activeElement), 0));
+  const track = () => {
+    moveHalo(document.activeElement, true);
+    clearTimeout(haloRest);
+    haloRest = setTimeout(() => halo.classList.remove('quick'), 150);
+  };
+  addEventListener('scroll', track, {passive: true, capture: true});
+  addEventListener('resize', track);
+})();
 function tvMove(dir){
   const rows = tvRows();
   if(!rows.length) return false;
@@ -3571,6 +3866,7 @@ setTimeout(tvFocus, 2500);
 if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');
 /* ---------- boot ---------- */
 async function boot(){
+  if(await migrateStore()) return;                     // what was kept before is being brought over
   const ready = loadAddons();
   const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
   route();                                             // render now, with whatever has answered
@@ -3580,11 +3876,13 @@ async function boot(){
   }
   setTimeout(loadServices, 3000);
   setTimeout(() => checkUpdate(true), 2500);
+  setTimeout(checkReminders, 9000);
 }
 boot();
 addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible'){ endTaste(); return; }
   checkUpdate();
+  checkReminders();
   // a screen left open for a while is old news: draw it again, with fresh titles and another featured one
   if(Date.now() - lastPaint > 15 * 60e3) route();
 });
@@ -3602,6 +3900,8 @@ function torrentText(raw, isError){
   const o = JSON.parse(raw), mb = b => (b / 1048576).toFixed(1);
   if(o.p === 'dht') return {msg: tr('tor.dht', o), frac: null};
   if(o.p === 'meta') return {msg: tr('tor.meta'), frac: null};
+  // a jump lands where nothing has been downloaded yet: the pieces there are being asked for now
+  if(o.p === 'seek') return {msg: `${tr('tor.seek')} · ${tr('tor.stats', o)}`, frac: null};
   if(!o.peers) return {msg: tr('tor.peers'), frac: null};
   return {msg: `${tr('tor.buffer', {got: mb(o.got), need: mb(o.need)})} · ${tr('tor.stats', o)}`, frac: o.need ? Math.min(1, o.got / o.need) : null};
 }

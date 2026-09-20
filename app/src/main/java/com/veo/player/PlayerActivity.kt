@@ -58,11 +58,11 @@ class PlayerActivity : AppCompatActivity() {
     private var retries = 0
     /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
     private val watchId get() = intent.getStringExtra("vid") ?: ""
-    /** Live TV: while Up/Down page through the channels, [barIndex] is the one pointed at (the video does not change until OK). */
-    private var browsing = false
-    private var barIndex = 0
-    /** The channel the banner describes: the one being pointed at while paging, else the one playing. */
-    private val shownIndex get() = if (browsing) barIndex else index
+    /** Live TV: the arrows walk the channel's guide in the banner. [walking] is that state, and
+     *  [walkAt] the programme pointed at - null while it points at the live edge. Nothing changes on
+     *  the screen until OK. */
+    private var walking = false
+    private var walkAt: Prog? = null
     /** OK is decided on release, so that holding it can mean something else. */
     private var okLong = false
     /** Catch-up: the past programme being played, or null while the channel is live. */
@@ -116,7 +116,7 @@ class PlayerActivity : AppCompatActivity() {
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) {
             subs = emptyList()
-            if (live) showBanner(browse = false) else showOsd()      // the banner introduces the channel
+            if (live) showBanner() else showOsd()      // the banner introduces the channel
             return
         }
 
@@ -347,7 +347,7 @@ class PlayerActivity : AppCompatActivity() {
 
     /** Fill the banner with the channel and what is on it, then fetch the guide if it is not in yet. */
     private fun paintBanner() {
-        val src = sources[shownIndex]
+        val src = sources[index]
         findViewById<TextView>(R.id.chNum).text = if (src.num > 0) "${src.num}" else "—"
         findViewById<TextView>(R.id.chName).text = src.name
         findViewById<TextView>(R.id.nowClock).text =
@@ -363,12 +363,13 @@ class PlayerActivity : AppCompatActivity() {
 
     /** The "now / next" part, refreshed every minute while the banner is up. */
     private fun paintNow() {
-        val src = sources.getOrNull(shownIndex) ?: return
+        val src = sources.getOrNull(index) ?: return
         val now = System.currentTimeMillis() / 1000
         val progs = guides[src.epg]
-        // while a past programme is playing, the banner is about that programme, not about the hour
-        val back = catchUp?.takeIf { !browsing }
-        val playing = back ?: progs?.firstOrNull { now in it.from until it.to }
+        // the banner is about the programme being pointed at, else the one playing (live or from the archive)
+        val onNow = progs?.firstOrNull { now in it.from until it.to }
+        val back = if (walking) walkAt else catchUp
+        val playing = back ?: onNow
         val next = progs?.firstOrNull { it.from >= (playing?.to ?: now) }
         val title = findViewById<TextView>(R.id.nowTitle)
         val bar = findViewById<ProgressBar>(R.id.nowBar)
@@ -376,10 +377,13 @@ class PlayerActivity : AppCompatActivity() {
         if (playing != null) {
             title.text = "${hhmm(playing.from)} · ${playing.name}"
             bar.visibility = View.VISIBLE
-            val pos = if (back != null) (player?.currentPosition ?: 0L) / 1000 else now - playing.from
+            val pos = if (walking) 0L
+                      else if (back != null) (player?.currentPosition ?: 0L) / 1000
+                      else now - playing.from
             bar.progress = ((pos * 100) / (playing.to - playing.from).coerceAtLeast(1)).toInt().coerceIn(0, 100)
             val left = (((playing.to - playing.from) - pos) / 60).coerceAtLeast(0)
-            after.text = if (back != null) "צפייה אחורה · נותרו $left דק׳"
+            after.text = if (walking) "OK · ${hhmm(playing.from)}–${hhmm(playing.to)}"
+                         else if (back != null) "צפייה אחורה · נותרו $left דק׳"
                          else if (next != null) "עוד $left דק׳ · אחר כך ${hhmm(next.from)} ${next.name}"
                          else "נותרו $left דק׳"
         } else {
@@ -432,59 +436,78 @@ class PlayerActivity : AppCompatActivity() {
             }.getOrNull()
             runOnUiThread {
                 logos[url] = bmp
-                if (bannerOpen && sources.getOrNull(shownIndex)?.logo == url && bmp != null) {
+                if (bannerOpen && sources.getOrNull(index)?.logo == url && bmp != null) {
                     findViewById<ImageView>(R.id.chLogo).apply { setImageBitmap(bmp); visibility = View.VISIBLE }
                 }
             }
         }.start()
     }
 
-    /** Raise the banner (every channel change does), and take it down again after a few seconds.
-     *  With [browse] Up/Down are paging through the channels, so it stays a little longer and OK will tune. */
-    private fun showBanner(browse: Boolean) {
-        if (!live) return
-        browsing = browse
-        barIndex = index
+    /** Raise the banner (every channel change does, and every step through a film), and take it down
+     *  again after a few seconds. While the arrows are walking the guide it stays longer: OK is what
+     *  it is waiting for. */
+    private fun showBanner() {
         findViewById<View>(R.id.infobar).visibility = View.VISIBLE
+        if (!live) {
+            paintFilm()
+            handler.removeCallbacks(hideBanner)
+            handler.removeCallbacks(tickBanner)
+            handler.postDelayed(tickBanner, 1_000)
+            handler.postDelayed(hideBanner, 5_000)
+            return
+        }
         paintBanner()
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
-        handler.postDelayed(tickBanner, if (catchUp != null) 1_000 else 30_000)
-        handler.postDelayed(hideBanner, if (browse) 12_000L else 8_000L)
+        handler.postDelayed(tickBanner, if (catchUp != null && !walking) 1_000 else 30_000)
+        handler.postDelayed(hideBanner, if (walking) 12_000L else 8_000L)
     }
 
     // explicit type: it reschedules itself (a paused picture keeps its banner)
     private val hideBanner: Runnable = Runnable {
-        if (player?.playWhenReady == false && !browsing) handler.postDelayed(hideBanner, 8_000) else hideChannelBar()
+        if (player?.playWhenReady == false && !walking) handler.postDelayed(hideBanner, 8_000) else hideChannelBar()
     }
     // explicit type: it schedules itself, which Kotlin cannot infer through. While a past programme is
     // playing the bar is where the viewer is inside it, so it is redrawn every second, not every minute.
     private val tickBanner: Runnable = Runnable {
-        if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, if (catchUp != null) 1_000 else 30_000) }
+        if (!bannerOpen) return@Runnable
+        if (!live) { paintFilm(); handler.postDelayed(tickBanner, 1_000); return@Runnable }
+        paintNow()
+        handler.postDelayed(tickBanner, if (catchUp != null && !walking) 1_000 else 30_000)
+    }
+
+    /** The same banner, for a film: its name, where you are in it, and how much of it is left. */
+    private fun paintFilm() {
+        val p = player ?: return
+        val dur = p.duration.coerceAtLeast(0)
+        val pos = p.currentPosition.coerceIn(0, if (dur > 0) dur else Long.MAX_VALUE)
+        findViewById<TextView>(R.id.chNum).text = if (p.playWhenReady) "▶" else "❚❚"
+        findViewById<TextView>(R.id.chName).text = intent.getStringExtra("title").orEmpty()
+        findViewById<ImageView>(R.id.chLogo).visibility = View.GONE
+        findViewById<TextView>(R.id.nowClock).text =
+            android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date())
+        val bar = findViewById<ProgressBar>(R.id.nowBar)
+        bar.visibility = if (dur > 0) View.VISIBLE else View.GONE
+        if (dur > 0) bar.progress = ((pos * 100) / dur).toInt().coerceIn(0, 100)
+        findViewById<TextView>(R.id.nowTitle).text =
+            if (dur > 0) "${fmtClock(pos)} / ${fmtClock(dur)}" else fmtClock(pos)
+        findViewById<TextView>(R.id.nextTitle).text = if (dur > 0) "נותרו ${fmtClock(dur - pos)}" else ""
     }
     private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     private fun hideChannelBar() {
-        browsing = false
+        walking = false
+        walkAt = null
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
         findViewById<View>(R.id.infobar).visibility = View.GONE
     }
 
-    /** Up/Down: raise the banner and page through the channels in it - nothing changes until OK. */
-    private fun browseBy(step: Int) {
-        if (!browsing) showBanner(browse = true)
-        barIndex = (barIndex + step + sources.size) % sources.size
-        paintBanner()                                            // the banner describes the channel pointed at
-        handler.removeCallbacks(hideBanner)
-        handler.postDelayed(hideBanner, 12_000)                  // paging that is left alone ends by itself
-    }
-
     private fun pickChannel(i: Int) {
         hideChannelBar()
-        if (i != index) zapBy(i - index) else showBanner(browse = false)
+        if (i != index) zapBy(i - index) else showBanner()
     }
 
     /** Long press OK on a channel of the list: back to the app, opening that channel's catch-up (programme guide). */
@@ -540,7 +563,7 @@ class PlayerActivity : AppCompatActivity() {
         val list = findViewById<ListView>(R.id.chList)
         if (list.adapter !is ChannelAdapter) {
             list.adapter = ChannelAdapter()
-            list.setOnItemClickListener { _, _, i, _ -> closePanel(); if (i != index) zapBy(i - index) else showBanner(browse = false) }
+            list.setOnItemClickListener { _, _, i, _ -> closePanel(); if (i != index) zapBy(i - index) else showBanner() }
             list.setOnItemLongClickListener { _, _, i, _ -> openCatchUp(i); true }
         }
         (list.adapter as BaseAdapter).notifyDataSetChanged()
@@ -557,32 +580,34 @@ class PlayerActivity : AppCompatActivity() {
     /** Catch-up (RaspberryTV and any playlist with an archive): the programme before or after the one playing. */
     private fun canWalk() = sources[index].arch.isNotBlank() && !guides[sources[index].epg].isNullOrEmpty()
 
+    /** A press of the arrows moves the banner through the guide; the picture does not change yet. */
     private fun walkGuide(back: Boolean): Boolean {
-        val src = sources[index]
-        val progs = guides[src.epg] ?: return false
+        val progs = guides[sources[index].epg] ?: return false
         val now = System.currentTimeMillis() / 1000
-        val here = catchUp ?: progs.firstOrNull { now in it.from until it.to } ?: return false
+        val here = (if (walking) walkAt else catchUp) ?: progs.firstOrNull { now in it.from until it.to } ?: return false
         val next = if (back) progs.lastOrNull { it.to <= here.from } else progs.firstOrNull { it.from >= here.to }
-        if (next == null) { if (!back) backToLive(); return true }
-        if (next.from > now) { backToLive(); return true }              // nothing is broadcast yet: the live edge
-        catchUp = next
-        archTry = 0
-        retries = 0
-        player?.release(); player = null
-        showBanner(browse = false)
-        handler.removeCallbacks(rebuild)
-        handler.postDelayed(rebuild, 150)
+        walking = true
+        // forward past the newest programme is the live edge itself
+        walkAt = if (next != null && next.from <= now) next else if (back) walkAt ?: here else null
+        showBanner()
         return true
     }
 
-    private fun backToLive() {
-        if (catchUp == null) return
-        catchUp = null
+    /** OK on the programme the banner stopped at: that is what plays now. */
+    private fun tuneWalk(): Boolean {
+        if (!walking) return false
+        val target = walkAt
+        walking = false
+        walkAt = null
+        if (target == catchUp) { showBanner(); return true }        // already playing it
+        catchUp = target
+        archTry = 0
         retries = 0
         player?.release(); player = null
-        showBanner(browse = false)
+        showBanner()
         handler.removeCallbacks(rebuild)
         handler.postDelayed(rebuild, 150)
+        return true
     }
 
     /** Step along the stream: a press steps a little, a held key leaps. A live stream keeps a window behind its edge. */
@@ -590,10 +615,10 @@ class PlayerActivity : AppCompatActivity() {
         val p = player ?: return
         val step = if (held) 30_000L else 10_000L
         p.seekTo((p.currentPosition + direction * step).coerceAtLeast(0))
-        if (live && !browsing) showBanner(browse = false)          // the channel is what you are looking at
-        if (bannerOpen) paintNow()                                 // and the bar says where in the programme
+        if (!walking) showBanner()                                 // where you are is what you are looking at
+        else if (bannerOpen) paintNow()
         val behind = p.currentLiveOffset
-        showMessage(
+        if (live) showMessage(
             if (behind == C.TIME_UNSET) fmtClock(p.currentPosition)
             else if (behind < 5_000) "בשידור חי" else "${behind / 1000} שנ׳ מאחורי השידור החי",
             if (p.playWhenReady) 2_500 else 0                   // while paused the note stays: it is also the pause sign
@@ -609,11 +634,13 @@ class PlayerActivity : AppCompatActivity() {
     private fun zapBy(step: Int) {
         if (sources.size < 2) return
         catchUp = null                                           // another channel starts at its live edge
+        walking = false
+        walkAt = null
         index = (index + step + sources.size) % sources.size
         retries = 0
         player?.release()
         player = null
-        if (live) showBanner(browse = false)
+        if (live) showBanner()
         else showOsd()
         // Give the server a moment to close the previous channel's session before opening the next.
         handler.removeCallbacks(rebuild)
@@ -715,11 +742,11 @@ class PlayerActivity : AppCompatActivity() {
         handler.postDelayed(hideOsd, 3_000)
     }
 
-    // Remote (live TV): Up/Down raise the banner and page through the channels (up = the next one), OK on one
-    // switches to it, holding OK opens the channel list over the picture, the channel keys switch straight away,
-    // and the play/pause key pauses. Left/Right walk the channel's archive - a press steps to the programme
-    // before or after, holding them runs inside what is playing. A film keeps the player's own controls, and
-    // Up opens its subtitles.
+    // Remote (live TV): Up/Down change the channel at once (up = the next one), holding OK opens the channel
+    // list over the picture, and the play/pause key pauses. Left/Right walk the channel's archive in the
+    // banner - a press points at the programme before or after, OK tunes to it, Back gives it up - while
+    // holding them runs inside what is already playing. A film keeps the player's own controls, and Up
+    // opens its subtitles.
     @OptIn(UnstableApi::class)
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
@@ -735,12 +762,12 @@ class PlayerActivity : AppCompatActivity() {
             if (ok && !down && okLong) { okLong = false; return true }      // the release that ended the long press
             return super.dispatchKeyEvent(event)                 // the list handles the arrows and OK
         }
-        if (ok && sources.size > 1) {
+        if (ok && (sources.size > 1 || walking)) {
             if (down) {
                 if (event.repeatCount == 0) okLong = false
                 else if (!okLong) { okLong = true; openPanel() }             // held down
             } else {
-                if (!okLong) { if (browsing) pickChannel(barIndex) else showBanner(browse = false) }
+                if (!okLong) { if (!tuneWalk()) showBanner() }
                 okLong = false
             }
             return true
@@ -765,26 +792,27 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> {
                 player?.let {
                     it.playWhenReady = !it.playWhenReady
-                    showMessage(if (it.playWhenReady) "ממשיך" else "מושהה", if (it.playWhenReady) 2_000 else 0)
+                    if (live) showMessage(if (it.playWhenReady) "ממשיך" else "מושהה", if (it.playWhenReady) 2_000 else 0)
+                    else showBanner()
                 }
                 return true
             }
-            KeyEvent.KEYCODE_BACK -> if (browsing) { hideChannelBar(); return true }
+            KeyEvent.KEYCODE_BACK -> if (walking) { walking = false; walkAt = null; showBanner(); return true }
             KeyEvent.KEYCODE_MEDIA_REWIND -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
             KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
-            KeyEvent.KEYCODE_DPAD_LEFT -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
-            KeyEvent.KEYCODE_DPAD_RIGHT -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_DPAD_LEFT -> if (!controls) { seekBy(if (skin.rtl) 1 else -1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> if (!controls) { seekBy(if (skin.rtl) -1 else 1, event.repeatCount > 0); return true }
             // a film: the subtitles panel - which translation, and how far it is moved
             KeyEvent.KEYCODE_CAPTIONS -> if (!live) { openSubsPanel(); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }
-            // up is the next channel, the way the numbers run on a television
+            // up is the next channel, the way the numbers run on a television - and it switches at once
             KeyEvent.KEYCODE_DPAD_UP -> {
-                if (sources.size > 1 && !controls) { browseBy(1); return true }
+                if (sources.size > 1 && !controls) { zapBy(1); return true }
                 if (!live && !controls) { openSubsPanel(); return true }
             }
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls) { browseBy(-1); return true }
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls) { zapBy(-1); return true }
         }
         return super.dispatchKeyEvent(event)
     }

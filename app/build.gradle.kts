@@ -11,8 +11,8 @@ android {
         applicationId = "com.veo.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3600
-        versionName = "0.36.0"
+        versionCode = 3700
+        versionName = "0.37.0"
     }
     signingConfigs {
         create("release") {
@@ -44,6 +44,8 @@ android {
 
 dependencies {
     implementation("androidx.appcompat:appcompat:1.8.0")
+    // serves the app's own page over https, so it is a page with an address and not a bare file
+    implementation("androidx.webkit:webkit:1.14.0")
     val jlibtorrentVersion = "2.0.12.9"
     implementation("com.frostwire:jlibtorrent:$jlibtorrentVersion")
     implementation("com.frostwire:jlibtorrent-android-arm64:$jlibtorrentVersion")

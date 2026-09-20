@@ -6,15 +6,20 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import androidx.webkit.WebViewAssetLoader
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
 class MainActivity : AppCompatActivity() {
+    /** Where the page lives now, and where it lived before 0.37 (its storage is moved over once). */
+    private val PAGE = "https://appassets.androidplatform.net/assets/booth.html"
     private lateinit var web: WebView
     private val REQ_LIVE = 1
     @Volatile private var updateCancelled = false
@@ -33,10 +38,21 @@ class MainActivity : AppCompatActivity() {
         web.settings.textZoom = (100 * minOf(resources.configuration.fontScale, 1.1f)).toInt()
         // chrome://inspect can attach to a debug build's page; a release build stays closed
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
-        web.webViewClient = WebViewClient()
+        // The page is served to itself over https instead of being opened as a file. A file has no
+        // address, so anything it asks for arrives with no referrer and no origin - which is why YouTube
+        // refused to play a trailer inside it ("error 153") and why some add-ons turned its requests
+        // away. Served this way it is an ordinary https page, and both simply work.
+        val assetsAt = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .build()
+        web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW   // IPTV and LAN devices are http
+        web.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
+                assetsAt.shouldInterceptRequest(request.url)
+        }
         web.webChromeClient = WebChromeClient()
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
-        web.loadUrl("file:///android_asset/booth.html")
+        web.loadUrl(PAGE)
         web.requestFocus()   // remote D-pad works immediately (Android TV)
         TorrentEngine.warmUp(applicationContext)
     }
@@ -53,6 +69,9 @@ class MainActivity : AppCompatActivity() {
     private var siteWeb: WebView? = null
     private var siteHost = ""
     private val siteWait = HashMap<String, Boolean>()
+    /** One page at a time: two readers of different sites would otherwise pull the window apart. */
+    private val siteQueue = ArrayDeque<Triple<String, String, String>>()
+    private var siteBusy = false
     private val siteIdle = Runnable { siteWeb?.let { (it.parent as? android.view.ViewGroup)?.removeView(it); it.destroy() }; siteWeb = null; siteHost = "" }
 
     private fun answer(callbackId: String, ok: Boolean, body: String) {
@@ -62,28 +81,46 @@ class MainActivity : AppCompatActivity() {
 
     /** The hidden window's only way home: what the reading script found, or why it found nothing. */
     inner class SiteBridge {
-        @JavascriptInterface fun found(id: String, body: String) = runOnUiThread {
-            if (siteWait.remove(id) == null) return@runOnUiThread
-            answer(id, !body.startsWith("ERR:"), body)
-        }
+        @JavascriptInterface fun found(id: String, body: String) = runOnUiThread { siteDone(id, body) }
+    }
+
+    private fun siteDone(id: String, body: String) {
+        if (siteWait.remove(id) == null) return
+        answer(id, !body.startsWith("ERR:"), body)
+        siteBusy = false
+        pumpSite()
+    }
+
+    private fun pumpSite() {
+        if (siteBusy) return
+        val job = siteQueue.removeFirstOrNull() ?: return
+        siteBusy = true
+        readSite(job.first, job.second, job.third)
+    }
+
+    private fun sitePage(url: String, reader: String, callbackId: String) {
+        siteQueue.add(Triple(url, reader, callbackId))
+        pumpSite()
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun sitePage(url: String, reader: String, callbackId: String) {
+    private fun readSite(url: String, reader: String, callbackId: String) {
         val host = runCatching { URL(url).host }.getOrNull()
-        if (host == null) { answer(callbackId, false, "ERR:bad url"); return }
+        if (host == null) { siteWait[callbackId] = true; siteDone(callbackId, "ERR:bad url"); return }
         siteWait[callbackId] = true
         val hold = android.os.Handler(mainLooper)
         hold.removeCallbacks(siteIdle)
         hold.postDelayed(siteIdle, 5 * 60_000)
-        hold.postDelayed({ if (siteWait.remove(callbackId) != null) answer(callbackId, false, "ERR:timeout") }, 30_000)
+        hold.postDelayed({ siteDone(callbackId, "ERR:timeout") }, 30_000)
         val id = JSONObject.quote(callbackId)
         // the reading script gets a document and returns text; whichever document that is, it answers the same way
         val read = "function veoRead(d){ try{ VeoSite.found($id, String((function(d){ $reader })(d))); }" +
             "catch(e){ VeoSite.found($id, 'ERR:' + e); } }"
 
+        // A page of the site already open is asked for from inside it - but only over the network: a
+        // file has no server to fetch it from, so it is opened in the window itself.
         val open = siteWeb
-        if (open != null && siteHost == host) {
+        if (open != null && siteHost == host && (url.startsWith("http://") || url.startsWith("https://"))) {
             open.evaluateJavascript(
                 "$read; fetch(${JSONObject.quote(url)}, {credentials:'include'}).then(r => r.text())" +
                 ".then(t => veoRead(new DOMParser().parseFromString(t, 'text/html')))" +
@@ -97,6 +134,7 @@ class MainActivity : AppCompatActivity() {
         siteHost = host
         hidden.settings.javaScriptEnabled = true
         hidden.settings.domStorageEnabled = true
+        hidden.settings.allowFileAccess = true                   // the page kept under file:// before 0.37
         hidden.settings.blockNetworkImage = true                 // the words are what is wanted, not the pictures
         hidden.settings.userAgentString =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36"

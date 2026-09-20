@@ -129,7 +129,7 @@ object TorrentEngine {
                 bufferStart(handle, media, ti.numPieces(), priorities, ::superseded, onStatus)
                 if (superseded()) return@Thread
 
-                val srv = StreamServer(handle, media).also { it.start() }
+                val srv = StreamServer(handle, media, onStatus).also { it.start() }
                 synchronized(this) { server = srv }
                 onStatus("")
                 onReady(srv.url)
