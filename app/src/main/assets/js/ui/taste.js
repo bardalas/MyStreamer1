@@ -28,10 +28,14 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
     host.insertAdjacentHTML('afterbegin', `<iframe class="taste" tabindex="-1" allow="autoplay" title=""
       src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&cc_load_policy=1&cc_lang_pref=iw"></iframe>`);
     const frame = host.querySelector('.taste');
-    // cover the box it was put in: a letterboxed trailer beside the artwork looks like a mistake
+    /* Cover the box it was put in - a letterboxed trailer beside the artwork looks like a mistake -
+       and then some: the frame writes the film's name and where it is playing from across its own top
+       for the first seconds, and a frame wider and taller than what shows of it puts those words
+       outside the picture. It is centred, so the crop is even. */
     const box = host.getBoundingClientRect();
-    frame.style.width = Math.ceil(Math.max(box.width, box.height * 16 / 9)) + 'px';
-    frame.style.height = Math.ceil(Math.max(box.height, box.width * 9 / 16)) + 'px';
+    const crop = 1.34;
+    frame.style.width = Math.ceil(Math.max(box.width, box.height * 16 / 9) * crop) + 'px';
+    frame.style.height = Math.ceil(Math.max(box.height, box.width * 9 / 16) * crop) + 'px';
     const say = msg => frame.contentWindow?.postMessage(JSON.stringify(msg), '*');
     frame.onload = () => say({event: 'listening', id: 1, channel: 'widget'});
     let over = 0;

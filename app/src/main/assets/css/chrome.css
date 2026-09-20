@@ -6,6 +6,7 @@
    moves under the viewer. On a phone it waits off-screen and the button in the corner brings it in. */
 
 .rail{display:flex;flex-direction:column;gap:2px;background:var(--night);color:var(--light);z-index:30}
+.rail .ic svg{width:21px;height:21px}
 .logo{display:flex;align-items:center;gap:12px;padding:6px 12px 10px;font-family:var(--display);font-weight:800;
   font-size:24px;letter-spacing:-.02em;cursor:pointer;user-select:none}
 .logo img{flex:none}
@@ -31,20 +32,22 @@ main{padding:0 28px 60px}
 
 /* ---------- a wide screen: the column, closed, opening on arrival ---------- */
 @media(min-width:900px){
-  .rail{position:fixed;inset-block:0;inset-inline-start:0;width:var(--rail-shut,76px);
+  .rail{position:fixed;inset-block:0;inset-inline-start:0;width:var(--rail-shut,60px);
     padding:16px 12px 40px;overflow-y:auto;overflow-x:hidden;border-inline-end:1px solid var(--line);
     scrollbar-width:none;transition:width var(--settle) var(--ease),box-shadow var(--settle) var(--ease)}
   .rail::-webkit-scrollbar{display:none}
-  .rail:hover,.rail:focus-within{width:var(--rail,210px);box-shadow:0 0 34px #0009}
+  .rail:hover,.rail:focus-within{width:var(--rail,184px)}
   /* the words spread out of the marks rather than appearing beside them */
   .rail .lbl{opacity:0;white-space:nowrap;transform:translateX(calc(-10px * var(--flip)));
     transition:opacity var(--travel) var(--ease),transform var(--travel) var(--ease)}
   .rail:hover .lbl,.rail:focus-within .lbl{opacity:1;transform:none}
   .rail:hover .nav a:nth-child(n+3) .lbl,.rail:focus-within .nav a:nth-child(n+3) .lbl{transition-delay:.04s}
   /* the field is there even while it is out of sight, so the remote can reach it and open the menu */
-  .search input{width:150px;flex:0 0 150px;opacity:0;transition:opacity var(--travel) var(--ease)}
+  .search input{width:130px;flex:0 0 130px;opacity:0;transition:opacity var(--travel) var(--ease)}
   .rail:hover .search input,.rail:focus-within .search input{opacity:1}
-  main{margin-inline-start:var(--rail-shut,76px)}
+  /* the menu opening moves the page aside rather than standing on it */
+  main{margin-inline-start:var(--rail-shut,60px);transition:margin var(--settle) var(--ease)}
+  body.railwide main{margin-inline-start:var(--rail,184px)}
   .railbtn,.scrim{display:none}
 }
 
@@ -66,8 +69,8 @@ main{padding:0 28px 60px}
 }
 
 /* ---------- the television: the same column, at arm's length ---------- */
-[data-layout="tv"]{--rail:270px;--rail-shut:92px}
-[data-layout="tv"] .rail a{font-size:18px;padding:13px 16px}
+[data-layout="tv"]{--rail:232px;--rail-shut:74px}
+[data-layout="tv"] .rail a{font-size:17px;padding:11px 13px}
 [data-layout="tv"] .rail .ic svg{width:26px;height:26px}
 [data-layout="tv"] .rail .search .ic svg{width:26px;height:26px}
 [data-layout="tv"] .search input{font-size:17px;padding:10px 16px}

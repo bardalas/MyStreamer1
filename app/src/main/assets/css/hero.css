@@ -21,18 +21,17 @@ main{position:relative}
 .dinfo .facts{margin:0 0 12px}
 .dinfo .people{margin-top:10px;font-size:13px;color:var(--muted)}
 
-/* everything you can do with the title, one under the other */
-.tacts{display:flex;flex-direction:column;gap:8px;margin:18px 0 0;max-width:420px}
-/* Nothing here needs a box around it: a choice is a line of text, the one you are on is filled
-   white (css/focus.css) and the one in force wears the accent. */
-.tact{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border-radius:10px;
-  border:0;background:none;color:var(--light);font:600 15px var(--body);
-  cursor:pointer;text-align:start}
-.tact .sub{margin-inline-start:auto;color:var(--muted);font-weight:500;font-size:13px}
-.tact.go{background:var(--tungsten);color:var(--on-accent);font-size:17px;padding:13px 18px}
-.tact.go .sub{color:#fff9}
-[data-layout="tv"] .tact{font-size:17px;padding:13px 18px}
-[data-layout="tv"] .tact.go{font-size:19px}
+/* Everything you can do with a title, as a line of marks under it. The picture above them is the
+   play button - the one thing nobody needs told - so what is left is small and quiet. */
+.tacts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:16px 0 0}
+.tact{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 14px;border-radius:999px;
+  border:0;background:var(--ghost);color:var(--light);font:600 14px var(--body);cursor:pointer}
+.tact.ic{width:42px;height:42px;padding:0;border-radius:50%}
+.tact.ic svg{width:21px;height:21px}
+.tact.saved{background:var(--velvet);color:#fff}
+[data-layout="tv"] .tact{font-size:16px}
+[data-layout="tv"] .tact.ic{width:52px;height:52px}
+[data-layout="tv"] .tact.ic svg{width:26px;height:26px}
 
 /* the episodes: a row you run along, under the picture */
 .epanel{margin-top:26px}

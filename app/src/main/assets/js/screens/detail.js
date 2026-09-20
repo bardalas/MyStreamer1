@@ -26,6 +26,12 @@ function epCard(v, meta){
       <small>${[v.released ? new Date(v.released).toLocaleDateString() : '', pct && !seen ? tr('detail.minLeft', {n: Math.max(1, Math.round((w.d - w.t) / 60))}) : ''].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
 }
 
+/* Two marks, drawn in the line's own colour. */
+const IC = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.3s-7.2-4.4-7.2-9.4a3.9 3.9 0 0 1 7.2-2.1 3.9 3.9 0 0 1 7.2 2.1c0 5-7.2 9.4-7.2 9.4z"/></svg>',
+  trailer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10.3 8.6 16 12l-5.7 3.4z"/></svg>',
+};
+
 export async function viewDetail(type, id){
   const app = $('#app');
   app.innerHTML = `<div class="backdrop skel"></div>`;
@@ -51,7 +57,8 @@ export async function viewDetail(type, id){
   const seasons = [...new Set(videos.map(v => v.season ?? 0))].sort((a,b) => (a===0) - (b===0) || a - b);
   const libLabel = on => tr(on ? 'lib.in' : 'lib.add');
   // Play and the quality shortcuts sit right under the title; a series' episodes get the whole width below.
-  app.innerHTML = `<div class="backdrop" style="background-image:url('${esc(meta.background || meta.poster)}')"></div>
+  app.innerHTML = `<div class="backdrop" style="background-image:url('${esc(meta.background || meta.poster)}')" title="${esc(tr('qv.play'))}">
+      <div class="bprog" id="bprog" hidden><i></i></div></div>
     <div class="detail ${seasons.length ? 'series' : 'movie'}">
       <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
       <div class="dinfo">
@@ -63,11 +70,9 @@ export async function viewDetail(type, id){
       </div>
     </div>
     <div class="tacts">
-      <button class="tact go" id="goPlay">▶ <span id="goLabel">${tr('src.searching')}</span></button>
-      ${seasons.length ? `<button class="tact" id="goEps">${tr('detail.episodes')}<span class="sub" id="epsSub"></span></button>` : ''}
+      <button class="tact ic ${saved?'saved':''}" id="lib" aria-label="${esc(libLabel(saved))}" title="${esc(libLabel(saved))}">${IC.heart}</button>
+      ${meta.trailers?.[0]?.source ? `<button class="tact ic" id="trailer" aria-label="${esc(tr('detail.trailer'))}" title="${esc(tr('detail.trailer'))}">${IC.trailer}</button>` : ''}
       <span id="streams" class="psrc"></span>
-      <button class="tact ${saved?'saved':''}" id="lib">${libLabel(saved)}</button>
-      ${meta.trailers?.[0]?.source ? `<button class="tact" id="trailer">${tr('detail.trailer')}</button>` : ''}
     </div>
     <div id="palt"></div>
     <div class="panel epanel"><div class="epwrap">
@@ -77,27 +82,32 @@ export async function viewDetail(type, id){
   document.body.classList.add('titlefit');             // on the TV a title page fits the screen, and its list scrolls
   startTaste('.backdrop', trailerId(meta), 400);                       // the artwork gives way to a taste
 
+  // the picture is the play button: there is nothing else it could mean
+  $('.backdrop').onclick = () => play();
   $('#lib').onclick = e => {
     const b = e.currentTarget;
     if(library[meta.id]) delete library[meta.id];
     else library[meta.id] = {id: meta.id, type, name: meta.name, poster: meta.poster, releaseInfo: yearOf(meta), added: Date.now()};
     store.set('library', library);
-    const saved = !!library[meta.id];                        // update the button in place, no reload
-    b.textContent = libLabel(saved);
+    const saved = !!library[meta.id];                        // update the mark in place, no reload
+    b.setAttribute('aria-label', libLabel(saved));
+    b.title = libLabel(saved);
     b.classList.toggle('saved', saved);
   };
   if($('#trailer')) $('#trailer').onclick = () => openPlayer({ytId: meta.trailers[0].source}, tr('detail.trailerTitle', {title: heTitle(meta.id, meta.name)}));
 
   const ctx = {type, meta};
+  /** How far into what is lined up the viewer got, drawn along the foot of the picture. */
+  const showProgress = id => {
+    const w = progress[id], bar = $('#bprog');
+    if(!bar) return;
+    const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
+    bar.hidden = !pct;
+    bar.firstElementChild.style.width = pct.toFixed(1) + '%';
+  };
   // The first button plays whatever the list has chosen; the list is one press below it.
   let chosen = null;                                   // {id, label}
   const play = () => { if(chosen) loadStreams(ctx, chosen.id, chosen.label, true); };
-  $('#goPlay').onclick = play;
-  if($('#goEps')) $('#goEps').onclick = () => {
-    const card = $('#eps')?.querySelector('.epcard.on, .epcard');
-    card?.scrollIntoView({block: 'center', behavior: isTvLayout() ? 'auto' : 'smooth'});
-    card?.focus();
-  };
   if(seasons.length){
     const renderEps = s => {
       const eps = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0));
@@ -107,9 +117,7 @@ export async function viewDetail(type, id){
         const v = videos.find(x => x.id === b.dataset.id);
         const label = `${meta.name} S${v.season}E${v.episode ?? v.number}`;
         chosen = {id: v.id, label};
-        const n = v.episode ?? v.number ?? '';
-        $('#goLabel').textContent = tr('detail.playEp', {s: v.season, e: n});
-        if($('#epsSub')) $('#epsSub').textContent = tr('detail.seasonN', {n: v.season});
+        showProgress(v.id);
         loadStreams(ctx, v.id, label, watch);
       };
       // choosing an episode is asking to watch it; arriving on the page only lines the first one up
@@ -121,7 +129,7 @@ export async function viewDetail(type, id){
       if(btn){
         pick(btn);
         // the remote lands on the episode you would watch, before any source has answered
-        if(isTvLayout() && (!document.activeElement || document.activeElement === document.body)) btn.focus();
+        if(isTvLayout() && (!document.activeElement || document.activeElement === document.body)) btn.focus({preventScroll: true});
       }
     };
     const first = seasons.find(s => s !== 0) ?? seasons[0];
@@ -142,7 +150,7 @@ export async function viewDetail(type, id){
       `<small>${[yearOf(meta), meta.runtime].filter(Boolean).map(esc).join(' · ')}</small>`);
     const row = $('#eps').querySelector('.epcard');
     chosen = {id: vid, label: meta.name};
-    $('#goLabel').textContent = tr(pct && !seen ? 'detail.resume' : 'detail.playFilm');
+    showProgress(vid);
     row.onclick = () => { row.classList.add('on'); play(); };
     row.classList.add('on');
     loadStreams(ctx, vid, meta.name);                    // the sources are looked for straight away

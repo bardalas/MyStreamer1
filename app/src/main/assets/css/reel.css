@@ -19,6 +19,8 @@
 .poster.spot:hover .art{transform:none}
 /* the name is over the picture now; its old place is kept, and the buttons stand in it */
 .poster.spot .t,.poster.spot .y{visibility:hidden}
+/* how far into it the viewer got stays visible over the taste and over the words */
+.poster.spot .track{z-index:3;height:6px}
 
 /* The picture is what the viewer came to see: the words sit in a band along its foot, one line each,
    and say only what a glance needs. Everything else is on the full page. */

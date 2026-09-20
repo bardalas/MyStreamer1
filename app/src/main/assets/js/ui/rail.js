@@ -20,6 +20,19 @@ $('#scrim')?.addEventListener('click', () => openRail(false));
 $('#rail')?.addEventListener('click', e => { if(e.target.closest('a')) openRail(false); });   // going somewhere closes it
 addEventListener('hashchange', () => openRail(false));
 addEventListener('keydown', e => { if(e.key === 'Escape') openRail(false); });
+/* A menu that opens over the page hides the very thing the viewer is looking at, so opening it moves
+   the page aside instead. The rows re-centre themselves once the page has finished moving. */
+const rail = $('#rail');
+const push = on => {
+  if(!RAIL_MQ.matches || document.body.classList.contains('railwide') === on) return;
+  document.body.classList.toggle('railwide', on);
+  setTimeout(() => dispatchEvent(new Event('resize')), 400);
+};
+rail?.addEventListener('pointerenter', () => push(true));
+rail?.addEventListener('pointerleave', () => push(false));
+rail?.addEventListener('focusin', () => push(true));
+rail?.addEventListener('focusout', e => { if(!rail.contains(e.relatedTarget)) push(false); });
+
 /* the mark beside the field: on a wide screen it opens the field, on a phone the whole menu */
 $('#sf .ic')?.addEventListener('click', () => RAIL_MQ.matches ? $('#q').focus() : openRail(true));
 /* Enter searches. A browser's own "press Enter in a field to send the form" is not something every
