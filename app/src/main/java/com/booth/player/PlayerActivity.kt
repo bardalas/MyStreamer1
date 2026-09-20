@@ -8,7 +8,6 @@ import android.os.Looper
 import android.view.GestureDetector
 import android.view.KeyEvent
 import android.view.MotionEvent
-import android.view.Gravity
 import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
@@ -317,19 +316,28 @@ class PlayerActivity : AppCompatActivity() {
     private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
 
     /** Channel bar: the channel list along the bottom, for choosing with the remote. */
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    /** The channel strip: just number and name, with a thin line under the one being pointed at. */
     private fun buildChannelBar() {
         val row = findViewById<LinearLayout>(R.id.chRow)
         row.removeAllViews()
         sources.forEachIndexed { i, src ->
-            val t = TextView(this).apply {
-                text = "${i + 1}. ${src.name}"
-                textSize = 17f
-                setPadding(28, 14, 28, 14)
-                gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, 0, dp(26), 0)
                 setOnClickListener { pickChannel(i) }
             }
-            row.addView(t)
+            item.addView(TextView(this).apply {
+                text = if (src.num > 0) "${'$'}{src.num}   ${'$'}{src.name}" else src.name
+                textSize = 15f
+                maxLines = 1
+                setPadding(0, 0, 0, dp(6))
+            })
+            item.addView(View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(2))
+            })
+            row.addView(item)
         }
     }
 
@@ -345,9 +353,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun paintChannelBar() {
         val row = findViewById<LinearLayout>(R.id.chRow)
         for (i in 0 until row.childCount) {
-            val t = row.getChildAt(i) as TextView
-            t.setBackgroundColor(if (i == barIndex) Color.parseColor("#F0B429") else Color.TRANSPARENT)
-            t.setTextColor(if (i == barIndex) Color.parseColor("#14161F") else Color.WHITE)
+            val item = row.getChildAt(i) as LinearLayout
+            val label = item.getChildAt(0) as TextView
+            val on = i == barIndex
+            label.setTextColor(if (on) Color.WHITE else Color.parseColor("#7F8899"))
+            label.typeface = if (on) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+            item.getChildAt(1).setBackgroundColor(if (on) Color.parseColor("#F0B429") else Color.TRANSPARENT)
         }
         row.getChildAt(barIndex)?.let { v ->
             findViewById<HorizontalScrollView>(R.id.chScroll).smoothScrollTo(v.left - 200, 0)
