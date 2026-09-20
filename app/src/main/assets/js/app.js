@@ -1,5 +1,6 @@
 import {migrateStore} from './core/bridge.js';
 import {$, bgObserver, lazyBg} from './core/dom.js';
+import {invalidateView} from './core/requests.js';
 import {rememberScreen, restoreScreen} from './core/screenmem.js';
 import {store} from './core/store.js';
 import {loadAddons} from './data/addons.js';
@@ -54,6 +55,7 @@ export function resetObservers(){
 export let listHash = '#/';                                 // the list a title was opened from
 export let lastPaint = 0;                                   // when this screen was drawn, so a stale one is redrawn
 export async function route(){
+  invalidateView();                                 // cancel work from the previous view before rendering
   rememberScreen();
   resetObservers();
   document.body.classList.remove('titlefit');

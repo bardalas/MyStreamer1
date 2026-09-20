@@ -1,5 +1,6 @@
 /* Rows of titles, and the screen they are laid out on. */
 import {$, esc, showErr} from '../core/dom.js';
+import {guardView, withDeadline} from '../core/requests.js';
 import {rowMax} from '../core/settings.js';
 import {addons, catalogFetch, fetchMeta} from '../data/addons.js';
 import {SC_ID} from '../data/catalogs.js';
@@ -28,36 +29,71 @@ export const rowTag = x => {
 export const reel = (inner, id = '') =>
   `<div class="reelwrap"><div class="strip${reelable() ? ' reel' : ''}"${id ? ` id="${id}"` : ''}>${inner}</div></div>`;
 
+let heroRequest = null;
 async function playHero(hero, btn){
-  const said = btn.textContent;
+  if(!btn?.isConnected || heroRequest?.valid()) return;
+  const inView = guardView(btn);
+  const request = {valid: () => heroRequest === request && inView()};
+  heroRequest = request;
+  const said = btn.textContent, status = $('#heroStatus');
   btn.textContent = tr('src.searching');
-  const meta = await fetchMeta(hero.type, hero.metaId).catch(() => null);
-  const ep = hero.type === 'series' ? nextEpisode(meta) : null;
-  const videoId = ep ? ep.id : (meta?.behaviorHints?.defaultVideoId || hero.videoId || hero.metaId);
-  const pick = await quickPick(hero.type, videoId);
-  btn.textContent = said;
-  if(pick) playStream(pick.s, ep ? `${meta.name} S${ep.season}E${ep.episode}` : (meta?.name || hero.name), {videoId, type: hero.type, meta: meta || {id: hero.metaId, name: hero.name}});
-  else location.hash = `#/detail/${hero.type}/${encodeURIComponent(hero.metaId)}`;
+  // Keep the button focusable for a remote; the request identity prevents repeat activation.
+  btn.setAttribute('aria-busy', 'true');
+  btn.setAttribute('aria-disabled', 'true');
+  if(status) status.textContent = '';
+  try{
+    const meta = await withDeadline(() => fetchMeta(hero.type, hero.metaId)).catch(() => null);
+    if(!request.valid()) return;
+    // Resume the item on the card, even when metadata is missing or omits this episode.
+    const saved = typeof hero.videoId === 'string' && hero.videoId.trim() ? hero.videoId : null;
+    const videoId = saved || (hero.type === 'series'
+      ? nextEpisode(meta)?.id || meta?.behaviorHints?.defaultVideoId
+      : meta?.behaviorHints?.defaultVideoId || hero.metaId);
+    if(!videoId){ location.hash = `#/detail/${hero.type}/${encodeURIComponent(hero.metaId)}`; return; }
+    const ep = hero.type === 'series' && Array.isArray(meta?.videos) ? meta.videos.find(v => v.id === videoId) : null;
+    const name = meta?.name || hero.name;
+    const label = ep?.season != null && ep?.episode != null ? `${name} S${ep.season}E${ep.episode}` : name;
+    const pick = await withDeadline(() => quickPick(hero.type, videoId), 30000);
+    if(!request.valid()) return;
+    if(pick) playStream(pick.s, label, {videoId, type: hero.type,
+      meta: {...meta, id: meta?.id || hero.metaId, name, poster: meta?.poster || hero.poster}});
+    else location.hash = `#/detail/${hero.type}/${encodeURIComponent(hero.metaId)}`;
+  }catch(e){
+    if(request.valid() && status) status.textContent = e?.message || tr('net.noResponse');
+  }finally{
+    // An older request must not clear the loading state of a newer request/view.
+    if(heroRequest === request){
+      if(inView()){
+        btn.textContent = said;
+        btn.removeAttribute('aria-busy');
+        btn.removeAttribute('aria-disabled');
+      }
+      heroRequest = null;
+    }
+  }
 }
 
 export function renderRows(rows, {cont = [], heading = '', top = ''} = {}){
+  heroRequest = null;                              // invalidate even a redraw at the same hash
   const app = $('#app');
   const hero = cont[0];
   const items = hero ? cont.slice(1) : cont;
 
   let heroHtml = '';
   if(hero){
-    const pct = hero.d ? Math.min(100, hero.t / hero.d * 100) : 0;
+    const pct = Number.isFinite(hero.t) && Number.isFinite(hero.d) && hero.d > 0
+      ? Math.max(0, Math.min(100, hero.t / hero.d * 100)) : 0;
     heroHtml = `<div class="hero-wrap">
       <div class="backdrop hero-bg" style="background-image:url('${esc(hero.poster)}')"></div>
       <div class="hero-info">
         <div class="dinfo">
           <small class="htag">${tr('row.continue')}</small>
           <h1>${esc(hero.name)}</h1>
-          ${pct ? `<div class="bprog hero-prog"><i><b style="width:${pct.toFixed(0)}%"></b></i></div>` : ''}
+          ${pct ? `<div class="bprog hero-prog"><i style="width:${pct.toFixed(0)}%"></i></div>` : ''}
           <div class="tacts">
             <button class="btn primary hero-play" id="heroPlay">${tr('detail.resume')}</button>
             <a href="#/detail/${esc(hero.type)}/${encodeURIComponent(hero.metaId)}" class="btn ghost">${tr('qv.more')}</a>
+            <span class="srcstat err" id="heroStatus" role="status"></span>
           </div>
         </div>
       </div>
@@ -71,7 +107,8 @@ export function renderRows(rows, {cont = [], heading = '', top = ''} = {}){
     ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2>${reel(skeletons(8), 'row' + i)}</div>`).join('')}
     ${!rows.length ? `<p class="note">${tr('row.noCatalogs')}</p>` : ''}`;
 
-  if(hero && $('#heroPlay')) $('#heroPlay').onclick = () => playHero(hero, $('#heroPlay'));
+  const heroButton = $('#heroPlay');
+  if(hero && heroButton) heroButton.onclick = () => playHero(hero, heroButton);
   autoSpot($('#app .strip'));
   // Each title appears once per page: it stays in the first (highest) row that has it.
   const claimed = new Map();
