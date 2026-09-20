@@ -1,6 +1,6 @@
-MyStreamer Android v0.21.0-alpha
-versionCode: 2100
-applicationId: com.booth.player
+VEO Android v0.40.3
+versionCode: 4003
+applicationId: com.veo.player
 
 Versioning policy:
 0.x.y = development releases

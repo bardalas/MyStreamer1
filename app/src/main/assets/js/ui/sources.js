@@ -1,5 +1,6 @@
 /* Where a title can be watched from, and what happens when one is chosen. */
 import {$, esc} from '../core/dom.js';
+import {guardView, withDeadline} from '../core/requests.js';
 import {isTvLayout} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {addons, fetchStreams, supports} from '../data/addons.js';
@@ -85,6 +86,7 @@ export function parseStream(s, addon, i){
 
 /** How good a source is to stream on a phone/TV: direct links first, then well-seeded 1080p. */
 export function rank(x){
+  if(x.external) return -1;                      // a program page is never a playable stream
   if(x.direct) return 1e9;
   const seeds = x.seeds ?? 0;
   // Nobody is sharing it right now: it goes last and never plays by itself, but a documentary with one
@@ -118,7 +120,8 @@ export function playStream(s, label, ctx){
 
 /** Play, the quality shortcuts and the rest of the list go into the title's action row (#streams); what is
     still loading is a small note beside them, and the long list opens below the row (#palt). */
-export function renderStreams(box, all, pending, label, ctx, errors = [], retry){
+export function renderStreams(box, all, pending, label, ctx, errors = [], retry, isCurrent = () => true){
+  if(!isCurrent()) return;
   const alt = $('#palt');
   const wasOpen = $('#altToggle')?.getAttribute('aria-expanded') === 'true';
   if(alt) alt.innerHTML = '';
@@ -132,13 +135,11 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry)
   const best = pickQ(playable);
   const rest = best ? list.filter(x => x !== best) : list;
   const more = rest.length ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr(best ? 'src.more' : 'src.weakN', {n: rest.length})}</button>` : '';
-  if(!best && !pending && errors.length && !links && !list.length){
-    box.innerHTML = `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>`;
-    $('#sretry').onclick = retry;
-    return;
-  }
+  const failure = errors.length ? `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>` : '';
   if(!best){
-    box.innerHTML = `<span class="srcstat${pending ? '' : ' idle'}">${tr(pending ? 'src.searching' : 'src.none')}</span>${links}${more}${pending ? '' : remindButton(ctx)}`;
+    // Program links and failed/partial searches must not be labelled "no sources".
+    const status = pending ? tr('src.searching') : !links && !errors.length ? tr('src.none') : '';
+    box.innerHTML = `${status ? `<span class="srcstat${pending ? '' : ' idle'}">${status}</span>` : ''}${links}${more}${failure}${pending || errors.length ? '' : remindButton(ctx)}`;
   }else{
     // This row chooses; the list below it is what starts. The quality in use wears the accent, and what
     // it will play - its size, and whether anything is still answering - is said beside it.
@@ -147,17 +148,21 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry)
     // One row for the quality, not one per quality: pressing it takes the next one there is.
     const next = byQuality[(byQuality.indexOf(best.q) + 1) % byQuality.length];
     box.innerHTML = `${byQuality.length > 1 ? `<button class="qbtn" id="qnext" data-q="${next}">${tr('src.quality')} · ${best.q}${best.size ? ` · ${fmtSize(best.size)}` : ''}</button>` : ''}
-      ${links}${more}${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
+      ${links}${more}${failure}${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
     box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+      if(!isCurrent()) return;
       prefQ = b.dataset.q === prefQ ? '' : b.dataset.q;         // pressing the one in use returns to automatic
       store.set('quality', prefQ);
       lastStreams?.();
     });
   }
+  const retryButton = box.querySelector('#sretry');
+  if(retryButton) retryButton.onclick = () => { if(isCurrent()) return retry?.(); };
   wireRemind(box, ctx);
   if(alt && rest.length) alt.innerHTML = `<div class="altlist"${wasOpen ? '' : ' hidden'}>${rest.slice(0, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? tr('src.direct') : (x.seeds ?? 0) < 1 ? tr('src.weak') : '👤 ' + x.seeds}</span></button>`).join('')}</div>`;
-  [box, alt].forEach(el => el?.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx)));
+  [box, alt].forEach(el => el?.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { if(isCurrent()) playStream(all[b.dataset.i].s, label, ctx); }));
   if($('#altToggle')) $('#altToggle').onclick = e => {
+    if(!isCurrent()) return;
     const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true', more = alt.querySelector('.altlist');
     btn.setAttribute('aria-expanded', String(!open));
     more.hidden = open;
@@ -170,78 +175,83 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry)
 
 
 export async function loadStreams({type, meta}, videoId, label, autoplay = false){
+  const token = ++streamsToken;                     // invalidate the previous request before any exit
+  lastStreams = null;
   const box = $('#streams');
+  if(!box) return;
+  const inView = guardView(box);
+  const current = () => token === streamsToken && inView() && $('#streams') === box;
   const takeFocus = isTvLayout() && (!document.activeElement || document.activeElement === document.body
     || document.activeElement.closest('.eps'));
   const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
-  if(!src.length){ box.innerHTML = `<span class="srcstat idle">${tr('src.noAddon')}</span>`; return; }
-  const token = ++streamsToken;
   const ctx = {videoId, type, meta};
   const all = [], errors = [];
-  let pending = src.length;
-  const retry = () => loadStreams({type, meta}, videoId, label);
+  const clean = t => typeof t === 'string' ? t.trim().toLowerCase() : '';
+  const name = clean(meta?.name || label);
+  const match = itn => !!itn && (itn === name || (name.length > 3 && (itn.includes(name) || name.includes(itn))));
+  // Each built-in is independent of installed stream add-ons. These are navigation links, not media.
+  const broadcasters = name ? [
+    {name: 'כאן 11', load: () => kanBox(), find: secs => {
+      for(const sec of secs) for(const it of sec.items) if(match(clean(it.name)))
+        return `#/kan/${encodeURIComponent(it.url.replace('https://www.kan.org.il', ''))}/${encodeURIComponent(it.name)}`;
+    }},
+    {name: 'mako (קשת 12)', load: () => makoPrograms(''), find: progs => {
+      const it = progs.find(it => match(clean(it.name)));
+      if(it) return `#/mako/${encodeURIComponent(it.path)}/${encodeURIComponent(it.name)}`;
+    }},
+    {name: 'רשת 13', load: () => r13row('series'), find: progs => {
+      for(const it of progs) if(match(clean(it.name))){
+        const sid = r13meta(it, 'SeriesID');
+        if(sid) return `#/r13/${encodeURIComponent(sid)}/${encodeURIComponent(it.name)}`;
+      }
+    }},
+  ] : [];
+  let pendingAddons = src.length, pendingBroadcasters = broadcasters.length;
   let focused = false, played = false;
+  const retry = () => { if(current()) return loadStreams({type, meta}, videoId, label); };
   const render = () => {
-    if(token !== streamsToken || !box.isConnected) return;
+    if(!current()) return;
     lastStreams = render;
-    renderStreams(box, all, pending > 0, label, ctx, errors, retry);
-    // An episode that was chosen is meant to be watched: it starts as soon as a source worth starting
-    // has arrived - the one in the chosen quality, or, once everybody has answered, the best there is.
+    renderStreams(box, all, pendingAddons + pendingBroadcasters > 0, label, ctx, errors, retry, current);
+    // Broadcaster pages must not delay a playable source from an add-on.
     if(autoplay && !played){
       const ready = pickQ(all.filter(x => !x.external && x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a)));
-      if(ready && (!pending || ready.direct || ready.q === prefQ)){
+      if(ready && (!pendingAddons || ready.direct || ready.q === prefQ)){
         played = true;
         playStream(ready.s, label, ctx);
         return;
       }
     }
-    // the first thing the remote holds on a title is the episode it would play - without moving the
-    // page, which on a television is the whole of the title and fits the screen exactly
     const first = $('#eps')?.querySelector('.epcard.on, .epcard');
     if(first && takeFocus && !focused){ focused = true; first.focus({preventScroll: true}); }
   };
   render();
-  const checkBroadcasters = async () => {
-    const clean = t => (t || '').trim().toLowerCase();
-    const name = clean(meta?.name || label);
-    if(!name) return;
-    const match = itn => itn === name || (name.length > 3 && (itn.includes(name) || name.includes(itn)));
-
-    kanBox().then(secs => {
-      for(const s of secs) for(const it of s.items) if(match(clean(it.name))){
-        all.push({s: {externalUrl: `#/kan/${encodeURIComponent(it.url.replace('https://www.kan.org.il', ''))}/${encodeURIComponent(it.name)}`},
-          addon: 'כאן 11', i: all.length, q: 'VOD', size: null, tags: [], external: true, name: 'כאן 11', direct: true});
-        render(); return;
-      }
-    }).catch(() => {});
-
-    makoPrograms('').then(progs => {
-      for(const i of progs) if(match(clean(i.name))){
-        all.push({s: {externalUrl: `#/mako/${encodeURIComponent(i.path)}/${encodeURIComponent(i.name)}`},
-          addon: 'קשת 12', i: all.length, q: 'VOD', size: null, tags: [], external: true, name: 'mako (קשת 12)', direct: true});
-        render(); return;
-      }
-    }).catch(() => {});
-
-    r13row('series').then(progs => {
-      for(const o of progs) if(match(clean(o.name))){
-        const sid = r13meta(o, 'SeriesID');
-        if(sid){
-          all.push({s: {externalUrl: `#/r13/${encodeURIComponent(sid)}/${encodeURIComponent(o.name)}`},
-            addon: 'רשת 13', i: all.length, q: 'VOD', size: null, tags: [], external: true, name: 'רשת 13', direct: true});
-          render(); return;
-        }
-      }
-    }).catch(() => {});
-  };
-  checkBroadcasters();
-
-  await Promise.all(src.map(async a => {
+  const broadcasterWork = Promise.all(broadcasters.map(async provider => {
     try{
-      for(const s of await fetchStreams(a, type, videoId)) all.push(parseStream(s, a.manifest.name, all.length));
-    }catch(e){ errors.push(`${a.manifest.name}: ${e.message || tr('net.noResponse')}`); }
-    pending--;
-    render();
+      const response = await withDeadline(provider.load);
+      if(!current()) return;
+      const externalUrl = provider.find(response);
+      if(externalUrl) all.push({s: {externalUrl}, addon: provider.name, i: all.length,
+        q: 'VOD', size: null, tags: [], external: true, name: provider.name, direct: false});
+    }catch(e){
+      if(current()) errors.push(`${provider.name}: ${e?.message || tr('net.noResponse')}`);
+    }finally{ pendingBroadcasters--; render(); }
   }));
-  if(type === 'movie' && !errors.length) setAvail(`${type}:${meta.id}`, all.some(x => !x.external && x.q !== 'CAM' && rank(x) > 0));
+  const addonWork = Promise.all(src.map(async a => {
+    try{
+      // Preserve the provider's existing 12s + retry budget, but bound the whole operation too.
+      const streams = await withDeadline(() => fetchStreams(a, type, videoId), 30000);
+      if(!current()) return;
+      for(const s of streams) all.push(parseStream(s, a.manifest.name, all.length));
+    }catch(e){
+      if(current()) errors.push(`${a.manifest.name}: ${e?.message || tr('net.noResponse')}`);
+    }finally{ pendingAddons--; render(); }
+  }));
+  await Promise.all([addonWork, broadcasterWork]);
+  if(current() && type === 'movie' && meta?.id && src.length){
+    const playable = all.some(x => !x.external && x.q !== 'CAM' && rank(x) > 0);
+    // An error, no add-ons, or a service page is not evidence of unavailability.
+    if(playable) setAvail(`${type}:${meta.id}`, true);
+    else if(!errors.length && !all.some(x => x.external)) setAvail(`${type}:${meta.id}`, false);
+  }
 }

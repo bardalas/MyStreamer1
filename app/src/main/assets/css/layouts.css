@@ -80,8 +80,7 @@
 .htag{display:inline-block;background:var(--tungsten);color:var(--on-accent);padding:4px 10px;border-radius:4px;font-weight:700;font-size:12px;margin-bottom:10px}
 .hero-info h1{font-size:clamp(32px,5vw,52px);margin:0 0 16px;line-height:1.1}
 .hero-prog{margin-bottom:20px;max-width:400px;background:var(--shade-55);height:6px;border-radius:3px;overflow:hidden;position:relative}
-.hero-prog i{display:block;height:100%}
-.hero-prog i b{display:block;height:100%;background:var(--tungsten);border-radius:3px}
+.hero-prog > i{display:block;height:100%;background:var(--tungsten);border-radius:3px}
 
 [data-layout="tv"] .hero-wrap{height:60vh;margin-bottom:30px}
 [data-layout="tv"] .hero-info{padding-bottom:6vh}
