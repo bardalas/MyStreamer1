@@ -7,15 +7,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=Rubik:wght@500;700;800&family=Heebo:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
-// Apply saved skin/layout before first paint (Settings page). TV devices default to the TV layout.
+// Apply saved skin/layout/language before first paint (Settings page). TV devices default to the TV layout.
+const RTL_LANGS = ['he', 'ar', 'fa', 'ur'];
+const dirOf = l => RTL_LANGS.includes(l) ? 'rtl' : 'ltr';
 try{
   const s = JSON.parse(localStorage.getItem('booth:settings') || '{}'), r = document.documentElement;
+  r.lang = s.uiLang || 'he'; r.dir = dirOf(r.lang);
   const tv = !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
   r.dataset.skin = s.skin || 'tungsten'; r.dataset.layout = s.layout || (tv ? 'tv' : 'cinema'); r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
 }catch(e){}
 </script>
 <style>
 :root{
+  --flip:1;   /* 1 in right-to-left, -1 in left-to-right: mirrors physical offsets that logical properties cannot express */
   --night:#14161f; --surface:#1d2130; --raise:#272c3f; --line:#323850;
   --light:#efe6cf; --muted:#8e93a8; --tungsten:#f0b429; --velvet:#a3384b;
   --on-accent:#14161f; --text2:#d4cdb9; --err:#ff9d8a; --ghost:rgba(239,230,207,.1);
@@ -25,6 +29,7 @@ try{
   --display:"Bricolage Grotesque","Rubik",system-ui,sans-serif;
   --body:"Figtree","Heebo",system-ui,sans-serif;
 }
+:root[dir="ltr"]{--flip:-1}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--night);color:var(--light);font-family:var(--body);font-size:15px;line-height:1.5}
 a{color:inherit}
@@ -39,7 +44,7 @@ img{max-width:100%;display:block}
 .nav{display:flex;gap:4px}
 .nav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--muted);font-weight:500}
 .nav a.on{color:var(--light);background:var(--raise)}
-.search{flex:0 1 300px;min-width:150px;margin-inline-start:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 16px 4px 4px;width:min(340px,40vw)}
+.search{flex:0 1 300px;min-width:150px;margin-inline-start:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding-block:4px;padding-inline:16px 4px;width:min(340px,40vw)}
 .search input{flex:1;background:none;border:0;outline:0;min-width:0}
 .search button{background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:6px 14px;font-weight:600;cursor:pointer}
 
@@ -49,7 +54,7 @@ main{padding:0 28px 60px}
 .hero{position:relative;margin:0 -28px 32px;min-height:46vh;display:flex;align-items:flex-end;overflow:hidden}
 .hero .bg{position:absolute;inset:0;background-size:cover;background-position:center 25%;filter:saturate(.85)}
 .hero::before{content:"";position:absolute;inset:0;z-index:1;background:
-  linear-gradient(270deg,var(--night) 8%,var(--shade-55) 45%,transparent 75%),
+  linear-gradient(calc(180deg + 90deg * var(--flip)),var(--night) 8%,var(--shade-55) 45%,transparent 75%),
   linear-gradient(0deg,var(--night) 2%,transparent 45%)}
 .hero .beam{display:none;position:absolute;z-index:1;left:-10%;transform:scaleX(-1);top:-30%;width:70%;height:160%;background:conic-gradient(from 200deg at 100% 0%,transparent 0deg,var(--beam) 14deg,transparent 30deg);pointer-events:none}
 .hero .copy{position:relative;z-index:2;padding:0 28px 48px;max-width:760px}
@@ -110,7 +115,7 @@ main{padding:0 28px 60px}
 #offbar{position:fixed;inset-inline:0;bottom:0;z-index:60;display:none;gap:12px;align-items:center;justify-content:center;
   padding:10px 16px;background:#7a1f1f;color:#fff;font:14px/1.4 var(--body)}
 #offbar.on{display:flex}
-.ep:hover{background:var(--raise)} .ep.on{background:var(--raise);box-shadow:inset -3px 0 var(--tungsten)}
+.ep:hover{background:var(--raise)} .ep.on{background:var(--raise);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
 .ep .n{font-family:var(--display);font-weight:700;color:var(--tungsten)}
 .ep .d{font-size:12px;color:var(--muted)}
 
@@ -227,7 +232,7 @@ main{padding:0 28px 60px}
 .seasonbar::-webkit-scrollbar{width:0}
 .seasonbar button{background:none;border:0;border-radius:8px;padding:8px 12px;text-align:start;white-space:nowrap;
   color:var(--muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
-.seasonbar button.on{background:var(--raise);color:var(--light);box-shadow:inset -3px 0 var(--tungsten)}
+.seasonbar button.on{background:var(--raise);color:var(--light);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
 .seasonbar button:hover,.seasonbar button:focus-visible{color:var(--light)}
 .eps{max-height:46vh}
 [data-layout="tv"] .seasonbar button{font-size:16px;padding:10px 14px}
@@ -274,7 +279,7 @@ main{padding:0 28px 60px}
     flex-direction:column;gap:2px;padding:14px 12px 60px;overflow-y:auto;background:var(--night);
     border-inline-end:1px solid var(--line);scrollbar-width:none}
   .cats a{padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:none}
-  .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset 3px 0 var(--tungsten)}
+  .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset calc(3px * var(--flip)) 0 var(--tungsten)}
   body.railed main{margin-inline-start:var(--rail,190px)}
 }
 [data-layout="tv"]{--rail:250px}
@@ -344,7 +349,7 @@ main{padding:0 28px 60px}
 .sgrid{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start}
 .stabs{display:flex;flex-direction:column;gap:6px;position:sticky;top:84px}
 .stabs button{text-align:start;background:none;border:0;border-radius:10px;padding:12px 15px;color:var(--muted);font:inherit;cursor:pointer}
-.stabs button.on{background:var(--raise);color:var(--light);box-shadow:inset -3px 0 var(--tungsten)}
+.stabs button.on{background:var(--raise);color:var(--light);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
 .stabs button:hover{color:var(--light)}
 .spane{min-width:0}
 .spane .sset:first-child{margin-top:0}
@@ -488,24 +493,163 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 </head>
 <body>
 <div class="bar">
-  <a class="logo" href="#/" aria-label="VEO – דף הבית"><img src="veo-mark.png" width="26" height="26" alt="" aria-hidden="true">VEO</a>
+  <a class="logo" href="#/" data-i18n-aria="nav.homeAria"><img src="veo-mark.png" width="26" height="26" alt="" aria-hidden="true">VEO</a>
   <nav class="nav">
-    <a href="#/" data-r="home">סרטים וסדרות</a>
-    <a href="#/tv" data-r="tv">ערוצים</a>
-    <a href="#/live" data-r="live">שידור חי</a>
-    <a href="#/library" data-r="library">הספרייה</a>
-    <a href="#/settings" data-r="settings">הגדרות</a>
+    <a href="#/" data-r="home" data-i18n="nav.home"></a>
+    <a href="#/tv" data-r="tv" data-i18n="nav.tv"></a>
+    <a href="#/live" data-r="live" data-i18n="nav.live"></a>
+    <a href="#/library" data-r="library" data-i18n="nav.library"></a>
+    <a href="#/settings" data-r="settings" data-i18n="nav.settings"></a>
   </nav>
-  <form class="search" id="sf"><input id="q" placeholder="חיפוש סרטים וסדרות" aria-label="חיפוש"><button>חפש</button></form>
+  <form class="search" id="sf"><input id="q" data-i18n-ph="search.placeholder" data-i18n-aria="search.aria"><button data-i18n="search.button"></button></form>
 </div>
-<nav class="cats" id="cats" aria-label="קטגוריות"></nav>
+<nav class="cats" id="cats" data-i18n-aria="cats.aria"></nav>
 <main id="app"></main>
 
 <div class="player" id="player">
-  <header><button class="btn ghost" id="close">סגור</button><b id="ptitle"></b></header>
+  <header><button class="btn ghost" id="close" data-i18n="common.close"></button><b id="ptitle"></b></header>
   <div id="pbody" style="flex:1;display:flex;min-height:0"></div>
 </div>
 
+<script>
+/* ---------- interface language ----------
+   Everything the app itself writes (menus, buttons, messages) comes from STRINGS; what add-ons and
+   broadcasters send is shown as delivered. Adding a language = one table here + one row in UI_LANGS.
+   Values are trusted markup: escape any {vars} that came from outside before passing them to tr().
+   This is separate from settings.lang, which only chooses Hebrew vs original titles and summaries. */
+const UI_LANGS = [['he', 'עברית'], ['en', 'English']];
+const STRINGS = {
+he: {
+  'common.close': 'סגור', 'common.cancel': 'ביטול', 'common.retry': 'נסה שוב', 'common.loading': 'טוען…',
+  'common.remove': 'הסר', 'common.add': 'הוסף', 'common.removed': 'הוסר.',
+  'nav.home': 'סרטים וסדרות', 'nav.tv': 'ערוצים', 'nav.live': 'שידור חי', 'nav.library': 'הספרייה', 'nav.settings': 'הגדרות',
+  'nav.homeAria': 'VEO – דף הבית',
+  'search.placeholder': 'חיפוש סרטים וסדרות', 'search.aria': 'חיפוש', 'search.button': 'חפש',
+  'cats.aria': 'קטגוריות',
+  'net.offline': 'אין חיבור לאינטרנט', 'net.offbar': 'אין חיבור לאינטרנט. VEO ימשיך ברגע שהחיבור יחזור.', 'net.noResponse': 'אין תגובה',
+  'update.available': 'גרסה {tag} זמינה', 'update.now': 'עדכן עכשיו', 'update.later': 'לא עכשיו',
+  'player.badFormat': 'הדפדפן לא יכול לנגן את הפורמט הזה. נסה מקור אחר.',
+  'skin.tungsten.name': 'טונגסטן', 'skin.tungsten.note': 'ענבר חם על כחול לילה',
+  'skin.midnight.name': 'חצות', 'skin.midnight.note': 'שחור מלא למסכי OLED, טורקיז',
+  'skin.velvet.name': 'קטיפה', 'skin.velvet.note': 'אדום יין עם זהב',
+  'skin.forest.name': 'יער', 'skin.forest.note': 'ירוק עמוק עם ליים',
+  'skin.daylight.name': 'אור יום', 'skin.daylight.note': 'רקע בהיר, הדגשה באדום',
+  'layout.cinema.name': 'קולנוע', 'layout.cinema.note': 'באנר גדול ושורות גוללות',
+  'layout.grid.name': 'קיר פוסטרים', 'layout.grid.note': 'בלי באנר; כל שורה נפרשת לרשת',
+  'layout.list.name': 'רשימה', 'layout.list.note': 'שורות קומפקטיות עם שמות. הכי נוח בטלפון',
+  'layout.tv.name': 'טלוויזיה', 'layout.tv.note': 'פוסטרים וטקסט גדולים לשלט',
+  'poster.s': 'קטן', 'poster.m': 'בינוני', 'poster.l': 'גדול',
+  'set.title': 'הגדרות', 'set.tabsAria': 'נושאי ההגדרות',
+  'set.tab.start': 'פתיחה וצפייה', 'set.tab.look': 'עיצוב ותצוגה', 'set.tab.home': 'מסך הבית',
+  'set.tab.live': 'שידור חי ופלייליסטים', 'set.tab.addons': 'תוספים וכתוביות', 'set.tab.about': 'איפוס ומידע',
+  'set.start.title': 'מסך פתיחה', 'set.start.note': 'מה נפתח כשמדליקים את VEO.',
+  'set.kids.title': 'מצב ילדים', 'set.kids.off': 'כבוי', 'set.kids.on': 'פעיל', 'set.kids.note': 'במצב ילדים מסך הבית מציג רק תכני ילדים.',
+  'set.lang.title': 'שמות ותקצירים', 'set.lang.he': 'עברית', 'set.lang.en': 'English',
+  'set.lang.note': 'השמות בעברית מגיעים מ־Wikidata והתקצירים מוויקיפדיה העברית. כותרים בלי ערך בעברית נשארים באנגלית.',
+  'set.uilang.title': 'שפת הממשק', 'set.uilang.note': 'שפת התפריטים והכפתורים. כיוון הפריסה (ימין לשמאל או שמאל לימין) מתעדכן אוטומטית.',
+  'set.skin.title': 'ערכת עיצוב', 'set.layout.title': 'פריסה', 'set.poster.title': 'גודל פוסטרים',
+  'set.nosrc.title': 'כותרים בלי מקורות', 'set.nosrc.grey': 'להאפיר', 'set.nosrc.hide': 'להסתיר',
+  'set.nosrc.note': 'כותר שאין לו כרגע מקור צפייה — להשאיר אותו מעומעם, או להוציא אותו מהמסך.',
+  'set.home.title': 'קטגוריות במסך הבית', 'set.home.note': 'סמן מה יוצג, והזז למעלה או למטה כדי לקבוע את הסדר.',
+  'set.home.up': 'הזז למעלה', 'set.home.down': 'הזז למטה',
+  'set.rtv.connected': 'מחובר עם קוד {code}. הערוצים נמצאים ב<a href="#/live">שידור חי</a> ← RaspberryTV.',
+  'set.rtv.clear': 'הסר את קוד הגישה',
+  'set.rtv.help': 'קוד הגישה לאפליקציות (8 תווים) נמצא בחשבון RaspberryTV, תחת "Access key for applications". הוא נשמר רק במכשיר הזה.',
+  'set.rtv.enter': 'הזן את קוד הגישה',
+  'set.pl.title': 'פלייליסטים (M3U)', 'set.pl.name': 'שם', 'set.pl.nameAria': 'שם הפלייליסט', 'set.pl.urlAria': 'קישור לפלייליסט (M3U)',
+  'set.pl.hint': 'כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).',
+  'set.pl.default': 'הפלייליסט שלי', 'set.pl.empty': 'לא נמצאו ערוצים בפלייליסט',
+  'set.pl.added': 'נוסף „{name}” עם {n} ערוצים.', 'set.pl.failed': 'לא ניתן לטעון את הפלייליסט ({err}).',
+  'set.addons.title': 'תוספים', 'set.addons.note': 'מקורות הקטלוג והצפייה של VEO.', 'set.addons.manage': 'ניהול תוספים',
+  'set.subs.title': 'כתוביות',
+  'set.subs.note': 'כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.',
+  'set.reset.title': 'איפוס', 'set.reset.note': 'מחזיר את כל ההגדרות לברירת המחדל. הספרייה, היסטוריית הצפייה וקוד ה־RaspberryTV נשמרים.',
+  'set.reset.btn': 'איפוס לברירת המחדל',
+  'set.about.title': 'על VEO', 'set.about.version': ' · גרסה {v}', 'set.about.browser': ' · תצוגת דפדפן',
+  'set.about.check': 'בדוק אם יש גרסה חדשה', 'set.about.checking': 'בודק…',
+  'set.about.found': 'נמצאה גרסה חדשה', 'set.about.latest': 'זו הגרסה העדכנית',
+  'addons.intro': 'הדבק קישור manifest של כל תוסף תואם Stremio. הקטלוגים, הפרטים ומקורות הצפייה מגיעים מהתוספים שמותקנים כאן.',
+  'addons.manifestAria': 'קישור manifest', 'addons.install': 'התקן',
+  'addons.hidden': '{n} תוספים לא זמינים כרגע ומוסתרים.', 'addons.already': 'התוסף הזה כבר מותקן.',
+  'addons.invalid': 'זה לא קובץ manifest תקין', 'addons.installed': '{name} הותקן.',
+  'addons.failed': 'ההתקנה נכשלה: {err}. ודא שהקישור מסתיים ב־manifest.json.',
+},
+en: {
+  'common.close': 'Close', 'common.cancel': 'Cancel', 'common.retry': 'Try again', 'common.loading': 'Loading…',
+  'common.remove': 'Remove', 'common.add': 'Add', 'common.removed': 'Removed.',
+  'nav.home': 'Movies & Series', 'nav.tv': 'Channels', 'nav.live': 'Live TV', 'nav.library': 'Library', 'nav.settings': 'Settings',
+  'nav.homeAria': 'VEO – Home',
+  'search.placeholder': 'Search movies & series', 'search.aria': 'Search', 'search.button': 'Search',
+  'cats.aria': 'Categories',
+  'net.offline': 'No internet connection', 'net.offbar': 'No internet connection. VEO will carry on as soon as it is back.', 'net.noResponse': 'No response',
+  'update.available': 'Version {tag} is available', 'update.now': 'Update now', 'update.later': 'Not now',
+  'player.badFormat': 'The browser cannot play this format. Try another source.',
+  'skin.tungsten.name': 'Tungsten', 'skin.tungsten.note': 'Warm amber on night blue',
+  'skin.midnight.name': 'Midnight', 'skin.midnight.note': 'Pure black for OLED screens, teal',
+  'skin.velvet.name': 'Velvet', 'skin.velvet.note': 'Wine red with gold',
+  'skin.forest.name': 'Forest', 'skin.forest.note': 'Deep green with lime',
+  'skin.daylight.name': 'Daylight', 'skin.daylight.note': 'Light background, red accent',
+  'layout.cinema.name': 'Cinema', 'layout.cinema.note': 'Big banner and scrolling rows',
+  'layout.grid.name': 'Poster wall', 'layout.grid.note': 'No banner; every row unfolds into a grid',
+  'layout.list.name': 'List', 'layout.list.note': 'Compact rows with titles. Best on a phone',
+  'layout.tv.name': 'TV', 'layout.tv.note': 'Large posters and text for the remote',
+  'poster.s': 'Small', 'poster.m': 'Medium', 'poster.l': 'Large',
+  'set.title': 'Settings', 'set.tabsAria': 'Settings sections',
+  'set.tab.start': 'Startup & viewing', 'set.tab.look': 'Look & display', 'set.tab.home': 'Home screen',
+  'set.tab.live': 'Live TV & playlists', 'set.tab.addons': 'Add-ons & subtitles', 'set.tab.about': 'Reset & about',
+  'set.start.title': 'Start screen', 'set.start.note': 'What opens when you start VEO.',
+  'set.kids.title': 'Kids mode', 'set.kids.off': 'Off', 'set.kids.on': 'On', 'set.kids.note': 'In kids mode the home screen shows only kids’ titles.',
+  'set.lang.title': 'Titles & summaries', 'set.lang.he': 'Hebrew', 'set.lang.en': 'English',
+  'set.lang.note': 'Hebrew titles come from Wikidata and summaries from Hebrew Wikipedia. Titles without a Hebrew entry stay in English.',
+  'set.uilang.title': 'Interface language', 'set.uilang.note': 'The language of menus and buttons. The layout direction (right-to-left or left-to-right) follows automatically.',
+  'set.skin.title': 'Theme', 'set.layout.title': 'Layout', 'set.poster.title': 'Poster size',
+  'set.nosrc.title': 'Titles without sources', 'set.nosrc.grey': 'Grey out', 'set.nosrc.hide': 'Hide',
+  'set.nosrc.note': 'A title with nothing to watch right now: keep it dimmed, or take it off the screen.',
+  'set.home.title': 'Home screen categories', 'set.home.note': 'Tick what to show, and move entries up or down to set the order.',
+  'set.home.up': 'Move up', 'set.home.down': 'Move down',
+  'set.rtv.connected': 'Connected with key {code}. The channels are under <a href="#/live">Live TV</a> → RaspberryTV.',
+  'set.rtv.clear': 'Remove access key',
+  'set.rtv.help': 'The application access key (8 characters) is in your RaspberryTV account, under "Access key for applications". It is stored on this device only.',
+  'set.rtv.enter': 'Enter access key',
+  'set.pl.title': 'Playlists (M3U)', 'set.pl.name': 'Name', 'set.pl.nameAria': 'Playlist name', 'set.pl.urlAria': 'Playlist link (M3U)',
+  'set.pl.hint': 'Any M3U playlist works, including one on your home network (for example TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).',
+  'set.pl.default': 'My playlist', 'set.pl.empty': 'No channels found in the playlist',
+  'set.pl.added': 'Added “{name}” with {n} channels.', 'set.pl.failed': 'Could not load the playlist ({err}).',
+  'set.addons.title': 'Add-ons', 'set.addons.note': 'The catalogue and streaming sources VEO uses.', 'set.addons.manage': 'Manage add-ons',
+  'set.subs.title': 'Subtitles',
+  'set.subs.note': 'Hebrew subtitles are added automatically to every movie and episode (Wizdom and OpenSubtitles), matched to the version you chose. Change or turn them off with the subtitles button in the player.',
+  'set.reset.title': 'Reset', 'set.reset.note': 'Restores every setting to its default. Your library, watch history and RaspberryTV key are kept.',
+  'set.reset.btn': 'Reset to defaults',
+  'set.about.title': 'About VEO', 'set.about.version': ' · version {v}', 'set.about.browser': ' · browser preview',
+  'set.about.check': 'Check for updates', 'set.about.checking': 'Checking…',
+  'set.about.found': 'A new version is available', 'set.about.latest': 'You have the latest version',
+  'addons.intro': 'Paste the manifest link of any Stremio-compatible add-on. Catalogues, details and streaming sources come from the add-ons installed here.',
+  'addons.manifestAria': 'Manifest link', 'addons.install': 'Install',
+  'addons.hidden': '{n} add-ons are unavailable right now and hidden.', 'addons.already': 'This add-on is already installed.',
+  'addons.invalid': 'This is not a valid manifest file', 'addons.installed': '{name} installed.',
+  'addons.failed': 'Installation failed: {err}. Make sure the link ends with manifest.json.',
+},
+};
+let UI = (() => { try{ const l = JSON.parse(localStorage.getItem('booth:settings') || '{}').uiLang; return STRINGS[l] ? l : 'he'; }catch(e){ return 'he'; } })();
+/** A UI string, falling back to Hebrew and then to the key itself. */
+function tr(key, vars){
+  const s = STRINGS[UI]?.[key] ?? STRINGS.he[key] ?? key;
+  return vars ? s.replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m) : s;
+}
+/** Set lang and direction, and fill in the static markup (data-i18n, data-i18n-ph, data-i18n-aria). */
+function applyUiLang(){
+  const r = document.documentElement;
+  r.lang = UI; r.dir = dirOf(UI);
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = tr(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', tr(el.dataset.i18nAria)); });
+}
+/** Console helper: keys one language has and another lacks. */
+const missingStrings = () => { const all = new Set(Object.values(STRINGS).flatMap(Object.keys)); return Object.fromEntries(Object.keys(STRINGS).map(l => [l, [...all].filter(k => !(k in STRINGS[l]))])); };
+/** The key that moves forward along a row: ArrowLeft in right-to-left, ArrowRight in left-to-right. */
+const FWD = () => document.documentElement.dir === 'rtl' ? 'left' : 'right';
+applyUiLang();
+</script>
 <script>
 /* ---------- storage ---------- */
 const store = {
@@ -555,10 +699,10 @@ const $ = s => document.querySelector(s);
 /** Failed load: one calm line and a button that runs the same load again. */
 function showErr(el, what, e, retry){
   if(!el) return;
-  const why = !navigator.onLine ? 'אין חיבור לאינטרנט' : (e?.message || '');
-  el.innerHTML = `<div class="oops"><span>${esc(what)}${why ? ` · ${esc(why)}` : ''}</span>${retry ? '<button>נסה שוב</button>' : ''}</div>`;
+  const why = !navigator.onLine ? tr('net.offline') : (e?.message || '');
+  el.innerHTML = `<div class="oops"><span>${esc(what)}${why ? ` · ${esc(why)}` : ''}</span>${retry ? `<button>${tr('common.retry')}</button>` : ''}</div>`;
   const b = el.querySelector('button');
-  if(b) b.onclick = () => { el.innerHTML = '<p class="note">טוען…</p>'; retry(); };
+  if(b) b.onclick = () => { el.innerHTML = `<p class="note">${tr('common.loading')}</p>`; retry(); };
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const normUrl = u => u.trim().replace(/^stremio:\/\//, 'https://');
@@ -568,7 +712,7 @@ async function fetchTimed(url, ms, opts){
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), ms);
   try{ return await fetch(url, {...opts, signal: ctl.signal}); }
-  catch(e){ throw new Error(e.name === 'AbortError' ? 'אין תגובה' : e.message); }
+  catch(e){ throw new Error(e.name === 'AbortError' ? tr('net.noResponse') : e.message); }
   finally{ clearTimeout(timer); }
 }
 async function getJSON(url, ms = 9000){
@@ -2293,49 +2437,39 @@ async function viewLive(){
 
 /* ---------- settings: skins & layouts ---------- */
 const SKINS = [
-  {id: 'tungsten', name: 'טונגסטן', note: 'ענבר חם על כחול לילה', c: ['#14161f', '#272c3f', '#f0b429', '#efe6cf']},
-  {id: 'midnight', name: 'חצות', note: 'שחור מלא למסכי OLED, טורקיז', c: ['#000000', '#171b22', '#3dd6d0', '#e8eef5']},
-  {id: 'velvet', name: 'קטיפה', note: 'אדום יין עם זהב', c: ['#1a0f14', '#331e27', '#e8b86b', '#f6e7dc']},
-  {id: 'forest', name: 'יער', note: 'ירוק עמוק עם ליים', c: ['#0f1a15', '#1e3027', '#9be15d', '#e6efe4']},
-  {id: 'daylight', name: 'אור יום', note: 'רקע בהיר, הדגשה באדום', c: ['#f4efe6', '#ebe3d5', '#c8412d', '#1d1a16']},
+  {id: 'tungsten', c: ['#14161f', '#272c3f', '#f0b429', '#efe6cf']},
+  {id: 'midnight', c: ['#000000', '#171b22', '#3dd6d0', '#e8eef5']},
+  {id: 'velvet', c: ['#1a0f14', '#331e27', '#e8b86b', '#f6e7dc']},
+  {id: 'forest', c: ['#0f1a15', '#1e3027', '#9be15d', '#e6efe4']},
+  {id: 'daylight', c: ['#f4efe6', '#ebe3d5', '#c8412d', '#1d1a16']},
 ];
 const LAYOUTS = [
-  {id: 'cinema', name: 'קולנוע', note: 'באנר גדול ושורות גוללות',
-   prev: '<i class="b"></i><span class="r">' + '<i></i>'.repeat(5) + '</span>'},
-  {id: 'grid', name: 'קיר פוסטרים', note: 'בלי באנר; כל שורה נפרשת לרשת',
-   prev: ('<span class="r">' + '<i></i>'.repeat(6) + '</span>').repeat(3)},
-  {id: 'list', name: 'רשימה', note: 'שורות קומפקטיות עם שמות. הכי נוח בטלפון',
-   prev: '<span class="l"><i></i><em></em></span>'.repeat(3)},
-  {id: 'tv', name: 'טלוויזיה', note: 'פוסטרים וטקסט גדולים לשלט',
-   prev: '<i class="b"></i><span class="r big">' + '<i></i>'.repeat(3) + '</span>'},
+  {id: 'cinema', prev: '<i class="b"></i><span class="r">' + '<i></i>'.repeat(5) + '</span>'},
+  {id: 'grid', prev: ('<span class="r">' + '<i></i>'.repeat(6) + '</span>').repeat(3)},
+  {id: 'list', prev: '<span class="l"><i></i><em></em></span>'.repeat(3)},
+  {id: 'tv', prev: '<i class="b"></i><span class="r big">' + '<i></i>'.repeat(3) + '</span>'},
 ];
-const POSTER_SIZES = [{id: 's', name: 'קטן'}, {id: 'm', name: 'בינוני'}, {id: 'l', name: 'גדול'}];
+const POSTER_SIZES = ['s', 'm', 'l'];
 const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off'}, store.get('settings', {}));
+let settings = Object.assign({skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off'}, store.get('settings', {}));
 function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
+  if(STRINGS[settings.uiLang] && settings.uiLang !== UI){ UI = settings.uiLang; applyUiLang(); }
 }
 applySettings();
 
 /* Settings: one page per subject, chosen from the menu on the side. Nothing is more than
    two moves away with the remote, and every screen fits without scrolling. */
-const SETTINGS_TABS = [
-  ['start',  'פתיחה וצפייה'],
-  ['look',   'עיצוב ותצוגה'],
-  ['home',   'מסך הבית'],
-  ['live',   'שידור חי ופלייליסטים'],
-  ['addons', 'תוספים וכתוביות'],
-  ['about',  'איפוס ומידע'],
-];
+const SETTINGS_TABS = ['start', 'look', 'home', 'live', 'addons', 'about'];
 let setTab = 'start';
 
 function viewSettings(tab){
-  setTab = SETTINGS_TABS.some(([id]) => id === tab) ? tab : setTab;
-  $('#app').innerHTML = `<div class="page"><h1>הגדרות</h1>
+  setTab = SETTINGS_TABS.includes(tab) ? tab : setTab;
+  $('#app').innerHTML = `<div class="page"><h1>${tr('set.title')}</h1>
     <div class="sgrid">
-      <nav class="stabs" role="tablist" aria-label="נושאי ההגדרות">${SETTINGS_TABS.map(([id, name]) =>
-        `<button role="tab" data-tab="${id}" class="${setTab === id ? 'on' : ''}" aria-selected="${setTab === id}">${name}</button>`).join('')}</nav>
+      <nav class="stabs" role="tablist" aria-label="${esc(tr('set.tabsAria'))}">${SETTINGS_TABS.map(id =>
+        `<button role="tab" data-tab="${id}" class="${setTab === id ? 'on' : ''}" aria-selected="${setTab === id}">${tr('set.tab.' + id)}</button>`).join('')}</nav>
       <div class="spane" id="spane" role="tabpanel"></div>
     </div></div>`;
   $('.stabs').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
@@ -2361,7 +2495,7 @@ function paintSettings(){
       `<button class="${settings[g] === v ? 'on' : ''}" data-g="${g}" data-v="${v}" aria-pressed="${settings[g] === v}">${n}</button>`).join('')}</div>
     ${note ? `<p class="note" style="margin:8px 0 0">${note}</p>` : ''}</section>`;
   const optCard = (g, o, preview) => `<button class="setopt ${settings[g] === o.id ? 'on' : ''}" data-g="${g}" data-v="${o.id}" aria-pressed="${settings[g] === o.id}">
-      ${preview}<span class="sn">${esc(o.name)}</span><span class="sd">${esc(o.note)}</span></button>`;
+      ${preview}<span class="sn">${tr(`${g}.${o.id}.name`)}</span><span class="sd">${tr(`${g}.${o.id}.note`)}</span></button>`;
   const swatch = o => `<span class="swatch" style="background:${o.c[0]}" aria-hidden="true"><i style="background:${o.c[1]}"></i><i style="background:${o.c[2]}"></i><b style="color:${o.c[3]}">Aa</b></span>`;
   const hidden = new Set(settings.hiddenCats || []);
   const ordered = [...(settings.cats || []), ...CATEGORIES.map(c => c.id).filter(id => !(settings.cats || []).includes(id))]
@@ -2369,54 +2503,55 @@ function paintSettings(){
   const rtv = store.get('rtvKey', '');
 
   const panes = {
-    start: () => seg('start', 'מסך פתיחה', [['vod', 'סרטים וסדרות'], ['live', 'שידור חי']],
-        'מה נפתח כשמדליקים את VEO.')
-      + seg('kids', 'מצב ילדים', [['off', 'כבוי'], ['on', 'פעיל']],
-        'במצב ילדים מסך הבית מציג רק תכני ילדים.')
-      + seg('lang', 'שמות ותקצירים', [['he', 'עברית'], ['en', 'English']],
-        'השמות בעברית מגיעים מ־Wikidata והתקצירים מוויקיפדיה העברית. כותרים בלי ערך בעברית נשארים באנגלית.'),
+    start: () => seg('uiLang', tr('set.uilang.title'), UI_LANGS, tr('set.uilang.note'))
+      + seg('start', tr('set.start.title'), [['vod', tr('nav.home')], ['live', tr('nav.live')]], tr('set.start.note'))
+      + seg('kids', tr('set.kids.title'), [['off', tr('set.kids.off')], ['on', tr('set.kids.on')]], tr('set.kids.note'))
+      + seg('lang', tr('set.lang.title'), [['he', tr('set.lang.he')], ['en', tr('set.lang.en')]], tr('set.lang.note')),
 
-    look: () => `<section class="sset"><h2>ערכת עיצוב</h2><div class="sopts">${SKINS.map(o => optCard('skin', o, swatch(o))).join('')}</div></section>
-      <section class="sset"><h2>פריסה</h2><div class="sopts">${LAYOUTS.map(o => optCard('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>`
-      + seg('poster', 'גודל פוסטרים', POSTER_SIZES.map(o => [o.id, esc(o.name)]))
-      + seg('nosrc', 'כותרים בלי מקורות', [['grey', 'להאפיר'], ['hide', 'להסתיר']],
-        'כותר שאין לו כרגע מקור צפייה — להשאיר אותו מעומעם, או להוציא אותו מהמסך.'),
+    look: () => `<section class="sset"><h2>${tr('set.skin.title')}</h2><div class="sopts">${SKINS.map(o => optCard('skin', o, swatch(o))).join('')}</div></section>
+      <section class="sset"><h2>${tr('set.layout.title')}</h2><div class="sopts">${LAYOUTS.map(o => optCard('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>`
+      + seg('poster', tr('set.poster.title'), POSTER_SIZES.map(id => [id, tr('poster.' + id)]))
+      + seg('nosrc', tr('set.nosrc.title'), [['grey', tr('set.nosrc.grey')], ['hide', tr('set.nosrc.hide')]], tr('set.nosrc.note')),
 
-    home: () => `<section class="sset"><h2>קטגוריות במסך הבית</h2>
-      <p class="note" style="margin:0 0 10px">סמן מה יוצג, והזז למעלה או למטה כדי לקבוע את הסדר.</p>
+    home: () => `<section class="sset"><h2>${tr('set.home.title')}</h2>
+      <p class="note" style="margin:0 0 10px">${tr('set.home.note')}</p>
       <div class="catorder">${ordered.map((c, i) => `<div>
         <label><input type="checkbox" data-cat="${c.id}" ${hidden.has(c.id) ? '' : 'checked'}><bdi>${esc(c.name)}</bdi></label>
-        <button data-up="${i}" aria-label="הזז למעלה" ${i ? '' : 'disabled'}>▲</button><button data-down="${i}" aria-label="הזז למטה" ${i < ordered.length - 1 ? '' : 'disabled'}>▼</button></div>`).join('')}</div></section>`,
+        <button data-up="${i}" aria-label="${esc(tr('set.home.up'))}" ${i ? '' : 'disabled'}>▲</button><button data-down="${i}" aria-label="${esc(tr('set.home.down'))}" ${i < ordered.length - 1 ? '' : 'disabled'}>▼</button></div>`).join('')}</div></section>`,
 
     live: () => `<section class="sset"><h2>RaspberryTV</h2>
-      ${rtv ? `<p class="note" style="margin:0 0 10px">מחובר עם קוד <b dir="ltr">${esc(rtv.slice(0, 2))}••••••</b>. הערוצים נמצאים ב<a href="#/live">שידור חי</a> ← RaspberryTV.</p>
-        <button class="danger" id="rtvClear">הסר את קוד הגישה</button>`
-      : `<p class="note" style="margin:0 0 10px">קוד הגישה לאפליקציות (8 תווים) נמצא בחשבון RaspberryTV, תחת "Access key for applications". הוא נשמר רק במכשיר הזה.</p>
-        <div class="keyform"><button class="btn primary" id="rtvSet">הזן את קוד הגישה</button></div>`}</section>
-      <section class="sset"><h2>פלייליסטים (M3U)</h2>
-      ${playlists.map(p => `<div class="plrow"><b>${esc(p.name)}</b><code dir="ltr">${esc(p.url)}</code><button class="danger" data-plrm="${esc(p.url)}">הסר</button></div>`).join('')}
-      <form class="addpl" id="plf"><input class="field" id="pln" placeholder="שם" aria-label="שם הפלייליסט">
-        <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="קישור לפלייליסט (M3U)" dir="ltr"><button class="btn primary">הוסף</button></form>
-      <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>`,
+      ${rtv ? `<p class="note" style="margin:0 0 10px">${tr('set.rtv.connected', {code: `<b dir="ltr">${esc(rtv.slice(0, 2))}••••••</b>`})}</p>
+        <button class="danger" id="rtvClear">${tr('set.rtv.clear')}</button>`
+      : `<p class="note" style="margin:0 0 10px">${tr('set.rtv.help')}</p>
+        <div class="keyform"><button class="btn primary" id="rtvSet">${tr('set.rtv.enter')}</button></div>`}</section>
+      <section class="sset"><h2>${tr('set.pl.title')}</h2>
+      ${playlists.map(p => `<div class="plrow"><b>${esc(p.name)}</b><code dir="ltr">${esc(p.url)}</code><button class="danger" data-plrm="${esc(p.url)}">${tr('common.remove')}</button></div>`).join('')}
+      <form class="addpl" id="plf"><input class="field" id="pln" placeholder="${esc(tr('set.pl.name'))}" aria-label="${esc(tr('set.pl.nameAria'))}">
+        <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="${esc(tr('set.pl.urlAria'))}" dir="ltr"><button class="btn primary">${tr('common.add')}</button></form>
+      <p class="hint" style="margin:0">${tr('set.pl.hint')}</p></section>`,
 
-    addons: () => `<section class="sset"><h2>תוספים</h2>
-      <p class="note" style="margin:0 0 10px">מקורות הקטלוג והצפייה של VEO.</p>
-      <div class="keyform"><a class="btn primary" href="#/addons">ניהול תוספים</a></div></section>
-      <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>`,
+    addons: () => `<section class="sset"><h2>${tr('set.addons.title')}</h2>
+      <p class="note" style="margin:0 0 10px">${tr('set.addons.note')}</p>
+      <div class="keyform"><a class="btn primary" href="#/addons">${tr('set.addons.manage')}</a></div></section>
+      <section class="sset"><h2>${tr('set.subs.title')}</h2><p class="note" style="margin:0">${tr('set.subs.note')}</p></section>`,
 
-    about: () => `<section class="sset"><h2>איפוס</h2>
-      <p class="note" style="margin:0 0 10px">מחזיר את כל ההגדרות לברירת המחדל. הספרייה, היסטוריית הצפייה וקוד ה־RaspberryTV נשמרים.</p>
-      <div class="keyform"><button class="danger" id="sreset">איפוס לברירת המחדל</button></div></section>
-      <section class="sset"><h2>על VEO</h2>
-      <p class="note" style="margin:0 0 10px">VEO${APP_VERSION ? ` · גרסה ${esc(APP_VERSION)}` : ' · תצוגת דפדפן'}</p>
-      <div class="keyform"><button class="btn primary" id="supd">בדוק אם יש גרסה חדשה</button></div></section>`,
+    about: () => `<section class="sset"><h2>${tr('set.reset.title')}</h2>
+      <p class="note" style="margin:0 0 10px">${tr('set.reset.note')}</p>
+      <div class="keyform"><button class="danger" id="sreset">${tr('set.reset.btn')}</button></div></section>
+      <section class="sset"><h2>${tr('set.about.title')}</h2>
+      <p class="note" style="margin:0 0 10px">VEO${APP_VERSION ? tr('set.about.version', {v: esc(APP_VERSION)}) : tr('set.about.browser')}</p>
+      <div class="keyform"><button class="btn primary" id="supd">${tr('set.about.check')}</button></div></section>`,
   };
   pane.innerHTML = (panes[setTab] || panes.start)();
 
   // one place that stores a choice, whichever pane it came from
   pane.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
     settings[b.dataset.g] = b.dataset.v;
-    store.set('settings', settings); applySettings(); paintSettings();
+    store.set('settings', settings); applySettings();
+    if(b.dataset.g === 'uiLang'){                    // every word on screen changes: draw the whole screen again
+      route();
+      document.querySelector(`[data-g="uiLang"][data-v="${b.dataset.v}"]`)?.focus();
+    } else paintSettings();
   });
   if($('#rtvSet')) $('#rtvSet').onclick = () => openRtvKey(paintSettings);
   if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); rtvCache = null; paintSettings(); };
@@ -2425,17 +2560,17 @@ function paintSettings(){
   });
   if($('#plf')) $('#plf').onsubmit = async e => {
     e.preventDefault();
-    const url = $('#plu').value.trim(), name = $('#pln').value.trim() || 'הפלייליסט שלי';
+    const url = $('#plu').value.trim(), name = $('#pln').value.trim() || tr('set.pl.default');
     if(!url) return;
     try{
       const chans = parseM3U(await fetchText(url));
-      if(!chans.length) throw new Error('לא נמצאו ערוצים בפלייליסט');
+      if(!chans.length) throw new Error(tr('set.pl.empty'));
       playlistCache[url] = chans;
       playlists = playlists.filter(p => p.url !== url).concat({name, url});
       store.set('playlists', playlists);
-      alert(`נוסף „${name}” עם ${chans.length} ערוצים.`);
+      alert(tr('set.pl.added', {name, n: chans.length}));
       paintSettings();
-    }catch(err){ alert(`לא ניתן לטעון את הפלייליסט (${err.message}).`); }
+    }catch(err){ alert(tr('set.pl.failed', {err: err.message})); }
   };
   const saveCats = ids => { settings.cats = ids; store.set('settings', settings); paintSettings(); };
   pane.querySelectorAll('[data-cat]').forEach(cb => cb.onchange = () => {
@@ -2450,39 +2585,40 @@ function paintSettings(){
   });
   if($('#supd')) $('#supd').onclick = async () => {
     store.set('updSkip', '');
-    $('#supd').textContent = 'בודק…';
+    $('#supd').textContent = tr('set.about.checking');
     await checkUpdate(true);
-    $('#supd').textContent = document.querySelector('.update') ? 'נמצאה גרסה חדשה' : 'זו הגרסה העדכנית';
+    $('#supd').textContent = document.querySelector('.update') ? tr('set.about.found') : tr('set.about.latest');
   };
-  if($('#sreset')) $('#sreset').onclick = () => {
-    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', nosrc: 'grey', start: 'vod', kids: 'off'};
+  if($('#sreset')) $('#sreset').onclick = () => {          // the language stays: resetting must never strand someone in a language they cannot read
+    settings = {skin: 'tungsten', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: settings.uiLang, nosrc: 'grey', start: 'vod', kids: 'off'};
     store.set('settings', settings); applySettings(); paintSettings();
   };
   if(focusKey) pane.querySelector(focusKey)?.focus();
 }
 
 function viewAddons(msg){
-  $('#app').innerHTML = `<div class="page"><h1>תוספים</h1>
-    <p class="note" style="max-width:68ch">הדבק קישור manifest של כל תוסף תואם Stremio. הקטלוגים, הפרטים ומקורות הצפייה מגיעים מהתוספים שמותקנים כאן.</p>
-    <form class="add" id="addf"><input class="field" id="aurl" placeholder="https://…/manifest.json" aria-label="קישור manifest" dir="ltr"><button class="btn primary">התקן</button></form>
+  const shown = addons.filter(a => !a.local);
+  $('#app').innerHTML = `<div class="page"><h1>${tr('set.addons.title')}</h1>
+    <p class="note" style="max-width:68ch">${tr('addons.intro')}</p>
+    <form class="add" id="addf"><input class="field" id="aurl" placeholder="https://…/manifest.json" aria-label="${esc(tr('addons.manifestAria'))}" dir="ltr"><button class="btn primary">${tr('addons.install')}</button></form>
     ${msg ? `<p class="${msg.err?'err':'note'}">${esc(msg.text)}</p>` : ''}
-    ${addons.filter(a => !a.local).map(a => `<div class="addon">${a.manifest.logo ? `<img src="${esc(a.manifest.logo)}" alt="">` : '<div class="ph"></div>'}
+    ${shown.map(a => `<div class="addon">${a.manifest.logo ? `<img src="${esc(a.manifest.logo)}" alt="">` : '<div class="ph"></div>'}
       <div><h3>${esc(a.manifest.name)} <span class="note">v${esc(a.manifest.version)}</span></h3><p>${esc(a.manifest.description)}</p><p>${esc((a.manifest.resources||[]).map(r => r.name||r).join(', '))}</p></div>
-      <button class="danger" data-u="${esc(a.url)}">הסר</button></div>`).join('')}
-    ${addonUrls.length > addons.filter(a => !a.local).length ? `<p class="err">${addonUrls.length - addons.filter(a => !a.local).length} תוספים לא זמינים כרגע ומוסתרים.</p>` : ''}</div>`;
+      <button class="danger" data-u="${esc(a.url)}">${tr('common.remove')}</button></div>`).join('')}
+    ${addonUrls.length > shown.length ? `<p class="err">${tr('addons.hidden', {n: addonUrls.length - shown.length})}</p>` : ''}</div>`;
   $('#addf').onsubmit = async e => {
     e.preventDefault();
     const url = $('#aurl').value.trim(); if(!url) return;
-    if(addonUrls.includes(url)) return viewAddons({text:'התוסף הזה כבר מותקן.'});
+    if(addonUrls.includes(url)) return viewAddons({text: tr('addons.already')});
     try{
       const m = await getJSON(normUrl(url));
-      if(!m.id || !m.resources) throw new Error('זה לא קובץ manifest תקין');
+      if(!m.id || !m.resources) throw new Error(tr('addons.invalid'));
       addonUrls.push(url); store.set('addons', addonUrls); await loadAddons();
-      viewAddons({text:`${m.name} הותקן.`});
-    }catch(err){ viewAddons({text:`ההתקנה נכשלה: ${err.message}. ודא שהקישור מסתיים ב־manifest.json.`, err:true}); }
+      viewAddons({text: tr('addons.installed', {name: m.name})});
+    }catch(err){ viewAddons({text: tr('addons.failed', {err: err.message}), err: true}); }
   };
   document.querySelectorAll('.danger').forEach(b => b.onclick = async () => {
-    addonUrls = addonUrls.filter(u => u !== b.dataset.u); store.set('addons', addonUrls); await loadAddons(); viewAddons({text:'הוסר.'});
+    addonUrls = addonUrls.filter(u => u !== b.dataset.u); store.set('addons', addonUrls); await loadAddons(); viewAddons({text: tr('common.removed')});
   });
 }
 
@@ -2521,7 +2657,7 @@ function openPlayer(s, title, ctx){
         store.set('progress', progress);
         indexProgress();
       });
-      v.addEventListener('error', () => body.insertAdjacentHTML('afterbegin', `<p class="err" style="position:absolute;top:70px;right:20px">הדפדפן לא יכול לנגן את הפורמט הזה. נסה מקור אחר.</p>`));
+      v.addEventListener('error', () => body.insertAdjacentHTML('afterbegin', `<p class="err" style="position:absolute;top:70px;inset-inline-end:20px">${tr('player.badFormat')}</p>`));
     }
   }
   $('#player').classList.add('open');
@@ -2563,8 +2699,8 @@ async function checkUpdate(force){
     .filter(l => l && !/^co-authored|^🤖|^https?:/i.test(l)).slice(0, 2).join(' · ');
   const card = document.createElement('div');
   card.className = 'update';
-  card.innerHTML = `<span><b>גרסה ${esc(tag)} זמינה</b>${what ? ` · ${esc(what.slice(0, 120))}` : ''}</span>
-    <span class="btns"><button class="go" id="updGo">עדכן עכשיו</button><button id="updLater">לא עכשיו</button></span>`;
+  card.innerHTML = `<span><b>${tr('update.available', {tag: esc(tag)})}</b>${what ? ` · ${esc(what.slice(0, 120))}` : ''}</span>
+    <span class="btns"><button class="go" id="updGo">${tr('update.now')}</button><button id="updLater">${tr('update.later')}</button></span>`;
   document.body.appendChild(card);
   $('#updGo').onclick = () => {
     card.remove();
@@ -2677,7 +2813,7 @@ addEventListener('hashchange', route);
 /* No connection: one bar at the bottom instead of a screenful of errors; the screen reloads by itself
    as soon as the line is back. */
 const offbar = Object.assign(document.createElement('div'), {id: 'offbar', role: 'status'});
-offbar.innerHTML = '<span>אין חיבור לאינטרנט. VEO ימשיך ברגע שהחיבור יחזור.</span>';
+offbar.innerHTML = `<span data-i18n="net.offbar">${tr('net.offbar')}</span>`;
 document.body.appendChild(offbar);
 const paintNet = () => offbar.classList.toggle('on', !navigator.onLine);
 addEventListener('offline', paintNet);
@@ -2756,7 +2892,7 @@ function tvMove(dir){
       }                                              // #cats additionally restores it after its rebuild
       return true;
     }
-    if(dir === 'left'){                             // RTL: what the menu controls is to its left
+    if(dir === FWD()){                              // what the menu controls is on its far side
       const target = $(pane);
       const first = target && (itemsOf(target)[0] || tvRows().filter(r => target.contains(r)).flatMap(itemsOf)[0]);
       if(first) focusItem(first);
@@ -2764,11 +2900,11 @@ function tvMove(dir){
     return true;
   }
   if(dir === 'left' || dir === 'right'){
-    // right-to-left: ArrowLeft goes forward through the row
-    const step = dir === 'left' ? 1 : -1;
+    // ArrowLeft goes forward through a right-to-left row, ArrowRight through a left-to-right one
+    const step = dir === FWD() ? 1 : -1;
     const next = items[i + step];
     if(next){ focusItem(next); return true; }
-    if(dir === 'right'){                            // back to the side menu, if there is one
+    if(dir !== FWD()){                              // back to the side menu, if there is one
       const tab = document.querySelector('.stabs button.on') || document.querySelector('.stabs button');
       if(tab && $('#spane')?.contains(active)) focusItem(tab);
       else if(document.body.classList.contains('railed') && $('#app').contains(active))
@@ -2892,7 +3028,7 @@ addEventListener('visibilitychange', () => { if(document.visibilityState === 'vi
 </script>
 <div id="tstatus" role="status" aria-live="polite" class="tstat">
   <span id="tstatusMsg"></span>
-  <button id="tstatusBtn">ביטול</button>
+  <button id="tstatusBtn"></button>
 </div>
 <script>
 // Torrent progress from the Android engine. Empty message hides the bar.
@@ -2902,7 +3038,7 @@ window.boothTorrentStatus = (msg, isError) => {
   bar.style.display = msg ? 'flex' : 'none';
   bar.classList.toggle('bad', !!isError);
   const btn = document.getElementById('tstatusBtn');
-  btn.textContent = isError ? 'סגור' : 'ביטול';
+  btn.textContent = isError ? tr('common.close') : tr('common.cancel');
   btn.onclick = () => { if (!isError && window.BoothAndroid) BoothAndroid.cancelTorrent(); bar.style.display = 'none'; tvFocus(); };
   if(msg) btn.focus();                                // the way out is the first thing the remote holds
 };
