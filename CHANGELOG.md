@@ -1,5 +1,9 @@
 # VEO Android changelog
 
+## 0.40.4 — 2026-09-21
+- **TV title navigation stays visible.** Moving through seasons and episodes now keeps the focused item inside its own pane instead of letting its text be clipped at the edge.
+- **TV catalog navigation returns where you left it.** Entering the side rail and returning to the catalogue restores focus to the exact movie/title and row instead of jumping to the top.
+
 ## 0.40.2 — 2026-09-20
 - **An update that says why it failed.** Android refuses an install with a toast that names no
   cure (“package conflicts with an existing package”). The app now asks the installer for its
