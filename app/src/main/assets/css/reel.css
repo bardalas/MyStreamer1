@@ -18,24 +18,32 @@
 /* the name is over the picture now; its old place is kept, and the buttons stand in it */
 .poster.spot .t,.poster.spot .y{visibility:hidden}
 
+/* The picture is what the viewer came to see: the words sit in a band along its foot, one line each,
+   and say only what a glance needs. Everything else is on the full page. */
 .spotinfo{position:absolute;inset-inline:0;bottom:0;z-index:2;pointer-events:none;
-  display:flex;flex-direction:column;gap:3px;padding:36px 13px 9px;
-  background:linear-gradient(transparent,var(--shade-55) 32%,#000e)}
-.spotinfo b{font-family:var(--display);font-weight:700;font-size:18px;line-height:1.12;letter-spacing:-.01em}
-.spotinfo .facts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin:0}
+  display:flex;flex-direction:column;gap:1px;padding:26px 12px 8px;
+  background:linear-gradient(transparent,#0009 42%,#000d)}
+.spotinfo b{font-family:var(--display);font-weight:700;font-size:16px;line-height:1.15;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spotinfo .facts{display:flex;align-items:center;gap:7px;margin:0;font-size:11px;color:#fffb;
+  white-space:nowrap;overflow:hidden}
+/* here the facts are a line of words, not the labels they are on a title's own page */
+.spotinfo .facts span{background:none;border:0;border-radius:0;padding:0;font-size:inherit;color:inherit}
+.spotinfo .facts span:not(:first-child)::before{content:"·";margin-inline-end:7px;opacity:.55}
 .spotinfo .facts .imdb{color:var(--tungsten);font-weight:600}
-.spotinfo p{margin:0;font-size:12px;line-height:1.35;color:#fffc;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.spotinfo .svcm{display:inline-flex;vertical-align:-3px}
+.spotinfo p{margin:0;font-size:11.5px;line-height:1.3;color:#fff9;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .spotact{position:absolute;z-index:4;display:flex;gap:8px}
 .spotact .btn{padding:7px 16px;font-size:13px;white-space:nowrap}
 
 /* ---------- at arm's length ---------- */
-[data-layout="tv"] .spotinfo{padding:44px 18px 12px;gap:5px}
-[data-layout="tv"] .spotinfo b{font-size:26px}
-[data-layout="tv"] .spotinfo .facts{font-size:14px;gap:8px}
-[data-layout="tv"] .spotinfo p{font-size:15px}
-[data-layout="tv"] .spotact .btn{padding:9px 20px;font-size:16px}
+[data-layout="tv"] .spotinfo{padding:34px 16px 10px;gap:2px}
+[data-layout="tv"] .spotinfo b{font-size:21px}
+[data-layout="tv"] .spotinfo .facts{font-size:13px}
+[data-layout="tv"] .spotinfo p{font-size:13px}
+[data-layout="tv"] .spotact .btn{padding:8px 18px;font-size:15px}
 
 /* ---------- a phone: the row still scrolls, but the title still opens in place ---------- */
 @media(max-width:899px){

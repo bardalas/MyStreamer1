@@ -10,7 +10,7 @@ import {settings} from '../core/settings.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
 import {heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
-import {svcFacts} from '../data/services.js';
+import {svcMarks} from '../data/services.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {endTaste, startTaste, trailerId} from './taste.js';
@@ -122,10 +122,12 @@ async function paint(el, full){
   if(meta){
     if(meta.background) art.style.backgroundImage = `url('${meta.background.replace(/'/g, '%27')}')`;
     info.querySelector('b').textContent = heTitle(meta.id, meta.name);
-    info.querySelector('.facts').innerHTML = svcFacts(id) + [
+    // one line of it: what it scores, when it is from, how long, what it is - and the marks of whoever has it
+    info.querySelector('.facts').innerHTML = [
       meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`,
       yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`, meta.runtime && `<span>${esc(meta.runtime)}</span>`,
-      ...(meta.genres || meta.genre || []).slice(0, 2).map(g => `<span>${esc(genreName(g))}</span>`)].filter(Boolean).join('');
+      ...(meta.genres || meta.genre || []).slice(0, 1).map(g => `<span>${esc(genreName(g))}</span>`),
+      svcMarks(id) && `<span>${svcMarks(id)}</span>`].filter(Boolean).join('');
     info.querySelector('p').textContent = meta.description || '';
     const go = act?.querySelector('[data-go]');
     if(go && !go.disabled){
