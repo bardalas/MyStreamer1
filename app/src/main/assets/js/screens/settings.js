@@ -3,7 +3,7 @@ import {route} from '../app.js';
 import {fetchText} from '../core/bridge.js';
 import {$, esc} from '../core/dom.js';
 import {LAYOUTS, POSTER_SIZES, SKINS, applySettings, isTv, setSettings, settings} from '../core/settings.js';
-import {store} from '../core/store.js';
+import {dumpStore, loadStore, store} from '../core/store.js';
 import {addons} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
 import {UI_LANGS, tr} from '../i18n.js';
@@ -100,6 +100,13 @@ export function paintSettings(){
     about: () => `<section class="sset"><h2>${tr('set.reset.title')}</h2>
       <p class="note" style="margin:0 0 10px">${tr('set.reset.note')}</p>
       <div class="keyform"><button class="danger" id="sreset">${tr('set.reset.btn')}</button></div></section>
+      <section class="sset"><h2>${tr('set.backup.title')}</h2>
+      <p class="note" style="margin:0 0 10px">${tr('set.backup.note')}</p>
+      <div class="keyform"><button class="btn primary" id="sbmake">${tr('set.backup.make')}</button>
+        <button class="btn" id="sbload">${tr('set.backup.restore')}</button></div>
+      <textarea id="sbtext" rows="4" spellcheck="false" style="width:100%;max-width:560px;font:12px/1.5 monospace"
+        placeholder="${esc(tr('set.backup.ph'))}"></textarea>
+      <p class="note" id="sbmsg" style="margin:8px 0 0"></p></section>
       <section class="sset"><h2>${tr('set.about.title')}</h2>
       <p class="note" style="margin:0 0 10px">VEO${APP_VERSION ? tr('set.about.version', {v: esc(APP_VERSION)}) : tr('set.about.browser')}</p>
       <div class="keyform"><button class="btn primary" id="supd">${tr('set.about.check')}</button></div></section>`,
@@ -157,6 +164,19 @@ export function paintSettings(){
     [ids[i], ids[j]] = [ids[j], ids[i]];
     saveCats(ids);
   });
+  if($('#sbmake')) $('#sbmake').onclick = () => {
+    const text = dumpStore();
+    $('#sbtext').value = text;
+    $('#sbtext').select();
+    navigator.clipboard?.writeText(text).catch(() => {});   // a television has no clipboard: the text itself is the backup
+    $('#sbmsg').textContent = tr('set.backup.made', {n: Object.keys(JSON.parse(text).keys).length});
+  };
+  if($('#sbload')) $('#sbload').onclick = () => {
+    const n = loadStore($('#sbtext').value.trim());
+    if(n < 0){ $('#sbmsg').textContent = tr('set.backup.bad'); return; }
+    $('#sbmsg').textContent = tr('set.backup.done', {n});
+    setTimeout(() => location.reload(), 600);               // everything was read once, at boot: read it again
+  };
   if($('#supd')) $('#supd').onclick = async () => {
     store.set('updSkip', '');
     $('#supd').textContent = tr('set.about.checking');
