@@ -51,6 +51,33 @@ genuinely cannot do:
   card the torrent engine uses, then launches the system package installer.
 - `openSite` / `openExternal` / `openYouTube` / `showKeyboard` / `cancelTorrent`.
 
+### Interface language and direction (`booth.html`)
+The app's own text is `STRINGS.he` / `STRINGS.en` (one flat table per language, in the `<script>` that
+follows the static markup) read through `tr(key, vars)`; static markup uses `data-i18n`,
+`data-i18n-ph` and `data-i18n-aria`. `settings.uiLang` picks the language; it also sets `<html lang dir>`,
+so layout follows (`dirOf`). `missingStrings()` in the console lists keys one language lacks. Adding a
+language = one table + one row in `UI_LANGS`. **Never name anything `t`** in new code that also calls
+`tr()`; the file has many local `t` variables (that is why the function is `tr`).
+`NAMES` holds names of things add-ons describe in English (genres, types, catalogues): shown as they
+come unless a table has them. `settings.lang` is a different thing: Hebrew vs original *titles and
+summaries* from Wikidata. CSS mirrors physical offsets with `--flip` (1 in RTL, -1 in LTR); the D-pad
+"forward" key is `FWD()` (ArrowLeft in RTL). Still Hebrew-only: the Channels/Live TV pages, the library
+and search pages, the native player's strings and status messages.
+
+### Browsing model (`booth.html`)
+The rail lists *collections* (All, Movies, Series, and `CATEGORIES`: Israeli, Kids, Documentaries); the
+pills on every page (`SORT_GROUPS`: Genre, Year, Rating, Sort) *refine* the current collection. When any
+pill is on, `gridFrom()` shows one ranked grid and states how many titles, how sorted and from which
+sources; a genre also pulls Cinemeta's popular/top-rated titles of that genre (`withGenreRows`). Rows carry
+a small tag (`rowTag`): type and source, or the services merged into the row. Genres are not a page any
+more (`viewGenre` just sets the filter, for old links).
+
+### Title page and the TV screen
+On the TV a series page never scrolls the page (`body.titlefit`): the header keeps its size and the
+episode list fills the rest, scrolling inside itself. Play, the quality shortcuts, library and trailer are
+one row (`.playrow`, one D-pad row); the long source list opens under it (`#palt`). A menu column
+(`.seasonbar`, `.stabs`) no longer traps Up/Down at its ends: they lead to the row above/below.
+
 ### Boot sequence (`booth.html`, bottom of the file)
 `boot()`: starts loading add-ons, races them against a 6-second timeout, renders the route with
 whatever answered in time, and — if add-ons were still loading — re-renders home once they finish
@@ -79,15 +106,36 @@ There is no native focus system in a WebView, so one is built from scratch:
 Channel data (`Source`) carries `num`/`logo`/`epg` (a per-channel EPG endpoint URL) sent from
 `booth.html`'s `watchChannel()`. The info banner (`showBanner`/`paintBanner`/`paintNow`) shows the
 channel, current programme with a progress bar, and what's next, refreshing every 30s while up.
-It rises on every channel change, stays ~6s, and OK reopens it with the channel strip attached
-until a channel is picked. Live playback sets `view.useController = false` — no transport controls
-are shown at all, on any device, because live has nothing to seek and the controls would otherwise
-steal the D-pad.
+Live playback sets `view.useController = false` (the controls would steal the D-pad), so every key is
+handled in `dispatchKeyEvent`:
+- **Up/Down** raise the banner and page through the channels *in the banner* (`browseBy`): the banner
+  describes the channel pointed at (`shownIndex`), the video does not change; **OK** tunes to it,
+  Back cancels, and paging left alone ends after 12s.
+- **Hold OK** opens the channel list, a floating `ListView` over the picture (`chPanel`); OK on a row
+  tunes, holding OK on a row opens that channel's catch-up. OK is decided on *release* (`okLong`) so a
+  hold never also fires the short action.
+- **CHANNEL_UP/DOWN and PAGE_UP/DOWN** switch straight away (up = the next number).
+- **Play/Pause** pauses; **Left/Right** (and REWIND/FAST_FORWARD) step 10s back/forward, held = 60s. A
+  live stream can only go back as far as its DVR window.
+
+### Torrent playback
+`TorrentEngine` reports *JSON phases* (`{"p":"buffer","peers":..,"got":..,"need":..}`) and failures as
+`e:<code>`; the page words them (`torrentText` in `booth.html`) so the language stays the page's job.
+The status bar is shown only for waits over ~0.9s. Sources are ranked in `rank()` with a penalty for big
+files, because a stream starts when the first *piece* has arrived and pieces grow with the file.
+The metadata comes from `fetchMagnet`, which drops the magnet's trackers — they are re-added to the
+handle after `session.download`, otherwise the download finds peers through DHT alone.
 
 ### Torrent playback path
 `TorrentEngine` downloads sequentially/prioritized starting from the requested byte range;
 `StreamServer` exposes the partial download over local HTTP so ExoPlayer can play it like any
 other HTTP source, with range requests satisfied as data arrives.
+
+## Building and debugging locally
+Gradle 9.6.0 + Android Studio's bundled JDK build the debug APK (`gradle --no-daemon :app:assembleDebug`);
+`local.properties` needs `sdk.dir` with **forward slashes**. Debug builds enable WebView remote debugging:
+`adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>` then attach chrome://inspect or the
+DevTools protocol to see focus, DOM and console of the real TV screen.
 
 ## Building
 CI is the only supported build path (it holds the release signing secrets):
@@ -135,6 +183,13 @@ for `gradle assembleRelease` (no signing secrets exist outside CI anyway).
   silently turned off all D-pad navigation. `IS_TV_DEVICE` (from `BoothAndroid.isTv()`) covers the
   real device; `settings.layout === 'tv'` alone is kept only so the TV nav model can be exercised
   from a desktop browser during development.
+- **Kotlin string templates must be plain `$`.** A file once contained `${'$'}{x}` (from a shell heredoc)
+  which prints literally: the live banner showed "src.num" and the updater's FileProvider authority was
+  wrong. Grep for `'$'` after generating Kotlin from a script.
+- **`web.requestFocus()` on a WebView that already has focus steals it**: it re-picks the first focusable
+  element and took the caret out of the search box. `showKeyboard()` only requests focus when it has none.
+- **A row counts for the D-pad only if something in it is visible** (`tvRows`): a row whose only focusable
+  is hidden would swallow Down.
 - **`window.BoothAndroid` was deliberately left unrenamed** during the VEO rebrand. It's called
   from hundreds of sites across `booth.html`; renaming it is a pure mechanical risk (JS bridge
   calls fail silently at runtime, not at compile time) for zero user-visible benefit, since it's
