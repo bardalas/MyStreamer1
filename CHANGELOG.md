@@ -1,5 +1,28 @@
 # VEO Android changelog
 
+## 0.36.0 — 2026-09-20
+- **Kan, inside VEO.** Kan's site turns plain requests away, so the app now opens its pages in a browser
+  window of its own and reads them there: כאן BOX arrives as rows of programmes, a programme opens on its
+  seasons and episodes, and an episode plays in VEO's player instead of sending you to the website.
+- **A title card that watches.** On a series the card now offers the episode you are up to ("עונה 1 פרק 3")
+  and plays it; the second button goes to all the episodes and seasons - two buttons, two different places.
+- **A taste where the artwork was**: opening a title starts its trailer behind the words, on the card and on
+  the page, at the quality that starts fastest.
+- **A trailer stays here.** It plays inside VEO; only if YouTube refuses to embed it does a button offer to
+  open it there.
+- Each streaming service is now its own logo beside the title, instead of two letters.
+- **Subtitles**: a panel (Up, while a film plays) to choose which translation is shown and to move it half
+  a second at a time until it fits the picture.
+- **A film opens on the film** - no controls in the way until you ask for them.
+- **Live TV, the way a television behaves**: up is the next channel, and left/right are mirrored with the
+  writing - a press steps to the programme before or after in the archive, holding them runs inside what is
+  playing, and the bar in the banner says where you are. A programme that will not open is retried at the
+  other addresses the service might use for its archive.
+- The programme guide is fetched a few channels at a time, with a short patience, and kept for half an hour:
+  opening the channel list is no longer a wait.
+- On a phone: a title opens on its poster, name and Play - not on half a screen of artwork - and the update
+  card no longer squeezes its buttons into eggs.
+
 ## 0.35.0 — 2026-09-20
 - **A featured title** takes the top of the home screen and of every collection: a different one on each
   visit, with its year, rating and genres, and - when the title came with a trailer - a quiet taste of it

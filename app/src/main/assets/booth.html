@@ -62,10 +62,11 @@ main{padding:0 28px 60px}
 .hero .copy{position:relative;z-index:2;flex:1;min-width:0;padding:0 28px 48px;max-width:760px}
 .hero .facts{margin-bottom:10px}
 .hero .acts{display:flex;flex-wrap:wrap;gap:10px}
-/* the taste: the trailer covers the artwork, quiet and out of reach - the gradient above it keeps the words readable */
-.hero .taste{position:absolute;top:50%;left:50%;width:100vw;height:56.25vw;min-height:100%;min-width:177.78vh;
-  transform:translate(-50%,-50%);border:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .9s}
-.hero .taste.on{opacity:1}
+/* the taste: the trailer covers the artwork, quiet and out of reach - the gradient above it keeps the words
+   readable. Its size is measured and set when it is inserted, so it covers whatever it was put into. */
+.taste{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:0;pointer-events:none;
+  z-index:0;opacity:0;transition:opacity .9s}
+.taste.on{opacity:1}
 .hero h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,56px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
 .hero p{color:var(--text2);max-width:56ch;margin:0 0 18px;font-size:14px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;text-decoration:none}
@@ -113,7 +114,7 @@ main{padding:0 28px 60px}
 .desc{max-width:68ch;color:var(--text2)}
 .people{color:var(--muted);font-size:14px;margin:12px 0 22px;max-width:68ch}
 .people b{color:var(--light);font-weight:500}
-.backdrop{height:50vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative}
+.backdrop{height:50vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative;overflow:hidden}
 .backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night) 12%,var(--shade-50) 60%,var(--shade-20))}
 .dinfo{min-width:0}
 .dinfo .playrow{margin:10px 0}
@@ -399,12 +400,15 @@ main{padding:0 28px 60px}
 
 /* a newer version is out: a quiet card at the bottom, never in the way */
 .update{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9000;
-  display:flex;flex-direction:column;align-items:center;gap:14px;max-width:min(430px,calc(100vw - 48px));
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  width:max-content;max-width:min(430px,calc(100vw - 48px));
   padding:18px 22px;border-radius:14px;background:var(--raise);border:1px solid var(--tungsten);color:var(--light);
   font:14px/1.5 var(--body);text-align:center;box-shadow:0 18px 44px #000a}
-.update .btns{display:flex;gap:10px}
+.update .btns{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 .update b{font-weight:700}
-.update button{border:1px solid var(--line);background:none;color:var(--light);border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer}
+/* a pill whose words are allowed to wrap turns into an egg: they are not */
+.update button{border:1px solid var(--line);background:none;color:var(--light);border-radius:999px;
+  padding:8px 16px;font:inherit;cursor:pointer;white-space:nowrap}
 .update button.go{background:var(--tungsten);color:var(--on-accent);border-color:transparent;font-weight:600}
 [data-layout="tv"] .update{font-size:16px}
 
@@ -435,7 +439,7 @@ main{padding:0 28px 60px}
   .stabs::-webkit-scrollbar{height:0}.stabs button{white-space:nowrap;box-shadow:none}.stabs button.on{box-shadow:inset 0 -3px var(--tungsten)}}
 /* the title card: banner on top, synopsis, actions - a modest sheet, never a full page */
 .titleSheet>div{max-height:92vh}
-.tc-banner{height:min(30vh,220px);background:var(--surface) center 20%/cover}
+.tc-banner{height:min(30vh,220px);background:var(--surface) center 20%/cover;position:relative;overflow:hidden}
 .titleSheet .facts{display:flex;flex-wrap:wrap;gap:8px}
 .titleSheet .qvdesc{max-height:24vh;overflow:auto;margin:0;color:var(--text2)}
 .titleSheet .qvdesc[dir="rtl"]{font-size:15px;line-height:1.7}
@@ -546,8 +550,13 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 .svcs{display:inline-flex;gap:3px;margin-inline-start:6px;vertical-align:-2px;direction:ltr}
 .svcm{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 4px;
   border-radius:5px;color:#fff;font:700 10px/1 var(--body);letter-spacing:.02em}
+/* a logo needs a card behind it: most are black wordmarks, one is written in white */
+.svcm.logo{background:#fff;padding:2px 5px}
+.svcm.logo.night{background:#0b1220}
+.svcm.logo img{height:14px;width:auto;max-width:54px;object-fit:contain;display:block}
 [data-layout="tv"] .svcm{min-width:20px;height:20px;font-size:11px}
-.facts .svcf{background:var(--raise);border:1px solid var(--line)}
+[data-layout="tv"] .svcm.logo img{height:17px;max-width:64px}
+.facts .svcf{background:var(--raise);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px}
 
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
@@ -557,7 +566,17 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 @media (max-width:760px){
   .bar{flex-wrap:wrap;padding:12px 16px;gap:10px 14px}.search{flex:1 1 140px;min-width:0;width:auto}.nav{order:3;width:100%}
   main{padding:0 16px 50px}.hero,.backdrop{margin:0 -16px 28px}
-  .detail{grid-template-columns:1fr;margin-top:-22vh}.detail .poster-lg{width:150px}
+  /* A title on a small screen: less artwork above it, and the poster stands beside the name so that
+     Play is on the first screen instead of below the fold. `display:contents` lets the text block's
+     own children take their places in the same grid, without a second markup for phones. */
+  .backdrop{height:34vh}
+  .detail{grid-template-columns:104px minmax(0,1fr);column-gap:14px;row-gap:0;margin-top:-13vh;align-items:start}
+  .detail .poster-lg{width:104px;grid-column:1;grid-row:1 / span 2}
+  .detail .dinfo{display:contents}
+  .detail h1{grid-column:2;grid-row:1;margin-bottom:6px;font-size:clamp(22px,6vw,30px)}
+  .detail .facts{grid-column:2;grid-row:2;margin:0}
+  .detail .playrow,.detail #palt,.detail .desc,.detail .src,.detail .people{grid-column:1 / -1}
+  .dinfo .playrow{margin:16px 0 10px}
   .poster{flex-basis:calc(var(--poster-w) * .8)}
   .grid{grid-template-columns:repeat(auto-fill,minmax(calc(var(--poster-w) * .8),1fr))}
   .nav{overflow-x:auto;max-width:100%}.nav a{padding:6px 11px;white-space:nowrap}
@@ -568,8 +587,9 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
   .bar{padding:10px 14px;gap:8px 12px}
   .logo{font-size:20px;gap:6px}
   .logo img{width:22px;height:22px}
-  .search{flex:1 1 100%;order:2;min-width:0;width:auto;padding-inline:14px 4px}
-  .nav{order:3}
+  /* the search shares the first line with the logo; only the tabs take a line of their own */
+  .search{flex:1 1 120px;order:1;min-width:0;width:auto;padding-inline:14px 4px}
+  .nav{order:2;width:100%}
   .nav a{padding:6px 9px;font-size:13px}
   main{padding:0 14px 50px}
   .hero,.backdrop{margin:0 -14px 24px}
@@ -682,6 +702,8 @@ he: {
   'sort.rate.all': 'כל הדירוגים', 'sort.rate.7': '7+', 'sort.rate.8': '8+',
   'sort.none': 'אין כותרים שעונים על הסינון הזה. נסה לוותר על אחד התנאים.',
   'qv.continue': '▶ המשך צפייה · נותרו {n} דק׳', 'qv.play': '▶ נגן כעת', 'qv.eps': '▶ לפרקים ולצפייה', 'qv.more': 'פרטים מלאים',
+  'qv.epPlay': '▶ עונה {s} פרק {e}', 'qv.epCont': '▶ המשך · עונה {s} פרק {e}', 'qv.allEps': 'כל הפרקים והעונות',
+  'player.openYt': 'פתח ביוטיוב',
   'qv.loadingSummary': 'טוען תקציר…', 'qv.searching': 'מחפש מקור…', 'qv.noSource': 'לא נמצא מקור - לעמוד המלא', 'qv.noSummary': 'אין תקציר.',
   'tor.dht': 'מתחבר לרשת הטורנטים… ({nodes} צמתים)', 'tor.meta': 'מקבל את פרטי הטורנט…', 'tor.peers': 'מחפש עמיתים…',
   'tor.buffer': 'טוען את תחילת הסרט · {got}/{need} MB', 'tor.stats': '{kbs} KB/s · {peers} עמיתים',
@@ -778,6 +800,8 @@ en: {
   'sort.rate.all': 'Any rating', 'sort.rate.7': '7+', 'sort.rate.8': '8+',
   'sort.none': 'No titles match this filter. Try dropping one of the conditions.',
   'qv.continue': '▶ Continue · {n} min left', 'qv.play': '▶ Play now', 'qv.eps': '▶ Episodes & watching', 'qv.more': 'Full details',
+  'qv.epPlay': '▶ S{s} E{e}', 'qv.epCont': '▶ Continue · S{s} E{e}', 'qv.allEps': 'All episodes',
+  'player.openYt': 'Open in YouTube',
   'qv.loadingSummary': 'Loading summary…', 'qv.searching': 'Finding a source…', 'qv.noSource': 'No source found – open the full page', 'qv.noSummary': 'No summary.',
   'tor.dht': 'Connecting to the torrent network… ({nodes} nodes)', 'tor.meta': 'Getting the torrent details…', 'tor.peers': 'Looking for peers…',
   'tor.buffer': 'Loading the start · {got}/{need} MB', 'tor.stats': '{kbs} KB/s · {peers} peers',
@@ -1160,10 +1184,18 @@ function noteServices(id, name){
 }
 // Initials in the service's own colour: a logo would be its trademark, and a name is too long to sit
 // beside a title. The mark carries the full name as its tooltip.
+/* Each service's own mark, as it appears on its app: the files under assets/svc are the logos
+   themselves, so nothing has to be fetched and nothing is a guess. A service with no file of its
+   own falls back to its initials on its colour. */
+const SVC_LOGO = {'Netflix': 'nfx', 'Apple TV+': 'atp', 'Disney+': 'dnp', 'Prime Video': 'amp',
+  'HBO Max': 'hbm', 'Paramount+': 'pmp', 'Curiosity Stream': 'cts'};
+const SVC_NIGHT = ['Curiosity Stream'];          // written in white: it needs the dark card
 const SVC_MARK = {'Netflix': ['N', '#e50914'], 'Apple TV+': ['TV', '#4f5157'], 'Disney+': ['D+', '#1f4bd8'],
   'Prime Video': ['PV', '#0b8fd0'], 'HBO Max': ['HBO', '#7b2ff2'], 'Paramount+': ['P+', '#1266ff'],
   'Curiosity Stream': ['CS', '#0f9bb8'], 'MagellanTV': ['MG', '#b5842a']};
 const svcMark = name => {
+  const file = SVC_LOGO[name];
+  if(file) return `<span class="svcm logo${SVC_NIGHT.includes(name) ? ' night' : ''}" title="${esc(name)}"><img src="svc/${file}.png" alt="${esc(name)}" loading="lazy"></span>`;
   const [txt, bg] = SVC_MARK[name] || [name.slice(0, 2).toUpperCase(), '#5a6072'];
   return `<span class="svcm" style="background:${bg}" title="${esc(name)}">${esc(txt)}</span>`;
 };
@@ -1174,7 +1206,7 @@ const svcMarks = id => {
   return `<span class="svcs" title="${esc(l.join(' · '))}">${l.slice(0, 2).map(svcMark).join('')}${
     l.length > 2 ? `<span class="svcm" style="background:#5a6072">+${l.length - 2}</span>` : ''}</span>`;
 };
-const svcFacts = id => svcOf(id).map(n => `<span class="svcf">${esc(n)}</span>`).join('');
+const svcFacts = id => svcOf(id).map(n => `<span class="svcf">${svcMark(n)}${esc(n)}</span>`).join('');
 /** The catalogues answer after the cards are drawn, so the marks are added to what is already on screen. */
 function applyBadges(){
   document.querySelectorAll('a.poster[data-id]').forEach(a => {
@@ -1464,34 +1496,59 @@ async function viewR13Series(sid, title){
   }catch(e){ showErr($('#eps'), tr('row.failedR13'), e, () => viewR13Series(sid, title)); }
 }
 
-/* ---------- Kan BOX (kan.org.il) — the public website's pages; episodes are plain HLS ---------- */
+/* ---------- Kan (kan.org.il) — the broadcaster's own catalogue, inside VEO ----------
+   Kan's pages carry the whole of Kan BOX in their HTML, but the site answers a plain request with a
+   bot check. Inside the app the page is therefore opened in a hidden browser window (BoothAndroid.
+   siteExtract), which passes the check by being a browser, and the reading is done there: each
+   "reader" below is a small script that is handed the document and gives back JSON. Outside the app
+   the same readers run here, over a page fetched directly - one implementation, two ways in. */
 const KAN = 'https://www.kan.org.il';
 let kanBoxCache = null;
 const kanClean = t => (t || '').replace(/(small\s*)?poster( image)?( small)?\s*\d+\s*x\s*\d+/gi, '').replace(/\s*-\s*כאן 11$/, '').replace(/\s*לוגו$/, '').trim();
 const kanAbs = u => !u ? '' : u.startsWith('http') ? u : KAN + (u.startsWith('/') ? '' : '/') + u;
-const kanDoc = async url => new DOMParser().parseFromString(await fetchText(url), 'text/html');
+const siteDoc = async url => new DOMParser().parseFromString(await fetchText(url), 'text/html');
+const kanDoc = siteDoc;
+
+/** Read [url] with [reader] (the body of a function of the document, returning JSON). */
+async function sitePull(url, reader){
+  const text = window.BoothAndroid?.siteExtract
+    ? await new Promise((res, rej) => {
+        const id = 's' + Math.random().toString(36).slice(2);
+        nativeCallbacks[id] = {res, rej};
+        BoothAndroid.siteExtract(url, reader, id);
+      })
+    : new Function('d', reader)(await siteDoc(url));
+  return JSON.parse(text);
+}
 
 /** Kan BOX sections (דרמה, קומדיה וסאטירה, דוקו, סרטים, ילדים…) -> programmes with posters. */
-async function kanBox(){
-  if(kanBoxCache) return kanBoxCache;
-  const doc = await kanDoc(`${KAN}/lobby/kan-box/`);
-  const sections = [];
-  for(const h2 of doc.querySelectorAll('h2')){
-    const title = h2.textContent.trim();
-    if(!title || title.length > 40 || /אולי יעניין/.test(title)) continue;
+const KAN_LOBBY_READER = `
+  const out = [];
+  for(const h2 of d.querySelectorAll('h2')){
+    const title = (h2.textContent || '').trim();
+    if(!title || title.length > 40 || title.indexOf('אולי יעניין') >= 0) continue;
     let box = h2.parentElement;
     for(let i = 0; i < 6 && box && !box.querySelector('a[href*="/p-"] img'); i++) box = box.parentElement;
     if(!box) continue;
-    const progs = new Map();
+    const seen = {}, items = [];
     for(const a of box.querySelectorAll('a[href]')){
-      const m = a.getAttribute('href').match(/\/content\/kan\/[\w-]+\/p-(\d+)\/?$/);
+      const m = (a.getAttribute('href') || '').match(/\\/content\\/kan\\/[\\w-]+\\/p-(\\d+)\\/?$/);
       const img = a.querySelector('img');
-      if(!m || !img || progs.has(m[1])) continue;
-      const name = kanClean(img.getAttribute('alt') || a.getAttribute('aria-label'));
-      if(name) progs.set(m[1], {id: m[1], url: kanAbs(a.getAttribute('href')), name, img: kanAbs(img.getAttribute('data-src') || img.getAttribute('src'))});
+      if(!m || !img || seen[m[1]]) continue;
+      seen[m[1]] = 1;
+      items.push({id: m[1], url: a.getAttribute('href'),
+        name: (img.getAttribute('alt') || a.getAttribute('aria-label') || '').trim(),
+        img: img.getAttribute('data-src') || img.getAttribute('src') || ''});
     }
-    if(progs.size) sections.push({title, items: [...progs.values()]});
+    if(items.length) out.push({title: title, items: items.slice(0, 40)});
   }
+  return JSON.stringify(out);`;
+
+async function kanBox(){
+  if(kanBoxCache) return kanBoxCache;
+  const secs = await sitePull(`${KAN}/lobby/kan-box/`, KAN_LOBBY_READER);
+  for(const s of secs) for(const it of s.items){ it.url = kanAbs(it.url); it.img = kanAbs(it.img); it.name = kanClean(it.name); }
+  const sections = secs.filter(s => s.items.some(i => i.name));
   if(!sections.length) throw new Error('לא נמצאו תוכניות');
   return kanBoxCache = sections;
 }
@@ -1500,57 +1557,67 @@ function kanCard(x){
     <div class="art" data-bg="${esc(x.img)}"></div><div class="t" dir="auto">${esc(x.name)}</div></a>`;
 }
 
-/** Episodes listed on a programme/season page. */
-function kanEpisodes(doc, progPath){
-  const eps = new Map();
-  for(const a of doc.querySelectorAll('a[href]')){
-    const href = kanAbs(a.getAttribute('href'));
-    if(!href.startsWith(KAN + progPath) || !/\/\d+\/?$/.test(href.slice((KAN + progPath).length))) continue;
-    if(eps.has(href)) continue;
-    const title = a.querySelector('.card-title')?.textContent.trim() || a.getAttribute('aria-label') || a.textContent.trim().split('\n')[0];
-    if(!title || /^לצפייה ב/.test(title.trim())) continue;     // skip "watch the first episode" promo links
-    eps.set(href, {url: href, name: title.trim(), text: a.querySelector('.card-text')?.textContent.trim() || '',
-                   img: kanAbs(a.querySelector('img')?.getAttribute('src'))});
+/** A programme page: what it is about, its seasons, and the episodes listed on it. */
+const kanProgReader = path => `
+  const base = ${JSON.stringify(path)};
+  const md = d.querySelector('meta[name="description"]');
+  const seasons = {}, eps = [], seen = {};
+  for(const a of d.querySelectorAll('a[href]')){
+    const href = a.getAttribute('href') || '';
+    const at = href.indexOf(base);
+    if(at < 0) continue;
+    const rest = href.slice(at + base.length);
+    const s = rest.match(/^(s\\d+)\\/?$/);
+    if(s){ seasons[s[1]] = 1; continue; }
+    if(!/^(?:s\\d+\\/)?\\d+\\/?$/.test(rest) || seen[rest]) continue;
+    const t = a.querySelector('.card-title');
+    const name = ((t && t.textContent) || a.getAttribute('aria-label') || (a.textContent || '').split('\\n')[0] || '').trim();
+    if(!name || /^לצפייה ב/.test(name)) continue;
+    seen[rest] = 1;
+    const sub = a.querySelector('.card-text'), img = a.querySelector('img');
+    eps.push({url: href, name: name, text: sub ? sub.textContent.trim() : '', img: img ? (img.getAttribute('src') || '') : ''});
   }
-  return [...eps.values()];
-}
+  return JSON.stringify({desc: md ? md.getAttribute('content') : '', seasons: Object.keys(seasons), eps: eps});`;
 
 async function viewKanProgram(path, title){
   renderCats(null);
   $('#app').innerHTML = `<div class="page"><div class="showhead"><div><h1 dir="auto">${esc(title || '')}</h1><p id="kdesc"></p></div></div>
     <div class="seasons" id="seasons"></div><div class="eplist" id="eps"><p class="note">טוען פרקים…</p></div></div>`;
   try{
-    const doc = await kanDoc(KAN + path);
-    $('#kdesc').textContent = doc.querySelector('meta[name="description"]')?.content || '';
-    // seasons: /p-XXXX/sN/ links (newest first); without seasons the programme page lists the episodes itself
-    const seasonRe = new RegExp(path.replace(/[/-]/g, m => '\\' + m) + '(s\\d+)/?$');
-    const seasons = [...new Set([...doc.querySelectorAll('a[href]')].map(a => (a.getAttribute('href').match(seasonRe) || [])[1]).filter(Boolean))]
-      .sort((a, b) => +b.slice(1) - +a.slice(1));
-    const load = async sn => {
-      $('#eps').innerHTML = '<p class="note">טוען פרקים…</p>';
-      const d = sn ? await kanDoc(`${KAN}${path}${sn}/`) : doc;
-      const eps = kanEpisodes(d, path);
-      $('#eps').innerHTML = eps.length ? eps.map(e => `<button class="eprow" data-kan="${esc(e.url)}" data-title="${esc(title + ' · ' + e.name)}">
-          <img src="${esc(e.img)}" alt="" loading="lazy"><span><b dir="auto">${esc(e.name)}</b><small dir="auto">${esc(e.text)}</small></span></button>`).join('')
+    const reader = kanProgReader(path);
+    const page = await sitePull(KAN + path, reader);
+    $('#kdesc').textContent = (page.desc || '').replace(/<[^>]+>/g, '');
+    const seasons = page.seasons.sort((a, b) => +b.slice(1) - +a.slice(1));      // newest season first
+    const draw = eps => {
+      $('#eps').innerHTML = eps.length ? eps.map(e => `<button class="eprow" data-kan="${esc(kanAbs(e.url))}" data-title="${esc(title + ' · ' + e.name)}">
+          <img src="${esc(kanAbs(e.img))}" alt="" loading="lazy"><span><b dir="auto">${esc(e.name)}</b><small dir="auto">${esc(e.text)}</small></span></button>`).join('')
         : '<p class="note">אין פרקים זמינים כרגע.</p>';
     };
-    let cur = seasons[0] || '';
-    const draw = () => {
-      $('#seasons').innerHTML = seasons.length > 1 ? seasons.map(sn => `<button class="chip ${sn === cur ? 'on' : ''}" data-s="${sn}">עונה ${sn.slice(1)}</button>`).join('') : '';
-      $('#seasons').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { cur = b.dataset.s; draw(); load(cur); });
+    const load = async sn => {
+      if(!sn) return draw(page.eps);
+      $('#eps').innerHTML = '<p class="note">טוען פרקים…</p>';
+      draw((await sitePull(`${KAN}${path}${sn}/`, reader)).eps);
     };
-    draw();
+    let cur = page.eps.length ? '' : (seasons[0] || '');
+    const tabs = () => {
+      $('#seasons').innerHTML = seasons.length > 1 ? seasons.map(sn => `<button class="chip ${sn === cur ? 'on' : ''}" data-s="${sn}">עונה ${sn.slice(1)}</button>`).join('') : '';
+      $('#seasons').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { cur = b.dataset.s; tabs(); load(cur); });
+    };
+    tabs();
     await load(cur);
   }catch(e){ showErr($('#eps'), tr('row.failedKan'), e, () => viewKanProgram(path, title)); }
 }
 
-/** Episode page -> its HLS URL (no DRM). */
+/** An episode page holds its own stream: plain HLS, no licence. */
+const KAN_HLS_READER = `
+  const h = d.documentElement.outerHTML;
+  const m = h.match(/https?:\\/\\/[^"'\\s<>\\\\]+?\\.m3u8[^"'\\s<>\\\\]*/);
+  return JSON.stringify(m ? m[0].replace(/&amp;/g, '&') : '');`;
+
 async function kanPlay(url, title){
   try{
-    const html = await fetchText(url);
-    const m = html.match(/https:\/\/[^"'\s<>]+?\.m3u8[^"'\s<>]*/);
-    if(!m) throw new Error('לא נמצא וידאו בעמוד');
-    const hls = m[0].replace(/&amp;/g, '&');
+    const hls = await sitePull(url, KAN_HLS_READER);
+    if(!hls) throw new Error('לא נמצא וידאו בעמוד');
     // broadcaster VOD route (no subtitle search, no licence); Kan's player sends its site as referer
     if(window.BoothAndroid && BoothAndroid.playVod) BoothAndroid.playVod(hls, '', title, `${KAN}/`);
     else if(window.BoothAndroid && BoothAndroid.playDrm) BoothAndroid.playDrm(hls, '', title);
@@ -1699,6 +1766,16 @@ async function fetchMeta(type, id){
   }
   return null;
 }
+/** What to watch next in a series: the episode left in the middle, else the first one never started. */
+function nextEpisode(meta){
+  const vids = (meta?.videos || []).filter(v => v.id && (v.season ?? 0) > 0)
+    .sort((a, b) => (a.season - b.season) || ((a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0)));
+  if(!vids.length) return null;
+  const at = v => ({id: v.id, season: v.season, episode: v.episode ?? v.number ?? 1});
+  const started = vids.find(v => { const w = progress[v.id]; return w && w.d && w.t / w.d <= .92; });
+  if(started) return {...at(started), resume: true};
+  return {...at(vids.find(v => !progress[v.id]) || vids[0]), resume: false};
+}
 /** The quick view's main button: continue, or watch from the start. */
 function qvPlayLabel(metaId){
   const w = Object.values(progress).find(x => x.metaId === metaId);
@@ -1759,25 +1836,27 @@ async function openQuickView(card){
       <div class="body">
         <div class="facts"></div>
         <p class="qvdesc note" dir="auto">${tr('qv.loadingSummary')}</p>
-        <div class="qvact">${type === 'movie'
-          ? `<button class="btn primary" id="qvplay">${qvPlayLabel(id)}</button>`
-          : `<button class="btn primary" id="qveps">${tr('qv.eps')}</button>`}
-          <button class="btn ghost" id="qvmore">${tr('qv.more')}</button></div>
+        <div class="qvact">
+          <button class="btn primary" id="qvplay">${type === 'movie' ? qvPlayLabel(id) : tr('qv.play')}</button>
+          <button class="btn ghost" id="qvmore">${tr(type === 'movie' ? 'qv.more' : 'qv.allEps')}</button></div>
       </div></div>`;
   document.body.appendChild(sheet);
-  const close = () => sheet.remove();
-  sheet.querySelector('header button').onclick = close;
-  sheet.onclick = e => { if(e.target === sheet) close(); };
-  const goFull = () => { close(); location.hash = href; };
+  // the taste belongs to the card: whichever way the card is left, it goes with it
+  const shut = () => { endTaste(); sheet.remove(); };
+  sheet.querySelector('header button').onclick = shut;
+  sheet.onclick = e => { if(e.target === sheet) shut(); };
+  const goFull = () => { shut(); location.hash = href; };
   sheet.querySelector('#qvmore').onclick = goFull;
-  const epsBtn = sheet.querySelector('#qveps');
-  if(epsBtn) epsBtn.onclick = goFull;
   const playBtn = sheet.querySelector('#qvplay');
-  if(playBtn) playBtn.onclick = async () => {
+  // one button that watches: a film from where it stopped, a series from the episode you are up to
+  const epLabel = ep => tr(ep.resume ? 'qv.epCont' : 'qv.epPlay', {s: ep.season, e: ep.episode});
+  playBtn.onclick = async () => {
+    const was = playBtn.textContent;
     playBtn.disabled = true;
     playBtn.textContent = tr('qv.searching');
     const m = await fetchMeta(type, id).catch(() => null);
-    const videoId = m?.behaviorHints?.defaultVideoId || id;
+    const ep = type === 'series' ? nextEpisode(m) : null;
+    const videoId = ep ? ep.id : (m?.behaviorHints?.defaultVideoId || id);
     const pick = await quickPick(type, videoId);
     if(!pick){
       playBtn.textContent = tr('qv.noSource');
@@ -1785,17 +1864,23 @@ async function openQuickView(card){
       playBtn.onclick = goFull;
       return;
     }
-    playBtn.textContent = qvPlayLabel(id);
+    playBtn.textContent = was;
     playBtn.disabled = false;
-    close();
-    playStream(pick.s, m?.name || name, {videoId, type, meta: m || {id, name}});
+    shut();
+    const label = ep ? `${m?.name || name} S${ep.season}E${ep.episode}` : (m?.name || name);
+    playStream(pick.s, label, {videoId, type, meta: m || {id, name}});
   };
-  (playBtn || epsBtn).focus();
+  playBtn.focus();
 
   const meta = await fetchMeta(type, id).catch(() => null);
   if(!sheet.isConnected) return;
   if(meta){
     sheet.querySelector('.tc-banner').style.backgroundImage = `url('${(meta.background || meta.poster || '').replace(/'/g, '%27')}')`;
+    if(type === 'series' && !playBtn.disabled){
+      const ep = nextEpisode(meta);
+      if(ep) playBtn.textContent = epLabel(ep);
+    }
+    startTaste('.titleSheet .tc-banner', trailerId(meta), 700);
     sheet.querySelector('header b').textContent = heTitle(meta.id, meta.name);
     sheet.querySelector('.facts').innerHTML = svcFacts(id) + [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`,
       yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`, meta.runtime && `<span>${esc(meta.runtime)}</span>`,
@@ -2119,6 +2204,39 @@ const trailerId = m => {
 let tasteTimer = 0, tasteStop = null;
 /** Drop whatever the taste left behind: its timers, its listener and the frame itself. */
 function endTaste(){ clearTimeout(tasteTimer); tasteStop?.(); tasteStop = null; }
+/**
+ * A taste of [yt] behind whatever is in [host]: muted, low quality (it must appear quickly, and nobody
+ * is going to study it), out of the remote's reach, and revealed only once the player reports itself
+ * playing - a trailer that cannot be embedded would otherwise put a black box where the artwork was.
+ * One taste at a time: starting another, or leaving the screen, ends this one.
+ */
+function startTaste(hostSel, yt, delay = 1500){
+  endTaste();
+  if(!yt || settings.preview === 'off') return;
+  tasteTimer = setTimeout(() => {
+    const host = $(hostSel);
+    if(!host || host.querySelector('.taste') || document.visibilityState !== 'visible') return;
+    host.insertAdjacentHTML('afterbegin', `<iframe class="taste" tabindex="-1" allow="autoplay" title=""
+      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&loop=1&enablejsapi=1&vq=small&playlist=${encodeURIComponent(yt)}&start=6"></iframe>`);
+    const frame = host.querySelector('.taste');
+    // cover the box it was put in: a letterboxed trailer beside the artwork looks like a mistake
+    const box = host.getBoundingClientRect();
+    frame.style.width = Math.ceil(Math.max(box.width, box.height * 16 / 9)) + 'px';
+    frame.style.height = Math.ceil(Math.max(box.height, box.width * 9 / 16)) + 'px';
+    const say = msg => frame.contentWindow?.postMessage(JSON.stringify(msg), '*');
+    frame.onload = () => say({event: 'listening', id: 1, channel: 'widget'});
+    const heard = e => {
+      if(!frame.isConnected || !/youtube/.test(e.origin) || !/"playerState":\s*1/.test(String(e.data))) return;
+      say({event: 'command', func: 'setPlaybackQuality', args: ['small'], id: 1, channel: 'widget'});
+      frame.classList.add('on');
+      done();
+    };
+    const giveUp = setTimeout(() => { frame.remove(); done(); }, 8000);
+    const done = () => { clearTimeout(giveUp); removeEventListener('message', heard); tasteStop = null; };
+    addEventListener('message', heard);
+    tasteStop = () => { done(); frame.remove(); };
+  }, delay);
+}
 function renderHero(m){
   const h = $('#hero'); if(!h) return;
   const facts = [yearOf(m), m.imdbRating && `IMDb ${m.imdbRating}`, ...(m.genres || m.genre || []).slice(0, 2).map(genreName)]
@@ -2128,30 +2246,7 @@ function renderHero(m){
     <div class="facts">${facts}</div>
     <p dir="auto">${esc((m.description||'').slice(0, 220))}${(m.description||'').length>220?'…':''}</p>
     <div class="acts"><a class="btn primary" href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${tr('hero.details')}</a></div></div>`;
-  // A taste of it starts once the screen has settled, quietly and without taking the focus. It is only
-  // shown once it is really playing: a trailer that cannot be embedded would otherwise put a black box
-  // (or its own error) where the artwork was.
-  endTaste();
-  const yt = settings.preview !== 'off' && trailerId(m);
-  if(!yt) return;
-  tasteTimer = setTimeout(() => {
-    const host = $('#hero');
-    if(!host || host.querySelector('.taste') || document.visibilityState !== 'visible') return;
-    host.insertAdjacentHTML('afterbegin', `<iframe class="taste" tabindex="-1" allow="autoplay" title=""
-      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&loop=1&enablejsapi=1&playlist=${encodeURIComponent(yt)}&start=6"></iframe>`);
-    const frame = host.querySelector('.taste');
-    // the player only reports itself once asked to
-    frame.onload = () => frame.contentWindow?.postMessage('{"event":"listening","id":1,"channel":"widget"}', '*');
-    const heard = e => {
-      if(!frame.isConnected || !/youtube/.test(e.origin) || !/"playerState":\s*1/.test(String(e.data))) return;
-      frame.classList.add('on');
-      done();
-    };
-    const giveUp = setTimeout(() => { frame.remove(); done(); }, 8000);
-    const done = () => { clearTimeout(giveUp); removeEventListener('message', heard); tasteStop = null; };
-    addEventListener('message', heard);
-    tasteStop = () => { done(); frame.remove(); };
-  }, 2800);
+  startTaste('#hero', trailerId(m), 1800);
 }
 
 async function viewSearch(q){
@@ -2217,6 +2312,7 @@ async function viewDetail(type, id){
           `<button data-season="${s}">${s === 0 ? tr('detail.specials') : tr('detail.seasonN', {n: s})}</button>`).join('')}</div>` : ''}
         <div class="eps" id="eps"></div></div></div>` : ''}`;
   document.body.classList.toggle('titlefit', seasons.length > 0);      // on the TV a series page fits the screen
+  startTaste('.backdrop', trailerId(meta), 700);                       // the artwork gives way to a taste
 
   $('#lib').onclick = e => {
     const b = e.currentTarget;
@@ -2581,24 +2677,29 @@ async function loadRtv(){
 
 const BROWSER_UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36';
 
-/** Flussonic-style catch-up URL: timeshift for the last minutes, otherwise a start+duration window. */
-/** The same address, with the times left for the player to fill in: it walks the guide by itself. */
-function rtvArchiveTemplate(c){
-  if(!c.rec) return '';
-  const file = 'index-{from}-{dur}.m3u8';
-  if(c.cid) return `http://${c.server}:80/${c.cid}/${file}?token=${c.token}`;
+/**
+ * Flussonic-style catch-up. Which of its spellings a server answers to is not something the playlist
+ * says, so every likely one is handed to the player, in order, and it moves to the next if a programme
+ * does not open: the channel's own folder, the channel as a folder, and the service's direct address.
+ */
+function rtvArchiveUrls(c, file){
   const [path, query] = c.url.split('?');
-  return path.replace(/[^/]+$/, file) + (query ? '?' + query : '');
+  const q = query ? '?' + query : '';
+  const out = [path.replace(/[^/]+$/, file) + q,                     // …/<channel>/<file>
+               path.replace(/\.m3u8$/, '') + '/' + file + q];        // …/<channel>.m3u8 is itself the folder
+  if(c.cid) out.push(`http://${c.server}:80/${c.cid}/${file}?token=${c.token}`);
+  return [...new Set(out)];
+}
+/** The same addresses, with the times left for the player to fill in: it walks the guide by itself. */
+function rtvArchiveTemplate(c){
+  return c.rec ? rtvArchiveUrls(c, 'index-{from}-{dur}.m3u8').join('|') : '';
 }
 function rtvArchiveUrl(c, start, end){
   const now = Date.now() / 1000;
   start = Math.floor(start);
   if(!end || end <= start) end = now + 600;
   const file = start > now - 600 ? `timeshift_abs-${start}.m3u8` : `index-${start}-${Math.floor(end - start)}.m3u8`;
-  if(c.cid) return `http://${c.server}:80/${c.cid}/${file}?token=${c.token}`;
-  // otherwise swap the file name of the live URL (…/<channel>/index.m3u8?token=… style)
-  const [path, query] = c.url.split('?');
-  return path.replace(/[^/]+$/, file) + (query ? '?' + query : '');
+  return rtvArchiveUrls(c, file)[0];
 }
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -3068,11 +3169,18 @@ const loadHls = () => window.Hls ? Promise.resolve(window.Hls) : (hlsLoading ||=
 }));
 
 function openPlayer(s, title, ctx){
-  if(s.ytId && window.BoothAndroid?.openYouTube) return BoothAndroid.openYouTube(s.ytId);
   $('#ptitle').textContent = title;
   const body = $('#pbody');
+  const head = $('#player header');
+  head.querySelector('#ytout')?.remove();
   if(s.ytId){
-    body.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(s.ytId)}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+    // A trailer plays inside VEO. Only if YouTube refuses to embed this one is there a way out, and it
+    // is a button the viewer presses - never something the app does to them.
+    body.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(s.ytId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+    if(window.BoothAndroid?.openYouTube){
+      head.insertAdjacentHTML('beforeend', `<button class="btn ghost" id="ytout">${tr('player.openYt')}</button>`);
+      $('#ytout').onclick = () => { closePlayer(); BoothAndroid.openYouTube(s.ytId); };
+    }
   } else {
     body.innerHTML = `<video id="vid" controls autoplay playsinline></video>`;
     const v = $('#vid');
@@ -3271,7 +3379,7 @@ const ROWS_SEL = [
   '.qvact', '.playrow', '.altlist',                                        // title card + sources
   '.live-top', '#cont', '#bchead', '.chrow',                               // live TV
   '.days', '.progs', '.keypad', '.keyform',                                // catch-up guide, key entry
-  '.sheet header', '.sheet .body', '.tstat', '.update',                    // sheets and floating cards
+  '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
   '.catorder', '.addpl', '.add', '.plrow', '.addon',                       // settings lists, add-ons
 ].join(', ');
 // offsetParent is null for position:fixed elements (per spec) even when they're plainly on

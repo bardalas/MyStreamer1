@@ -76,6 +76,14 @@ watching"; it used to be a `delete`, so a finished film left no trace at all. `i
 a title to the newest thing watched under it, so a series shows its last episode; a series never gets
 a tick, because one finished episode is not a watched series. `pruneProgress()` keeps 400.
 
+### A broadcaster's own site (`booth.html` + `MainActivity.sitePage`)
+Kan puts its whole catalogue in its HTML but answers a plain request with a bot check. `siteExtract(url,
+reader, id)` therefore opens the page in an off-screen WebView - which passes the check by being a browser -
+and runs `reader` there: the body of a function of the document that returns JSON. Only the answer crosses
+back, never the markup. The window stays for five minutes, so every further page of the same site is a
+same-origin `fetch` inside it. `sitePull()` calls it inside the app and runs the very same reader over a
+directly fetched page outside it, so there is one implementation of every extractor.
+
 ### The featured title and its taste (`booth.html`)
 `pickFeatured()` chooses the title that takes the top of a listing: it wants artwork, a description and
 (when any row offers one) a trailer, remembers the last twelve in `heroSeen` so the same one does not come

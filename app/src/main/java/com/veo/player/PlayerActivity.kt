@@ -67,6 +67,14 @@ class PlayerActivity : AppCompatActivity() {
     private var okLong = false
     /** Catch-up: the past programme being played, or null while the channel is live. */
     private var catchUp: Prog? = null
+    /** Which of the channel's archive addresses is being used: services spell them differently, so the
+     *  ones that did not answer are stepped through until one plays. */
+    private var archTry = 0
+    /** Left/Right are decided on release too: a press steps a programme, holding them runs inside it. */
+    private var seekLong = false
+    /** Subtitles: which of the found files is on (-1 = none) and how far they are moved, in milliseconds. */
+    private var subPick = 0
+    private var subShift = 0L
     /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
     private val skin by lazy { Skin(getSharedPreferences("veo", MODE_PRIVATE)) }
 
@@ -103,6 +111,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         if (live) view.useController = false     // live has nothing to seek, and controls eat the D-pad
+        else view.controllerAutoShow = false     // a film opens on the film: the controls wait to be asked for
 
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) {
@@ -124,6 +133,66 @@ class PlayerActivity : AppCompatActivity() {
                 if (found.isNotEmpty() && started) reloadWithSubs()
             }
         }.start()
+    }
+
+    /**
+     * A copy of [sub] with every line moved by [shiftMs]: the player has no offset of its own, so the
+     * file itself is rewritten (once per offset) and the player rebuilt around it.
+     */
+    private fun shiftedSub(sub: Subtitles.Sub, shiftMs: Long): java.io.File {
+        if (shiftMs == 0L) return sub.file
+        val out = java.io.File(cacheDir, "shift_${shiftMs}_${sub.file.name}")
+        if (out.exists() && out.length() > 0) return out
+        val stamp = Regex("\\d{2}:\\d{2}:\\d{2},\\d{3}")
+        runCatching {
+            out.writeText(sub.file.readText().replace(stamp) { m ->
+                val p = m.value.split(':', ',')
+                val t = (p[0].toLong() * 3600_000 + p[1].toLong() * 60_000 + p[2].toLong() * 1000 + p[3].toLong() + shiftMs)
+                    .coerceAtLeast(0)
+                "%02d:%02d:%02d,%03d".format(t / 3600_000, t / 60_000 % 60, t / 1000 % 60, t % 1000)
+            })
+        }.onFailure { return sub.file }
+        return out
+    }
+
+    /** Subtitles panel: pick which file is shown, and move it half a second at a time. */
+    private fun openSubsPanel() {
+        val found = subs.orEmpty()
+        if (found.isEmpty()) { showMessage(if (subs == null) "מחפש כתוביות…" else "לא נמצאו כתוביות לסרט הזה", 2_500); return }
+        val rows = ArrayList<Pair<String, () -> Unit>>()
+        found.forEachIndexed { i, s ->
+            val mark = if (i == subPick) "● " else "○ "
+            rows.add("$mark${s.label}" to { subPick = i; reloadWithSubs(); openSubsPanel() })
+        }
+        rows.add((if (subPick < 0) "● " else "○ ") + "ללא כתוביות" to { subPick = -1; reloadWithSubs(); openSubsPanel() })
+        val now = "%+.1f".format(subShift / 1000.0)
+        rows.add("הקדם כתוביות · כעת $now שנ׳" to { subShift -= 500; reloadWithSubs(); openSubsPanel() })
+        rows.add("אחר כתוביות · כעת $now שנ׳" to { subShift += 500; reloadWithSubs(); openSubsPanel() })
+        if (subShift != 0L) rows.add("בטל סנכרון" to { subShift = 0; reloadWithSubs(); openSubsPanel() })
+        val list = findViewById<ListView>(R.id.chList)
+        val at = if (list.adapter is MenuAdapter) list.selectedItemPosition.coerceAtLeast(0) else 0
+        list.adapter = MenuAdapter(rows.map { it.first })
+        list.setOnItemClickListener { _, _, i, _ -> rows[i].second() }
+        list.setOnItemLongClickListener { _, _, _, _ -> true }
+        findViewById<View>(R.id.chPanel).visibility = View.VISIBLE
+        list.requestFocus()
+        list.setSelection(at.coerceAtMost(rows.size - 1))
+    }
+
+    /** A plain list of choices, in the same dress as the channel list. */
+    private inner class MenuAdapter(private val items: List<String>) : BaseAdapter() {
+        override fun getCount() = items.size
+        override fun getItem(position: Int) = items[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup?): View {
+            val row = (convertView as? TextView) ?: TextView(this@PlayerActivity).apply {
+                textSize = 18f
+                setPadding(dp(22), dp(11), dp(22), dp(11))
+                setTextColor(skin.light)
+            }
+            row.text = items[position]
+            return row
+        }
     }
 
     /** Hebrew subtitles arrived: rebuild the player around them, without losing the place. */
@@ -150,7 +219,7 @@ class PlayerActivity : AppCompatActivity() {
         if (player != null) return
         val src = sources[index]
         // a past programme is the same channel's archive, asked for by the minute it started
-        val url = catchUp?.let { src.arch.replace("{from}", "${it.from}").replace("{dur}", "${it.to - it.from}") } ?: src.url
+        val url = catchUp?.let { archiveUrl(src, it) } ?: src.url
         // Torrent streams come from localhost and a read may wait for the next piece: long
         // timeouts. Live is the opposite - a stalled connection must FAIL fast (seconds) so the
         // automatic retry can rebuild, instead of hanging two minutes looking frozen.
@@ -173,11 +242,11 @@ class PlayerActivity : AppCompatActivity() {
             .build()
 
         val subtitleConfigs = subs.orEmpty().mapIndexed { i, s ->
-            MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(s.file))
+            MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(shiftedSub(s, subShift)))
                 .setMimeType(MimeTypes.APPLICATION_SUBRIP)
                 .setLanguage("he")
                 .setLabel(s.label)
-                .setSelectionFlags(if (i == 0) C.SELECTION_FLAG_DEFAULT else 0)
+                .setSelectionFlags(if (i == subPick) C.SELECTION_FLAG_DEFAULT else 0)
                 .build()
         }
         val item = MediaItem.Builder().setUri(url).setSubtitleConfigurations(subtitleConfigs)
@@ -196,9 +265,11 @@ class PlayerActivity : AppCompatActivity() {
             .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
             .setLoadControl(loadControl)
             .build().also {
-                // Hebrew subtitles on by default (also picks embedded Hebrew tracks in MKVs).
+                // Hebrew subtitles on by default (also picks embedded Hebrew tracks in MKVs) - unless the
+                // viewer turned them off in the subtitles panel.
                 it.trackSelectionParameters = it.trackSelectionParameters.buildUpon()
-                    .setPreferredTextLanguage("he")
+                    .setPreferredTextLanguage(if (subPick < 0) null else "he")
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, subPick < 0)
                     .build()
                 it.addListener(object : Player.Listener {
                     override fun onPlayerError(error: PlaybackException) = onError(error)
@@ -208,7 +279,7 @@ class PlayerActivity : AppCompatActivity() {
                         if (retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
                     }
                 })
-                findViewById<PlayerView>(R.id.playerView).player = it
+                findViewById<PlayerView>(R.id.playerView).apply { player = it; if (!live) hideController() }
                 it.setMediaItem(item)
                 if (!live) it.seekTo(resumePosition)
                 it.prepare()
@@ -216,8 +287,19 @@ class PlayerActivity : AppCompatActivity() {
             }
     }
 
+    /** The archive addresses a channel offers, in the order they are tried. */
+    private fun archList(src: Source) = src.arch.split('|').filter { it.isNotBlank() }
+    /** One past programme's address: the template in use, with the programme's own minute and length. */
+    private fun archiveUrl(src: Source, p: Prog): String {
+        val list = archList(src)
+        if (list.isEmpty()) return src.url
+        return list[archTry.coerceIn(0, list.size - 1)]
+            .replace("{from}", "${p.from}").replace("{dur}", "${p.to - p.from}")
+    }
+
     /** Guide per channel (by its endpoint), fetched once and kept for the session. */
     private val guides = HashMap<String, List<Prog>>()
+    private val guideExec = java.util.concurrent.Executors.newFixedThreadPool(3)
     private val logos = HashMap<String, android.graphics.Bitmap?>()
 
     /** What the page last told us about its skin; its defaults are the amber skin, for a first run. */
@@ -314,9 +396,19 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun loadGuide(url: String) {
         if (!loadingGuides.add(url)) return
-        Thread {
+        // Every channel in the list wants its guide at once, so they queue three at a time, each with a
+        // short patience, and what came back is kept for half an hour: opening the list again is instant.
+        guideExec.execute {
             val list = runCatching {
-                val text = java.net.URL(url).openStream().bufferedReader().use { it.readText() }
+                val kept = java.io.File(cacheDir, "epg_${url.hashCode().toUInt().toString(16)}.json")
+                val text = kept.takeIf { it.isFile && System.currentTimeMillis() - it.lastModified() < 30 * 60_000L }
+                    ?.readText()
+                    ?: (java.net.URL(url).openConnection() as java.net.HttpURLConnection).run {
+                        connectTimeout = 6_000
+                        readTimeout = 8_000
+                        setRequestProperty("User-Agent", LIVE_UA)
+                        inputStream.bufferedReader().use { it.readText() }
+                    }.also { runCatching { kept.writeText(it) } }
                 val arr = org.json.JSONArray(text)
                 (0 until arr.length()).mapNotNull { i ->
                     arr.optJSONObject(i)?.let {
@@ -330,7 +422,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (bannerOpen) paintNow()
                 (findViewById<ListView>(R.id.chList).adapter as? BaseAdapter)?.notifyDataSetChanged()
             }
-        }.start()
+        }
     }
 
     private fun loadLogo(url: String) {
@@ -357,7 +449,7 @@ class PlayerActivity : AppCompatActivity() {
         paintBanner()
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
-        handler.postDelayed(tickBanner, 30_000)
+        handler.postDelayed(tickBanner, if (catchUp != null) 1_000 else 30_000)
         handler.postDelayed(hideBanner, if (browse) 12_000L else 8_000L)
     }
 
@@ -365,8 +457,11 @@ class PlayerActivity : AppCompatActivity() {
     private val hideBanner: Runnable = Runnable {
         if (player?.playWhenReady == false && !browsing) handler.postDelayed(hideBanner, 8_000) else hideChannelBar()
     }
-    // explicit type: it schedules itself, which Kotlin cannot infer through
-    private val tickBanner: Runnable = Runnable { if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, 30_000) } }
+    // explicit type: it schedules itself, which Kotlin cannot infer through. While a past programme is
+    // playing the bar is where the viewer is inside it, so it is redrawn every second, not every minute.
+    private val tickBanner: Runnable = Runnable {
+        if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, if (catchUp != null) 1_000 else 30_000) }
+    }
     private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
@@ -443,7 +538,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun openPanel() {
         hideChannelBar()
         val list = findViewById<ListView>(R.id.chList)
-        if (list.adapter == null) {
+        if (list.adapter !is ChannelAdapter) {
             list.adapter = ChannelAdapter()
             list.setOnItemClickListener { _, _, i, _ -> closePanel(); if (i != index) zapBy(i - index) else showBanner(browse = false) }
             list.setOnItemLongClickListener { _, _, i, _ -> openCatchUp(i); true }
@@ -454,10 +549,13 @@ class PlayerActivity : AppCompatActivity() {
         list.setSelection(index)
     }
 
-    private fun closePanel() { findViewById<View>(R.id.chPanel).visibility = View.GONE }
+    private fun closePanel() {
+        findViewById<View>(R.id.chPanel).visibility = View.GONE
+        findViewById<ListView>(R.id.chList).adapter = null       // the next opening decides what it lists
+    }
 
     /** Catch-up (RaspberryTV and any playlist with an archive): the programme before or after the one playing. */
-    private fun canWalk() = bannerOpen && sources[index].arch.isNotBlank() && !guides[sources[index].epg].isNullOrEmpty()
+    private fun canWalk() = sources[index].arch.isNotBlank() && !guides[sources[index].epg].isNullOrEmpty()
 
     private fun walkGuide(back: Boolean): Boolean {
         val src = sources[index]
@@ -468,6 +566,7 @@ class PlayerActivity : AppCompatActivity() {
         if (next == null) { if (!back) backToLive(); return true }
         if (next.from > now) { backToLive(); return true }              // nothing is broadcast yet: the live edge
         catchUp = next
+        archTry = 0
         retries = 0
         player?.release(); player = null
         showBanner(browse = false)
@@ -489,9 +588,10 @@ class PlayerActivity : AppCompatActivity() {
     /** Step along the stream: a press steps a little, a held key leaps. A live stream keeps a window behind its edge. */
     private fun seekBy(direction: Int, held: Boolean) {
         val p = player ?: return
-        val step = if (held) 60_000L else 10_000L
+        val step = if (held) 30_000L else 10_000L
         p.seekTo((p.currentPosition + direction * step).coerceAtLeast(0))
         if (live && !browsing) showBanner(browse = false)          // the channel is what you are looking at
+        if (bannerOpen) paintNow()                                 // and the bar says where in the programme
         val behind = p.currentLiveOffset
         showMessage(
             if (behind == C.TIME_UNSET) fmtClock(p.currentPosition)
@@ -522,12 +622,25 @@ class PlayerActivity : AppCompatActivity() {
 
     private val rebuild = Runnable { if (started && player == null) buildPlayer() }
 
+    /** A past programme that will not open: the service may spell its archive differently. */
+    private fun nextArchive(): Boolean {
+        if (catchUp == null || archTry + 1 >= archList(sources[index]).size) return false
+        archTry++
+        player?.release(); player = null
+        handler.removeCallbacks(rebuild)
+        handler.postDelayed(rebuild, 100)
+        return true
+    }
+
     private fun onError(error: PlaybackException) {
         if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
             player?.release(); player = null
             handler.removeCallbacks(rebuild); handler.post(rebuild)   // rejoin the live edge now
             return
         }
+        // A past programme that would not open: the same archive spelled another way may be the one
+        // this service answers to.
+        if (nextArchive()) { showMessage("מנסה כתובת אחרת לארכיון…", 3_000); return }
         // HTTP status (e.g. 403 while the server still counts the previous stream) and the root message.
         val status = generateSequence<Throwable>(error) { it.cause }
             .filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode
@@ -602,9 +715,11 @@ class PlayerActivity : AppCompatActivity() {
         handler.postDelayed(hideOsd, 3_000)
     }
 
-    // Remote (live TV): Up/Down raise the banner and page through the channels, OK on one switches to it, holding
-    // OK opens the channel list over the picture, the channel keys switch straight away, the play/pause key
-    // pauses, and Left/Right then step back and forth (held: further). VOD keeps the player's own controls.
+    // Remote (live TV): Up/Down raise the banner and page through the channels (up = the next one), OK on one
+    // switches to it, holding OK opens the channel list over the picture, the channel keys switch straight away,
+    // and the play/pause key pauses. Left/Right walk the channel's archive - a press steps to the programme
+    // before or after, holding them runs inside what is playing. A film keeps the player's own controls, and
+    // Up opens its subtitles.
     @OptIn(UnstableApi::class)
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
@@ -630,6 +745,20 @@ class PlayerActivity : AppCompatActivity() {
             }
             return true
         }
+        // Left and Right are decided on release, so that holding them can mean something else. They are
+        // mirrored with the layout: where the writing runs right to left, the right arrow goes back.
+        val arrow = code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT
+        if (arrow && live && !findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible) {
+            val back = (code == KeyEvent.KEYCODE_DPAD_RIGHT) == skin.rtl
+            if (down) {
+                if (event.repeatCount == 0) seekLong = false
+                else { seekLong = true; seekBy(if (back) -1 else 1, held = true) }
+            } else {
+                if (!seekLong) { if (canWalk()) walkGuide(back) else seekBy(if (back) -1 else 1, held = false) }
+                seekLong = false
+            }
+            return true
+        }
         if (!down) return super.dispatchKeyEvent(event)
         val controls = findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible
         when (code) {
@@ -641,18 +770,21 @@ class PlayerActivity : AppCompatActivity() {
                 return true
             }
             KeyEvent.KEYCODE_BACK -> if (browsing) { hideChannelBar(); return true }
-            // with the banner up on a channel that keeps an archive, left and right walk its programmes
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND ->
-                if (code == KeyEvent.KEYCODE_DPAD_LEFT && canWalk()) { walkGuide(back = !skin.rtl); return true }
-                else if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
-            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD ->
-                if (code == KeyEvent.KEYCODE_DPAD_RIGHT && canWalk()) { walkGuide(back = skin.rtl); return true }
-                else if (!controls) { seekBy(1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_MEDIA_REWIND -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_DPAD_LEFT -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
+            // a film: the subtitles panel - which translation, and how far it is moved
+            KeyEvent.KEYCODE_CAPTIONS -> if (!live) { openSubsPanel(); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }
-            KeyEvent.KEYCODE_DPAD_UP -> if (sources.size > 1 && !controls) { browseBy(-1); return true }
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls) { browseBy(1); return true }
+            // up is the next channel, the way the numbers run on a television
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                if (sources.size > 1 && !controls) { browseBy(1); return true }
+                if (!live && !controls) { openSubsPanel(); return true }
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls) { browseBy(-1); return true }
         }
         return super.dispatchKeyEvent(event)
     }

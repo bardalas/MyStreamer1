@@ -41,6 +41,80 @@ class MainActivity : AppCompatActivity() {
         TorrentEngine.warmUp(applicationContext)
     }
 
+    /**
+     * A broadcaster's own site, read the way a browser reads it. Kan puts its whole catalogue in the HTML
+     * but answers a plain request with a bot check, which no set of headers gets past - so the page is
+     * opened in an off-screen WebView, which passes the check by being a browser. The reading is done
+     * there too: the page hands back only what it was asked for, never a megabyte of markup.
+     *
+     * The window stays for a few minutes, so every other page of the same site is a same-origin fetch
+     * inside it - no second window, no second check.
+     */
+    private var siteWeb: WebView? = null
+    private var siteHost = ""
+    private val siteWait = HashMap<String, Boolean>()
+    private val siteIdle = Runnable { siteWeb?.let { (it.parent as? android.view.ViewGroup)?.removeView(it); it.destroy() }; siteWeb = null; siteHost = "" }
+
+    private fun answer(callbackId: String, ok: Boolean, body: String) {
+        web.evaluateJavascript(
+            "window.boothFetchDone && boothFetchDone(${JSONObject.quote(callbackId)}, $ok, ${JSONObject.quote(body)})", null)
+    }
+
+    /** The hidden window's only way home: what the reading script found, or why it found nothing. */
+    inner class SiteBridge {
+        @JavascriptInterface fun found(id: String, body: String) = runOnUiThread {
+            if (siteWait.remove(id) == null) return@runOnUiThread
+            answer(id, !body.startsWith("ERR:"), body)
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun sitePage(url: String, reader: String, callbackId: String) {
+        val host = runCatching { URL(url).host }.getOrNull()
+        if (host == null) { answer(callbackId, false, "ERR:bad url"); return }
+        siteWait[callbackId] = true
+        val hold = android.os.Handler(mainLooper)
+        hold.removeCallbacks(siteIdle)
+        hold.postDelayed(siteIdle, 5 * 60_000)
+        hold.postDelayed({ if (siteWait.remove(callbackId) != null) answer(callbackId, false, "ERR:timeout") }, 30_000)
+        val id = JSONObject.quote(callbackId)
+        // the reading script gets a document and returns text; whichever document that is, it answers the same way
+        val read = "function veoRead(d){ try{ VeoSite.found($id, String((function(d){ $reader })(d))); }" +
+            "catch(e){ VeoSite.found($id, 'ERR:' + e); } }"
+
+        val open = siteWeb
+        if (open != null && siteHost == host) {
+            open.evaluateJavascript(
+                "$read; fetch(${JSONObject.quote(url)}, {credentials:'include'}).then(r => r.text())" +
+                ".then(t => veoRead(new DOMParser().parseFromString(t, 'text/html')))" +
+                ".catch(e => VeoSite.found($id, 'ERR:' + e));", null)
+            return
+        }
+
+        siteIdle.run()
+        val hidden = WebView(this)
+        siteWeb = hidden
+        siteHost = host
+        hidden.settings.javaScriptEnabled = true
+        hidden.settings.domStorageEnabled = true
+        hidden.settings.blockNetworkImage = true                 // the words are what is wanted, not the pictures
+        hidden.settings.userAgentString =
+            "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36"
+        hidden.addJavascriptInterface(SiteBridge(), "VeoSite")
+        hidden.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, finished: String) {
+                // a bot check loads, runs and reloads itself: read the page only once it is the page
+                view.postDelayed({
+                    view.evaluateJavascript(
+                        "$read; if(!/challenge-platform|cf-browser-verification/.test(document.documentElement.outerHTML)) veoRead(document);", null)
+                }, 700)
+            }
+        }
+        // an off-screen window still has to be in the tree to run its scripts: one pixel, behind the page
+        (web.parent as? android.view.ViewGroup)?.addView(hidden, 1, 1)
+        hidden.loadUrl(url)
+    }
+
     /** Shows torrent progress in the page's status bar (empty = hide; error = red, with dismiss). */
     private fun showStatus(msg: String, error: Boolean = false) = runOnUiThread {
         web.evaluateJavascript("window.boothTorrentStatus && boothTorrentStatus(${JSONObject.quote(msg)}, $error)", null)
@@ -244,6 +318,14 @@ class MainActivity : AppCompatActivity() {
          * Fetches text (M3U playlists) natively: no CORS limits and it reaches LAN devices such as
          * a Raspberry Pi. Supports user:pass@host URLs. Result goes to window.boothFetchDone(id, ok, body).
          */
+        /**
+         * Read a page of a broadcaster's site in a window that behaves like a browser (see [sitePage]).
+         * [reader] is the body of a function taking the document and returning text - usually JSON.
+         */
+        @JavascriptInterface fun siteExtract(url: String, reader: String, callbackId: String) {
+            runOnUiThread { sitePage(url, reader, callbackId) }
+        }
+
         @JavascriptInterface fun fetchText(url: String, callbackId: String) {
             Thread {
                 val (ok, body) = try {
