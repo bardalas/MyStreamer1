@@ -103,6 +103,15 @@ export function focusItem(el){
   const how = isTvLayout() ? 'auto' : 'smooth';
   // the menu scrolls inside itself; the page behind it stays where the viewer left it
   if(el.closest('#rail')) return el.scrollIntoView({block: 'nearest', behavior: how});
+  // A title's seasons and episodes scroll inside their own panes. Because focus() uses
+  // preventScroll, explicitly keep the focused row fully inside that pane; viewport-only checks
+  // miss clipping at the pane's top/bottom edge.
+  const pane = el.closest('.eps, .seasonbar, .eplist, .altlist, .spane');
+  if(pane){
+    const er = el.getBoundingClientRect(), pr = pane.getBoundingClientRect();
+    if(er.top < pr.top + 6 || er.bottom > pr.bottom - 6)
+      el.scrollIntoView({block: 'nearest', inline: 'nearest', behavior: how});
+  }
   // a wheel is not scrolled: it is turned, by whatever took the middle (js/ui/reel.js)
   const strip = el.closest('.strip:not(.reel), .chlist, .stabs');
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: how});
@@ -125,6 +134,7 @@ document.body.classList.add('motion');
  * wherever it was before the frame appeared.
  */
 let lastFocus = null;
+let railReturnFocus = null;                         // exact content item left when the remote enters the side rail
 addEventListener('focusin', e => { if(e.target.tagName !== 'IFRAME') lastFocus = e.target; });
 const reclaim = () => {
   const a = document.activeElement;
@@ -177,7 +187,7 @@ export function tvMove(dir){
       if(n){
         if(row.id === 'rail'){ focusItem(n); return true; }   // a place in the app waits for OK
         n.click();                                  // a tab, though, opens as you arrive on it
-        n.focus();                                  // click() alone doesn't reliably move focus
+        focusItem(n);                               // also scroll its inner pane; focus() alone can leave it clipped
         return true;
       }
       // the ends of a menu lead on to the row above or below it - never into what the menu itself controls
@@ -187,6 +197,12 @@ export function tvMove(dir){
     }
     if(dir === FWD()){                              // what the menu controls is on its far side
       const target = $(pane);
+      // Returning from the global rail goes back to the exact title/control the viewer left, not
+      // to the first row. This preserves both the visual row and the page's current scroll position.
+      if(row.id === 'rail' && railReturnFocus?.isConnected && target?.contains(railReturnFocus)){
+        focusItem(railReturnFocus);
+        return true;
+      }
       // the titles are what the viewer came for: the pills above them are not where to land
       const rows = target ? tvRows().filter(r => target.contains(r)) : [];
       const cards = rows.find(r => r.querySelector('.poster, .ep, .chmain, .eprow'));
@@ -213,6 +229,7 @@ export function tvMove(dir){
       const stab = document.querySelector('.seasonbar button.on') || document.querySelector('.seasonbar button');
       if(stab && row.classList.contains('eps')){ focusItem(stab); return true; }
       if(document.body.classList.contains('railed') && $('#app').contains(active)){
+        railReturnFocus = active;                    // remember the exact movie/control before entering the rail
         focusItem($('#rail a.on') || $('#rail a'));
         return true;
       }
