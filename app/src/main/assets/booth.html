@@ -143,7 +143,9 @@ main{padding:0 28px 60px}
 .qbtn{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:5px 11px;font-size:13px;cursor:pointer}
 .qbtn:hover,.qbtn:focus-visible{border-color:var(--tungsten)}
 .playrow .btn{padding:6px 14px;font-size:14px}
-[data-layout="tv"] .qbtn,[data-layout="tv"] .playrow .btn{font-size:15px}
+[data-layout="tv"] .qbtn,[data-layout="tv"] .playrow .btn{font-size:14px}
+[data-layout="tv"] .playrow .btn{padding:5px 12px}
+[data-layout="tv"] .qbtn{padding:4px 10px}
 .altbtn{background:none;border:0;padding:8px 6px;color:var(--muted);font-size:14px;cursor:pointer;font-family:inherit}
 .altbtn::after{content:" ▾"}
 .altbtn[aria-expanded="true"]{color:var(--light)}
@@ -615,7 +617,7 @@ he: {
   'addons.hidden': '{n} תוספים לא זמינים כרגע ומוסתרים.', 'addons.already': 'התוסף הזה כבר מותקן.',
   'addons.invalid': 'זה לא קובץ manifest תקין', 'addons.installed': '{name} הותקן.',
   'addons.failed': 'ההתקנה נכשלה: {err}. ודא שהקישור מסתיים ב־manifest.json.',
-  'src.play': 'נגן', 'src.more': 'מקורות נוספים ({n})', 'src.direct': 'ישיר',
+  'src.play': 'נגן', 'src.more': 'מקורות ({n})', 'src.direct': 'ישיר',
   'src.searching': 'מחפש מקורות…', 'src.searchingMore': 'מחפש עוד…', 'src.none': 'אין מקורות זמינים כרגע', 'src.failed': 'לא ניתן לטעון מקורות',
   'src.noAddon': 'לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.',
   'src.torrentApp': 'מקורות טורנט מתנגנים באפליקציית VEO לאנדרואיד.',
@@ -705,7 +707,7 @@ en: {
   'addons.hidden': '{n} add-ons are unavailable right now and hidden.', 'addons.already': 'This add-on is already installed.',
   'addons.invalid': 'This is not a valid manifest file', 'addons.installed': '{name} installed.',
   'addons.failed': 'Installation failed: {err}. Make sure the link ends with manifest.json.',
-  'src.play': 'Play', 'src.more': 'More sources ({n})', 'src.direct': 'Direct',
+  'src.play': 'Play', 'src.more': 'Sources ({n})', 'src.direct': 'Direct',
   'src.searching': 'Looking for sources…', 'src.searchingMore': 'Looking for more…', 'src.none': 'No sources available right now', 'src.failed': 'Could not load sources',
   'src.noAddon': 'No sources add-on is installed. You can add one on the <a href="#/addons">Add-ons</a> page.',
   'src.torrentApp': 'Torrent sources play in the VEO app for Android.',
@@ -2010,7 +2012,7 @@ async function viewDetail(type, id){
     el.innerHTML = esc(short).replace(/\n/g, '<br>') + (short !== plot.text ? ` <button class="readmore" id="rm">${tr('detail.readMore')}</button>` : '');
     if($('#rm')) $('#rm').onclick = () => { el.innerHTML = esc(plot.text).replace(/\n/g, '<br>'); };
     const h = app.querySelector('.detail h1');
-    if(h && heCache[meta.id]?.t && !h.querySelector('.orig')) h.innerHTML = `${esc(heCache[meta.id].t)}<span class="orig" dir="ltr">${esc(meta.name)}</span>`;
+    if(h && heCache[meta.id]?.t && !h.querySelector('.orig')) h.innerHTML = `${esc(heCache[meta.id].t)}<span class="orig"><bdi>${esc(meta.name)}</bdi></span>`;
   }).catch(() => {});
   const videos = (meta.videos || []).filter(v => v.season !== undefined || type !== 'movie');
   const seasons = [...new Set(videos.map(v => v.season ?? 0))].sort((a,b) => (a===0) - (b===0) || a - b);
@@ -2020,7 +2022,7 @@ async function viewDetail(type, id){
     <div class="detail ${seasons.length ? 'series' : 'movie'}">
       <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
       <div class="dinfo">
-        <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig" dir="ltr">${esc(meta.name)}</span>` : ''}</h1>
+        <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig"><bdi>${esc(meta.name)}</bdi></span>` : ''}</h1>
         <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
         <div class="playrow"><span id="streams" class="psrc"><span class="srcstat">${tr('src.searching')}</span></span>
           <button class="btn ghost ${saved?'saved':''}" id="lib">${libLabel(saved)}</button>
