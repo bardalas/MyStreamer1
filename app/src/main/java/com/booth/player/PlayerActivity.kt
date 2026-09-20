@@ -11,7 +11,9 @@ import android.view.MotionEvent
 import android.view.Gravity
 import android.view.View
 import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
@@ -35,7 +37,12 @@ import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
     /** One playable item. Live TV passes a whole channel list so the viewer can zap through it. */
-    private data class Source(val name: String, val url: String, val ua: String, val referer: String, val drm: String = "")
+    private data class Source(
+        val name: String, val url: String, val ua: String, val referer: String, val drm: String = "",
+        val num: Int = 0, val logo: String = "", val epg: String = "",
+    )
+    /** One programme from a channel's guide. */
+    private data class Prog(val from: Long, val to: Long, val name: String)
 
     private var player: ExoPlayer? = null
     private var resumePosition = 0L
@@ -51,11 +58,9 @@ class PlayerActivity : AppCompatActivity() {
     private var retries = 0
     /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
     private val watchId get() = intent.getStringExtra("vid") ?: ""
-    /** A television: the D-pad owns every key, so live playback shows no overlay controls at all. */
-    private val onTv by lazy { packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK) }
     /** Channel bar (live TV): which channel the viewer is pointing at while it is open. */
     private var barIndex = 0
-    private val barOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
+    private val barOpen get() = findViewById<View>(R.id.chScroll).visibility == View.VISIBLE
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,7 +70,10 @@ class PlayerActivity : AppCompatActivity() {
         sources = intent.getStringExtra("channels")?.let { json ->
             val a = JSONArray(json)
             List(a.length()) { i ->
-                a.getJSONObject(i).run { Source(optString("name"), optString("url"), optString("ua"), optString("referer"), optString("drm")) }
+                a.getJSONObject(i).run {
+                    Source(optString("name"), optString("url"), optString("ua"), optString("referer"),
+                        optString("drm"), optInt("num", i + 1), optString("logo"), optString("epg"))
+                }
             }
         } ?: listOfNotNull(intent.getStringExtra("url")?.let {
             Source(intent.getStringExtra("title") ?: "", it, intent.getStringExtra("ua") ?: "", intent.getStringExtra("referer") ?: "",
@@ -83,8 +91,8 @@ class PlayerActivity : AppCompatActivity() {
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.25f)
         }
 
-        if (live && onTv) view.useController = false        // remote keys zap and open the bar; nothing to focus-steal
-        if (sources.size > 1 && !(live && onTv)) {
+        if (live) view.useController = false     // live has nothing to seek, and controls eat the D-pad
+        if (sources.size > 1 && !live) {
             val zap = findViewById<View>(R.id.zap)
             view.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { zap.visibility = it })
             findViewById<View>(R.id.chUp).setOnClickListener { zapBy(-1) }
@@ -94,7 +102,11 @@ class PlayerActivity : AppCompatActivity() {
         if (sources.size > 1) buildChannelBar()
 
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
-        if (live || intent.getBooleanExtra("nosubs", false)) { subs = emptyList(); showOsd(); return }
+        if (live || intent.getBooleanExtra("nosubs", false)) {
+            subs = emptyList()
+            if (live) showBanner(withList = false) else showOsd()    // the banner introduces the channel
+            return
+        }
 
         // Play now, look for Hebrew subtitles in the background: side-loaded subtitles have to be part
         // of the MediaItem, so when they arrive the player is rebuilt at the very same position.
@@ -200,6 +212,109 @@ class PlayerActivity : AppCompatActivity() {
             }
     }
 
+    /** Guide per channel (by its endpoint), fetched once and kept for the session. */
+    private val guides = HashMap<String, List<Prog>>()
+    private val logos = HashMap<String, android.graphics.Bitmap?>()
+
+    /** Fill the banner with the channel and what is on it, then fetch the guide if it is not in yet. */
+    private fun paintBanner() {
+        val src = sources[index]
+        findViewById<TextView>(R.id.chNum).text = if (src.num > 0) "${'$'}{src.num}" else "—"
+        findViewById<TextView>(R.id.chName).text = src.name
+        findViewById<TextView>(R.id.nowClock).text =
+            android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date())
+        val logo = findViewById<ImageView>(R.id.chLogo)
+        val cached = logos[src.logo]
+        logo.visibility = if (cached != null) View.VISIBLE else View.GONE
+        cached?.let { logo.setImageBitmap(it) }
+        if (src.logo.isNotBlank() && !logos.containsKey(src.logo)) loadLogo(src.logo)
+        paintNow()
+        if (src.epg.isNotBlank() && !guides.containsKey(src.epg)) loadGuide(src.epg)
+    }
+
+    /** The "now / next" part, refreshed every minute while the banner is up. */
+    private fun paintNow() {
+        val src = sources.getOrNull(index) ?: return
+        val now = System.currentTimeMillis() / 1000
+        val progs = guides[src.epg]
+        val playing = progs?.firstOrNull { now in it.from until it.to }
+        val next = progs?.firstOrNull { it.from >= (playing?.to ?: now) }
+        val title = findViewById<TextView>(R.id.nowTitle)
+        val bar = findViewById<ProgressBar>(R.id.nowBar)
+        val after = findViewById<TextView>(R.id.nextTitle)
+        if (playing != null) {
+            title.text = "${'$'}{hhmm(playing.from)} · ${'$'}{playing.name}"
+            bar.visibility = View.VISIBLE
+            bar.progress = (((now - playing.from) * 100) / (playing.to - playing.from).coerceAtLeast(1)).toInt()
+            val left = ((playing.to - now) / 60).coerceAtLeast(0)
+            after.text = if (next != null) "עוד ${'$'}left דק׳ · אחר כך ${'$'}{hhmm(next.from)} ${'$'}{next.name}"
+                         else "נותרו ${'$'}left דק׳"
+        } else {
+            title.text = if (progs == null && src.epg.isNotBlank()) "טוען לוח שידורים…"
+                         else if (next != null) "הבא: ${'$'}{hhmm(next.from)} · ${'$'}{next.name}"
+                         else "שידור חי"
+            bar.visibility = View.GONE
+            after.text = ""
+        }
+        findViewById<TextView>(R.id.infoNow).text =
+            if (sources.size > 1) "OK לרשימת הערוצים · מעלה/מטה להחלפה · לחיצה ארוכה על OK: צפייה אחורה"
+            else "לחיצה ארוכה על OK: צפייה אחורה"
+    }
+
+    private fun hhmm(epochSeconds: Long): String =
+        android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date(epochSeconds * 1000))
+
+    private fun loadGuide(url: String) {
+        Thread {
+            val list = runCatching {
+                val text = java.net.URL(url).openStream().bufferedReader().use { it.readText() }
+                val arr = org.json.JSONArray(text)
+                (0 until arr.length()).mapNotNull { i ->
+                    arr.optJSONObject(i)?.let {
+                        val from = it.optLong("time"); val to = it.optLong("time_to")
+                        if (from > 0 && to > from) Prog(from, to, it.optString("name")) else null
+                    }
+                }.sortedBy { it.from }
+            }.getOrDefault(emptyList())
+            runOnUiThread {
+                guides[url] = list
+                if (bannerOpen) paintNow()
+            }
+        }.start()
+    }
+
+    private fun loadLogo(url: String) {
+        Thread {
+            val bmp = runCatching {
+                java.net.URL(url).openStream().use { android.graphics.BitmapFactory.decodeStream(it) }
+            }.getOrNull()
+            runOnUiThread {
+                logos[url] = bmp
+                if (bannerOpen && sources.getOrNull(index)?.logo == url && bmp != null) {
+                    findViewById<ImageView>(R.id.chLogo).apply { setImageBitmap(bmp); visibility = View.VISIBLE }
+                }
+            }
+        }.start()
+    }
+
+    /** Raise the banner (every channel change does), and take it down again after a few seconds. */
+    private fun showBanner(withList: Boolean) {
+        if (!live) return
+        barIndex = index
+        findViewById<View>(R.id.infobar).visibility = View.VISIBLE
+        findViewById<View>(R.id.chScroll).visibility = if (withList && sources.size > 1) View.VISIBLE else View.GONE
+        paintBanner()
+        if (withList) paintChannelBar()
+        handler.removeCallbacks(hideBanner)
+        handler.removeCallbacks(tickBanner)
+        handler.postDelayed(tickBanner, 30_000)
+        if (!withList) handler.postDelayed(hideBanner, 6_000)      // browsing the list stays up
+    }
+
+    private val hideBanner = Runnable { hideChannelBar() }
+    private val tickBanner = Runnable { if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, 30_000) } }
+    private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
+
     /** Channel bar: the channel list along the bottom, for choosing with the remote. */
     private fun buildChannelBar() {
         val row = findViewById<LinearLayout>(R.id.chRow)
@@ -217,15 +332,14 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun showChannelBar() {
-        if (sources.size < 2) return
-        barIndex = index
-        findViewById<View>(R.id.infobar).visibility = View.VISIBLE
-        findViewById<PlayerView>(R.id.playerView).hideController()
-        paintChannelBar()
-    }
+    private fun showChannelBar() = showBanner(withList = true)
 
-    private fun hideChannelBar() { findViewById<View>(R.id.infobar).visibility = View.GONE }
+    private fun hideChannelBar() {
+        handler.removeCallbacks(hideBanner)
+        handler.removeCallbacks(tickBanner)
+        findViewById<View>(R.id.infobar).visibility = View.GONE
+        findViewById<View>(R.id.chScroll).visibility = View.GONE
+    }
 
     private fun paintChannelBar() {
         val row = findViewById<LinearLayout>(R.id.chRow)
@@ -237,8 +351,6 @@ class PlayerActivity : AppCompatActivity() {
         row.getChildAt(barIndex)?.let { v ->
             findViewById<HorizontalScrollView>(R.id.chScroll).smoothScrollTo(v.left - 200, 0)
         }
-        findViewById<TextView>(R.id.infoNow).text =
-            "צופה: ${sources[index].name}   ·   OK להחלפה   ·   לחיצה ארוכה על OK: צפייה אחורה"
     }
 
     private fun moveChannelBar(step: Int) {
@@ -264,7 +376,8 @@ class PlayerActivity : AppCompatActivity() {
         retries = 0
         player?.release()
         player = null
-        showOsd()
+        if (live) showBanner(withList = barOpen && findViewById<View>(R.id.chScroll).visibility == View.VISIBLE)
+        else showOsd()
         if (barOpen) { barIndex = index; paintChannelBar() }
         // Give the server a moment to close the previous channel's session before opening the next.
         handler.removeCallbacks(rebuild)

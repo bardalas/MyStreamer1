@@ -61,21 +61,69 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Live TV: channel bar (OK opens it, OK again switches channel) -->
+    <!-- Live TV: the info banner. Rises on every channel change and on OK: which channel, what is
+         on now with how far along it is, and what follows. OK again opens the channel strip. -->
     <LinearLayout
         android:id="@+id/infobar"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_gravity="bottom" android:orientation="vertical"
-        android:background="#D9000000" android:padding="16dp"
+        android:background="#E6070910" android:paddingHorizontal="28dp" android:paddingVertical="18dp"
         android:layoutDirection="rtl" android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView
+                android:id="@+id/chNum"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:minWidth="46dp" android:gravity="center"
+                android:background="#F0B429" android:paddingHorizontal="10dp" android:paddingVertical="3dp"
+                android:textColor="#14161F" android:textSize="20sp" android:textStyle="bold" />
+            <ImageView
+                android:id="@+id/chLogo"
+                android:layout_width="64dp" android:layout_height="40dp"
+                android:layout_marginStart="14dp" android:scaleType="fitCenter"
+                android:contentDescription="@null" android:visibility="gone" />
+            <TextView
+                android:id="@+id/chName"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:layout_marginStart="14dp" android:maxLines="1" android:ellipsize="end"
+                android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" />
+            <TextView
+                android:id="@+id/nowClock"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textColor="#AAB0BD" android:textSize="17sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/nowTitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:maxLines="1" android:ellipsize="end"
+            android:textColor="#FFFFFF" android:textSize="19sp" />
+
+        <ProgressBar
+            android:id="@+id/nowBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent" android:layout_height="4dp"
+            android:layout_marginTop="8dp" android:max="100"
+            android:progressTint="#F0B429" android:progressBackgroundTint="#33FFFFFF" />
+
+        <TextView
+            android:id="@+id/nextTitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:maxLines="1" android:ellipsize="end"
+            android:textColor="#AAB0BD" android:textSize="16sp" />
+
         <TextView
             android:id="@+id/infoNow"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:textColor="#FFFFFF" android:textSize="18sp" android:paddingBottom="10dp" />
+            android:layout_marginTop="10dp"
+            android:textColor="#7F8899" android:textSize="14sp" />
+
         <HorizontalScrollView
             android:id="@+id/chScroll"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:scrollbars="none">
+            android:layout_marginTop="10dp" android:scrollbars="none" android:visibility="gone">
             <LinearLayout
                 android:id="@+id/chRow"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"

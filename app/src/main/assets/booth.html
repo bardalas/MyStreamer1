@@ -2193,7 +2193,11 @@ async function liveChannels(key){
 function watchChannel(list, i, sourceKey){
   store.set('lastChannel', {src: sourceKey, name: list[i].name});
   if(window.BoothAndroid && BoothAndroid.playChannels)
-    BoothAndroid.playChannels(JSON.stringify(list.map(c => ({name: c.name, url: c.url, ua: c.ua || '', referer: c.referer || ''}))), i);
+    // logo + guide endpoint travel with the channel so the player's banner can show what is on
+    BoothAndroid.playChannels(JSON.stringify(list.map((c, n) => ({
+      name: c.name, url: c.url, ua: c.ua || '', referer: c.referer || '',
+      num: n + 1, logo: c.logo || '', epg: c.epg ? RTV_EPG(c.epg) : ''
+    }))), i);
   else playLive(list[i]);
 }
 
