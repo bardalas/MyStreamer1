@@ -3,6 +3,7 @@ import {listHash, route} from '../app.js';
 import {$} from '../core/dom.js';
 import {isTvLayout, settings} from '../core/settings.js';
 import {FWD} from '../i18n.js';
+import {stepSpot} from './reel.js';
 
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
    follows the focus — instead of the browser scrolling on its own. */
@@ -15,6 +16,7 @@ export const ROWS_SEL = [
   '.bctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',              // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
+  '.tacts', '#palt', '.src',                                               // a title: what can be done with it
   '.qvact', '.playrow', '.altlist',                                        // title card + sources
   '.live-top', '#cont', '#bchead', '.chlist',                              // live TV
   '.days', '.progs', '.keypad', '.keyform',                                // catch-up guide, key entry
@@ -159,13 +161,12 @@ export function tvMove(dir){
   const act = row.querySelector?.('.spotact');
   const actBtns = () => [...act.querySelectorAll('button')].filter(visible);
   if(act?.contains(active)){
-    const btns = actBtns();
-    if(dir === 'up'){ focusItem(row.querySelector('.poster.spot')); return true; }
-    if(dir === 'left' || dir === 'right'){
-      const n = btns[btns.indexOf(active) + (dir === FWD() ? 1 : -1)];
-      if(n) focusItem(n);
-      return true;
-    }
+    const btns = actBtns(), j = btns.indexOf(active);
+    // along the row, the wheel turns even from here - the viewer stays on the same button of the
+    // title that arrives; down and up walk the card: picture, play, details, and on to the row below
+    if(dir === 'left' || dir === 'right'){ stepSpot(dir === FWD(), j); return true; }
+    if(dir === 'up'){ focusItem(btns[j - 1] || row.querySelector('.poster.spot')); return true; }
+    if(btns[j + 1]){ focusItem(btns[j + 1]); return true; }
     const below = rows[rows.indexOf(row) + 1];
     if(below) focusItem(bestIn(below, active));
     return true;

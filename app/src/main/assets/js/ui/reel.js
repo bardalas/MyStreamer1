@@ -208,6 +208,22 @@ document.addEventListener('click', e => {
 });
 addEventListener('hashchange', clearSpot);
 
+/**
+ * One title along the row, without leaving the card: whatever the viewer was on - the picture, or
+ * either of its buttons - they are still on it when the next title arrives.
+ */
+export function stepSpot(forward, keep = -1){
+  if(!spot) return false;
+  const strip = spot.closest('.strip');
+  const posters = [...strip.querySelectorAll('a.poster')];
+  const next = posters[posters.indexOf(spot) + (forward ? 1 : -1)];
+  if(!next) return false;
+  spotlight(next);
+  const btns = keep >= 0 ? [...(act?.querySelectorAll('button') || [])] : [];
+  (btns[keep] || btns[btns.length - 1] || next).focus({preventScroll: true});
+  return true;
+}
+
 /** The first title of the first row takes the middle by itself, so a screen opens on its content. */
 export function autoSpot(strip){
   if(spot || !strip) return;

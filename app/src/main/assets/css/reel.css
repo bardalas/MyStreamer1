@@ -6,12 +6,14 @@
    way, so nothing below it moves while you browse. */
 
 .reelwrap{overflow:hidden;margin-inline:-10px;padding-inline:10px}
-.strip.reel{position:relative;overflow:visible;scroll-snap-type:none;
+/* the room under the row is the same whether a title stands in it or not, so nothing below it moves */
+.strip.reel{position:relative;overflow:visible;scroll-snap-type:none;padding-bottom:42px;
   transition:transform var(--settle) var(--ease)}
+.strip.reel .poster{flex:0 0 calc(var(--poster-w) * 1.3)}
 /* The picture takes its new size at once - the row's own travel is the movement the eye follows, and
    a width that is still growing is a width nothing can be measured against. */
 
-.poster.spot{flex:0 0 calc(var(--poster-w) * 2.67)}
+.strip .poster.spot,.strip.reel .poster.spot{flex:0 0 calc(var(--poster-w) * 3.47)}
 .poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e;animation:spotIn var(--travel) var(--ease) both}
 @keyframes spotIn{from{opacity:.45;transform:scale(.97)}to{opacity:1;transform:none}}
 .poster.spot:hover .art{transform:none}
@@ -35,21 +37,31 @@
 .spotinfo p{margin:0;font-size:11.5px;line-height:1.3;color:#fff9;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-.spotact{position:absolute;z-index:4;display:flex;gap:8px}
-.spotact .btn{padding:7px 16px;font-size:13px;white-space:nowrap}
+/* The two things to do with it stand one under the other, at the edge the row begins from: along the
+   row you pass titles, down the column you pass what can be done with this one. */
+.spotact{position:absolute;z-index:4;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.spotact .btn{padding:8px 18px;font-size:14px;white-space:nowrap}
+
+/* Where you are is unmistakable: the picture you are on wears a ring, and a button you are on fills. */
+.poster.spot:focus-visible .art,[data-layout="tv"] .poster.spot:focus .art{
+  outline:3px solid var(--light);outline-offset:4px}
+.spotact .btn:focus,.spotact .btn:focus-visible{background:var(--light);color:var(--night)}
 
 /* ---------- at arm's length ---------- */
 [data-layout="tv"] .spotinfo{padding:34px 16px 10px;gap:2px}
 [data-layout="tv"] .spotinfo b{font-size:21px}
 [data-layout="tv"] .spotinfo .facts{font-size:13px}
 [data-layout="tv"] .spotinfo p{font-size:13px}
-[data-layout="tv"] .spotact .btn{padding:8px 18px;font-size:15px}
+[data-layout="tv"] .spotact .btn{padding:10px 22px;font-size:17px}
+[data-layout="tv"] .spotact{gap:8px}
 
 /* ---------- a phone: the row still scrolls, but the title still opens in place ---------- */
 @media(max-width:899px){
   .reelwrap{overflow:visible;margin-inline:0;padding-inline:0}
   .strip.reel{overflow-x:auto}
-  .poster.spot{flex-basis:min(76vw,calc(var(--poster-w) * 2.4))}
+  .strip.reel .poster{flex-basis:var(--poster-w)}
+  .strip .poster.spot,.strip.reel .poster.spot{flex-basis:min(76vw,calc(var(--poster-w) * 2.4))}
+  .strip.reel{padding-bottom:36px}
   .spotinfo{padding:30px 11px 8px}
   .spotinfo b{font-size:16px}
 }
