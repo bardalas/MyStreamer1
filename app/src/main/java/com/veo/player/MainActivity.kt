@@ -27,6 +27,10 @@ class MainActivity : AppCompatActivity() {
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
+        // A WebView multiplies every text by the system font scale, while the boxes around it keep their
+        // size: at the larger settings a phone's screen ends up with text cut off and running over itself.
+        // The page sizes its own text for the screen it is on; a little of the viewer's preference still counts.
+        web.settings.textZoom = (100 * minOf(resources.configuration.fontScale, 1.1f)).toInt()
         // chrome://inspect can attach to a debug build's page; a release build stays closed
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
         web.webViewClient = WebViewClient()

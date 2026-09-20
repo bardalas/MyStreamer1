@@ -59,7 +59,7 @@ main{padding:0 28px 60px}
   linear-gradient(calc(180deg + 90deg * var(--flip)),var(--night) 8%,var(--shade-55) 45%,transparent 75%),
   linear-gradient(0deg,var(--night) 2%,transparent 45%)}
 .hero .beam{display:none;position:absolute;z-index:1;left:-10%;transform:scaleX(-1);top:-30%;width:70%;height:160%;background:conic-gradient(from 200deg at 100% 0%,transparent 0deg,var(--beam) 14deg,transparent 30deg);pointer-events:none}
-.hero .copy{position:relative;z-index:2;padding:0 28px 48px;max-width:760px}
+.hero .copy{position:relative;z-index:2;flex:1;min-width:0;padding:0 28px 48px;max-width:760px}
 .hero h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,56px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
 .hero p{color:var(--text2);max-width:56ch;margin:0 0 18px;font-size:14px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;text-decoration:none}
@@ -172,16 +172,19 @@ main{padding:0 28px 60px}
 .poster.nosrc .art{filter:grayscale(1);opacity:.35}
 .poster.nosrc .t,.poster.nosrc .y{opacity:.45}
 [data-nosrc="hide"] .poster.nosrc{display:none}
-.note{color:var(--muted);font-size:14px}
+.note{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.page h1,.row h2{overflow-wrap:anywhere}
 .err{color:var(--err);font-size:14px}
 
 /* addons */
-.addon{display:grid;grid-template-columns:56px 1fr auto;gap:16px;align-items:center;background:var(--surface);border-radius:10px;padding:14px;margin-bottom:10px;max-width:820px}
+.addon{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--surface);border-radius:10px;padding:14px;margin-bottom:10px;max-width:820px}
 .addon img,.addon .ph{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--raise)}
-.addon h3{margin:0;font-size:16px}
-.addon p{margin:2px 0 0;color:var(--muted);font-size:13px}
-.add{display:flex;gap:10px;max-width:820px;margin:0 0 24px}
-.add input{flex:1}
+.addon>div{min-width:0}
+.addon h3{margin:0;font-size:16px;overflow-wrap:anywhere}
+.addon p{margin:2px 0 0;color:var(--muted);font-size:13px;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.add{display:flex;gap:10px;max-width:820px;margin:0 0 24px;flex-wrap:wrap}
+.add input{flex:1 1 200px;min-width:0}
 .danger{background:none;border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;color:var(--muted)}
 
 /* player */
@@ -533,8 +536,11 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 [data-layout="tv"] input[readonly]{caret-color:transparent;cursor:pointer}
 
 /* where a title streams: a small badge on the poster */
-.art .svc{position:absolute;top:6px;inset-inline-start:6px;background:rgba(0,0,0,.72);color:#fff;font-size:10px;font-weight:700;line-height:1.4;padding:2px 6px;border-radius:4px;direction:ltr}
-[data-layout="tv"] .art .svc{font-size:12px}
+/* which service a title is on: a small mark beside its name, not a label over the artwork */
+.svcs{display:inline-flex;gap:3px;margin-inline-start:6px;vertical-align:-2px;direction:ltr}
+.svcm{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 4px;
+  border-radius:5px;color:#fff;font:700 10px/1 var(--body);letter-spacing:.02em}
+[data-layout="tv"] .svcm{min-width:20px;height:20px;font-size:11px}
 .facts .svcf{background:var(--raise);border:1px solid var(--line)}
 
 .skel{background:linear-gradient(90deg,var(--surface),var(--raise),var(--surface));background-size:200% 100%;animation:sh 1.4s infinite}
@@ -549,6 +555,23 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
   .poster{flex-basis:calc(var(--poster-w) * .8)}
   .grid{grid-template-columns:repeat(auto-fill,minmax(calc(var(--poster-w) * .8),1fr))}
   .nav{overflow-x:auto;max-width:100%}.nav a{padding:6px 11px;white-space:nowrap}
+}
+
+/* a phone: the search takes its own line, and everything around it gets a little tighter */
+@media (max-width:430px){
+  .bar{padding:10px 14px;gap:8px 12px}
+  .logo{font-size:20px;gap:6px}
+  .logo img{width:22px;height:22px}
+  .search{flex:1 1 100%;order:2;min-width:0;width:auto;padding-inline:14px 4px}
+  .nav{order:3}
+  .nav a{padding:6px 9px;font-size:13px}
+  main{padding:0 14px 50px}
+  .hero,.backdrop{margin:0 -14px 24px}
+  .hero .copy{padding:0 14px 32px}
+  .sortbar{gap:6px}
+  .sortpill{font-size:13px;padding:6px 12px}
+  .detail{gap:18px}
+  .cols,.epwrap{gap:12px}
 }
 </style>
 </head>
@@ -670,6 +693,7 @@ he: {
   'row.noCatalogs': 'אין עדיין קטלוגים. התקן תוסף עם קטלוגים בעמוד <a href="#/addons">התוספים</a>.',
   'hero.details': 'לפרטים',
   'sort.genre': 'ז׳אנר', 'sort.genre.all': 'כל הז׳אנרים',
+  'sort.svc': 'שירות', 'sort.svc.all': 'כל השירותים',
   'sort.summary': '{n} כותרים · מיון: {by} · מקורות: {from}',
 },
 en: {
@@ -762,6 +786,7 @@ en: {
   'row.noCatalogs': 'No catalogues yet. Install an add-on with catalogues on the <a href="#/addons">Add-ons</a> page.',
   'hero.details': 'Details',
   'sort.genre': 'Genre', 'sort.genre.all': 'All genres',
+  'sort.svc': 'Service', 'sort.svc.all': 'All services',
   'sort.summary': '{n} titles · sort: {by} · sources: {from}',
 },
 };
@@ -1113,14 +1138,30 @@ function noteServices(id, name){
   const list = svcMap[id] ||= [];
   if(!list.includes(name)) list.push(name);
 }
-const svcBadge = id => { const l = svcOf(id); return l.length ? `<span class="svc">${esc(l[0])}${l.length > 1 ? ' +' + (l.length - 1) : ''}</span>` : ''; };
+// Initials in the service's own colour: a logo would be its trademark, and a name is too long to sit
+// beside a title. The mark carries the full name as its tooltip.
+const SVC_MARK = {'Netflix': ['N', '#e50914'], 'Apple TV+': ['TV', '#4f5157'], 'Disney+': ['D+', '#1f4bd8'],
+  'Prime Video': ['PV', '#0b8fd0'], 'HBO Max': ['HBO', '#7b2ff2'], 'Paramount+': ['P+', '#1266ff'],
+  'Curiosity Stream': ['CS', '#0f9bb8'], 'MagellanTV': ['MG', '#b5842a']};
+const svcMark = name => {
+  const [txt, bg] = SVC_MARK[name] || [name.slice(0, 2).toUpperCase(), '#5a6072'];
+  return `<span class="svcm" style="background:${bg}" title="${esc(name)}">${esc(txt)}</span>`;
+};
+/** Up to two marks, and how many more there are. */
+const svcMarks = id => {
+  const l = svcOf(id);
+  if(!l.length) return '';
+  return `<span class="svcs" title="${esc(l.join(' · '))}">${l.slice(0, 2).map(svcMark).join('')}${
+    l.length > 2 ? `<span class="svcm" style="background:#5a6072">+${l.length - 2}</span>` : ''}</span>`;
+};
 const svcFacts = id => svcOf(id).map(n => `<span class="svcf">${esc(n)}</span>`).join('');
+/** The catalogues answer after the cards are drawn, so the marks are added to what is already on screen. */
 function applyBadges(){
   document.querySelectorAll('a.poster[data-id]').forEach(a => {
-    const art = a.querySelector('.art');
-    if(!art || art.querySelector('.svc')) return;
-    const b = svcBadge(a.dataset.id);
-    if(b) art.insertAdjacentHTML('beforeend', b);
+    const name = a.querySelector('.t [data-heid]');
+    if(!name || a.querySelector('.svcs')) return;
+    const marks = svcMarks(a.dataset.id);
+    if(marks) name.insertAdjacentHTML('afterend', marks);
   });
 }
 /** Once a day: collect every streaming service's catalogue into id -> services. */
@@ -1147,14 +1188,15 @@ const GENRES = ['Comedy', 'Action', 'Drama', 'Thriller', 'Horror', 'Sci-Fi', 'Ro
   'Fantasy', 'Documentary', 'Mystery', 'History', 'War', 'Music', 'Sport', 'Western'];
 const SORT_GROUPS = [
   {key: 'genre', label: 'sort.genre', opts: [['', 'sort.genre.all'], ...GENRES.map(g => [g, ''])]},
+  {key: 'svc', label: 'sort.svc', opts: [['', 'sort.svc.all'], ...Object.keys(SERVICES).map(k => [k, ''])]},
   {key: 'year', label: 'sort.year', opts: [['', 'sort.year.all'], ['2020', 'sort.year.2020'], ['2010', 'sort.year.2010'], ['2000', 'sort.year.2000'], ['old', 'sort.year.old']]},
   {key: 'rate', label: 'sort.rate', opts: [['', 'sort.rate.all'], ['7', 'sort.rate.7'], ['8', 'sort.rate.8']]},
   {key: 'by', label: 'sort.by', opts: [['pop', 'sort.by.pop'], ['rating', 'sort.by.rating'], ['year', 'sort.by.year'], ['az', 'sort.by.az']]},
 ];
 /** The words of one choice: genres come from the names table, everything else from the strings. */
-const optLabel = (g, [v, n]) => g.key === 'genre' && v ? genreName(v) : tr(n);
-let sortState = Object.assign({genre: '', by: 'pop', year: '', rate: ''}, store.get('sort', {}));
-const sortActive = () => sortState.by !== 'pop' || !!sortState.year || !!sortState.rate || !!sortState.genre;
+const optLabel = (g, [v, n]) => g.key === 'genre' && v ? genreName(v) : g.key === 'svc' && v ? SERVICES[v] : tr(n);
+let sortState = Object.assign({genre: '', svc: '', by: 'pop', year: '', rate: ''}, store.get('sort', {}));
+const sortActive = () => sortState.by !== 'pop' || !!sortState.year || !!sortState.rate || !!sortState.genre || !!sortState.svc;
 const yearOfMeta = m => +String(m.year || m.releaseInfo || '').slice(0, 4) || 0;
 const rateOf = m => parseFloat(m.imdbRating) || 0;
 
@@ -1170,7 +1212,7 @@ function sortBar(){
 function wireSortBar(redraw){
   document.querySelectorAll('.sortpill[data-sk]').forEach(b => b.onclick = () => openSortSheet(b.dataset.sk, redraw));
   const clear = document.querySelector('[data-sclear]');
-  if(clear) clear.onclick = () => { sortState = {genre: '', by: 'pop', year: '', rate: ''}; store.set('sort', sortState); redraw(); };
+  if(clear) clear.onclick = () => { sortState = {genre: '', svc: '', by: 'pop', year: '', rate: ''}; store.set('sort', sortState); redraw(); };
 }
 /** The choices of one subject, in a sheet the remote stays inside (Back closes it). */
 function openSortSheet(key, redraw){
@@ -1191,10 +1233,11 @@ function openSortSheet(key, redraw){
 }
 /** Apply the current choice to a list of titles. */
 function applySort(list){
-  const {by, year, rate, genre} = sortState;
+  const {by, year, rate, genre, svc} = sortState;
   let out = list.filter(m => {
     const y = yearOfMeta(m);
     if(genre && !(m.genres || m.genre || []).includes(genre)) return false;
+    if(svc && !svcOf(m.id).includes(SERVICES[svc])) return false;
     if(year === '2020' && y < 2020) return false;
     if(year === '2010' && (y < 2010 || y > 2019)) return false;
     if(year === '2000' && (y < 2000 || y > 2009)) return false;
@@ -1212,11 +1255,15 @@ function applySort(list){
     the set with that genre's popular and top-rated titles, so it works from any page. [redraw] shows the page again. */
 async function gridFrom(rows, heading, redraw){
   const app = $('#app');
-  const all = withGenreRows(rows);
+  const all = withServiceRows(withGenreRows(rows));
   app.innerHTML = `<div class="page"><h1>${esc(heading)}</h1>${sortBar()}<p class="sortnote" id="gnote"></p><div class="grid" id="grid">${skeletons(18)}</div></div>`;
   wireSortBar(redraw);
   const lists = await Promise.all(all.filter(x => x.a && x.c).map(x =>
-    catalogFetch(x.a, x.c.type, x.c.id, x.extra).then(d => d.metas || []).catch(() => [])));
+    catalogFetch(x.a, x.c.type, x.c.id, x.extra).then(d => {
+      const metas = d.metas || [];
+      if(SERVICES[x.c.id]) metas.forEach(m => noteServices(m.id, SERVICES[x.c.id]));   // a service's own catalogue says so
+      return metas;
+    }).catch(() => [])));
   const seen = new Set(), metas = [];
   for(const l of lists) for(const m of l) if(!seen.has(m.id)){ seen.add(m.id); metas.push(m); }
   const grid = $('#grid');
@@ -1227,6 +1274,12 @@ async function gridFrom(rows, heading, redraw){
   $('#gnote').textContent = tr('sort.summary', {n: Math.min(out.length, 200), by: optLabel(by, by.opts.find(([v]) => v === sortState.by)),
     from: [...new Set(all.filter(x => x.a).map(x => srcName(x.a)))].join(', ')});
   lazyBg(grid);
+}
+/** A chosen service adds that service's own catalogue, so the filter has something to show everywhere. */
+function withServiceRows(rows){
+  const sc = sortState.svc && addons.find(a => a.manifest.id === SC_ID);
+  if(!sc) return rows;
+  return [...rows, ...(sc.manifest.catalogs || []).filter(c => c.id === sortState.svc).map(c => ({a: sc, c}))];
 }
 /** A chosen genre adds Cinemeta's popular and top-rated titles of that genre to whatever the page holds. */
 function withGenreRows(rows){
@@ -1261,13 +1314,13 @@ function card(m){
   const marks = (done ? `<span class="seen" title="${esc(tr('card.watched'))}">✓</span>` : '')
     + (pct ? `<span class="track" title="${esc(tr('card.left', {n: Math.max(1, Math.round((p.d - p.t) / 60))}))}"><i style="width:${pct.toFixed(0)}%"></i></span>` : '');
   const art = m.poster
-    ? `<div class="art" data-bg="${esc(m.poster)}">${marks}${svcBadge(m.id)}</div>`
+    ? `<div class="art" data-bg="${esc(m.poster)}">${marks}</div>`
     : `<div class="art noart">${esc(m.name)}${marks}</div>`;
   const name = heTitle(m.id, m.name);
   const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';
   const none = key && typeof avail !== 'undefined' && isNoSrc(avail[key]);
   const rating = m.imdbRating ? `<small class="rate" title="IMDb">★ ${esc(m.imdbRating)}</small>` : '';
-  return `<a class="poster${none ? ' nosrc' : ''}${done ? ' watched' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t"><span data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</span>${rating}</div><div class="y">${esc(yearOf(m))}</div></a>`;
+  return `<a class="poster${none ? ' nosrc' : ''}${done ? ' watched' : ''}" data-id="${esc(m.id)}" ${key ? `data-avail="${key}"` : ''} href="#/detail/${esc(m.type)}/${encodeURIComponent(m.id)}">${art}<div class="t"><span data-heid="${esc(m.id)}" dir="${hasHebrew(name) ? 'rtl' : 'auto'}">${esc(name)}</span>${svcMarks(m.id)}${rating}</div><div class="y">${esc(yearOf(m))}</div></a>`;
 }
 const skeletons = n => Array.from({length:n}, () => `<div class="poster"><div class="art skel"></div></div>`).join('');
 
