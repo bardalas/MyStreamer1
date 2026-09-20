@@ -23,12 +23,14 @@ main{position:relative}
 
 /* everything you can do with the title, one under the other */
 .tacts{display:flex;flex-direction:column;gap:8px;margin:18px 0 0;max-width:420px}
-.tact{display:flex;align-items:center;gap:12px;width:100%;padding:11px 16px;border-radius:10px;
-  border:1px solid var(--line);background:var(--surface);color:var(--light);font:600 15px var(--body);
+/* Nothing here needs a box around it: a choice is a line of text, the one you are on is filled
+   white (css/focus.css) and the one in force wears the accent. */
+.tact{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border-radius:10px;
+  border:0;background:none;color:var(--light);font:600 15px var(--body);
   cursor:pointer;text-align:start}
 .tact .sub{margin-inline-start:auto;color:var(--muted);font-weight:500;font-size:13px}
-.tact.go{background:var(--light);color:var(--night);border-color:transparent;font-size:17px;padding:13px 18px}
-.tact.go .sub{color:#0009}
+.tact.go{background:var(--tungsten);color:var(--on-accent);font-size:17px;padding:13px 18px}
+.tact.go .sub{color:#fff9}
 [data-layout="tv"] .tact{font-size:17px;padding:13px 18px}
 [data-layout="tv"] .tact.go{font-size:19px}
 

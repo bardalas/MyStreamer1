@@ -98,6 +98,8 @@ export async function openQuickView(card){
       if(ep) playBtn.textContent = epLabel(ep);
     }
     startTaste('.titleSheet .tc-banner', trailerId(meta), 400);
+    // the card was rewritten under the viewer's hand: put the focus back where it was
+    if(!sheet.contains(document.activeElement)) playBtn.focus();
     sheet.querySelector('header b').textContent = heTitle(meta.id, meta.name);
     sheet.querySelector('.facts').innerHTML = svcFacts(id) + [meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`,
       yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`, meta.runtime && `<span>${esc(meta.runtime)}</span>`,

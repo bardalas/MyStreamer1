@@ -110,6 +110,36 @@ export function focusItem(el){
 /* The page draws its own focus (see css/focus.css), so the browser's ring is taken off. */
 document.body.classList.add('motion');
 
+/**
+ * The taste plays in a frame of YouTube's, and a frame of someone else's can take the focus for
+ * itself - after which every arrow press is delivered to YouTube and the page never hears it. The
+ * card then looks frozen while the list behind it scrolls. So the focus is taken straight back, to
+ * wherever it was before the frame appeared.
+ */
+let lastFocus = null;
+addEventListener('focusin', e => { if(e.target.tagName !== 'IFRAME') lastFocus = e.target; });
+const reclaim = () => {
+  const a = document.activeElement;
+  if(!a || a.tagName !== 'IFRAME') return;
+  a.blur();
+  const scope = tvScope();
+  const back = lastFocus?.isConnected && (scope === document || scope.contains(lastFocus))
+    ? lastFocus : itemsOf(tvRows()[0] || document.body)[0];
+  focusItem(back);
+};
+addEventListener('blur', () => setTimeout(reclaim, 0), true);
+setInterval(reclaim, 1200);          // a frame that grabs the focus without the page being told
+
+/* While a card is open the page behind it must not move. `:has()` does this on a recent browser;
+   a television's is not always recent, so the class says the same thing in a way that is older
+   than the app. */
+const lockPage = () => {
+  const want = !!openCard();
+  if(document.body.classList.contains('sheeted') !== want) document.body.classList.toggle('sheeted', want);
+};
+new MutationObserver(lockPage)
+  .observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'hidden']});
+
 export function tvMove(dir){
   const rows = tvRows();
   if(!rows.length) return false;

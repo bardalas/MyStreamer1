@@ -38,4 +38,5 @@
 
 /* While a card is over the picture the page behind it stays where it was: a modal that lets the
    background scroll reads as two screens at once. */
-body:has(.sheet),body:has(.update){overflow:hidden}
+body:has(.sheet),body:has(.update),body.sheeted{overflow:hidden}
+.taste{pointer-events:none}                 /* a trailer is watched, never clicked into */
