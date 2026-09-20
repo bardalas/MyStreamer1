@@ -281,7 +281,9 @@ main{padding:0 28px 60px}
 .cats{position:sticky;top:var(--barh,64px);z-index:15;display:flex;gap:8px;overflow-x:auto;padding:8px 28px;background:var(--night);border-bottom:1px solid var(--line);scrollbar-width:none}
 .cats::-webkit-scrollbar{display:none}
 .cats[hidden]{display:none}
-.cats a{flex:none;text-decoration:none;padding:6px 10px;border-radius:0;color:var(--muted);font-size:14px;font-weight:500;white-space:nowrap}
+.cats a{flex:none;display:flex;align-items:center;gap:8px;text-decoration:none;padding:6px 10px;border-radius:0;color:var(--muted);font-size:14px;font-weight:500;white-space:nowrap}
+.cats .ic{flex:none;display:flex}
+.cats .ic svg{width:19px;height:19px}
 .cats a:hover{color:var(--light)}
 .cats a.on{color:var(--light);box-shadow:inset 0 -2px var(--tungsten)}
 [data-layout="tv"] .cats a{padding:10px 20px;font-size:17px}
@@ -311,17 +313,24 @@ main{padding:0 28px 60px}
 .readmore{background:none;border:0;color:var(--tungsten);font-weight:600;cursor:pointer;padding:0 4px}
 .orig{display:block;font-family:var(--body);font-size:15px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:6px}
 
-/* the secondary menu as a rail on the side: every category is one move away */
+/* The secondary menu as a rail on the side: a quiet column of icons that opens into the full menu when
+   the pointer or the remote arrives on it. It opens over the page, never pushing it: the content keeps
+   the width of the closed rail, so nothing moves under the viewer. */
 @media(min-width:900px){
-  .cats{position:fixed;top:var(--barh,72px);inset-inline-start:0;width:var(--rail,190px);height:calc(100vh - var(--barh,72px));
-    flex-direction:column;gap:2px;padding:14px 12px 60px;overflow-y:auto;background:var(--night);
-    border-inline-end:1px solid var(--line);scrollbar-width:none}
-  .cats a{padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:none}
+  .cats{position:fixed;top:var(--barh,72px);inset-inline-start:0;width:var(--rail-shut,72px);height:calc(100vh - var(--barh,72px));
+    flex-direction:column;gap:2px;padding:14px 12px 60px;overflow-y:auto;overflow-x:hidden;background:var(--night);
+    border-inline-end:1px solid var(--line);scrollbar-width:none;transition:width .16s}
+  .cats:hover,.cats:focus-within{width:var(--rail,190px);box-shadow:0 0 34px #0009}
+  .cats a{padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:none;gap:14px}
+  .cats .lbl{opacity:0;transition:opacity .12s}
+  .cats:hover .lbl,.cats:focus-within .lbl{opacity:1}
   .cats a.on{background:var(--raise);color:var(--light);box-shadow:inset calc(3px * var(--flip)) 0 var(--tungsten)}
-  body.railed main{margin-inline-start:var(--rail,190px)}
+  .cats a.on .ic{color:var(--tungsten)}
+  body.railed main{margin-inline-start:var(--rail-shut,72px)}
 }
-[data-layout="tv"]{--rail:250px}
+[data-layout="tv"]{--rail:250px;--rail-shut:86px}
 [data-layout="tv"] .cats a{font-size:18px;padding:13px 18px}
+[data-layout="tv"] .cats .ic svg{width:26px;height:26px}
 
 /* A title on the TV: the backdrop is the room's wallpaper, and everything you can DO with the
    title - play, sources, episodes - is on the first screen, without scrolling. */
@@ -1860,6 +1869,19 @@ function rowsFor(cat){
   return out;
 }
 
+/* One mark per collection, for the closed rail. Stroked in currentColor, so they follow the skin. */
+const S = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}${extra}</svg>`;
+const CAT_ICONS = {
+  all: S('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>'),
+  movies: S('<rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="M2.5 9.5h19M7 4.5v5M12 4.5v5M17 4.5v5"/>'),
+  series: S('<rect x="2.5" y="7" width="19" height="13" rx="2"/><path d="M8 3l4 4 4-4"/>'),
+  israeli: S('<path d="M12 21.5s7-6 7-11.5a7 7 0 1 0-14 0c0 5.5 7 11.5 7 11.5z"/><circle cx="12" cy="10" r="2.6"/>'),
+  kids: S('<circle cx="12" cy="12" r="9"/><path d="M8.3 14.3c1 1.3 2.3 1.9 3.7 1.9s2.7-.6 3.7-1.9"/>',
+          '<circle cx="9" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1.1" fill="currentColor" stroke="none"/>'),
+  docs: S('<rect x="2.5" y="7" width="13" height="10" rx="2"/><path d="M15.5 11.2l6-3.2v8l-6-3.2z"/>'),
+  other: S('<circle cx="12" cy="12" r="7.5"/>'),
+};
+
 const RAIL_MQ = matchMedia('(min-width: 900px)');
 RAIL_MQ.addEventListener?.('change', () =>
   document.body.classList.toggle('railed', !$('#cats').hidden && RAIL_MQ.matches));
@@ -1874,10 +1896,12 @@ function renderCats(active){
   if(settings.kids === 'on'){ nav.hidden = true; document.body.classList.remove('railed'); return; }
   const avail = userCategories().filter(c => rowsFor(c).length);
   // what you are browsing: everything, one type, or a collection - the pills on the page refine it
-  nav.innerHTML = [`<a href="#/" class="${active === 'home' ? 'on' : ''}">${tr('cats.all')}</a>`,
-    `<a href="#/cat/movies" class="${active === 'movies' ? 'on' : ''}">${tr('cats.movies')}</a>`,
-    `<a href="#/cat/series" class="${active === 'series' ? 'on' : ''}">${tr('cats.series')}</a>`,
-    ...avail.map(c => `<a href="#/cat/${c.id}" class="${active === c.id ? 'on' : ''}"><bdi>${esc(catName(c))}</bdi></a>`)].join('');
+  const link = (href, icon, on, label) => `<a href="${href}" class="${on ? 'on' : ''}" title="${esc(label)}">
+    <span class="ic" aria-hidden="true">${CAT_ICONS[icon] || CAT_ICONS.other}</span><span class="lbl"><bdi>${esc(label)}</bdi></span></a>`;
+  nav.innerHTML = [link('#/', 'all', active === 'home', tr('cats.all')),
+    link('#/cat/movies', 'movies', active === 'movies', tr('cats.movies')),
+    link('#/cat/series', 'series', active === 'series', tr('cats.series')),
+    ...avail.map(c => link(`#/cat/${c.id}`, c.id, active === c.id, catName(c)))].join('');
   nav.querySelector('.on')?.scrollIntoView({inline: 'center', block: 'nearest'});
   if(hadFocus) nav.querySelector('.on')?.focus({preventScroll: true});
 }

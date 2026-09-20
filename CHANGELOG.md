@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.34.3 — 2026-09-20
+- The side menu rests as a narrow column of marks, one per collection, and opens into the full menu
+  when the pointer or the remote arrives on it. It opens over the page instead of pushing it, so
+  nothing moves under you.
+
 ## 0.34.2 — 2026-09-20
 - A film watched to the end carries a tick in the corner of its poster and steps out of "continue
   watching"; one left in the middle carries a bar showing how far it got, and how long is left.
