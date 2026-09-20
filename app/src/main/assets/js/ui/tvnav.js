@@ -103,6 +103,15 @@ export function focusItem(el){
   const how = isTvLayout() ? 'auto' : 'smooth';
   // the menu scrolls inside itself; the page behind it stays where the viewer left it
   if(el.closest('#rail')) return el.scrollIntoView({block: 'nearest', behavior: how});
+  // A title's seasons and episodes scroll inside their own panes. Because focus() uses
+  // preventScroll, explicitly keep the focused row fully inside that pane; viewport-only checks
+  // miss clipping at the pane's top/bottom edge.
+  const pane = el.closest('.eps, .seasonbar, .eplist, .altlist, .spane');
+  if(pane){
+    const er = el.getBoundingClientRect(), pr = pane.getBoundingClientRect();
+    if(er.top < pr.top + 6 || er.bottom > pr.bottom - 6)
+      el.scrollIntoView({block: 'nearest', inline: 'nearest', behavior: how});
+  }
   // a wheel is not scrolled: it is turned, by whatever took the middle (js/ui/reel.js)
   const strip = el.closest('.strip:not(.reel), .chlist, .stabs');
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: how});
@@ -177,7 +186,7 @@ export function tvMove(dir){
       if(n){
         if(row.id === 'rail'){ focusItem(n); return true; }   // a place in the app waits for OK
         n.click();                                  // a tab, though, opens as you arrive on it
-        n.focus();                                  // click() alone doesn't reliably move focus
+        focusItem(n);                               // also scroll its inner pane; focus() alone can leave it clipped
         return true;
       }
       // the ends of a menu lead on to the row above or below it - never into what the menu itself controls
