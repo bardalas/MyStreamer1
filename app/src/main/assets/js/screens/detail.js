@@ -9,7 +9,7 @@ import {svcFacts} from '../data/services.js';
 import {library, progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {card} from '../ui/cards.js';
-import {startTaste, trailerId} from '../ui/hero.js';
+import {startTaste, trailerId} from '../ui/taste.js';
 import {openPlayer} from '../ui/player.js';
 import {loadStreams} from '../ui/sources.js';
 

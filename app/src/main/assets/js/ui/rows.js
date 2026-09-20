@@ -11,7 +11,7 @@ import {kanBox, kanCard} from '../providers/kan.js';
 import {makoCard, makoPrograms} from '../providers/mako.js';
 import {r13, r13card, r13row} from '../providers/reshet.js';
 import {card, skeletons} from './cards.js';
-import {pickFeatured, renderHero} from './hero.js';
+import {autoSpot, reelable} from './reel.js';
 
 export const rowTag = x => {
   const parts = [];
@@ -21,17 +21,19 @@ export const rowTag = x => {
   const more = x.more ? ` <a class="rowmore" href="${esc(x.more)}">${tr('row.all')}</a>` : '';
   return (parts.length ? ` <small>${esc(parts.join(' · '))}</small>` : '') + more;
 };
-/** Hero + "continue watching" + a row per catalog; rows load in parallel. */
-export function renderRows(rows, {hero = true, cont = [], heading = '', top = ''} = {}){
+/* "Continue watching" and a row per catalogue, each a wheel of its own (js/ui/reel.js); the rows
+   load in parallel. There is no banner over them any more: the first title of the first row takes
+   the middle by itself, so a screen opens on its content rather than on an announcement of it. */
+export const reel = (inner, id = '') =>
+  `<div class="reelwrap"><div class="strip${reelable() ? ' reel' : ''}"${id ? ` id="${id}"` : ''}>${inner}</div></div>`;
+export function renderRows(rows, {cont = [], heading = '', top = ''} = {}){
   const app = $('#app');
-  app.innerHTML = `${hero ? `<section class="hero" id="hero"><div class="bg skel"></div><div class="beam"></div><div class="copy"><h1>&nbsp;</h1></div></section>` : heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : '<div style="height:8px"></div>'}
+  app.innerHTML = `${heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : ''}
     ${top}
-    ${cont.length ? `<div class="row"><h2>${tr('row.continue')}</h2><div class="strip">${cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join('')}</div></div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2><div class="strip" id="row${i}">${skeletons(8)}</div></div>`).join('')}
+    ${cont.length ? `<div class="row"><h2>${tr('row.continue')}</h2>${reel(cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join(''))}</div>` : ''}
+    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2>${reel(skeletons(8), 'row' + i)}</div>`).join('')}
     ${!rows.length ? `<p class="note">${tr('row.noCatalogs')}</p>` : ''}`;
-  let heroDone = !hero, heroPlain = null;
-  // nothing with artwork answered: rather than an empty banner, the first title of the page takes it
-  if(hero) setTimeout(() => { if(!heroDone && heroPlain){ heroDone = true; renderHero(heroPlain); } }, 6000);
+  autoSpot($('#app .strip'));
   // Each title appears once per page: it stays in the first (highest) row that has it.
   const claimed = new Map();
   const dedupe = (i, metas) => metas.filter(m => {
@@ -102,13 +104,10 @@ export function renderRows(rows, {hero = true, cont = [], heading = '', top = ''
       const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
       const metas = d.metas || [];
       if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || `<p class="note">${tr('row.empty')}</p>`;
-      if(!heroDone && metas.length){
-        const star = pickFeatured(metas);
-        if(star){ heroDone = true; renderHero(star); } else heroPlain ||= metas[0];
-      }
     }catch(e){ showErr(el, tr('row.failedCat'), e, again); }
   };
-  rows.forEach((x, i) => fillRow(x, i));
+  // the first row to answer offers the first title to the middle; whoever is already there keeps it
+  rows.forEach((x, i) => fillRow(x, i).then(() => autoSpot($('#app .strip'))));
 }
 
 /** Movies and Series: the same catalogues, one type at a time. */

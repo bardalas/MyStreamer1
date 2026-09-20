@@ -61,7 +61,8 @@ export const tvRows = () => {
 export const itemsOf = row => {
   const kept = itemCache.get(row);
   if(kept && kept.length && kept.every(el => el.isConnected)) return kept;
-  const items = [...row.querySelectorAll(FOCUSABLE)].filter(visible);
+  // the buttons of the title in the middle of a wheel are a step below the row, not part of it
+  const items = [...row.querySelectorAll(FOCUSABLE)].filter(el => visible(el) && !el.closest('.spotact'));
   itemCache.set(row, items);
   return items;
 };
@@ -76,6 +77,10 @@ export const centerX = el => { const r = el.getBoundingClientRect(); return r.le
 /** Where to land in [row] when arriving from [from]: a season menu's chosen season, else the item nearest across. */
 export const bestIn = (row, from) => {
   const cand = itemsOf(row), x = from ? centerX(from) : 0;
+  // a wheel always shows its title in the same place, so arriving on one means the title it holds -
+  // the one the viewer was on before, or the row's first - not whatever happens to be across the page
+  if(row.classList.contains('reel'))
+    return cand.find(el => el.classList.contains('spot')) || cand.find(el => el.dataset.wasSpot) || cand[0];
   return (row.classList.contains('seasonbar') && cand.find(el => el.classList.contains('on')))
     || cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]);
 };
@@ -95,7 +100,8 @@ export function focusItem(el){
   const how = isTvLayout() ? 'auto' : 'smooth';
   // the menu scrolls inside itself; the page behind it stays where the viewer left it
   if(el.closest('#rail')) return el.scrollIntoView({block: 'nearest', behavior: how});
-  const strip = el.closest('.strip, .chlist, .stabs');
+  // a wheel is not scrolled: it is turned, by whatever took the middle (js/ui/reel.js)
+  const strip = el.closest('.strip:not(.reel), .chlist, .stabs');
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: how});
   const row = el.closest('.row');
   if(row){
@@ -147,6 +153,27 @@ export function tvMove(dir){
   if(!row){ focusItem(itemsOf(rows[0])[0]); return true; }
   const items = itemsOf(row);
   const i = items.indexOf(active);
+  /* The title in the middle of a wheel carries its own two buttons. They are not part of the row -
+     along the row you pass titles, not buttons - so they are a step down from the title and a step
+     back up, and below them is whatever the row leads to. */
+  const act = row.querySelector?.('.spotact');
+  const actBtns = () => [...act.querySelectorAll('button')].filter(visible);
+  if(act?.contains(active)){
+    const btns = actBtns();
+    if(dir === 'up'){ focusItem(row.querySelector('.poster.spot')); return true; }
+    if(dir === 'left' || dir === 'right'){
+      const n = btns[btns.indexOf(active) + (dir === FWD() ? 1 : -1)];
+      if(n) focusItem(n);
+      return true;
+    }
+    const below = rows[rows.indexOf(row) + 1];
+    if(below) focusItem(bestIn(below, active));
+    return true;
+  }
+  if(act && dir === 'down' && active?.classList.contains('spot')){
+    focusItem(actBtns()[0]);
+    return true;
+  }
   // A side menu is a column: up/down pick an entry, left steps into what it controls - #rail drives
   // the page, .stabs the settings pane, .seasonbar the episode list.
   const pane = row.classList.contains('stabs') ? '#spane'
@@ -216,7 +243,8 @@ export function tvMove(dir){
 }
 export let lastMoveAt = 0;
 addEventListener('keydown', e => {
-  if(!isTvLayout() || e.altKey || e.ctrlKey || e.metaKey) return;
+  // the arrows belong to the remote - and to a wheel, wherever it is turning
+  if((!isTvLayout() && !document.activeElement?.closest?.('.strip.reel, .spotact')) || e.altKey || e.ctrlKey || e.metaKey) return;
   const dir = {ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'}[e.key];
   if(!dir) return;
   const a = document.activeElement;
@@ -286,9 +314,14 @@ export function goTo(hash){
 window.boothSearchKey = () => { const q = $('#q'); q.focus(); q.readOnly = false; window.BoothAndroid?.showKeyboard?.(); };
 // Remote control (Android TV): if nothing has focus after a page renders, focus its first item.
 addEventListener('hashchange', () => setTimeout(tvFocus, 900));
-export function tvFocus(){
+export function tvFocus(tries = 0){
   if(settings.layout !== 'tv' || (document.activeElement && document.activeElement !== document.body)) return;
-  document.querySelector('#app a[href], #app button, #rail a.on')?.focus();
+  // the titles are what the viewer came for: the pills above them are not where to land
+  const first = document.querySelector('#app .poster[href], #app a[href], #app button');
+  // a screen that has not answered yet is asked again: landing in the menu instead would open it
+  // over the very titles the viewer is waiting for
+  if(first) first.focus();
+  else if(tries < 8) setTimeout(() => tvFocus(tries + 1), 700);
 }
 setTimeout(tvFocus, 2500);
 if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');

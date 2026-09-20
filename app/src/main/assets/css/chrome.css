@@ -62,7 +62,7 @@ main{padding:0 28px 60px}
   .scrim[hidden]{display:none}
   /* the artwork still reaches the top of the screen; the button floats over it */
   main{padding-top:52px}
-  .hero,.backdrop{margin-top:-52px}
+  .backdrop{margin-top:-52px}
 }
 
 /* ---------- the television: the same column, at arm's length ---------- */

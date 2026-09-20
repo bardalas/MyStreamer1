@@ -41,7 +41,7 @@ export async function viewTv(which){
       kanSite = true;
     }
   }
-  renderRows(rows, {hero: false, top: tabs});
+  renderRows(rows, {top: tabs});
   // live button for the broadcaster (Kan 11 and Reshet 13 have official streams)
   const head = $('#bchead');
   head.innerHTML = (note ? `<p class="note">${esc(note)}</p>` : '') +

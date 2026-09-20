@@ -1,22 +1,10 @@
 /* ---------- Rows, posters and the banner - what a screen is built from ---------- */
 /* What a screen is made of: the banner, the rows, a title on a poster. */
-/* hero: projector beam */
-.hero{position:relative;margin:0 -28px 32px;min-height:46vh;display:flex;align-items:flex-end;overflow:hidden}
-.hero .bg{position:absolute;inset:0;background-size:cover;background-position:center 25%;filter:saturate(.85)}
-.hero::before{content:"";position:absolute;inset:0;z-index:1;background:
-  linear-gradient(calc(180deg + 90deg * var(--flip)),var(--night) 8%,var(--shade-55) 45%,transparent 75%),
-  linear-gradient(0deg,var(--night) 2%,transparent 45%)}
-.hero .beam{display:none;position:absolute;z-index:1;left:-10%;transform:scaleX(-1);top:-30%;width:70%;height:160%;background:conic-gradient(from 200deg at 100% 0%,transparent 0deg,var(--beam) 14deg,transparent 30deg);pointer-events:none}
-.hero .copy{position:relative;z-index:2;flex:1;min-width:0;padding:0 28px 48px;max-width:760px}
-.hero .facts{margin-bottom:10px}
-.hero .acts{display:flex;flex-wrap:wrap;gap:10px}
 /* the taste: the trailer covers the artwork, quiet and out of reach - the gradient above it keeps the words
    readable. Its size is measured and set when it is inserted, so it covers whatever it was put into. */
 .taste{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:0;pointer-events:none;
   z-index:0;opacity:0;transition:opacity .9s}
 .taste.on{opacity:1}
-.hero h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,56px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
-.hero p{color:var(--text2);max-width:56ch;margin:0 0 18px;font-size:14px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;text-decoration:none}
 .btn.primary{background:var(--tungsten);color:var(--on-accent)}
 .btn.ghost{background:var(--ghost);color:var(--light)}
@@ -51,6 +39,19 @@
 /* page filters */
 .page{padding-top:12px}
 .page h1{font-size:40px}
+/* what you are browsing, and how it is filtered, on one line above the titles */
+.pagehead{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;padding-bottom:0}
+.pagehead h1{margin:0;font-size:28px}
+.pagehead .sortbar{margin:0}
+[data-layout="tv"] .pagehead h1{font-size:34px}
+/* on a phone the filters take one line of their own and scroll, so the titles stay on the first screen */
+@media(max-width:899px){
+  .pagehead{gap:6px 12px}
+  .pagehead h1{font-size:24px}
+  .pagehead .sortbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%}
+  .pagehead .sortbar::-webkit-scrollbar{height:0}
+  .sortpill{flex:none}
+}
 .field{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
 .more{margin:28px auto 0;display:block}
 

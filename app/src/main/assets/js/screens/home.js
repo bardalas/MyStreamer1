@@ -1,4 +1,5 @@
 /* The home screen, and a category of it. */
+import {esc} from '../core/dom.js';
 import {isTvLayout, settings} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {addons} from '../data/addons.js';
@@ -48,7 +49,7 @@ export function typeRows(type){
 
 export async function viewHome(){
   // Cinemeta's popular rows, then the first row of every category.
-  if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')), {hero: false});
+  if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')));
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
   const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: tr(c.type === 'movie' ? 'row.popularMovies' : 'row.popularSeries'), notype: true})) : [];
   if(addons.some(a => a.manifest.id === SC_ID)) rows.push({...mergedRow('movie', tr('row.newStreamingMovies')), notype: true}, {...mergedRow('series', tr('row.newStreamingSeries')), notype: true});
@@ -62,7 +63,7 @@ export async function viewHome(){
   }
   if(sortActive()) return gridFrom(rows, tr('cats.all'), viewHome);
   const cont = Object.values(progress).filter(x => !x.done).sort((x,y) => y.at - x.at).slice(0, 12);
-  renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, hero: settings.layout === 'cinema', top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
+  renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, top: `<div class="page pagehead">${sortBar()}</div>`});
   wireSortBar(viewHome);
 }
 
@@ -76,7 +77,8 @@ export function viewCategory(id){
   if(sortActive()) return gridFrom(rows, name, redraw);
   // what was left in the middle, of this type
   const cont = type ? Object.values(progress).filter(x => !x.done && x.type === type).sort((x, y) => y.at - x.at).slice(0, 12) : [];
-  renderRows(isTvLayout() ? rows.slice(0, 12) : rows, {cont, hero: settings.layout === 'cinema', heading: name, top: `<div class="page" style="padding-bottom:0">${sortBar()}</div>`});
+  // the name of what you are browsing and the filters share one line, so the titles are the first thing on the screen
+  renderRows(isTvLayout() ? rows.slice(0, 12) : rows, {cont, top: `<div class="page pagehead"><h1>${esc(name)}</h1>${sortBar()}</div>`});
   wireSortBar(redraw);
 }
 

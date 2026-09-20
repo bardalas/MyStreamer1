@@ -29,7 +29,6 @@
 [data-layout="tv"] .strip > *,[data-layout="tv"] .grid > *,
 [data-layout="tv"] .eplist > *,[data-layout="tv"] .eps > *,[data-layout="tv"] .chlist > *{animation:none}
 [data-layout="tv"] #app.fresh > *{animation-duration:.22s;animation-delay:0s}
-.hero .bg{animation:settleIn 1.1s var(--ease) both}
 .backdrop{animation:zoomSettle 1.1s var(--ease) both}
 .sheet{animation:fadeIn var(--quick) ease both}
 .sheet>div{animation:sheetIn var(--settle) var(--ease) both}
