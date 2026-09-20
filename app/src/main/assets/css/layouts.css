@@ -1,0 +1,61 @@
+/* ---------- The layouts, and the television - they override what came before ---------- */
+/* The layouts: the same content, arranged for a wall, a list or a television. */
+/* Poster wall: no banner, every row wraps into a grid */
+/* Wall: no banner, no titles under the artwork - the posters themselves, edge to edge, with the name
+   over the picture only where the eye already is. */
+[data-layout="grid"] .hero{display:none}
+[data-layout="grid"] main{padding-top:8px}
+[data-layout="grid"] .strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr));gap:22px 16px;overflow:visible}
+[data-layout="grid"] .poster{position:relative}
+[data-layout="grid"] .poster .t{position:absolute;inset-inline:0;bottom:0;margin:0;padding:22px 8px 7px;
+  background:linear-gradient(transparent,#000d);font-size:13px;opacity:0;transition:opacity var(--travel) var(--ease)}
+[data-layout="grid"] .poster .y{display:none}
+[data-layout="grid"] .poster:hover .t,[data-layout="grid"] .poster:focus-visible .t,
+[data-layout="grid"] .poster:focus-within .t{opacity:1}
+/* List: compact rows with small art, title and year */
+[data-layout="list"] .hero{display:none}
+[data-layout="list"] main{padding-top:8px}
+[data-layout="list"] .strip,[data-layout="list"] .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px 16px;overflow:visible}
+[data-layout="list"] .poster{display:grid;grid-template-columns:72px 1fr;grid-template-rows:auto 1fr;column-gap:14px;padding:10px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+[data-layout="list"] .poster .art{grid-row:1 / span 2;width:72px}
+[data-layout="list"] .poster .t{font-size:15px;font-weight:600}
+[data-layout="list"] .row h2{font-size:17px}
+[data-layout="list"] .poster .t{margin-top:2px}
+[data-layout="list"] .poster:hover .art,[data-layout="list"] .poster:focus-visible .art{transform:none;box-shadow:none}
+[data-layout="list"] .poster:hover,[data-layout="list"] .poster:focus-visible{background:var(--raise)}
+/* TV: 10-foot UI - larger type, posters and focus for a remote */
+[data-layout="tv"] body{font-size:17px}
+[data-layout="tv"] .poster{flex-basis:var(--poster-w)}
+[data-layout="tv"] .grid{grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr))}
+[data-layout="tv"] .strip{gap:24px;padding:8px 6px 18px}
+[data-layout="tv"] .row h2{font-size:28px}
+[data-layout="tv"] .nav a{padding:10px 20px;font-size:18px}
+/* the focus ring sits between neighbours instead of over them */
+[data-layout="tv"] .bar{gap:30px}
+[data-layout="tv"] .nav{gap:16px}
+[data-layout="tv"] .bar :focus-visible{outline-width:3px;outline-offset:2px}
+[data-layout="tv"] :focus-visible{outline-width:4px;outline-offset:4px}
+[data-layout="tv"] .poster:focus .art,[data-layout="tv"] .poster:focus-visible .art{transform:scale(1.06);box-shadow:0 0 0 4px var(--tungsten),0 16px 40px -10px var(--glow-soft)}
+[data-layout="tv"] .poster:focus-visible{outline:none}
+
+/* A title on the television: the backdrop is the wallpaper, the page never scrolls. */
+/* A title on the TV: the backdrop is the room's wallpaper, and everything you can DO with the
+   title - play, sources, episodes - is on the first screen, without scrolling. */
+[data-layout="tv"] .backdrop{position:fixed;inset:0;height:100vh;margin:0;z-index:0;opacity:.5}
+[data-layout="tv"] .backdrop::after{background:linear-gradient(0deg,var(--night) 30%,var(--shade-50) 75%,var(--shade-20))}
+[data-layout="tv"] .detail{margin-top:0;padding-top:12px;grid-template-columns:110px 1fr;gap:20px;align-items:start}
+[data-layout="tv"] main{padding-bottom:16px}
+[data-layout="tv"] .detail h1{font-size:30px;margin:0 0 6px}
+[data-layout="tv"] .detail .facts{margin-bottom:8px}
+[data-layout="tv"] .desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:64ch;margin:0 0 12px}
+[data-layout="tv"] .detail.series .people{display:none}
+[data-layout="tv"] .detail.movie .desc{-webkit-line-clamp:6}
+[data-layout="tv"] .epanel{margin-top:12px}
+[data-layout="tv"] .panel{padding:10px 12px}
+[data-layout="tv"] .ep{font-size:16px}
+/* a series on the TV never scrolls the page: the header keeps its size and the episodes fill what is left */
+[data-layout="tv"] body.titlefit{height:100vh;overflow:hidden;display:flex;flex-direction:column}
+[data-layout="tv"] body.titlefit main{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:12px}
+[data-layout="tv"] body.titlefit .epanel{flex:1;min-height:0}
+[data-layout="tv"] body.titlefit .epwrap{height:100%;align-items:stretch;grid-template-rows:minmax(0,1fr)}
+[data-layout="tv"] body.titlefit .eps,[data-layout="tv"] body.titlefit .seasonbar{max-height:none;height:100%}

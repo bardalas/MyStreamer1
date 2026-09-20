@@ -7,30 +7,77 @@ jlibtorrent). Hebrew RTL UI. Formerly named **המקרן / HaMakren / "Booth"** 
 0.33.0 (see `CHANGELOG.md`); `applicationId` changed `com.booth.player` → `com.veo.player` as part
 of that rename, done pre-launch so it is a clean switch, not an in-place update path.
 
-The whole UI is one WebView (`booth.html`) talking to a thin native layer over a JavaScript
-bridge (`window.BoothAndroid` — **the bridge object's name was deliberately left unrenamed**, see
-Gotchas). Native code exists only where the WebView cannot do the job itself: video/DRM playback,
-torrent downloading, and a local HTTP file server to feed the torrent data to ExoPlayer.
+The whole UI is a page in a WebView, talking to a thin native layer over a JavaScript bridge
+(`window.BoothAndroid` — **the bridge object's name was deliberately left unrenamed**, see Gotchas).
+Native code exists only where the WebView cannot do the job itself: video/DRM playback, torrent
+downloading, a local HTTP file server to feed torrent data to ExoPlayer, and an off-screen window for
+sites that turn plain requests away.
 
 ## Files
-- `app/src/main/assets/booth.html` (~2,900 lines) — **the entire app**: UI, routing, all catalog/
-  streaming-source integrations (Stremio protocol, Kaltura OTT for Reshet 13, `__NEXT_DATA__`
-  scraping for mako, Kan, the Israeli Film Archive), Hebrew title/plot lookup (Wikidata +
-  Wikipedia), subtitle matching, settings, and the TV remote navigation model. One `<html>` file,
-  three inline `<script>` blocks, no build step — edit it directly and reload.
+
+The page is a set of ES modules, served over https by the app itself (see *The page's address*), so
+it needs no build step: edit a file and reload.
+
+```
+app/src/main/assets/
+  booth.html            the shell: the markup, the stylesheets, and one <script type="module">
+  css/                  one stylesheet per layer, linked in this order - the cascade is the order
+    tokens base chrome content title live settings player layouts motion responsive
+  js/
+    app.js              the composition root: the router, and the list of what the app is made of
+    i18n.js             every string, in every language, and tr()
+    core/               things with no opinion about the app
+      store.js          what is kept on the device
+      dom.js            $, esc, getJSON, the lazy-image observer
+      bridge.js         the way to the Android app (native fetch, the site reader, the migration)
+      settings.js       the viewer's choices, and the skin/layout they imply
+      screenmem.js      where the viewer was, so Back puts them back
+    data/               what the app knows
+      addons.js         manifests, catalogues, details, streams
+      catalogs.js       the categories and the rows behind them
+      hebrew.js         Hebrew titles, plots and search (Wikidata, Wikipedia)
+      names.js          Hebrew names for genres and catalogue titles
+      services.js       which streaming service a title is on
+      sort.js           sorting, filtering, and the grid they produce
+      watch.js          the library, and how far everything was watched
+      availability.js   which titles can actually be played
+      reminders.js      titles waiting for a source
+    providers/          other people's catalogues
+      kan.js reshet.js mako.js jfc.js       broadcasters
+      live.js rtv.js                        live channels, playlists, RaspberryTV and its archive
+    ui/                 pieces of interface, each owning its own DOM
+      cards.js rows.js rail.js hero.js quickview.js sources.js
+      player.js update.js torrent.js tvnav.js
+    screens/            one file per screen, each exporting its view function
+      home.js detail.js search.js library.js live.js broadcasters.js settings.js addons.js
+```
+
+A module may use anything from a layer below it (core → data → providers → ui → screens → app.js);
+`app.js` is the only place that knows the whole. Nothing is global: what one module needs from
+another it imports, and **the import lines are derived, never hand-kept** —
+
+```
+python tools/rewire.py            rewrite every import line from what each module actually uses
+python tools/rewire.py --check    fail if any of them is out of date
+```
+
+Move a function from one file to another and run it; the graph is correct again. State that one
+module keeps and another changes is never assigned across a module boundary (an ES import is
+read-only, which is the point): the owner exports a small setter instead — `setSettings`,
+`setPlaylists`, `setAddonUrls`, `forgetRtv`, `noteOpened`.
+
 - `app/src/main/java/com/veo/player/`
-  - `MainActivity.kt` — hosts the WebView, the `BoothAndroid` JS bridge (play/torrent/subtitle/
-    fetch-proxy/update calls), in-app self-update (download + hand off to the system installer).
-  - `PlayerActivity.kt` — ExoPlayer screen: VOD, live TV with channel zapping, the info banner
-    (channel + EPG "now/next"), the on-screen error panel, Hebrew subtitle rendering.
-  - `BrowserActivity.kt` — a plain in-app browser window for broadcaster sites the WebView can't
-    embed directly (mako, Kan BOX, the Israeli Film Archive's own player).
-  - `TorrentEngine.kt` — wraps jlibtorrent: sequential/prioritized piece download so playback can
-    start before the file finishes.
-  - `StreamServer.kt` — a local `http://127.0.0.1` server that serves the (partially) downloaded
-    torrent file to ExoPlayer as a normal HTTP range-requestable resource.
-  - `Subtitles.kt` — Hebrew subtitle lookup (Wizdom, OpenSubtitles) matched against the release
-    name, downloaded and handed to ExoPlayer as a side-loaded track.
+  - `MainActivity.kt` — hosts the WebView, serves the page over https, and holds the `BoothAndroid`
+    bridge (play/torrent/subtitle/fetch/update calls) and the in-app self-update.
+  - `PlayerActivity.kt` — the ExoPlayer screen: VOD and live TV, the banner, the panels, the keys.
+  - `SiteReader.kt` — the off-screen window that reads a broadcaster's site (see *A broadcaster's
+    own site*), queueing one page at a time.
+  - `Skin.kt` — the colours and direction the page last chose, as the player wears them.
+  - `BrowserActivity.kt` — a plain in-app browser for sites that must be used, not read.
+  - `TorrentEngine.kt` — jlibtorrent: one session, sequential download, the opening piece first.
+  - `StreamServer.kt` — a local `http://127.0.0.1` server that serves the partially-downloaded file
+    to ExoPlayer, and asks the swarm for the pieces a jump landed on.
+  - `Subtitles.kt` — Hebrew subtitle lookup (Wizdom, OpenSubtitles), matched against the release.
 - `.github/workflows/build-apk.yml` — the only build path that produces a signed APK (see
   Building). Also builds an unsigned debug APK with x86_64 torrent natives for PC emulator testing.
 - `tools/setup-tv-emulator.ps1` — one-shot Windows setup for a local Android TV emulator (SDK
@@ -39,19 +86,19 @@ torrent downloading, and a local HTTP file server to feed the torrent data to Ex
 ## Architecture
 
 ### The WebView/native split
-`booth.html` owns all UI and business logic. It calls into Kotlin only for what a WebView
+The page owns all UI and business logic. It calls into Kotlin only for what a WebView
 genuinely cannot do:
 - `playUrl` / `playTorrent` / `playLive` / `playChannels` / `playDrm` / `playVod` — hand a stream
   to `PlayerActivity`.
 - `fetchText` — a fetch proxy for the JS side, used where a site's CORS policy or a custom
   User-Agent/Referer would block a direct `fetch()` from the page.
-- `isTv` — tells the page whether this is a television (drives `IS_TV_DEVICE` in booth.html; the
+- `isTv` — tells the page whether this is a television (drives `IS_TV_DEVICE` in `core/settings.js`; the
   D-pad navigation model is gated on this, not on the *chosen layout* — see Gotchas).
 - `updateApp` — downloads a new release APK with progress reported back through the same status
   card the torrent engine uses, then launches the system package installer.
 - `openSite` / `openExternal` / `openYouTube` / `showKeyboard` / `cancelTorrent`.
 
-### Interface language and direction (`booth.html`)
+### Interface language and direction (`js/i18n.js`)
 The app's own text is `STRINGS.he` / `STRINGS.en` (one flat table per language, in the `<script>` that
 follows the static markup) read through `tr(key, vars)`; static markup uses `data-i18n`,
 `data-i18n-ph` and `data-i18n-aria`. `settings.uiLang` picks the language; it also sets `<html lang dir>`,
@@ -68,7 +115,7 @@ summaries* from Wikidata. CSS mirrors physical offsets with `--flip` (1 in RTL, 
 "forward" key is `FWD()` (ArrowLeft in RTL). Still Hebrew-only: the Channels/Live TV pages, the library
 and search pages, the native player's strings and status messages.
 
-### What was watched (`booth.html`)
+### What was watched (`js/data/watch.js`)
 `progress[videoId]` holds `{t, d, at, metaId, type, name, poster, done}` and is written by
 `window.boothProgress` (the player, through the bridge) and by the in-page player. `done` (watched to
 within a minute of the end) is what puts a tick on a poster and keeps the title out of "continue
@@ -94,7 +141,7 @@ belongs to an origin, `migrateStore()` carries the old `file://` keys over on th
 address (through the same hidden window as `siteExtract`, reading `export.html`) and reloads. It is called
 from `boot()`, not at the top of the script: what it uses is declared further down.
 
-### Motion (`booth.html`)
+### Motion (`css/motion.css`, `js/ui/tvnav.js`)
 One ease and three durations (`--ease`, `--quick/--travel/--settle`) drive everything. Only transform and
 opacity are animated - a television's GPU carries those and nothing else - which is why the blanket
 "no animation on TV" rule is gone. The focus marker is a single fixed `#halo` that is moved (and resized)
@@ -102,7 +149,7 @@ to the focused element on `focusin`; while the page scrolls it is moved without 
 sticks to its element instead of chasing it. Posters are excluded: they grow when chosen, and a rectangle
 measured before the growth would always land behind them.
 
-### A broadcaster's own site (`booth.html` + `MainActivity.sitePage`)
+### A broadcaster's own site (`js/core/bridge.js` + `SiteReader.kt`)
 Kan puts its whole catalogue in its HTML but answers a plain request with a bot check. `siteExtract(url,
 reader, id)` therefore opens the page in an off-screen WebView - which passes the check by being a browser -
 and runs `reader` there: the body of a function of the document that returns JSON. Only the answer crosses
@@ -110,7 +157,7 @@ back, never the markup. The window stays for five minutes, so every further page
 same-origin `fetch` inside it. `sitePull()` calls it inside the app and runs the very same reader over a
 directly fetched page outside it, so there is one implementation of every extractor.
 
-### The featured title and its taste (`booth.html`)
+### The featured title and its taste (`js/ui/hero.js`)
 `pickFeatured()` chooses the title that takes the top of a listing: it wants artwork, a description and
 (when any row offers one) a trailer, remembers the last twelve in `heroSeen` so the same one does not come
 back, and returns null rather than letting a row of bare Wikidata entries claim the spot - a plain title
@@ -127,7 +174,7 @@ and render as "Watch on …" buttons that open the service (never handed to the 
 web page). A torrent with no seeders ranks below everything but is still listed - for a rare documentary
 it is the only thing there is.
 
-### Browsing model (`booth.html`)
+### Browsing model (`js/data/catalogs.js`, `js/data/sort.js`)
 The rail lists *collections* (All, Movies, Series, and `CATEGORIES`: Israeli, Kids, Documentaries); the
 pills on every page (`SORT_GROUPS`: Genre, Year, Rating, Sort) *refine* the current collection. When any
 pill is on, `gridFrom()` shows one ranked grid and states how many titles, how sorted and from which
@@ -141,13 +188,13 @@ episode list fills the rest, scrolling inside itself. Play, the quality shortcut
 one row (`.playrow`, one D-pad row); the long source list opens under it (`#palt`). A menu column
 (`.seasonbar`, `.stabs`) no longer traps Up/Down at its ends: they lead to the row above/below.
 
-### Boot sequence (`booth.html`, bottom of the file)
+### Boot sequence (`js/app.js`, `boot()`)
 `boot()`: starts loading add-ons, races them against a 6-second timeout, renders the route with
 whatever answered in time, and — if add-ons were still loading — re-renders home once they finish
 so a slow add-on doesn't leave the home screen permanently empty. Then schedules `loadServices`
 (streaming-service availability badges) and the update check.
 
-### TV remote navigation model (`booth.html`, search `ROWS_SEL` / `tvRows` / `tvMove`)
+### TV remote navigation model (`js/ui/tvnav.js`: `ROWS_SEL`, `tvRows`, `tvMove`)
 There is no native focus system in a WebView, so one is built from scratch:
 - `ROWS_SEL` is the single list of CSS selectors for every "row" the D-pad can stand on, grouped
   by screen in a comment. **Any new focusable control must be inside one of these, or the D-pad
@@ -167,7 +214,7 @@ There is no native focus system in a WebView, so one is built from scratch:
 
 ### Live TV (`PlayerActivity.kt`)
 Channel data (`Source`) carries `num`/`logo`/`epg` (a per-channel EPG endpoint URL) sent from
-`booth.html`'s `watchChannel()`. The info banner (`showBanner`/`paintBanner`/`paintNow`) shows the
+`js/providers/live.js`'s `watchChannel()`. The info banner (`showBanner`/`paintBanner`/`paintNow`) shows the
 channel, current programme with a progress bar, and what's next, refreshing every 30s while up.
 Live playback sets `view.useController = false` (the controls would steal the D-pad), so every key is
 handled in `dispatchKeyEvent`:
@@ -183,7 +230,7 @@ handled in `dispatchKeyEvent`:
 
 ### Torrent playback
 `TorrentEngine` reports *JSON phases* (`{"p":"buffer","peers":..,"got":..,"need":..}`) and failures as
-`e:<code>`; the page words them (`torrentText` in `booth.html`) so the language stays the page's job.
+`e:<code>`; the page words them (`torrentText` in `js/ui/torrent.js`) so the language stays the page's job.
 The status bar is shown only for waits over ~0.9s. Sources are ranked in `rank()` with a penalty for big
 files, because a stream starts when the first *piece* has arrived and pieces grow with the file.
 The metadata comes from `fetchMagnet`, which drops the magnet's trackers — they are re-added to the
@@ -217,7 +264,7 @@ the build deliberately. `versionCode` convention: `major*10000 + minor*100 + pat
 No Gradle wrapper is committed (CI provisions Gradle 9.6.0 + JDK 17 itself via
 `gradle/actions/setup-gradle`). To build locally you need your own JDK 17, Gradle, and an Android
 SDK with `compileSdk 36` — none of that was present on this machine as of the VEO rename; nothing
-below "structural checks + booth.html JS syntax via a real JS engine" was verified locally for
+below "structural checks + the page's JS syntax via a real JS engine" was verified locally for
 that change. `tools/setup-tv-emulator.ps1` provisions an SDK (command-line tools + an Android TV
 system image) for local testing in an emulator; it does not by itself give you a build toolchain
 for `gradle assembleRelease` (no signing secrets exist outside CI anyway).
@@ -259,7 +306,7 @@ for `gradle assembleRelease` (no signing secrets exist outside CI anyway).
 - **A row counts for the D-pad only if something in it is visible** (`tvRows`): a row whose only focusable
   is hidden would swallow Down.
 - **`window.BoothAndroid` was deliberately left unrenamed** during the VEO rebrand. It's called
-  from hundreds of sites across `booth.html`; renaming it is a pure mechanical risk (JS bridge
+  from hundreds of sites across the page; renaming it is a pure mechanical risk (JS bridge
   calls fail silently at runtime, not at compile time) for zero user-visible benefit, since it's
   never seen by anyone. Leave it as `BoothAndroid` unless there's an actual reason to touch it.
 - **A `Runnable` that reschedules itself needs an explicit type.** Kotlin can't infer the type of
@@ -270,7 +317,7 @@ for `gradle assembleRelease` (no signing secrets exist outside CI anyway).
 - **GitHub's release-asset URLs redirect, sometimes across protocol.** `HttpURLConnection` will
   not follow a redirect that changes protocol; the in-app updater follows redirects itself
   (capped at 5 hops) rather than relying on `setInstanceFollowRedirects(true)`.
-- **The legacy add-on URL filter in `booth.html` (`defaultsRev` migration, search
+- **The legacy add-on URL filter in `js/data/addons.js` (`defaultsRev` migration, search
   `raw.githubusercontent.com/bardalas/MyStreamer1`) must keep the *old* repo name.** It matches a
   URL that is actually stored in existing installs' `localStorage` from before the rename — it is
   describing historical data, not a live pointer, and renaming it to `VEO` would break the

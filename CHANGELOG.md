@@ -1,5 +1,24 @@
 # VEO Android changelog
 
+## 0.39.0 — 2026-09-20
+- **The app has a shape.** What was one four-thousand-line page is now a stylesheet per layer and
+  forty small modules in `core / data / providers / ui / screens`, with one file on top that says
+  what the app is made of. Nothing is global any more: what one part needs from another it asks for
+  by name, and `tools/rewire.py` writes every one of those lines from what the code actually uses -
+  so moving a function between files can no longer leave a stale reference behind. On the Android
+  side the off-screen window that reads a broadcaster's site, and the skin the player wears, left the
+  activities they were lodged in. Nothing about the app changed while this happened - which is the
+  point - but everything after it is easier to get right.
+- **Moving through the app is quicker on a television**: titles no longer arrive one animation at a
+  time, the page jumps to where the remote went instead of gliding there, and the marker is measured
+  after the page has moved, so it lands on the thing it is around.
+- **Coming out of a title waits for the list to come back** - however long its rows take - and then
+  lands on the title you opened.
+- **Left, from the side menu, lands on the titles**, not on the pills above them.
+- **The taste**: half a minute rather than ten seconds, with subtitles, without the quality being
+  forced down (which is what made it stall), and starting a moment after the artwork.
+- The name of the subtitle file is no longer announced over the film.
+
 ## 0.38.0 — 2026-09-20
 - **A film starts much sooner.** The torrent is added to the session once and kept: until now its details
   were fetched in a session of their own, thrown away, and the download then looked for every peer a

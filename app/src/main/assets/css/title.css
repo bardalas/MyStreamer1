@@ -1,0 +1,119 @@
+/* ---------- A title: its page, its episodes, its sources ---------- */
+/* A title: its page, its episodes and the sources it can be watched from. */
+/* detail */
+.detail{display:grid;grid-template-columns:260px 1fr;gap:40px;position:relative;z-index:2;margin-top:-30vh;padding-top:12px}
+.detail .poster-lg{border-radius:8px;aspect-ratio:2/3;background:var(--surface) center/cover;box-shadow:0 20px 50px -10px #000}
+.detail h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,48px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.facts span{background:var(--raise);border-radius:4px;padding:3px 9px;font-size:13px;color:var(--text2)}
+.facts .imdb{font-weight:600}
+.desc{max-width:68ch;color:var(--text2)}
+.people{color:var(--muted);font-size:14px;margin:12px 0 22px;max-width:68ch}
+.people b{color:var(--light);font-weight:500}
+.backdrop{height:50vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative;overflow:hidden}
+.backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night) 12%,var(--shade-50) 60%,var(--shade-20))}
+.dinfo{min-width:0}
+.dinfo .playrow{margin:10px 0}
+.dinfo .playrow .btn{margin-inline-start:2px}
+.dinfo .src{display:block;margin:-6px 0 8px;font-size:12px;color:var(--muted)}
+.dinfo .src a{color:var(--muted)}
+[data-layout="tv"] .desc .readmore{display:none}
+.psrc{display:contents}
+.epanel{margin-top:22px}
+.panel{background:var(--surface);border-radius:10px;padding:18px}
+.panel h3{margin:0 0 12px;font-family:var(--display);font-size:19px}
+.eps{overflow:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:none}
+.eps::-webkit-scrollbar{width:0}
+.ep{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;text-align:start;background:none;border:0;border-radius:6px;padding:6px 8px;cursor:pointer;color:var(--light);font-size:15px}
+.ep>span:last-child{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-width:0}
+.ep>span:last-child>div:first-child{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep.seen .n::after{content:'✓';display:block;font-size:11px;color:var(--muted)}
+.ep.seen>span>div:first-child{color:var(--muted)}
+.ep .bar{flex:0 0 100%;position:static;padding:0;border:0;height:3px;border-radius:2px;background:var(--line);margin-top:4px}
+.ep .bar>i{display:block;height:100%;border-radius:2px;background:var(--tungsten)}
+/* something did not load: say so once, with a way to try again */
+.oops{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raise);color:var(--muted);font-size:14px}
+.oops button{background:none;border:1px solid var(--line);color:var(--light);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+.oops button:focus-visible,.oops button:hover{border-color:var(--tungsten);color:var(--tungsten)}
+#offbar{position:fixed;inset-inline:0;bottom:0;z-index:60;display:none;gap:12px;align-items:center;justify-content:center;
+  padding:10px 16px;background:#7a1f1f;color:#fff;font:14px/1.4 var(--body)}
+#offbar.on{display:flex}
+.ep:hover{background:var(--raise)} .ep.on{background:var(--raise);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
+.ep .n{font-family:var(--display);font-weight:700;color:var(--tungsten)}
+.ep .d{font-size:12px;color:var(--muted)}
+
+/* sources: Play, the quality shortcuts and the rest of the list share one row */
+.panel{min-width:0}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--on-accent);font-weight:600}
+.playrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.playbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;padding:7px 16px;background:var(--tungsten);color:var(--on-accent);font-size:15px;font-weight:600;cursor:pointer}
+.playbtn small{font-weight:400;font-size:12px;opacity:.75}
+[data-layout="tv"] .playbtn{font-size:16px;padding:8px 18px}
+.qbtn{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:5px 11px;font-size:13px;cursor:pointer}
+.qbtn:hover,.qbtn:focus-visible{border-color:var(--tungsten)}
+/* the quality in use wears the accent; the others are only offers */
+.qbtn.on{background:var(--tungsten);color:var(--on-accent);border-color:transparent;font-weight:600}
+.playrow .btn{padding:6px 14px;font-size:14px}
+[data-layout="tv"] .qbtn,[data-layout="tv"] .playrow .btn{font-size:14px}
+[data-layout="tv"] .playrow .btn{padding:5px 12px}
+[data-layout="tv"] .qbtn{padding:4px 10px}
+.altbtn{background:none;border:0;padding:8px 6px;color:var(--muted);font-size:14px;cursor:pointer;font-family:inherit}
+.altbtn::after{content:" ▾"}
+.altbtn[aria-expanded="true"]{color:var(--light)}
+.altbtn[aria-expanded="true"]::after{content:" ▴"}
+.altlist{margin-top:8px;max-height:30vh;overflow:auto;scrollbar-width:none}
+.altlist::-webkit-scrollbar{width:0}
+.srow{display:flex;gap:12px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:none;color:var(--light);padding:10px 4px;cursor:pointer;font-size:14px}
+.srow:hover,.srow:focus-visible{background:var(--raise)}
+.srow b{flex:0 0 52px;font-weight:600}
+.srow span{color:var(--muted);font-variant-numeric:tabular-nums}
+.srcstat{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.srcstat::before{content:"";flex:none;width:12px;height:12px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--tungsten);animation:spin .8s linear infinite}
+.srcstat.err{color:var(--err)}
+.srcstat.err::before,.srcstat.idle::before{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* titles without any source */
+.poster.nosrc .art{filter:grayscale(1);opacity:.35}
+.poster.nosrc .t,.poster.nosrc .y{opacity:.45}
+[data-nosrc="hide"] .poster.nosrc{display:none}
+.note{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.page h1,.row h2{overflow-wrap:anywhere}
+.err{color:var(--err);font-size:14px}
+
+
+/* Episodes: a season column on the side, the list beside it. */
+/* Episodes: a season column on the side, the list beside it. Both scroll inside their own box,
+   so a long series never spreads down the whole screen. */
+.epwrap{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+.epwrap:has(.seasonbar){grid-template-columns:minmax(92px,auto) minmax(0,1fr)}
+.seasonbar{display:flex;flex-direction:column;gap:3px;max-height:46vh;overflow:auto;scrollbar-width:none;
+  border-inline-end:1px solid var(--line);padding-inline-end:10px}
+.seasonbar::-webkit-scrollbar{width:0}
+.seasonbar button{background:none;border:0;border-radius:8px;padding:8px 12px;text-align:start;white-space:nowrap;
+  color:var(--muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.seasonbar button.on{background:var(--raise);color:var(--light);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
+.seasonbar button:hover,.seasonbar button:focus-visible{color:var(--light)}
+.eps{max-height:46vh}
+[data-layout="tv"] .seasonbar button{font-size:16px;padding:10px 14px}
+@media(max-width:600px){.epwrap:has(.seasonbar){grid-template-columns:minmax(78px,auto) minmax(0,1fr)}}
+.seg button{border:0;background:none;border-radius:999px;padding:8px 18px;cursor:pointer;color:var(--muted);font-weight:600}
+.seg button.on{background:var(--tungsten);color:var(--on-accent)}
+
+/* Hebrew metadata on a title page. */
+/* Hebrew metadata */
+.desc[dir="rtl"]{font-size:16px;line-height:1.7}
+.desc .src{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
+.desc .src a{color:var(--muted)}
+.readmore{background:none;border:0;color:var(--tungsten);font-weight:600;cursor:pointer;padding:0 4px}
+.orig{display:block;font-family:var(--body);font-size:15px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:6px}
+
+
+/* The title card: banner, synopsis, actions. */
+/* the title card: banner on top, synopsis, actions - a modest sheet, never a full page */
+.titleSheet>div{max-height:92vh}
+.tc-banner{height:min(30vh,220px);background:var(--surface) center 20%/cover;position:relative;overflow:hidden}
+.titleSheet .facts{display:flex;flex-wrap:wrap;gap:8px}
+.titleSheet .qvdesc{max-height:24vh;overflow:auto;margin:0;color:var(--text2)}
+.titleSheet .qvdesc[dir="rtl"]{font-size:15px;line-height:1.7}
+.qvact{display:flex;flex-wrap:wrap;gap:10px}

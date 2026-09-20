@@ -1,0 +1,63 @@
+/* ---------- How everything moves ---------- */
+/* ---------- motion ----------
+   One way of moving, everywhere: a short travel with a soft landing. Only transform and opacity are
+   animated - a television's GPU carries those at full speed, while widths, shadows and filters it does
+   not - and whoever asked their system for less motion is given none of it (the rule at the end). */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes popCenter{from{opacity:0;transform:translate(-50%,-46%) scale(.97)}to{opacity:1;transform:translate(-50%,-50%)}}
+@keyframes riseCenterX{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes zoomSettle{from{transform:scale(1.045)}to{transform:none}}
+@keyframes settleIn{from{opacity:0;transform:scale(1.045)}to{opacity:1;transform:none}}
+
+/* a screen arrives from just below itself, its parts a breath after one another */
+#app.fresh > *{animation:rise var(--settle) var(--ease) both}
+#app.fresh > *:nth-child(2){animation-delay:.05s}
+#app.fresh > *:nth-child(3){animation-delay:.09s}
+#app.fresh > *:nth-child(n+4){animation-delay:.12s}
+/* Titles land one after the next, like a hand dealing them out - on a screen that can afford it.
+   A television draws hundreds of them at once, and there the dealing is what makes moving feel slow. */
+.strip > *,.grid > *{animation:cardIn .36s var(--ease) both}
+.strip > *:nth-child(2),.grid > *:nth-child(2){animation-delay:.03s}
+.strip > *:nth-child(3),.grid > *:nth-child(3){animation-delay:.06s}
+.strip > *:nth-child(4),.grid > *:nth-child(4){animation-delay:.09s}
+.strip > *:nth-child(5),.grid > *:nth-child(5){animation-delay:.12s}
+.strip > *:nth-child(n+6),.grid > *:nth-child(n+6){animation-delay:.15s}
+.eplist > *,.eps > *,.chlist > *{animation:fadeIn .3s ease both}
+[data-layout="tv"] .strip > *,[data-layout="tv"] .grid > *,
+[data-layout="tv"] .eplist > *,[data-layout="tv"] .eps > *,[data-layout="tv"] .chlist > *{animation:none}
+[data-layout="tv"] #app.fresh > *{animation-duration:.22s;animation-delay:0s}
+.hero .bg{animation:settleIn 1.1s var(--ease) both}
+.backdrop{animation:zoomSettle 1.1s var(--ease) both}
+.sheet{animation:fadeIn var(--quick) ease both}
+.sheet>div{animation:sheetIn var(--settle) var(--ease) both}
+.update{animation:popCenter var(--settle) var(--ease) both}
+.tstat{animation:riseCenterX var(--settle) var(--ease) both}
+
+/* what a press feels like: the thing under the finger gives a little, and lets go softly */
+.btn,.qbtn,.sortpill,.sopt,.chip,.altbtn,.nav a,.cats a,.bctabs a,.stabs button,.seasonbar button{
+  transition:transform var(--quick) var(--ease),background-color var(--quick) linear,
+    border-color var(--quick) linear,color var(--quick) linear}
+.btn:active,.qbtn:active,.sortpill:active,.sopt:active,.chip:active,.playbtn:active{transform:scale(.97)}
+.poster .art{transition:transform var(--travel) var(--ease),box-shadow var(--travel) var(--ease)}
+.poster:focus-visible .art{box-shadow:0 0 0 3px var(--tungsten),0 14px 34px -12px var(--glow-soft)}
+
+/* The travelling marker: where you are slides from one thing to the next instead of blinking somewhere
+   else. It is drawn by the page, so the ring of the browser itself is taken off once it exists. */
+/* It has to arrive with the press, not after it: a short, flat travel, and the exact shape of what it
+   is around. Anything slower reads as the marker lagging behind the remote. */
+#halo{position:fixed;top:0;left:0;z-index:9500;pointer-events:none;opacity:0;border-radius:10px;
+  background:#ffffff0a;box-shadow:0 0 0 2px var(--tungsten),0 8px 24px -14px var(--tungsten);
+  transition:transform .11s linear,width .11s linear,height .11s linear,opacity .1s linear;
+  will-change:transform,width,height}
+#halo.quick{transition:opacity .1s linear}
+body.motion :focus-visible{outline:none}
+body.motion .search:focus-within{box-shadow:0 0 0 3px var(--tungsten)}
+
+[data-layout="tv"]{scrollbar-width:none}
+[data-layout="tv"] ::-webkit-scrollbar{width:0;height:0}
+[data-layout="tv"] .art{contain:paint}                      /* keep a focus move from repainting the row */
+[data-layout="tv"] .strip{scroll-snap-type:none}
+[data-layout="tv"] input[readonly]{caret-color:transparent;cursor:pointer}

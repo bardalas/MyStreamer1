@@ -138,7 +138,8 @@ class PlayerActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 subs = found
-                showMessage(if (found.isEmpty()) "לא נמצאו כתוביות בעברית" else "כתוביות בעברית: ${found.first().label}", 3_500)
+                // which file they came from is not something to read over a film; only their absence is news
+                if (found.isEmpty()) showMessage("לא נמצאו כתוביות בעברית", 3_000) else hideOsd.run()
                 if (found.isNotEmpty() && started) reloadWithSubs()
             }
         }.start()
@@ -325,21 +326,6 @@ class PlayerActivity : AppCompatActivity() {
     private val guides = HashMap<String, List<Prog>>()
     private val guideExec = java.util.concurrent.Executors.newFixedThreadPool(3)
     private val logos = HashMap<String, android.graphics.Bitmap?>()
-
-    /** What the page last told us about its skin; its defaults are the amber skin, for a first run. */
-    private class Skin(private val p: android.content.SharedPreferences) {
-        val rtl = p.getString("dir", "rtl") != "ltr"
-        private fun c(key: String, fallback: String) =
-            runCatching { Color.parseColor(p.getString(key, fallback)!!) }.getOrDefault(Color.parseColor(fallback))
-        val night = c("night", "#14161F")
-        val line = c("line", "#323850")
-        val light = c("light", "#EFE6CF")
-        val muted = c("muted", "#8E93A8")
-        val accent = c("accent", "#F0B429")
-        val onAccent = c("onAccent", "#14161F")
-    }
-    /** The same colour at a given opacity (the panels sit over the picture). */
-    private fun fade(color: Int, alpha: Int) = (color and 0xFFFFFF) or (alpha shl 24)
 
     /** Paint the views this activity owns, and put them on the side the layout runs from. */
     private fun applySkin() {

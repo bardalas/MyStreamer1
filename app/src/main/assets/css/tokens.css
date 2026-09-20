@@ -1,0 +1,38 @@
+/* ---------- Design tokens and themes ---------- */
+/* The design tokens: one palette, one set of shapes, one direction flag. */
+:root{
+  --flip:1;   /* 1 in right-to-left, -1 in left-to-right: mirrors physical offsets that logical properties cannot express */
+  --ease:cubic-bezier(.22,1,.36,1);  /* everything travels out quickly and lands slowly */
+  --quick:.16s; --travel:.26s; --settle:.36s;
+  --night:#14161f; --surface:#1d2130; --raise:#272c3f; --line:#323850;
+  --light:#efe6cf; --muted:#8e93a8; --tungsten:#f0b429; --velvet:#a3384b;
+  --on-accent:#14161f; --text2:#d4cdb9; --err:#ff9d8a; --ghost:rgba(239,230,207,.1);
+  --shade-55:rgba(20,22,31,.55); --shade-50:rgba(20,22,31,.5); --shade-20:rgba(20,22,31,.2);
+  --glow:rgba(240,180,41,.45); --glow-soft:rgba(240,180,41,.35); --beam:rgba(240,180,41,.13);
+  --poster-w:132px;
+  --display:"Bricolage Grotesque","Rubik",system-ui,sans-serif;
+  --body:"Figtree","Heebo",system-ui,sans-serif;
+}
+:root[dir="ltr"]{--flip:-1}
+
+/* The themes, and the size of a poster. */
+/* ---------- skins (Settings) ---------- */
+:root[data-skin="veo"]{--night:#050a16;--surface:#0d1524;--raise:#16203a;--line:#22304f;--light:#e9f0ff;--muted:#8695b5;--tungsten:#3d8bff;--velvet:#c040f0;
+  --on-accent:#04070f;--text2:#c2cfe8;--shade-55:rgba(5,10,22,.55);--shade-50:rgba(5,10,22,.5);--shade-20:rgba(5,10,22,.2);
+  --glow:rgba(61,139,255,.45);--glow-soft:rgba(61,139,255,.35);--beam:rgba(61,139,255,.13);--ghost:rgba(233,240,255,.1)}
+:root[data-skin="midnight"]{--night:#000;--surface:#0e1116;--raise:#171b22;--line:#262c36;--light:#e8eef5;--muted:#7f8a98;--tungsten:#3dd6d0;--velvet:#e0457b;
+  --on-accent:#001614;--text2:#c3ccd6;--shade-55:rgba(0,0,0,.55);--shade-50:rgba(0,0,0,.5);--shade-20:rgba(0,0,0,.2);
+  --glow:rgba(61,214,208,.45);--glow-soft:rgba(61,214,208,.35);--beam:rgba(61,214,208,.12);--ghost:rgba(232,238,245,.1)}
+:root[data-skin="velvet"]{--night:#1a0f14;--surface:#26161d;--raise:#331e27;--line:#4a2c38;--light:#f6e7dc;--muted:#ab929b;--tungsten:#e8b86b;--velvet:#c2415d;
+  --on-accent:#1a0f14;--text2:#dfc9bd;--shade-55:rgba(26,15,20,.55);--shade-50:rgba(26,15,20,.5);--shade-20:rgba(26,15,20,.2);
+  --glow:rgba(232,184,107,.45);--glow-soft:rgba(232,184,107,.35);--beam:rgba(232,184,107,.13);--ghost:rgba(246,231,220,.1)}
+:root[data-skin="forest"]{--night:#0f1a15;--surface:#16241d;--raise:#1e3027;--line:#2d4438;--light:#e6efe4;--muted:#8ba494;--tungsten:#9be15d;--velvet:#d9643a;
+  --on-accent:#0f1a15;--text2:#c9d8c8;--shade-55:rgba(15,26,21,.55);--shade-50:rgba(15,26,21,.5);--shade-20:rgba(15,26,21,.2);
+  --glow:rgba(155,225,93,.4);--glow-soft:rgba(155,225,93,.3);--beam:rgba(155,225,93,.1);--ghost:rgba(230,239,228,.1)}
+:root[data-skin="daylight"]{--night:#f4efe6;--surface:#fffaf2;--raise:#ebe3d5;--line:#d8cebd;--light:#1d1a16;--muted:#6b6358;--tungsten:#c8412d;--velvet:#8a2432;
+  --on-accent:#fff;--text2:#3d372f;--err:#b3261e;--shade-55:rgba(244,239,230,.55);--shade-50:rgba(244,239,230,.5);--shade-20:rgba(244,239,230,.2);
+  --glow:rgba(200,65,45,.3);--glow-soft:rgba(200,65,45,.25);--beam:rgba(200,65,45,.07);--ghost:rgba(29,26,22,.08)}
+
+/* ---------- layouts (Settings) ---------- */
+:root[data-poster="s"]{--poster-w:104px}
+:root[data-poster="l"]{--poster-w:168px}
