@@ -19,9 +19,7 @@ function epCard(v, meta){
   const w = progress[v.id];
   const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
   const seen = pct > 92 || (w && !w.d);
-  const art = v.thumbnail || meta.background || meta.poster || '';
   return `<button class="epcard${seen ? ' seen' : ''}" data-id="${esc(v.id)}">
-    <span class="art" data-bg="${esc(art)}">${pct && !seen ? `<span class="bar"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}</span>
     <span class="t"><b>${n !== '' ? `${esc(n)}. ` : ''}${esc(v.name || v.title || tr('detail.episodeN', {n}))}</b>
       <small>${[v.released ? new Date(v.released).toLocaleDateString() : '', pct && !seen ? tr('detail.minLeft', {n: Math.max(1, Math.round((w.d - w.t) / 60))}) : ''].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
 }
@@ -59,26 +57,27 @@ export async function viewDetail(type, id){
   // Play and the quality shortcuts sit right under the title; a series' episodes get the whole width below.
   app.innerHTML = `<div class="backdrop" style="background-image:url('${esc(meta.background || meta.poster)}')" title="${esc(tr('qv.play'))}">
       <div class="bprog" id="bprog" hidden><i></i></div></div>
-    <div class="detail ${seasons.length ? 'series' : 'movie'}">
-      <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
-      <div class="dinfo">
-        <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig"><bdi>${esc(meta.name)}</bdi></span>` : ''}</h1>
-        <p class="desc" id="desc" dir="auto">${esc(meta.description)}</p>
-        <div class="src" id="dsrc"></div>
-        <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
-        <div class="people">${meta.director?.length ? `<div><b>${tr('detail.director')}</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>${tr('detail.cast')}</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
+    <div class="detail-overlay">
+      <div class="detail ${seasons.length ? 'series' : 'movie'}">
+        <div class="dinfo">
+          <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig"><bdi>${esc(meta.name)}</bdi></span>` : ''}</h1>
+          <p class="desc" id="desc" dir="auto">${esc(meta.description)}</p>
+          <div class="src" id="dsrc"></div>
+          <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
+          <div class="people">${meta.director?.length ? `<div><b>${tr('detail.director')}</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>${tr('detail.cast')}</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
+        </div>
       </div>
-    </div>
-    <div class="tacts">
-      <button class="tact ic ${saved?'saved':''}" id="lib" aria-label="${esc(libLabel(saved))}" title="${esc(libLabel(saved))}">${IC.heart}</button>
-      ${meta.trailers?.[0]?.source ? `<button class="tact ic" id="trailer" aria-label="${esc(tr('detail.trailer'))}" title="${esc(tr('detail.trailer'))}">${IC.trailer}</button>` : ''}
-      <span id="streams" class="psrc"></span>
-    </div>
-    <div id="palt"></div>
-    <div class="panel epanel"><div class="epwrap">
-        ${seasons.length > 1 ? `<div class="seasonbar" role="group" aria-label="${esc(tr('detail.season'))}" data-pane="#eps">${seasons.map(s =>
-          `<button data-season="${s}">${s === 0 ? tr('detail.specials') : tr('detail.seasonN', {n: s})}</button>`).join('')}</div>` : ''}
-        <div class="eps" id="eps"></div></div></div>`;
+      <div class="tacts">
+        <button class="tact ic ${saved?'saved':''}" id="lib" aria-label="${esc(libLabel(saved))}" title="${esc(libLabel(saved))}">${IC.heart}</button>
+        ${meta.trailers?.[0]?.source ? `<button class="tact ic" id="trailer" aria-label="${esc(tr('detail.trailer'))}" title="${esc(tr('detail.trailer'))}">${IC.trailer}</button>` : ''}
+        <span id="streams" class="psrc"></span>
+      </div>
+      <div id="palt"></div>
+      <div class="epanel"><div class="epwrap">
+          ${seasons.length > 1 ? `<div class="seasonbar" role="group" aria-label="${esc(tr('detail.season'))}" data-pane="#eps">${seasons.map(s =>
+            `<button data-season="${s}" class="sbtn">${s === 0 ? tr('detail.specials') : tr('detail.seasonN', {n: s})}</button>`).join('')}</div>` : ''}
+          <div class="eps" id="eps"></div></div></div>
+    </div>`;
   document.body.classList.add('titlefit');             // on the TV a title page fits the screen, and its list scrolls
   startTaste('.backdrop', trailerId(meta), 400);                       // the artwork gives way to a taste
 
@@ -145,7 +144,7 @@ export async function viewDetail(type, id){
     const w = progress[vid];
     const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
     const seen = pct > 92;
-    $('#eps').innerHTML = epCard({id: vid, name: heTitle(meta.id, meta.name), thumbnail: meta.background,
+    $('#eps').innerHTML = epCard({id: vid, name: heTitle(meta.id, meta.name),
       released: null, episode: ''}, meta).replace('<small></small>',
       `<small>${[yearOf(meta), meta.runtime].filter(Boolean).map(esc).join(' · ')}</small>`);
     const row = $('#eps').querySelector('.epcard');

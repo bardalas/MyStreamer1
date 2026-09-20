@@ -12,7 +12,8 @@ export const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidd
    these, or the D-pad cannot reach it; tvRows() keeps only the innermost match, so nesting two
    of them is safe. Grouped by the screen that renders them. */
 export const ROWS_SEL = [
-  '#rail', '.stabs',                                                       // chrome: the side menu, the settings menu
+  '#rail', '.stabs', '.spane', '.sset',                                  // chrome: the side menu, the settings menu
+  '.hero-info',                                                            // hero section
   '.bctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',              // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
@@ -159,20 +160,10 @@ export function tvMove(dir){
      along the row you pass titles, not buttons - so they are a step down from the title and a step
      back up, and below them is whatever the row leads to. */
   const act = row.querySelector?.('.spotact');
-  const actBtns = () => [...act.querySelectorAll('button')].filter(visible);
-  if(act?.contains(active)){
-    const btns = actBtns(), j = btns.indexOf(active);
-    // along the row, the wheel turns even from here - the viewer stays on the same button of the
-    // title that arrives; down and up walk the card: picture, play, details, and on to the row below
-    if(dir === 'left' || dir === 'right'){ stepSpot(dir === FWD(), j); return true; }
-    if(dir === 'up'){ focusItem(btns[j - 1] || row.querySelector('.poster.spot')); return true; }
-    if(btns[j + 1]){ focusItem(btns[j + 1]); return true; }
+  if(act && dir === 'down' && active?.classList.contains('spot')){
+    // With no extra buttons under the title, going down jumps to the row below directly
     const below = rows[rows.indexOf(row) + 1];
     if(below) focusItem(bestIn(below, active));
-    return true;
-  }
-  if(act && dir === 'down' && active?.classList.contains('spot')){
-    focusItem(actBtns()[0]);
     return true;
   }
   // A side menu is a column: up/down pick an entry, left steps into what it controls - #rail drives
@@ -208,14 +199,27 @@ export function tvMove(dir){
   }
   if(dir === 'left' || dir === 'right'){
     // ArrowLeft goes forward through a right-to-left row, ArrowRight through a left-to-right one
-    const step = dir === FWD() ? 1 : -1;
-    const next = items[i + step];
-    if(next){ focusItem(next); return true; }
-    if(dir !== FWD()){                              // back to the side menu, if there is one
+    const ltr = row.classList.contains('keypad') || getComputedStyle(row).direction === 'ltr';
+    const fwd = ltr ? 'right' : FWD();
+    const isCol = (row.classList.contains('eps') || row.classList.contains('seasonbar')) && isTvLayout();
+    if(!isCol){
+      const step = dir === fwd ? 1 : -1;
+      const next = items[i + step];
+      if(next){ focusItem(next); return true; }
+    }
+    if(dir !== fwd){                              // back to the side menu, if there is one
       const tab = document.querySelector('.stabs button.on') || document.querySelector('.stabs button');
-      if(tab && $('#spane')?.contains(active)) focusItem(tab);
-      else if(document.body.classList.contains('railed') && $('#app').contains(active))
+      if(tab && $('#spane')?.contains(active)){ focusItem(tab); return true; }
+      const stab = document.querySelector('.seasonbar button.on') || document.querySelector('.seasonbar button');
+      if(stab && row.classList.contains('eps')){ focusItem(stab); return true; }
+      if(document.body.classList.contains('railed') && $('#app').contains(active)){
         focusItem($('#rail a.on') || $('#rail a'));
+        return true;
+      }
+    } else if(isCol && row.classList.contains('seasonbar')){
+      const target = $('#eps');
+      const first = target?.querySelector('.epcard.on') || target?.querySelector('.epcard');
+      if(first){ focusItem(first); return true; }
     }
     return true;                                    // stay put at the row's edge
   }

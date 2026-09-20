@@ -1,7 +1,7 @@
 /* Rows of titles, and the screen they are laid out on. */
 import {$, esc, showErr} from '../core/dom.js';
 import {rowMax} from '../core/settings.js';
-import {addons, catalogFetch} from '../data/addons.js';
+import {addons, catalogFetch, fetchMeta} from '../data/addons.js';
 import {SC_ID} from '../data/catalogs.js';
 import {srcName, typeName} from '../data/names.js';
 import {SERVICES, noteServices} from '../data/services.js';
@@ -11,7 +11,8 @@ import {kanBox, kanCard} from '../providers/kan.js';
 import {makoCard, makoPrograms} from '../providers/mako.js';
 import {r13, r13card, r13row} from '../providers/reshet.js';
 import {card, skeletons} from './cards.js';
-import {autoSpot, reelable} from './reel.js';
+import {autoSpot, nextEpisode, reelable} from './reel.js';
+import {playStream, quickPick} from './sources.js';
 
 export const rowTag = x => {
   const parts = [];
@@ -26,13 +27,51 @@ export const rowTag = x => {
    the middle by itself, so a screen opens on its content rather than on an announcement of it. */
 export const reel = (inner, id = '') =>
   `<div class="reelwrap"><div class="strip${reelable() ? ' reel' : ''}"${id ? ` id="${id}"` : ''}>${inner}</div></div>`;
+
+async function playHero(hero, btn){
+  const said = btn.textContent;
+  btn.textContent = tr('src.searching');
+  const meta = await fetchMeta(hero.type, hero.metaId).catch(() => null);
+  const ep = hero.type === 'series' ? nextEpisode(meta) : null;
+  const videoId = ep ? ep.id : (meta?.behaviorHints?.defaultVideoId || hero.videoId || hero.metaId);
+  const pick = await quickPick(hero.type, videoId);
+  btn.textContent = said;
+  if(pick) playStream(pick.s, ep ? `${meta.name} S${ep.season}E${ep.episode}` : (meta?.name || hero.name), {videoId, type: hero.type, meta: meta || {id: hero.metaId, name: hero.name}});
+  else location.hash = `#/detail/${hero.type}/${encodeURIComponent(hero.metaId)}`;
+}
+
 export function renderRows(rows, {cont = [], heading = '', top = ''} = {}){
   const app = $('#app');
-  app.innerHTML = `${heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : ''}
+  const hero = cont[0];
+  const items = hero ? cont.slice(1) : cont;
+
+  let heroHtml = '';
+  if(hero){
+    const pct = hero.d ? Math.min(100, hero.t / hero.d * 100) : 0;
+    heroHtml = `<div class="hero-wrap">
+      <div class="backdrop hero-bg" style="background-image:url('${esc(hero.poster)}')"></div>
+      <div class="hero-info">
+        <div class="dinfo">
+          <small class="htag">${tr('row.continue')}</small>
+          <h1>${esc(hero.name)}</h1>
+          ${pct ? `<div class="bprog hero-prog"><i><b style="width:${pct.toFixed(0)}%"></b></i></div>` : ''}
+          <div class="tacts">
+            <button class="btn primary hero-play" id="heroPlay">${tr('detail.resume')}</button>
+            <a href="#/detail/${esc(hero.type)}/${encodeURIComponent(hero.metaId)}" class="btn ghost">${tr('qv.more')}</a>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  app.innerHTML = `${heroHtml}
+    ${heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : ''}
     ${top}
-    ${cont.length ? `<div class="row"><h2>${tr('row.continue')}</h2>${reel(cont.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join(''))}</div>` : ''}
+    ${items.length ? `<div class="row"><h2>${tr('row.continue')}</h2>${reel(items.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join(''))}</div>` : ''}
     ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2>${reel(skeletons(8), 'row' + i)}</div>`).join('')}
     ${!rows.length ? `<p class="note">${tr('row.noCatalogs')}</p>` : ''}`;
+
+  if(hero && $('#heroPlay')) $('#heroPlay').onclick = () => playHero(hero, $('#heroPlay'));
   autoSpot($('#app .strip'));
   // Each title appears once per page: it stays in the first (highest) row that has it.
   const claimed = new Map();

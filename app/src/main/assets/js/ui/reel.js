@@ -40,6 +40,7 @@ export function clearSpot(){
       art.querySelector('.taste')?.remove();
       art.querySelector('.spotinfo')?.remove();
       art.style.backgroundImage = hadArt;
+      art.classList.remove('taste-on');
     }
     // the row stays where the viewer left it - the title they were on, now a poster, keeps the middle
     const strip = spot.closest('.strip');
@@ -64,13 +65,9 @@ export function spotlight(el){
   const full = (el.getAttribute('href') || '').startsWith('#/detail/');
   act = document.createElement('div');
   act.className = 'spotact';
-  act.innerHTML = full
-    ? `<button class="btn primary" data-go>${esc(tr('qv.play'))}</button><button class="btn ghost" data-more>${esc(tr('qv.more'))}</button>`
-    : `<button class="btn primary" data-more>${esc(tr('qv.more'))}</button>`;
+  // The picture or clicking it takes the user straight to its own full page
+  act.innerHTML = ``;
   strip.appendChild(act);
-  act.querySelector('[data-more]').onclick = () => open(el);
-  const go = act.querySelector('[data-go]');
-  if(go) go.onclick = () => play(go, el);
   place();
   paint(el, full);
 }
@@ -129,11 +126,6 @@ async function paint(el, full){
       ...(meta.genres || meta.genre || []).slice(0, 1).map(g => `<span>${esc(genreName(g))}</span>`),
       svcMarks(id) && `<span>${svcMarks(id)}</span>`].filter(Boolean).join('');
     info.querySelector('p').textContent = meta.description || '';
-    const go = act?.querySelector('[data-go]');
-    if(go && !go.disabled){
-      if(type === 'series'){ const ep = nextEpisode(meta); if(ep) go.textContent = tr(ep.resume ? 'qv.epCont' : 'qv.epPlay', {s: ep.season, e: ep.episode}); }
-      else go.textContent = playLabel(id);
-    }
     startTaste('.poster.spot .art', trailerId(meta), 1300, true);   // quietly: browsing is not watching
   }
   if(hebrewOn() && /^tt\d+$/.test(id)){
@@ -165,25 +157,23 @@ export function open(el){
   endTaste();
   location.hash = href;
 }
-/** Watch it now: a film from where it stopped, a series from the episode you are up to. */
-export async function play(btn, el){
+/**
+ * Watch it now: a film from where it stopped, a series from the episode you are up to. The card says
+ * what it is doing in its own words - the line that held the summary - and if nothing can be played,
+ * the full page takes over, where every source is listed.
+ */
+export async function play(el){
   const [, , type, idEnc] = el.getAttribute('href').split('/');
   const id = decodeURIComponent(idEnc);
-  const was = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = tr('qv.searching');
+  const line = el.querySelector('.spotinfo p'), said = line?.textContent;
+  if(line) line.textContent = tr('qv.searching');
   const meta = await fetchMeta(type, id).catch(() => null);
   const ep = type === 'series' ? nextEpisode(meta) : null;
   const videoId = ep ? ep.id : (meta?.behaviorHints?.defaultVideoId || id);
   const pick = await quickPick(type, videoId);
-  if(!btn.isConnected) return;
-  btn.disabled = false;
-  if(!pick){                                          // nothing to play with: the full page lists them all
-    btn.textContent = tr('qv.noSource');
-    btn.onclick = () => open(el);
-    return;
-  }
-  btn.textContent = was;
+  if(!el.isConnected) return;
+  if(line) line.textContent = said || '';
+  if(!pick) return open(el);
   endTaste();
   const name = meta?.name || el.querySelector('.t')?.textContent || '';
   playStream(pick.s, ep ? `${name} S${ep.season}E${ep.episode}` : name, {videoId, type, meta: meta || {id, name}});
@@ -202,9 +192,8 @@ document.addEventListener('click', e => {
   if(!p || !p.closest('.strip') || !reelable()) return;
   e.preventDefault();
   if(p !== spot){ spotlight(p); p.focus({preventScroll: true}); return; }
-  // already in the middle: the picture itself is the button
-  const go = act?.querySelector('[data-go]');
-  go ? play(go, p) : open(p);
+  // already in the middle: a click on it opens its full page directly
+  open(p);
 });
 addEventListener('hashchange', clearSpot);
 
@@ -219,8 +208,7 @@ export function stepSpot(forward, keep = -1){
   const next = posters[posters.indexOf(spot) + (forward ? 1 : -1)];
   if(!next) return false;
   spotlight(next);
-  const btns = keep >= 0 ? [...(act?.querySelectorAll('button') || [])] : [];
-  (btns[keep] || btns[btns.length - 1] || next).focus({preventScroll: true});
+  next.focus({preventScroll: true});
   return true;
 }
 

@@ -7,6 +7,9 @@ import {setAvail} from '../data/availability.js';
 import {remindButton, wireRemind} from '../data/reminders.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
+import {kanBox} from '../providers/kan.js';
+import {makoPrograms} from '../providers/mako.js';
+import {r13meta, r13row} from '../providers/reshet.js';
 import {openPlayer} from './player.js';
 
 export function quickPick(type, videoId){
@@ -103,6 +106,7 @@ export function playStream(s, label, ctx){
   const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || ''});
   const done = progress[vid];
   const pos = done && done.d && done.t < done.d - 60 ? Math.floor(done.t * 1000) : 0;
+  if(s.externalUrl && s.externalUrl.startsWith('#')){ location.hash = s.externalUrl; return; }
   if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label, vid, release, meta, pos);
   else if(s.url || s.ytId) openPlayer(s, label, ctx);
   // a page on a service, not a video: it belongs to whatever opens that service on this device
@@ -197,6 +201,41 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
     if(first && takeFocus && !focused){ focused = true; first.focus({preventScroll: true}); }
   };
   render();
+  const checkBroadcasters = async () => {
+    const clean = t => (t || '').trim().toLowerCase();
+    const name = clean(meta?.name || label);
+    if(!name) return;
+    const match = itn => itn === name || (name.length > 3 && (itn.includes(name) || name.includes(itn)));
+
+    kanBox().then(secs => {
+      for(const s of secs) for(const it of s.items) if(match(clean(it.name))){
+        all.push({s: {externalUrl: `#/kan/${encodeURIComponent(it.url.replace('https://www.kan.org.il', ''))}/${encodeURIComponent(it.name)}`},
+          addon: 'כאן 11', i: all.length, q: 'VOD', size: null, tags: [], external: true, name: 'כאן 11', direct: true});
+        render(); return;
+      }
+    }).catch(() => {});
+
+    makoPrograms('').then(progs => {
+      for(const i of progs) if(match(clean(i.name))){
+        all.push({s: {externalUrl: `#/mako/${encodeURIComponent(i.path)}/${encodeURIComponent(i.name)}`},
+          addon: 'קשת 12', i: all.length, q: 'VOD', size: null, tags: [], external: true, name: 'mako (קשת 12)', direct: true});
+        render(); return;
+      }
+    }).catch(() => {});
+
+    r13row('series').then(progs => {
+      for(const o of progs) if(match(clean(o.name))){
+        const sid = r13meta(o, 'SeriesID');
+        if(sid){
+          all.push({s: {externalUrl: `#/r13/${encodeURIComponent(sid)}/${encodeURIComponent(o.name)}`},
+            addon: 'רשת 13', i: all.length, q: 'VOD', size: null, tags: [], external: true, name: 'רשת 13', direct: true});
+          render(); return;
+        }
+      }
+    }).catch(() => {});
+  };
+  checkBroadcasters();
+
   await Promise.all(src.map(async a => {
     try{
       for(const s of await fetchStreams(a, type, videoId)) all.push(parseStream(s, a.manifest.name, all.length));

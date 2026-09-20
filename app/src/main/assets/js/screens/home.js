@@ -62,7 +62,7 @@ export async function viewHome(){
     if(rows.length < 8) rows.push({a, c, title: catalogName(c.name) || c.id});
   }
   if(sortActive()) return gridFrom(rows, tr('cats.all'), viewHome);
-  const cont = Object.values(progress).filter(x => !x.done).sort((x,y) => y.at - x.at).slice(0, 12);
+  const cont = Object.entries(progress).filter(([id, x]) => !x.done).sort(([,x],[,y]) => y.at - x.at).map(([videoId, x]) => ({videoId, ...x})).slice(0, 12);
   renderRows(isTvLayout() ? rows.slice(0, 10) : rows, {cont, top: `<div class="page pagehead">${sortBar()}</div>`});
   wireSortBar(viewHome);
 }
@@ -73,13 +73,13 @@ export function viewCategory(id){
   if(!type && !cat) return viewHome();
   const rows = type ? typeRows(type) : rowsFor(cat);
   const name = type ? tr('cats.' + id) : catName(cat);
-  const redraw = () => viewCategory(id);
-  if(sortActive()) return gridFrom(rows, name, redraw);
+  const Redraw = () => viewCategory(id);
+  if(sortActive()) return gridFrom(rows, name, Redraw);
   // what was left in the middle, of this type
-  const cont = type ? Object.values(progress).filter(x => !x.done && x.type === type).sort((x, y) => y.at - x.at).slice(0, 12) : [];
+  const cont = type ? Object.entries(progress).filter(([id, x]) => !x.done && x.type === type).sort(([,x],[,y]) => y.at - x.at).map(([videoId, x]) => ({videoId, ...x})).slice(0, 12) : [];
   // the name of what you are browsing and the filters share one line, so the titles are the first thing on the screen
   renderRows(isTvLayout() ? rows.slice(0, 12) : rows, {cont, top: `<div class="page pagehead"><h1>${esc(name)}</h1>${sortBar()}</div>`});
-  wireSortBar(redraw);
+  wireSortBar(Redraw);
 }
 
 /** The title with the place of honour: a different one on every visit, out of the best the page holds.

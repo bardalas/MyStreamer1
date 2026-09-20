@@ -1,6 +1,6 @@
 /* The taste: a few seconds of a title's trailer, playing inside whatever picture it belongs to. */
 import {$} from '../core/dom.js';
-import {settings} from '../core/settings.js';
+import {isTvLayout, settings} from '../core/settings.js';
 
 /** A title's trailer on YouTube, if it came with one. */
 export const trailerId = m => {
@@ -21,7 +21,7 @@ export function endTaste(){ clearTimeout(tasteTimer); tasteStop?.(); tasteStop =
  */
 export function startTaste(hostSel, yt, delay = 1500, quiet = false){
   endTaste();
-  if(!yt || settings.preview === 'off') return;
+  if(!yt || settings.preview === 'off' || !isTvLayout()) return;
   tasteTimer = setTimeout(() => {
     const host = $(hostSel);
     if(!host || host.querySelector('.taste') || document.visibilityState !== 'visible') return;
@@ -40,7 +40,16 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
     frame.onload = () => say({event: 'listening', id: 1, channel: 'widget'});
     let over = 0;
     const heard = e => {
-      if(!frame.isConnected || !/youtube/.test(e.origin) || !/"playerState":\s*1/.test(String(e.data))) return;
+      if(!frame.isConnected || !/youtube/.test(e.origin)) return;
+
+      // If player state is 0 (Ended), clean up and restore background immediately
+      if(/"playerState":\s*0/.test(String(e.data))){
+        done();
+        if(tasteStop) tasteStop();
+        return;
+      }
+
+      if(!/"playerState":\s*1/.test(String(e.data))) return;
       const cmd = (func, args = []) => say({event: 'command', func, args, id: 1, channel: 'widget'});
       cmd('setPlaybackQuality', ['small']);
       cmd('setPlaybackQuality', ['medium']);        // a full-screen frame otherwise asks for HD, and stalls
