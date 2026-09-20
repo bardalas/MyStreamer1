@@ -3150,11 +3150,14 @@ function tvMove(dir){
   // list); a row that is genuinely one line has nothing on another line, so this falls through to
   // moving to the next row below/above it, correctly, without needing to know which kind it is.
   const x = active ? centerX(active) : 0;
-  const top = active.getBoundingClientRect().top;
-  const line = items.filter(el => (dir === 'down' ? el.getBoundingClientRect().top > top + 4 : el.getBoundingClientRect().top < top - 4));
+  const ar = active.getBoundingClientRect();
+  const mid = el => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
+  // Another line = an item whose middle lies beyond this one's edge. (Comparing tops made the search box,
+  // a little taller than the menu links beside it, look like the line below them.)
+  const line = items.filter(el => (dir === 'down' ? mid(el) > ar.bottom : mid(el) < ar.top));
   if(line.length){
-    const band = dir === 'down' ? Math.min(...line.map(el => el.getBoundingClientRect().top)) : Math.max(...line.map(el => el.getBoundingClientRect().top));
-    const same = line.filter(el => Math.abs(el.getBoundingClientRect().top - band) < 4);
+    const band = dir === 'down' ? Math.min(...line.map(mid)) : Math.max(...line.map(mid));
+    const same = line.filter(el => Math.abs(mid(el) - band) < 6);
     focusItem(same.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best));
     return true;
   }
