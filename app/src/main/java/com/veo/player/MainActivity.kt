@@ -1,4 +1,4 @@
-package com.booth.player
+package com.veo.player
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -184,7 +184,7 @@ class MainActivity : AppCompatActivity() {
                         // Android 8+: installing needs this app to be allowed as an install source.
                         // Without it the installer just refuses, so send the viewer to grant it.
                         if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
-                            status("אשר התקנה מהמקרן, ואז לחץ שוב על עדכן", false)
+                            status("אשר התקנה מ-VEO, ואז לחץ שוב על עדכן", false)
                             runCatching {
                                 startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                                     android.net.Uri.parse("package:${'$'}packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

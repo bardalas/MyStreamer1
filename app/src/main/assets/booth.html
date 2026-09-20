@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>המקרן</title>
+<title>VEO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=Rubik:wght@500;700;800&family=Heebo:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
@@ -488,7 +488,7 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 </head>
 <body>
 <div class="bar">
-  <a class="logo" href="#/" aria-label="המקרן – דף הבית"><svg width="30" height="30" viewBox="8 8 50 48" aria-hidden="true"><path d="M40 32 L60 20 V44 Z" fill="var(--tungsten)" opacity=".35"/><circle cx="17" cy="20" r="7" fill="none" stroke="var(--tungsten)" stroke-width="3"/><circle cx="31" cy="20" r="7" fill="none" stroke="var(--tungsten)" stroke-width="3"/><rect x="11" y="29" width="30" height="16" rx="3" fill="var(--tungsten)"/><rect x="41" y="33" width="5" height="8" rx="1" fill="var(--tungsten)"/><rect x="16" y="45" width="4" height="7" fill="var(--tungsten)"/><rect x="32" y="45" width="4" height="7" fill="var(--tungsten)"/></svg>המקרן</a>
+  <a class="logo" href="#/" aria-label="VEO – דף הבית"><img src="veo-mark.png" width="26" height="26" alt="" aria-hidden="true">VEO</a>
   <nav class="nav">
     <a href="#/" data-r="home">סרטים וסדרות</a>
     <a href="#/tv" data-r="tv">ערוצים</a>
@@ -992,7 +992,7 @@ async function r13playEpisode(id, title){
   try{
     const src = await r13source(id, false);
     if(window.BoothAndroid && BoothAndroid.playDrm) BoothAndroid.playDrm(src.url, src.drm, title);
-    else alert('פרקי רשת 13 מתנגנים באפליקציית המקרן לאנדרואיד.');
+    else alert('פרקי רשת 13 מתנגנים באפליקציית VEO לאנדרואיד.');
   }catch(e){ alert(`לא ניתן לנגן את הפרק (${e.message}).`); }
 }
 function r13card(o){
@@ -1806,7 +1806,7 @@ function playStream(s, label, ctx){
   else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label, vid, release, meta, 0);
   else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
   else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release, meta, pos);
-  else alert('מקורות טורנט מתנגנים באפליקציית המקרן לאנדרואיד.');
+  else alert('מקורות טורנט מתנגנים באפליקציית VEO לאנדרואיד.');
 }
 
 function renderStreams(box, all, pending, label, ctx, errors = [], retry){
@@ -2370,7 +2370,7 @@ function paintSettings(){
 
   const panes = {
     start: () => seg('start', 'מסך פתיחה', [['vod', 'סרטים וסדרות'], ['live', 'שידור חי']],
-        'מה נפתח כשמדליקים את המקרן.')
+        'מה נפתח כשמדליקים את VEO.')
       + seg('kids', 'מצב ילדים', [['off', 'כבוי'], ['on', 'פעיל']],
         'במצב ילדים מסך הבית מציג רק תכני ילדים.')
       + seg('lang', 'שמות ותקצירים', [['he', 'עברית'], ['en', 'English']],
@@ -2400,15 +2400,15 @@ function paintSettings(){
       <p class="hint" style="margin:0">כל פלייליסט M3U עובד, גם בכתובת ברשת הביתית (למשל TVHeadend: <code>http://&lt;ip&gt;:9981/playlist/channels.m3u</code>).</p></section>`,
 
     addons: () => `<section class="sset"><h2>תוספים</h2>
-      <p class="note" style="margin:0 0 10px">מקורות הקטלוג והצפייה של המקרן.</p>
+      <p class="note" style="margin:0 0 10px">מקורות הקטלוג והצפייה של VEO.</p>
       <div class="keyform"><a class="btn primary" href="#/addons">ניהול תוספים</a></div></section>
       <section class="sset"><h2>כתוביות</h2><p class="note" style="margin:0">כתוביות בעברית מתווספות אוטומטית לכל סרט ופרק (Wizdom ו־OpenSubtitles), לפי הגרסה שבחרת. אפשר להחליף או לכבות אותן בכפתור הכתוביות בנגן.</p></section>`,
 
     about: () => `<section class="sset"><h2>איפוס</h2>
       <p class="note" style="margin:0 0 10px">מחזיר את כל ההגדרות לברירת המחדל. הספרייה, היסטוריית הצפייה וקוד ה־RaspberryTV נשמרים.</p>
       <div class="keyform"><button class="danger" id="sreset">איפוס לברירת המחדל</button></div></section>
-      <section class="sset"><h2>על המקרן</h2>
-      <p class="note" style="margin:0 0 10px">המקרן${APP_VERSION ? ` · גרסה ${esc(APP_VERSION)}` : ' · תצוגת דפדפן'}</p>
+      <section class="sset"><h2>על VEO</h2>
+      <p class="note" style="margin:0 0 10px">VEO${APP_VERSION ? ` · גרסה ${esc(APP_VERSION)}` : ' · תצוגת דפדפן'}</p>
       <div class="keyform"><button class="btn primary" id="supd">בדוק אם יש גרסה חדשה</button></div></section>`,
   };
   pane.innerHTML = (panes[setTab] || panes.start)();
@@ -2537,8 +2537,8 @@ addEventListener('keydown', e => { if(e.key === 'Escape') closePlayer(); });
    On every start the app asks GitHub for the latest release. If it is newer than this build, a card
    offers it; "עדכן" hands the APK to Android's own downloader and installer, which asks before it
    installs. Nothing is downloaded or installed behind the viewer's back. */
-const RELEASES = 'https://api.github.com/repos/bardalas/MyStreamer1/releases/latest';
-const APK_URL = 'https://github.com/bardalas/MyStreamer1/releases/latest/download/HaMakren.apk';
+const RELEASES = 'https://api.github.com/repos/bardalas/VEO/releases/latest';
+const APK_URL = 'https://github.com/bardalas/VEO/releases/latest/download/VEO.apk';
 const APP_VERSION = (() => { try{ return window.BoothAndroid?.appVersion?.() || ''; }catch(e){ return ''; } })();
 
 /** "0.23.0" vs "0.24.1" -> is the second one newer? */
@@ -2677,7 +2677,7 @@ addEventListener('hashchange', route);
 /* No connection: one bar at the bottom instead of a screenful of errors; the screen reloads by itself
    as soon as the line is back. */
 const offbar = Object.assign(document.createElement('div'), {id: 'offbar', role: 'status'});
-offbar.innerHTML = '<span>אין חיבור לאינטרנט. המקרן ימשיך ברגע שהחיבור יחזור.</span>';
+offbar.innerHTML = '<span>אין חיבור לאינטרנט. VEO ימשיך ברגע שהחיבור יחזור.</span>';
 document.body.appendChild(offbar);
 const paintNet = () => offbar.classList.toggle('on', !navigator.onLine);
 addEventListener('offline', paintNet);

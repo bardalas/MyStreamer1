@@ -1,6 +1,4 @@
-# המקרן (HaMakren) — Android & Android TV
-
-Current release: **v0.21.0-alpha** (`versionCode 2100`).
+# VEO — Android & Android TV
 
 Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrentio) with native Media3 playback and a built-in BitTorrent engine (FrostWire jlibtorrent).
 
@@ -16,16 +14,16 @@ Android / Android TV frontend for Stremio-compatible add-ons (Cinemeta, Torrenti
 
 ## Android TV
 Install the **Downloader** app on the TV and enter:
-`https://github.com/bardalas/MyStreamer1/releases/latest/download/HaMakren.apk`
+`https://github.com/bardalas/VEO/releases/latest/download/VEO.apk`
 (or install Obtainium on the TV as below). The app appears on the TV home screen with its banner
 and uses the large TV layout automatically; the remote works everywhere, including channel up/down in live TV.
 
 ## Install on your phone & get automatic updates
 1. Install **[Obtainium](https://github.com/ImranR98/Obtainium/releases/latest)** (free, open source).
-2. In Obtainium tap **Add App**, paste `https://github.com/bardalas/MyStreamer1`, tap **Add**, then **Install**.
-3. Obtainium checks for new releases in the background and installs them (silently on Android 12+).
+2. In Obtainium tap **Add App**, paste `https://github.com/bardalas/VEO`, tap **Add**, then **Install**.
+3. Obtainium checks for new releases in the background and installs them (silently on Android 12+), or use the in-app updater (Settings → About) once VEO itself is installed.
 
-Or download the APK manually from [Releases](https://github.com/bardalas/MyStreamer1/releases/latest).
+Or download the APK manually from [Releases](https://github.com/bardalas/VEO/releases/latest).
 
 ## Releasing a new version
 1. Bump `versionCode` / `versionName` in `app/build.gradle.kts` (versionCode = major*10000 + minor*100 + patch) and add a `CHANGELOG.md` entry.
@@ -36,4 +34,4 @@ Pushes to `main` without a tag build a signed test APK as a workflow artifact on
 
 ## Signing
 Release builds are signed in CI from these repository secrets: `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`.
-**Keep a backup of the keystore** — Android only accepts updates signed with the same key. The application ID `com.booth.player` must also never change.
+**Keep a backup of the keystore** — Android only accepts updates signed with the same key. The application ID `com.veo.player` must also never change once real installs exist.

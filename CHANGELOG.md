@@ -1,4 +1,13 @@
-# Booth Android changelog
+# VEO Android changelog
+
+## 0.33.0 — 2026-09-20
+- Renamed from המקרן (HaMakren / "Booth") to **VEO**: app label, in-app header mark and icon
+  (adaptive + legacy launcher icons regenerated from the approved VEO media kit), release
+  artifact names, and every in-app reference to the app's own name.
+- Application ID changed `com.booth.player` → `com.veo.player` (pre-launch, so this is a clean
+  rename rather than an in-place update — anyone on an old build reinstalls as a separate app).
+- Repo layout unchanged otherwise; the functional color scheme (amber/gold accent, dark theme)
+  was deliberately **not** touched in this pass — only the name and the launcher/header icon.
 
 ## 0.21.0 — 2026-09-20
 - Remote: arrows jump between titles and rows (the page follows the focus) instead of scrolling.

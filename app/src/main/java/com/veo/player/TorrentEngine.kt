@@ -1,4 +1,4 @@
-package com.booth.player
+package com.veo.player
 
 import android.content.Context
 import com.frostwire.jlibtorrent.Priority

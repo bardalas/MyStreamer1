@@ -5,14 +5,14 @@ plugins { id("com.android.application") }
 val signingKeystore: String? = System.getenv("SIGNING_KEYSTORE_PATH")
 
 android {
-    namespace = "com.booth.player"
+    namespace = "com.veo.player"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.booth.player"
+        applicationId = "com.veo.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3220
-        versionName = "0.32.2"
+        versionCode = 3300
+        versionName = "0.33.0"
     }
     signingConfigs {
         create("release") {

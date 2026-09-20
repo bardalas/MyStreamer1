@@ -1,4 +1,4 @@
-package com.booth.player
+package com.veo.player
 
 import android.annotation.SuppressLint
 import android.content.Intent

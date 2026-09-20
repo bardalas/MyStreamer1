@@ -1,4 +1,4 @@
-package com.booth.player
+package com.veo.player
 
 import android.graphics.Color
 import android.net.Uri

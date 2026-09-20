@@ -1,4 +1,4 @@
-package com.booth.player
+package com.veo.player
 
 import android.content.Context
 import org.json.JSONArray
@@ -116,7 +116,7 @@ object Subtitles {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 8_000
         conn.readTimeout = 10_000
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) Booth")
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) VEO")
         return conn.inputStream.use { it.readBytes() }
     }
 

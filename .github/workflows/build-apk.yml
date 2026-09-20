@@ -59,29 +59,29 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
         run: |
           gradle --no-daemon :app:assembleRelease --stacktrace
-          cp app/build/outputs/apk/release/app-release.apk "MyStreamer-v$VERSION.apk"
-          # fixed name for a short, permanent download link (…/releases/latest/download/HaMakren.apk), e.g. for TVs
-          cp app/build/outputs/apk/release/app-release.apk HaMakren.apk
+          cp app/build/outputs/apk/release/app-release.apk "VEO-v$VERSION.apk"
+          # fixed name for a short, permanent download link (…/releases/latest/download/VEO.apk), e.g. for TVs
+          cp app/build/outputs/apk/release/app-release.apk VEO.apk
 
       # An x86_64-capable build, so the app (torrents included) can be tested in a PC emulator.
       - name: Build debug APK for emulators
         run: |
           gradle --no-daemon :app:assembleDebug --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk HaMakren-emulator.apk
+          cp app/build/outputs/apk/debug/app-debug.apk VEO-emulator.apk
 
       - name: Upload emulator APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HaMakren-emulator-v${{ env.VERSION }}
-          path: HaMakren-emulator.apk
+          name: VEO-emulator-v${{ env.VERSION }}
+          path: VEO-emulator.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyStreamer-v${{ env.VERSION }}
-          path: MyStreamer-v${{ env.VERSION }}.apk
+          name: VEO-v${{ env.VERSION }}
+          path: VEO-v${{ env.VERSION }}.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -91,5 +91,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           NOTES=$(awk "/^## $VERSION/{f=1;next} /^## /{f=0} f" CHANGELOG.md)
-          gh release create "$GITHUB_REF_NAME" "MyStreamer-v$VERSION.apk" HaMakren.apk HaMakren-emulator.apk \
-            -R "$GITHUB_REPOSITORY" --title "המקרן v$VERSION" --notes "${NOTES:-Release v$VERSION}"
+          gh release create "$GITHUB_REF_NAME" "VEO-v$VERSION.apk" VEO.apk VEO-emulator.apk \
+            -R "$GITHUB_REPOSITORY" --title "VEO v$VERSION" --notes "${NOTES:-Release v$VERSION}"
