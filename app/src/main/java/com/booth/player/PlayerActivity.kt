@@ -312,7 +312,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private val hideBanner = Runnable { hideChannelBar() }
-    private val tickBanner = Runnable { if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, 30_000) } }
+    // explicit type: it schedules itself, which Kotlin cannot infer through
+    private val tickBanner: Runnable = Runnable { if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, 30_000) } }
     private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
 
     /** Channel bar: the channel list along the bottom, for choosing with the remote. */
