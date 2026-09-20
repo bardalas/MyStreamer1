@@ -313,10 +313,13 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
         handler.postDelayed(tickBanner, 30_000)
-        handler.postDelayed(hideBanner, if (browse) 12_000L else 6_000L)
+        handler.postDelayed(hideBanner, if (browse) 12_000L else 8_000L)
     }
 
-    private val hideBanner = Runnable { hideChannelBar() }
+    // explicit type: it reschedules itself (a paused picture keeps its banner)
+    private val hideBanner: Runnable = Runnable {
+        if (player?.playWhenReady == false && !browsing) handler.postDelayed(hideBanner, 8_000) else hideChannelBar()
+    }
     // explicit type: it schedules itself, which Kotlin cannot infer through
     private val tickBanner: Runnable = Runnable { if (bannerOpen) { paintNow(); handler.postDelayed(tickBanner, 30_000) } }
     private val bannerOpen get() = findViewById<View>(R.id.infobar).visibility == View.VISIBLE
@@ -413,6 +416,7 @@ class PlayerActivity : AppCompatActivity() {
         val p = player ?: return
         val step = if (held) 60_000L else 10_000L
         p.seekTo((p.currentPosition + direction * step).coerceAtLeast(0))
+        if (live && !browsing) showBanner(browse = false)          // the channel is what you are looking at
         val behind = p.currentLiveOffset
         showMessage(
             if (behind == C.TIME_UNSET) fmtClock(p.currentPosition)

@@ -221,6 +221,10 @@ main{padding:0 28px 60px}
 [data-layout="tv"] .strip{gap:24px;padding:8px 6px 18px}
 [data-layout="tv"] .row h2{font-size:28px}
 [data-layout="tv"] .nav a{padding:10px 20px;font-size:18px}
+/* the focus ring sits between neighbours instead of over them */
+[data-layout="tv"] .bar{gap:30px}
+[data-layout="tv"] .nav{gap:16px}
+[data-layout="tv"] .bar :focus-visible{outline-width:3px;outline-offset:2px}
 [data-layout="tv"] :focus-visible{outline-width:4px;outline-offset:4px}
 [data-layout="tv"] .poster:focus .art,[data-layout="tv"] .poster:focus-visible .art{transform:scale(1.06);box-shadow:0 0 0 4px var(--tungsten),0 16px 40px -10px var(--glow-soft)}
 [data-layout="tv"] .poster:focus-visible{outline:none}

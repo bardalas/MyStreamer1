@@ -107,6 +107,9 @@ class StreamServer(private val handle: TorrentHandle, private val media: Media) 
             }
         } catch (_: IOException) {
             // Player closed the connection (seek / exit) or the stream was stopped.
+        } catch (_: RuntimeException) {
+            // The torrent was removed under a read that was waiting for a piece ("invalid torrent handle"):
+            // that ends this connection, it must not take the app down with it.
         } catch (_: InterruptedException) {
         } finally {
             runCatching { raf?.close() }
