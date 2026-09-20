@@ -1,6 +1,11 @@
 /* ---------- Design tokens and themes ---------- */
 /* The design tokens: one palette, one set of shapes, one direction flag. */
 :root{
+  /* Where anything at the top of a phone's screen begins - the menu button, and the page under
+     it. The Android side holds the whole page clear of the system bars (MainActivity pads the
+     WebView), so this is measured from the top of what the viewer can actually see. One number,
+     because the button and the page beneath it have to agree or the two overlap. */
+  --topgap:58px;
   --flip:1;   /* 1 in right-to-left, -1 in left-to-right: mirrors physical offsets that logical properties cannot express */
   --ease:cubic-bezier(.22,1,.36,1);  /* everything travels out quickly and lands slowly */
   --quick:.16s; --travel:.26s; --settle:.36s;

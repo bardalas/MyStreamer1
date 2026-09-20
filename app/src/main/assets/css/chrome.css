@@ -60,15 +60,15 @@ main{padding:0 28px 60px}
   /* a long profile name gives way at the menu's edge instead of making the menu scroll sideways */
   .rail{overflow-x:hidden}
   .rail .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .railbtn{position:fixed;inset-block-start:10px;inset-inline-start:12px;z-index:35;display:grid;place-items:center;
+  .railbtn{position:fixed;inset-block-start:12px;inset-inline-start:12px;z-index:35;display:grid;place-items:center;
     width:42px;height:42px;border:0;border-radius:12px;background:var(--shade-55);backdrop-filter:blur(6px);
     color:var(--light);cursor:pointer}
   .railbtn svg{width:22px;height:22px}
   .scrim{position:fixed;inset:0;z-index:25;background:#0009}
   .scrim[hidden]{display:none}
   /* the artwork still reaches the top of the screen; the button floats over it */
-  main{padding-top:52px}
-  .backdrop{margin-top:-52px}
+  main{padding-top:var(--topgap)}
+  .backdrop{margin-top:calc(0px - var(--topgap))}
 }
 
 /* ---------- the television: the same column, at arm's length ---------- */
