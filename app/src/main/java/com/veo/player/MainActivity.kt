@@ -11,6 +11,8 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import org.json.JSONArray
 import org.json.JSONObject
@@ -34,6 +36,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         web = findViewById(R.id.web)
+        // Android 15+ lays app content edge-to-edge. Keep the WebView itself inside the visible
+        // system-bar area so the status/navigation bars never float over VEO's artwork or controls.
+        // A view paints its own background across its padding, and a WebView's is white by default -
+        // so the strips are given the page's own night colour, or they read as two white bands.
+        // The sides count too: held sideways, a phone puts its navigation bar on one of them.
+        web.setBackgroundColor(Skin(getSharedPreferences("veo", MODE_PRIVATE)).night)
+        ViewCompat.setOnApplyWindowInsetsListener(web) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(web)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
@@ -169,9 +183,12 @@ class MainActivity : AppCompatActivity() {
         /** The page's skin and direction, kept for PlayerActivity (which draws its own views). */
         @JavascriptInterface fun setTheme(json: String) {
             val o = JSONObject(json)
-            getSharedPreferences("veo", MODE_PRIVATE).edit().apply {
+            val prefs = getSharedPreferences("veo", MODE_PRIVATE)
+            prefs.edit().apply {
                 for (k in o.keys()) putString(k, o.optString(k))
             }.apply()
+            // the strips behind the system bars are painted by the WebView, so they follow the skin too
+            runOnUiThread { web.setBackgroundColor(Skin(prefs).night) }
         }
 
         /** This build's version name, so the page can tell whether a newer one was released. */

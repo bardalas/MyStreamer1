@@ -2,6 +2,16 @@
 /* Narrow screens: a phone holds the same app, in less width. */
 @media (max-width:760px){
   main{padding:52px 16px 50px}.backdrop{margin:-52px -16px 28px}
+  /* On phones episodes are a compact vertical list. The desktop card rule gives each item a
+     200–300px flex-basis; in a column that becomes item HEIGHT and creates huge blank gaps. */
+  .epanel .eps{display:flex;flex-direction:column;gap:2px;overflow-x:hidden;overflow-y:visible;max-height:none;padding:0}
+  .epanel .epcard{flex:0 0 auto;width:100%;min-height:0;padding:10px 8px;border-radius:8px;background:none}
+  .epanel .epcard .t{display:block;width:100%}
+  .epanel .epcard .t b{font-size:15px!important;line-height:1.35;white-space:normal;overflow:visible;text-overflow:clip}
+  .epanel .epcard .t small{font-size:12px!important;margin-top:2px}
+  .epanel .seasonbar{flex-direction:row;gap:6px;overflow-x:auto;overflow-y:hidden;max-width:100%;margin-bottom:10px;padding-bottom:2px;border:0}
+  .epanel .seasonbar button{flex:0 0 auto;padding:7px 10px}
+
   /* A title on a small screen: less artwork above it, and the poster stands beside the name so that
      Play is on the first screen instead of below the fold. `display:contents` lets the text block's
      own children take their places in the same grid, without a second markup for phones. */
