@@ -13,17 +13,17 @@ export const SKINS = [
   {id: 'midnight', c: ['#000000', '#171b22', '#3dd6d0', '#e8eef5']},
   {id: 'velvet', c: ['#1a0f14', '#331e27', '#e8b86b', '#f6e7dc']},
   {id: 'forest', c: ['#0f1a15', '#1e3027', '#9be15d', '#e6efe4']},
+  {id: 'netflix', c: ['#000000', '#1f1f1f', '#e50914', '#ffffff']},
   {id: 'daylight', c: ['#f4efe6', '#ebe3d5', '#c8412d', '#1d1a16']},
 ];
-export const LAYOUTS = [
-  {id: 'cinema', prev: '<i class="b"></i><span class="r">' + '<i></i>'.repeat(5) + '</span>'},
-  {id: 'grid', prev: ('<span class="r">' + '<i></i>'.repeat(6) + '</span>').repeat(3)},
-  {id: 'list', prev: '<span class="l"><i></i><em></em></span>'.repeat(3)},
-  {id: 'tv', prev: '<i class="b"></i><span class="r big">' + '<i></i>'.repeat(3) + '</span>'},
-];
+/* The app has one layout. It had four, and only one of them ever received the work: the wheel, the
+   focus model, the title page, the episode strip and every fix since were built and tried in it,
+   while the others quietly stopped matching the page around them. A choice that leads to a screen
+   that does not work is not a choice, so it is gone - and anyone who had made it is brought back. */
+export const LAYOUT = 'tv';
 export const POSTER_SIZES = ['s', 'm', 'l'];
 export const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-export let settings = Object.assign({skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'}, store.get('settings', {}));
+export let settings = Object.assign({skin: 'veo', poster: 'm', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'}, store.get('settings', {}), {layout: LAYOUT});
 /** The player draws its own banner and channel list in native views: hand it this skin and direction. */
 export function syncNativeTheme(){
   const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();

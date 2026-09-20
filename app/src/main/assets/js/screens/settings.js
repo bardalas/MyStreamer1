@@ -2,7 +2,7 @@
 import {route} from '../app.js';
 import {fetchText} from '../core/bridge.js';
 import {$, esc} from '../core/dom.js';
-import {LAYOUTS, POSTER_SIZES, SKINS, applySettings, isTv, setSettings, settings} from '../core/settings.js';
+import {POSTER_SIZES, SKINS, applySettings, setSettings, settings} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {addons} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
@@ -41,7 +41,9 @@ export function paintSettings(){
   const pane = $('#spane');
   if(!pane) return;
   const a = document.activeElement;
-  const focusKey = a?.dataset?.g ? `[data-g="${a.dataset.g}"][data-v="${a.dataset.v}"]` : null;
+  // A line that cycles carries the *next* value, so after a press its data-v is a different one
+  // and looking for the old pair finds nothing. The setting it belongs to always finds it.
+  const focusKey = a?.dataset?.g ? [`[data-g="${a.dataset.g}"][data-v="${a.dataset.v}"]`, `[data-g="${a.dataset.g}"]`] : null;
   // One line per choice, saying what it is set to; pressing it takes the next value there is. A
   // remote then needs one press per change, and the page never hides what is chosen behind a row of
   // pills that all look alike.
@@ -69,8 +71,7 @@ export function paintSettings(){
       + seg('preview', tr('set.preview.title'), [['on', tr('common.on')], ['off', tr('common.off')]], tr('set.preview.note'))
       + seg('lang', tr('set.lang.title'), [['he', tr('set.lang.he')], ['en', tr('set.lang.en')]], tr('set.lang.note')),
 
-    look: () => `<section class="sset"><h2>${tr('set.skin.title')}</h2><div class="sopts slist">${SKINS.map(o => optRow('skin', o, swatch(o))).join('')}</div></section>
-      <section class="sset"><h2>${tr('set.layout.title')}</h2><div class="sopts">${LAYOUTS.map(o => optCard('layout', o, `<span class="lprev" aria-hidden="true">${o.prev}</span>`)).join('')}</div></section>`
+    look: () => `<section class="sset"><h2>${tr('set.skin.title')}</h2><div class="sopts slist">${SKINS.map(o => optRow('skin', o, swatch(o))).join('')}</div></section>`
       + seg('poster', tr('set.poster.title'), POSTER_SIZES.map(id => [id, tr('poster.' + id)]))
       + seg('nosrc', tr('set.nosrc.title'), [['grey', tr('set.nosrc.grey')], ['hide', tr('set.nosrc.hide')]], tr('set.nosrc.note')),
 
@@ -164,8 +165,8 @@ export function paintSettings(){
     $('#supd').textContent = document.querySelector('.update') ? tr('set.about.found') : tr('set.about.latest');
   };
   if($('#sreset')) $('#sreset').onclick = () => {          // the language stays: resetting must never strand someone in a language they cannot read
-    setSettings({skin: 'veo', layout: isTv() ? 'tv' : 'cinema', poster: 'm', lang: 'he', uiLang: settings.uiLang, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'});
+    setSettings({skin: 'veo', poster: 'm', lang: 'he', uiLang: settings.uiLang, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'});
     store.set('settings', settings); applySettings(); paintSettings();
   };
-  if(focusKey) pane.querySelector(focusKey)?.focus();
+  if(focusKey) (pane.querySelector(focusKey[0]) || pane.querySelector(focusKey[1]))?.focus();
 }

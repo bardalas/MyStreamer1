@@ -14,7 +14,7 @@ try{
   const s = JSON.parse(localStorage.getItem('booth:settings') || '{}'), r = document.documentElement;
   r.lang = s.uiLang || 'he'; r.dir = dirOf(r.lang);
   const tv = !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-  r.dataset.skin = s.skin || 'veo'; r.dataset.layout = s.layout || (tv ? 'tv' : 'cinema'); r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
+  r.dataset.skin = s.skin || 'veo'; r.dataset.layout = 'tv'; r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
 }catch(e){}
 </script>
 

@@ -1,7 +1,7 @@
 /* The remote control: what the arrows reach, and the marker that follows them. */
 import {listHash, route} from '../app.js';
 import {$} from '../core/dom.js';
-import {isTvLayout, settings} from '../core/settings.js';
+import {IS_TV_DEVICE, isTvLayout, settings} from '../core/settings.js';
 import {FWD} from '../i18n.js';
 import {stepSpot} from './reel.js';
 
@@ -31,10 +31,13 @@ export const visible = el => { const r = el.getBoundingClientRect(); return r.wi
 /* While a card is over the picture - a title card, the update notice, a source being opened - the remote
    stays inside it: nothing behind it can take the focus, so the only ways on are its own buttons. */
 export function openCard(){
-  const sheet = document.querySelector('.sheet') || document.querySelector('.update');
+  const sheet = document.querySelector('.sheet, .update');
   if(sheet) return sheet;
+  // The status card's display is set inline by the page itself, so its own style attribute is the
+  // answer - and reading that, unlike asking for a computed style, does not make the browser lay the
+  // whole page out again. This is asked on every change of the screen, so it must cost nothing.
   const st = document.getElementById('tstatus');
-  return st && getComputedStyle(st).display !== 'none' ? st : null;
+  return st && st.style.display && st.style.display !== 'none' ? st : null;
 }
 export const tvScope = () => openCard() || document;
 /**
@@ -69,12 +72,26 @@ export const itemsOf = row => {
   itemCache.set(row, items);
   return items;
 };
-// A screen that is drawn again is a different screen: anything added, removed or hidden forgets it.
+/* A screen that is drawn again is a different screen: anything added, removed or hidden forgets what
+   the arrows could reach, and says again whether a card is over the page. Both answers are wanted
+   once per frame at most - a row of forty titles arrives as dozens of separate changes, and
+   answering each of them is what makes a remote feel heavy. */
+let pendingLook = 0;
+const lookAgain = () => {
+  pendingLook = 0;
+  forgetRows();
+  const held = !!openCard();
+  if(document.body.classList.contains('sheeted') !== held) document.body.classList.toggle('sheeted', held);
+};
 new MutationObserver(muts => {
+  if(pendingLook) return;
   for(const m of muts){
-    if(m.type === 'childList' ? (m.addedNodes.length || m.removedNodes.length) : true){ forgetRows(); return; }
+    if(m.type !== 'childList' || m.addedNodes.length || m.removedNodes.length){
+      pendingLook = requestAnimationFrame(lookAgain);
+      return;
+    }
   }
-}).observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden']});
+}).observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'style']});
 addEventListener('hashchange', forgetRows);
 export const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
 /** Where to land in [row] when arriving from [from]: a season menu's chosen season, else the item nearest across. */
@@ -146,17 +163,12 @@ const reclaim = () => {
   focusItem(back);
 };
 addEventListener('blur', () => setTimeout(reclaim, 0), true);
-setInterval(reclaim, 1200);          // a frame that grabs the focus without the page being told
+// only while a trailer is on the screen is there a frame that could take the focus away
+setInterval(() => { if(document.querySelector('iframe.taste')) reclaim(); }, 1500);
 
 /* While a card is open the page behind it must not move. `:has()` does this on a recent browser;
    a television's is not always recent, so the class says the same thing in a way that is older
    than the app. */
-const lockPage = () => {
-  const want = !!openCard();
-  if(document.body.classList.contains('sheeted') !== want) document.body.classList.toggle('sheeted', want);
-};
-new MutationObserver(lockPage)
-  .observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'hidden']});
 
 export function tvMove(dir){
   const rows = tvRows();
@@ -285,9 +297,9 @@ export function armInput(i){
   i.dataset.tvArmed = 1;
   // readOnly stops edits; inputmode="none" is what actually keeps the IME closed on boxes
   // whose keyboard still pops for a focused read-only field
-  const lock = () => { if(isTvLayout()){ i.readOnly = true; i.inputMode = 'none'; } };
+  const lock = () => { if(IS_TV_DEVICE){ i.readOnly = true; i.inputMode = 'none'; } };
   const unlock = e => {
-    if(!isTvLayout() || !i.readOnly) return;
+    if(!IS_TV_DEVICE || !i.readOnly) return;
     e?.preventDefault();
     i.readOnly = false;
     i.inputMode = '';
@@ -310,7 +322,7 @@ window.boothBack = () => {
   const sheet = document.querySelector('.sheet');
   if(sheet){ sheet.remove(); return true; }
   const a = document.activeElement;
-  if(a && a.tagName === 'INPUT' && !a.readOnly && isTvLayout()){ a.blur(); return true; }
+  if(a && a.tagName === 'INPUT' && !a.readOnly && IS_TV_DEVICE){ a.blur(); return true; }
   const up = parentHash();
   if(up === null) return false;                      // already at the top: the app closes
   goTo(up);

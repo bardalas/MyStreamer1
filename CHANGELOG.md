@@ -1,5 +1,20 @@
 # VEO Android changelog
 
+## 0.41.0 — 2026-09-21
+- **One layout.** The app had four, and only one of them ever received the work: the wheel, the
+  focus model, the title page and every fix of the last week were built and tried in it, while the
+  others quietly stopped matching the page around them — choosing one led to a screen that did not
+  work. The choice is gone, and anyone who had made it is brought back to the layout that does.
+- **The remote answers at once.** Running along a row used to fetch a title's details, write a page
+  of text and start a trailer for every title passed — work the next press threw away. The picture
+  still widens the moment you press; its story waits until you have stopped on it. A television
+  also stopped animating a blurred shadow and a brightness filter under every move, which it paints
+  slowly, and the page is asked for its state once a frame instead of once per change.
+- **Changing the quality keeps you on the quality.** The row is drawn again when it is pressed, and
+  the focus used to fall back to the menu; it stays where the viewer is. The same is true of every
+  cycling line in Settings.
+- **A Netflix skin**: full black, white text and the familiar red — in Settings → מראה.
+
 ## 0.40.5 — 2026-09-21
 - **The system bars no longer sit on top of the app.** Android 15 lays every app edge to edge, so
   the clock and the navigation bar were drawn over VEO's artwork and over the row of things a title

@@ -26,11 +26,13 @@ export const reelable = () => !['grid', 'list'].includes(settings.layout);
 const turning = () => reelable() && WIDE.matches;
 
 let spot = null;              // the title in the middle
+let settling = 0;             // what the middle will say, once the viewer has stopped moving
 let act = null;               // its buttons, under the picture
 let hadArt = '';              // the artwork the poster carried before the picture widened
 
 /** Let the middle go: the picture narrows back into a poster and the taste stops. */
 export function clearSpot(){
+  clearTimeout(settling);
   endTaste();
   if(spot?.isConnected){
     spot.classList.remove('spot');
@@ -69,7 +71,11 @@ export function spotlight(el){
   act.innerHTML = ``;
   strip.appendChild(act);
   place();
-  paint(el, full);
+  /* A viewer running along the row is not reading anything. The picture widens at once - that is what
+     a press must answer - but the title's own story, which costs an answer from the add-ons, a page
+     of writing and a trailer, waits until they have stopped on it. Otherwise every press pays for
+     work the next press throws away, which is the whole of what makes a wheel feel heavy. */
+  settling = setTimeout(() => { if(spot === el && el.isConnected) paint(el, full); }, 260);
 }
 
 /** Put the buttons under the picture, and turn the wheel until the title is in the middle. */

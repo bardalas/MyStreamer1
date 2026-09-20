@@ -29,6 +29,9 @@
 :root[data-skin="forest"]{--night:#0f1a15;--surface:#16241d;--raise:#1e3027;--line:#2d4438;--light:#e6efe4;--muted:#8ba494;--tungsten:#9be15d;--velvet:#d9643a;
   --on-accent:#0f1a15;--text2:#c9d8c8;--shade-55:rgba(15,26,21,.55);--shade-50:rgba(15,26,21,.5);--shade-20:rgba(15,26,21,.2);
   --glow:rgba(155,225,93,.4);--glow-soft:rgba(155,225,93,.3);--beam:rgba(155,225,93,.1);--ghost:rgba(230,239,228,.1)}
+:root[data-skin="netflix"]{--night:#000;--surface:#141414;--raise:#1f1f1f;--line:#2e2e2e;--light:#fff;--muted:#b3b3b3;--tungsten:#e50914;--velvet:#b81d24;
+  --on-accent:#fff;--text2:#d2d2d2;--shade-55:rgba(0,0,0,.55);--shade-50:rgba(0,0,0,.5);--shade-20:rgba(0,0,0,.2);
+  --glow:rgba(229,9,20,.45);--glow-soft:rgba(229,9,20,.3);--beam:rgba(229,9,20,.1);--ghost:rgba(255,255,255,.12)}
 :root[data-skin="daylight"]{--night:#f4efe6;--surface:#fffaf2;--raise:#ebe3d5;--line:#d8cebd;--light:#1d1a16;--muted:#6b6358;--tungsten:#c8412d;--velvet:#8a2432;
   --on-accent:#fff;--text2:#3d372f;--err:#b3261e;--shade-55:rgba(244,239,230,.55);--shade-50:rgba(244,239,230,.5);--shade-20:rgba(244,239,230,.2);
   --glow:rgba(200,65,45,.3);--glow-soft:rgba(200,65,45,.25);--beam:rgba(200,65,45,.07);--ghost:rgba(29,26,22,.08)}

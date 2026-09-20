@@ -45,5 +45,11 @@
 [data-layout="tv"]{scrollbar-width:none}
 [data-layout="tv"] ::-webkit-scrollbar{width:0;height:0}
 [data-layout="tv"] .art{contain:paint}                      /* keep a focus move from repainting the row */
+/* A television's processor draws a blurred shadow slowly, and a brightness filter over a picture
+   slower still. Running along a row would then paint both, for every title passed, at every frame of
+   the animation. Only the movement is animated - movement is the one thing a screen does for free. */
+[data-layout="tv"] .poster .art{transition:transform var(--quick) var(--ease)}
+[data-layout="tv"] .poster:focus .art,[data-layout="tv"] .poster:focus-visible .art{
+  filter:none;box-shadow:0 10px 22px -12px #000c}
 [data-layout="tv"] .strip{scroll-snap-type:none}
 [data-layout="tv"] input[readonly]{caret-color:transparent;cursor:pointer}

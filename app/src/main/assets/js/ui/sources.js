@@ -154,6 +154,10 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
       prefQ = b.dataset.q === prefQ ? '' : b.dataset.q;         // pressing the one in use returns to automatic
       store.set('quality', prefQ);
       lastStreams?.();
+      // the row is drawn again the moment it is pressed, and the viewer is still standing on it
+      const stay = () => document.getElementById('qnext')?.focus();
+      stay();
+      requestAnimationFrame(stay);
     });
   }
   const retryButton = box.querySelector('#sretry');
