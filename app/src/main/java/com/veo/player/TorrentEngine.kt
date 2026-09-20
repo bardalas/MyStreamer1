@@ -1,6 +1,8 @@
 package com.veo.player
 
 import android.content.Context
+import android.util.Log
+import com.frostwire.jlibtorrent.AnnounceEntry
 import com.frostwire.jlibtorrent.Priority
 import com.frostwire.jlibtorrent.SessionManager
 import com.frostwire.jlibtorrent.Sha1Hash
@@ -17,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * ([StreamServer]) so playback starts after a few MB instead of after the whole download.
  */
 object TorrentEngine {
+    private const val TAG = "VEOTorrent"
     private val session = SessionManager()
     @Volatile private var started = false
     /** Bumped on every new request so a superseded request stops quietly. */
@@ -26,8 +29,12 @@ object TorrentEngine {
     private var currentDir: File? = null
     private var server: StreamServer? = null
 
-    /** Bytes buffered from the start of the file before the player opens. */
-    private const val START_BUFFER_BYTES = 8L * 1024 * 1024
+    /**
+     * Bytes buffered from the start of the file before the player opens. Just the container header and the
+     * first frames: [StreamServer] blocks every later read until its piece arrives, and the player's own
+     * read timeout is two minutes, so opening early only moves the waiting into the player.
+     */
+    private const val START_BUFFER_BYTES = 1536L * 1024
 
     private val PUBLIC_TRACKERS = listOf(
         "udp://tracker.opentrackr.org:1337/announce",
@@ -69,11 +76,15 @@ object TorrentEngine {
     ) {
         val gen = generation.incrementAndGet()
         fun superseded() = gen != generation.get()
+        val t0 = System.currentTimeMillis()
+        fun lap(what: String) = Log.i(TAG, "$what after ${System.currentTimeMillis() - t0} ms")
         Thread {
             try {
                 ensureStarted()
                 stopCurrent()
+                lap("session ready")
                 waitForDht(::superseded, onStatus)
+                lap("dht wait over (${session.stats().dhtNodes()} nodes)")
                 if (superseded()) return@Thread
 
                 onStatus("מקבל את פרטי הטורנט…")
@@ -81,6 +92,7 @@ object TorrentEngine {
                 val metadata = session.fetchMagnet(buildMagnet(infoHash, sources), 60, tempDir)
                     ?: throw IllegalStateException("אף מחשב לא ענה למקור הזה. נסה מקור עם יותר זורעים.")
                 if (superseded()) return@Thread
+                lap("metadata")
 
                 val ti = TorrentInfo(metadata)
                 if (ti.numFiles() <= 0) throw IllegalStateException("הטורנט ריק")
@@ -93,6 +105,10 @@ object TorrentEngine {
                 val hash = ti.infoHashV1() ?: throw IllegalStateException("סוג טורנט לא נתמך")
                 val handle = waitForHandle(hash)
                 handle.prioritizeFiles(priorities)
+                // The metadata carries no trackers (they lived in the magnet), so without this the download
+                // finds peers through DHT alone and sits at zero peers for tens of seconds.
+                trackersOf(sources).forEach { handle.addTracker(AnnounceEntry(it)) }
+                handle.forceReannounce()
                 synchronized(this) { currentHash = hash; currentDir = saveDir }
 
                 val media = StreamServer.Media(
@@ -101,8 +117,10 @@ object TorrentEngine {
                     size = ti.files().fileSize(idx),
                     pieceLength = ti.pieceLength().toLong(),
                 )
+                lap("download started")
                 bufferStart(handle, media, ::superseded, onStatus)
                 if (superseded()) return@Thread
+                lap("start buffered")
 
                 val srv = StreamServer(handle, media).also { it.start() }
                 synchronized(this) { server = srv }
@@ -127,20 +145,20 @@ object TorrentEngine {
     /** Cancels a request still fetching info/buffering (e.g. the user backed out). */
     fun cancelPending() { generation.incrementAndGet() }
 
-    private fun buildMagnet(infoHash: String, sources: List<String>): String {
-        val trackers = sources.filter { it.startsWith("tracker:") }.map { it.removePrefix("tracker:") } + PUBLIC_TRACKERS
-        return buildString {
-            append("magnet:?xt=urn:btih:").append(infoHash)
-            trackers.distinct().forEach { append("&tr=").append(URLEncoder.encode(it, "UTF-8")) }
-        }
+    private fun trackersOf(sources: List<String>): List<String> =
+        (sources.filter { it.startsWith("tracker:") }.map { it.removePrefix("tracker:") } + PUBLIC_TRACKERS).distinct()
+
+    private fun buildMagnet(infoHash: String, sources: List<String>): String = buildString {
+        append("magnet:?xt=urn:btih:").append(infoHash)
+        trackersOf(sources).forEach { append("&tr=").append(URLEncoder.encode(it, "UTF-8")) }
     }
 
     /** DHT-only lookups fail if started before the node table is populated; wait briefly for it. */
     private fun waitForDht(superseded: () -> Boolean, onStatus: (String) -> Unit) {
-        val deadline = System.currentTimeMillis() + 10_000
+        val deadline = System.currentTimeMillis() + 3_000   // the magnet carries trackers, so DHT is a bonus, not a gate
         while (System.currentTimeMillis() < deadline && !superseded()) {
             val nodes = session.stats().dhtNodes()
-            if (nodes >= 10) return
+            if (nodes >= 5) return
             onStatus("מתחבר לרשת הטורנטים… ($nodes צמתים)")
             Thread.sleep(500)
         }

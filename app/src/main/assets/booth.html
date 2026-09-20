@@ -39,7 +39,7 @@ img{max-width:100%;display:block}
 
 /* top bar */
 .bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;padding:12px 28px;background:var(--night);border-bottom:1px solid var(--line)}
-.logo{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .logo svg{flex:none;transform:scaleX(-1)}   /* beam points toward the menu in RTL */
 .nav{display:flex;gap:4px}
 .nav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--muted);font-weight:500}
@@ -99,14 +99,23 @@ main{padding:0 28px 60px}
 .people b{color:var(--light);font-weight:500}
 .backdrop{height:50vh;margin:0 -28px;background-size:cover;background-position:center 20%;position:relative}
 .backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--night) 12%,var(--shade-50) 60%,var(--shade-20))}
-.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-top:28px}
+.dinfo{min-width:0}
+.dinfo .playrow{margin:10px 0}
+.dinfo .src{display:block;margin:-6px 0 8px;font-size:12px;color:var(--muted)}
+.dinfo .src a{color:var(--muted)}
+[data-layout="tv"] .desc .readmore{display:none}
+.psrc{display:contents}
+.epanel{margin-top:22px}
 .panel{background:var(--surface);border-radius:10px;padding:18px}
 .panel h3{margin:0 0 12px;font-family:var(--display);font-size:19px}
-.eps{overflow:auto;display:flex;flex-direction:column;gap:2px}
-.ep{display:grid;grid-template-columns:34px 1fr;gap:10px;text-align:start;background:none;border:0;border-radius:6px;padding:8px;cursor:pointer}
+.eps{overflow:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:none}
+.eps::-webkit-scrollbar{width:0}
+.ep{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;text-align:start;background:none;border:0;border-radius:6px;padding:6px 8px;cursor:pointer;color:var(--light);font-size:15px}
+.ep>span:last-child{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-width:0}
+.ep>span:last-child>div:first-child{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ep.seen .n::after{content:'✓';display:block;font-size:11px;color:var(--muted)}
 .ep.seen>span>div:first-child{color:var(--muted)}
-.ep .bar{height:3px;border-radius:2px;background:var(--line);margin-top:6px}
+.ep .bar{flex:0 0 100%;position:static;padding:0;border:0;height:3px;border-radius:2px;background:var(--line);margin-top:4px}
 .ep .bar>i{display:block;height:100%;border-radius:2px;background:var(--tungsten)}
 /* something did not load: say so once, with a way to try again */
 .oops{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raise);color:var(--muted);font-size:14px}
@@ -119,24 +128,33 @@ main{padding:0 28px 60px}
 .ep .n{font-family:var(--display);font-weight:700;color:var(--tungsten)}
 .ep .d{font-size:12px;color:var(--muted)}
 
-/* sources: one Play button, quality shortcuts, the rest tucked away */
-.panel,#streams{min-width:0}
+/* sources: Play, the quality shortcuts and the rest of the list share one row */
+.panel{min-width:0}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
 .chip.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--on-accent);font-weight:600}
-.play{display:flex;flex-direction:column;gap:14px}
-.playbtn{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;min-width:180px;border:0;border-radius:10px;padding:11px 20px;background:var(--tungsten);color:var(--on-accent);font-size:15px;font-weight:600;cursor:pointer}
+.playrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.playbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;padding:7px 16px;background:var(--tungsten);color:var(--on-accent);font-size:15px;font-weight:600;cursor:pointer}
 .playbtn small{font-weight:400;font-size:12px;opacity:.75}
-.playbtn:disabled{background:var(--raise);color:var(--muted);cursor:default}
-[data-layout="tv"] .playbtn{font-size:16px;padding:12px 24px}   /* a clear target, not a banner */
-.quals{display:flex;flex-wrap:wrap;gap:8px}
-.quals button{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer}
-.quals button:hover,.quals button:focus-visible{border-color:var(--tungsten)}
-.altbtn{background:none;border:0;padding:0;color:var(--muted);font-size:14px;cursor:pointer;font-family:inherit}
+[data-layout="tv"] .playbtn{font-size:16px;padding:8px 18px}
+.qbtn{border:1px solid var(--line);background:none;color:var(--light);border-radius:8px;padding:5px 11px;font-size:13px;cursor:pointer}
+.qbtn:hover,.qbtn:focus-visible{border-color:var(--tungsten)}
+.playrow .btn{padding:6px 14px;font-size:14px}
+[data-layout="tv"] .qbtn,[data-layout="tv"] .playrow .btn{font-size:15px}
+.altbtn{background:none;border:0;padding:8px 6px;color:var(--muted);font-size:14px;cursor:pointer;font-family:inherit}
+.altbtn::after{content:" ▾"}
 .altbtn[aria-expanded="true"]{color:var(--light)}
+.altbtn[aria-expanded="true"]::after{content:" ▴"}
+.altlist{margin-top:8px;max-height:30vh;overflow:auto;scrollbar-width:none}
+.altlist::-webkit-scrollbar{width:0}
 .srow{display:flex;gap:12px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:none;color:var(--light);padding:10px 4px;cursor:pointer;font-size:14px}
 .srow:hover,.srow:focus-visible{background:var(--raise)}
 .srow b{flex:0 0 52px;font-weight:600}
 .srow span{color:var(--muted);font-variant-numeric:tabular-nums}
+.srcstat{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.srcstat::before{content:"";flex:none;width:12px;height:12px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--tungsten);animation:spin .8s linear infinite}
+.srcstat.err{color:var(--err)}
+.srcstat.err::before,.srcstat.idle::before{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
 /* titles without any source */
 .poster.nosrc .art{filter:grayscale(1);opacity:.35}
 .poster.nosrc .t,.poster.nosrc .y{opacity:.45}
@@ -289,16 +307,22 @@ main{padding:0 28px 60px}
    title - play, sources, episodes - is on the first screen, without scrolling. */
 [data-layout="tv"] .backdrop{position:fixed;inset:0;height:100vh;margin:0;z-index:0;opacity:.5}
 [data-layout="tv"] .backdrop::after{background:linear-gradient(0deg,var(--night) 30%,var(--shade-50) 75%,var(--shade-20))}
-[data-layout="tv"] .detail{margin-top:0;padding-top:12px;grid-template-columns:150px 1fr;gap:22px;align-items:start}
+[data-layout="tv"] .detail{margin-top:0;padding-top:12px;grid-template-columns:110px 1fr;gap:20px;align-items:start}
 [data-layout="tv"] main{padding-bottom:16px}
-[data-layout="tv"] .detail h1{font-size:34px;margin:0 0 8px}
+[data-layout="tv"] .detail h1{font-size:30px;margin:0 0 6px}
 [data-layout="tv"] .detail .facts{margin-bottom:8px}
 [data-layout="tv"] .desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:64ch;margin:0 0 12px}
-[data-layout="tv"] .detail .people{display:none}
-[data-layout="tv"] .cols{margin-top:16px;gap:16px;grid-template-columns:1fr}   /* one column: Down reaches everything */
-[data-layout="tv"] .eps,[data-layout="tv"] .seasonbar{max-height:26vh}   /* the whole title fits one screen */
-[data-layout="tv"] .panel{padding:14px 16px}
-[data-layout="tv"] .panel h3{font-size:21px;margin-bottom:8px}
+[data-layout="tv"] .detail.series .people{display:none}
+[data-layout="tv"] .detail.movie .desc{-webkit-line-clamp:6}
+[data-layout="tv"] .epanel{margin-top:12px}
+[data-layout="tv"] .panel{padding:10px 12px}
+[data-layout="tv"] .ep{font-size:16px}
+/* a series on the TV never scrolls the page: the header keeps its size and the episodes fill what is left */
+[data-layout="tv"] body.titlefit{height:100vh;overflow:hidden;display:flex;flex-direction:column}
+[data-layout="tv"] body.titlefit main{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:12px}
+[data-layout="tv"] body.titlefit .epanel{flex:1;min-height:0}
+[data-layout="tv"] body.titlefit .epwrap{height:100%;align-items:stretch;grid-template-rows:minmax(0,1fr)}
+[data-layout="tv"] body.titlefit .eps,[data-layout="tv"] body.titlefit .seasonbar{max-height:none;height:100%}
 
 /* RaspberryTV access key: typed with the remote, no on-screen keyboard needed */
 .keypad{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;direction:ltr}
@@ -313,15 +337,25 @@ main{padding:0 28px 60px}
 [data-layout="tv"] .keypad button{padding:15px 0;font-size:19px}
 [data-layout="tv"] .keyboxes span{width:46px;height:58px;font-size:24px}
 
-/* sorting and filtering: quiet text, one tap; only the active choice carries color */
-.sortbar{display:flex;flex-wrap:wrap;gap:4px 26px;align-items:center;margin:0 0 16px}
-.sortbar .sgroup{display:flex;flex-wrap:wrap;gap:0 2px;align-items:center}
-.sortbar .slabel{color:var(--muted);font-size:12px;margin-inline-end:6px;opacity:.8}
-.sortbar button{background:none;border:0;color:var(--muted);border-radius:6px;padding:5px 8px;font:inherit;font-size:13.5px;cursor:pointer}
-.sortbar button.on{color:var(--tungsten);font-weight:700}
-.sortbar button:hover,.sortbar button:focus-visible{color:var(--light)}
-[data-layout="tv"] .sortbar button{font-size:16px;padding:7px 11px}
-[data-layout="tv"] .sortbar .slabel{font-size:14px}
+/* sorting and filtering: one pill per subject showing its current choice; a tap opens the choices */
+.sortbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px}
+.sortpill{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}
+.sortpill b{color:var(--light);font-weight:600}
+.sortpill::after{content:"▾";font-size:11px}
+.sortpill.on{border-color:var(--tungsten)}
+.sortpill.on b{color:var(--tungsten)}
+.sortpill:hover,.sortpill:focus-visible{border-color:var(--tungsten)}
+.sortpill.clear{background:none}
+.sortpill.clear::after{content:none}
+[data-layout="tv"] .sortpill{font-size:17px;padding:9px 18px}
+.sortopts{gap:6px}
+.sopt{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:start;background:var(--surface);border:1px solid var(--line);color:var(--light);border-radius:10px;padding:12px 16px;font:inherit;font-size:16px;cursor:pointer}
+.sopt.on{border-color:var(--tungsten);color:var(--tungsten)}
+.sopt.on::after{content:"✓"}
+.sopt:hover,.sopt:focus-visible{border-color:var(--tungsten)}
+[data-layout="tv"] .sopt{font-size:19px;padding:14px 18px}
+[data-layout="tv"] .sheet{align-items:center}
+[data-layout="tv"] .sheet>div{border-radius:14px}
 .rate{color:var(--tungsten);font-weight:600}
 
 
@@ -336,14 +370,15 @@ main{padding:0 28px 60px}
 .update button.go{background:var(--tungsten);color:var(--on-accent);border-color:transparent;font-weight:600}
 [data-layout="tv"] .update{font-size:16px}
 
-/* opening a source: the card sits over the middle of the screen, with its own way out */
-.tstat{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;
-  flex-direction:column;align-items:center;gap:16px;min-width:min(420px,calc(100vw - 48px));padding:26px 28px;
-  border-radius:16px;background:var(--raise);border:1px solid var(--line);color:var(--light);
-  font:16px/1.5 var(--body);text-align:center;box-shadow:0 24px 60px #000b}
+/* opening a source: a slim bar at the bottom, with its own way out */
+.tstat{display:none;position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:10000;
+  flex-direction:row;align-items:center;gap:16px;max-width:min(560px,calc(100vw - 32px));padding:9px 10px 9px 20px;
+  border-radius:999px;background:var(--raise);border:1px solid var(--line);color:var(--light);
+  font:14px/1.4 var(--body);box-shadow:0 12px 32px #000b}
 .tstat.bad{border-color:var(--velvet)}
-.tstat button{background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:11px 26px;font:600 16px var(--body);cursor:pointer}
-[data-layout="tv"] .tstat{font-size:20px} [data-layout="tv"] .tstat button{font-size:19px;padding:14px 32px}
+.tstat span{min-width:0}
+.tstat button{flex:none;background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:8px 20px;font:600 14px var(--body);cursor:pointer}
+[data-layout="tv"] .tstat{font-size:17px} [data-layout="tv"] .tstat button{font-size:17px;padding:10px 24px}
 
 /* settings: categories in a side menu, one page at a time */
 .sgrid{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start}
@@ -485,7 +520,7 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
   .bar{flex-wrap:wrap;padding:12px 16px;gap:10px 14px}.search{flex:1 1 140px;min-width:0;width:auto}.nav{order:3;width:100%}
   main{padding:0 16px 50px}.hero,.backdrop{margin:0 -16px 28px}
   .detail{grid-template-columns:1fr;margin-top:-22vh}.detail .poster-lg{width:150px}
-  .cols{grid-template-columns:1fr}.poster{flex-basis:calc(var(--poster-w) * .8)}
+  .poster{flex-basis:calc(var(--poster-w) * .8)}
   .grid{grid-template-columns:repeat(auto-fill,minmax(calc(var(--poster-w) * .8),1fr))}
   .nav{overflow-x:auto;max-width:100%}.nav a{padding:6px 11px;white-space:nowrap}
 }
@@ -493,7 +528,7 @@ button.poster{background:none;border:0;padding:0;color:inherit;text-align:start;
 </head>
 <body>
 <div class="bar">
-  <a class="logo" href="#/" data-i18n-aria="nav.homeAria"><img src="veo-mark.png" width="26" height="26" alt="" aria-hidden="true">VEO</a>
+  <div class="logo" role="img" data-i18n-aria="nav.homeAria"><img src="veo-mark.png" width="26" height="26" alt="" aria-hidden="true">VEO</div>
   <nav class="nav">
     <a href="#/" data-r="home" data-i18n="nav.home"></a>
     <a href="#/tv" data-r="tv" data-i18n="nav.tv"></a>
@@ -573,6 +608,23 @@ he: {
   'addons.hidden': '{n} תוספים לא זמינים כרגע ומוסתרים.', 'addons.already': 'התוסף הזה כבר מותקן.',
   'addons.invalid': 'זה לא קובץ manifest תקין', 'addons.installed': '{name} הותקן.',
   'addons.failed': 'ההתקנה נכשלה: {err}. ודא שהקישור מסתיים ב־manifest.json.',
+  'src.play': 'נגן', 'src.more': 'מקורות נוספים ({n})', 'src.direct': 'ישיר',
+  'src.searching': 'מחפש מקורות…', 'src.searchingMore': 'מחפש עוד…', 'src.none': 'אין מקורות זמינים כרגע', 'src.failed': 'לא ניתן לטעון מקורות',
+  'src.noAddon': 'לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.',
+  'src.torrentApp': 'מקורות טורנט מתנגנים באפליקציית VEO לאנדרואיד.',
+  'detail.notFound': 'הכותר לא נמצא', 'detail.notFoundNote': 'אף תוסף לא החזיר פרטים על הכותר הזה.',
+  'detail.wikiFrom': 'מתוך {link} · CC BY-SA', 'detail.wikiName': 'ויקיפדיה העברית',
+  'detail.readMore': 'קרא עוד', 'detail.director': 'במאי', 'detail.cast': 'שחקנים',
+  'lib.in': 'בספרייה שלך', 'lib.add': 'הוסף לספרייה',
+  'detail.trailer': 'צפה בטריילר', 'detail.trailerTitle': 'טריילר: {title}',
+  'detail.season': 'עונה', 'detail.seasonN': 'עונה {n}', 'detail.specials': 'מיוחדים', 'detail.episodeN': 'פרק {n}', 'detail.minLeft': 'נותרו {n} דק׳',
+  'sort.aria': 'מיון וסינון', 'sort.by': 'מיון', 'sort.year': 'שנים', 'sort.rate': 'דירוג', 'sort.clear': 'נקה סינון',
+  'sort.by.pop': 'פופולרי', 'sort.by.rating': 'דירוג IMDb', 'sort.by.year': 'הכי חדש', 'sort.by.az': 'לפי שם',
+  'sort.year.all': 'כל השנים', 'sort.year.2020': '2020 ומעלה', 'sort.year.2010': 'שנות ה־2010', 'sort.year.2000': 'שנות ה־2000', 'sort.year.old': 'לפני 2000',
+  'sort.rate.all': 'כל הדירוגים', 'sort.rate.7': '7+', 'sort.rate.8': '8+',
+  'sort.none': 'אין כותרים שעונים על הסינון הזה. נסה לוותר על אחד התנאים.',
+  'qv.continue': '▶ המשך צפייה · נותרו {n} דק׳', 'qv.play': '▶ נגן כעת', 'qv.eps': '▶ לפרקים ולצפייה', 'qv.more': 'פרטים מלאים',
+  'qv.loadingSummary': 'טוען תקציר…', 'qv.searching': 'מחפש מקור…', 'qv.noSource': 'לא נמצא מקור - לעמוד המלא', 'qv.noSummary': 'אין תקציר.',
 },
 en: {
   'common.close': 'Close', 'common.cancel': 'Cancel', 'common.retry': 'Try again', 'common.loading': 'Loading…',
@@ -628,6 +680,23 @@ en: {
   'addons.hidden': '{n} add-ons are unavailable right now and hidden.', 'addons.already': 'This add-on is already installed.',
   'addons.invalid': 'This is not a valid manifest file', 'addons.installed': '{name} installed.',
   'addons.failed': 'Installation failed: {err}. Make sure the link ends with manifest.json.',
+  'src.play': 'Play', 'src.more': 'More sources ({n})', 'src.direct': 'Direct',
+  'src.searching': 'Looking for sources…', 'src.searchingMore': 'Looking for more…', 'src.none': 'No sources available right now', 'src.failed': 'Could not load sources',
+  'src.noAddon': 'No sources add-on is installed. You can add one on the <a href="#/addons">Add-ons</a> page.',
+  'src.torrentApp': 'Torrent sources play in the VEO app for Android.',
+  'detail.notFound': 'Title not found', 'detail.notFoundNote': 'No add-on returned details for this title.',
+  'detail.wikiFrom': 'From {link} · CC BY-SA', 'detail.wikiName': 'Hebrew Wikipedia',
+  'detail.readMore': 'Read more', 'detail.director': 'Director', 'detail.cast': 'Cast',
+  'lib.in': 'In your library', 'lib.add': 'Add to library',
+  'detail.trailer': 'Watch trailer', 'detail.trailerTitle': 'Trailer: {title}',
+  'detail.season': 'Season', 'detail.seasonN': 'Season {n}', 'detail.specials': 'Specials', 'detail.episodeN': 'Episode {n}', 'detail.minLeft': '{n} min left',
+  'sort.aria': 'Sort and filter', 'sort.by': 'Sort', 'sort.year': 'Years', 'sort.rate': 'Rating', 'sort.clear': 'Clear filters',
+  'sort.by.pop': 'Popular', 'sort.by.rating': 'IMDb rating', 'sort.by.year': 'Newest', 'sort.by.az': 'By name',
+  'sort.year.all': 'All years', 'sort.year.2020': '2020 and later', 'sort.year.2010': '2010s', 'sort.year.2000': '2000s', 'sort.year.old': 'Before 2000',
+  'sort.rate.all': 'Any rating', 'sort.rate.7': '7+', 'sort.rate.8': '8+',
+  'sort.none': 'No titles match this filter. Try dropping one of the conditions.',
+  'qv.continue': '▶ Continue · {n} min left', 'qv.play': '▶ Play now', 'qv.eps': '▶ Episodes & watching', 'qv.more': 'Full details',
+  'qv.loadingSummary': 'Loading summary…', 'qv.searching': 'Finding a source…', 'qv.noSource': 'No source found – open the full page', 'qv.noSummary': 'No summary.',
 },
 };
 let UI = (() => { try{ const l = JSON.parse(localStorage.getItem('booth:settings') || '{}').uiLang; return STRINGS[l] ? l : 'he'; }catch(e){ return 'he'; } })();
@@ -996,27 +1065,46 @@ async function loadServices(){
 /* ---------- sorting and filtering ----------
    Real IMDb ratings and years come with the catalogue itself, so a category can be re-ordered
    without asking anything else: one tap per choice, and the rows become one ranked grid. */
-const SORT_BY = [['pop', 'פופולרי'], ['rating', 'דירוג IMDb'], ['year', 'הכי חדש'], ['az', 'לפי שם']];
-const SORT_YEAR = [['', 'כל השנים'], ['2020', '2020 ומעלה'], ['2010', 'שנות ה־2010'], ['2000', 'שנות ה־2000'], ['old', 'לפני 2000']];
-const SORT_RATE = [['', 'כל הדירוגים'], ['7', '7+'], ['8', '8+']];
+const SORT_GROUPS = [
+  {key: 'by', label: 'sort.by', opts: [['pop', 'sort.by.pop'], ['rating', 'sort.by.rating'], ['year', 'sort.by.year'], ['az', 'sort.by.az']]},
+  {key: 'year', label: 'sort.year', opts: [['', 'sort.year.all'], ['2020', 'sort.year.2020'], ['2010', 'sort.year.2010'], ['2000', 'sort.year.2000'], ['old', 'sort.year.old']]},
+  {key: 'rate', label: 'sort.rate', opts: [['', 'sort.rate.all'], ['7', 'sort.rate.7'], ['8', 'sort.rate.8']]},
+];
 let sortState = Object.assign({by: 'pop', year: '', rate: ''}, store.get('sort', {}));
 const sortActive = () => sortState.by !== 'pop' || !!sortState.year || !!sortState.rate;
 const yearOfMeta = m => +String(m.year || m.releaseInfo || '').slice(0, 4) || 0;
 const rateOf = m => parseFloat(m.imdbRating) || 0;
 
-/** The bar itself; [redraw] is called after every change. */
-function sortBar(redraw){
-  const group = (key, opts, label) => `<div class="sgroup"><span class="slabel">${label}</span>${opts.map(([v, n]) =>
-    `<button data-sk="${key}" data-sv="${v}" class="${sortState[key] === v ? 'on' : ''}" aria-pressed="${sortState[key] === v}">${n}</button>`).join('')}</div>`;
-  return `<div class="sortbar" role="group" aria-label="מיון וסינון">
-    ${group('by', SORT_BY, 'מיון')}${group('year', SORT_YEAR, 'שנים')}${group('rate', SORT_RATE, 'דירוג')}</div>`;
+/** One pill per subject, each showing what is chosen; the first option of a subject is its "off" state. */
+function sortBar(){
+  const pills = SORT_GROUPS.map(g => {
+    const cur = g.opts.find(([v]) => v === sortState[g.key]) || g.opts[0];
+    return `<button class="sortpill${sortState[g.key] !== g.opts[0][0] ? ' on' : ''}" data-sk="${g.key}" aria-haspopup="dialog"><span>${tr(g.label)}</span><b>${tr(cur[1])}</b></button>`;
+  }).join('');
+  return `<div class="sortbar" role="group" aria-label="${esc(tr('sort.aria'))}">${pills}${sortActive() ? `<button class="sortpill clear" data-sclear>${tr('sort.clear')}</button>` : ''}</div>`;
 }
+/** [redraw] is called after every change. */
 function wireSortBar(redraw){
-  document.querySelectorAll('[data-sk]').forEach(b => b.onclick = () => {
-    sortState[b.dataset.sk] = b.dataset.sv;
-    store.set('sort', sortState);
-    redraw();
+  document.querySelectorAll('.sortpill[data-sk]').forEach(b => b.onclick = () => openSortSheet(b.dataset.sk, redraw));
+  const clear = document.querySelector('[data-sclear]');
+  if(clear) clear.onclick = () => { sortState = {by: 'pop', year: '', rate: ''}; store.set('sort', sortState); redraw(); };
+}
+/** The choices of one subject, in a sheet the remote stays inside (Back closes it). */
+function openSortSheet(key, redraw){
+  const g = SORT_GROUPS.find(x => x.key === key);
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div role="dialog" aria-label="${esc(tr(g.label))}"><header><b>${tr(g.label)}</b><button aria-label="${esc(tr('common.close'))}">✕</button></header>
+    <div class="body sortopts">${g.opts.map(([v, n]) => `<button class="sopt${sortState[key] === v ? ' on' : ''}" data-v="${v}">${tr(n)}</button>`).join('')}</div></div>`;
+  document.body.appendChild(sheet);
+  sheet.onclick = e => { if(e.target === sheet) sheet.remove(); };
+  sheet.querySelector('header button').onclick = () => sheet.remove();
+  sheet.querySelectorAll('.sopt').forEach(b => b.onclick = () => {
+    sortState[key] = b.dataset.v; store.set('sort', sortState);
+    sheet.remove(); redraw();
+    document.querySelector(`.sortpill[data-sk="${key}"]`)?.focus();
   });
+  (sheet.querySelector('.sopt.on') || sheet.querySelector('.sopt')).focus();
 }
 /** Apply the current choice to a list of titles. */
 function applySort(list){
@@ -1032,7 +1120,7 @@ function applySort(list){
   });
   if(by === 'rating') out = out.sort((a, b) => rateOf(b) - rateOf(a));
   if(by === 'year') out = out.sort((a, b) => yearOfMeta(b) - yearOfMeta(a));
-  if(by === 'az') out = out.sort((a, b) => heTitle(a.id, a.name).localeCompare(heTitle(b.id, b.name), 'he'));
+  if(by === 'az') out = out.sort((a, b) => heTitle(a.id, a.name).localeCompare(heTitle(b.id, b.name), UI));
   return out;
 }
 
@@ -1049,7 +1137,7 @@ async function gridFrom(rows, heading){
   if(!grid) return;
   const out = applySort(all);
   grid.innerHTML = out.length ? out.slice(0, 200).map(card).join('')
-    : '<p class="note">אין כותרים שעונים על הסינון הזה. נסה לוותר על אחד התנאים.</p>';
+    : `<p class="note">${tr('sort.none')}</p>`;
   lazyBg(grid);
 }
 
@@ -1430,21 +1518,29 @@ function qvPlayLabel(metaId){
   const w = Object.values(progress).find(x => x.metaId === metaId);
   if(w && w.d && w.t < w.d - 60){
     const left = Math.max(1, Math.round((w.d - w.t) / 60));
-    return `▶ המשך צפייה · נותרו ${left} דק׳`;
+    return tr('qv.continue', {n: left});
   }
-  return '▶ נגן כעת';
+  return tr('qv.play');
 }
 
-/** All the playable sources one id has, across the stream add-ons (no rendering). */
-async function gatherStreams(type, videoId){
-  const all = [];
-  await Promise.all(addons.filter(a => supports(a.manifest, 'stream', type, videoId)).map(async a => {
-    try{
-      const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`);
-      for(const st of d.streams || []) all.push(parseStream(st, a.manifest.name, all.length));
-    }catch(e){}
-  }));
-  return all;
+/** The default source for a title, as soon as a good one has arrived - never waiting for the slowest add-on. */
+function quickPick(type, videoId){
+  return new Promise(resolve => {
+    const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
+    const all = [];
+    let pending = src.length, done = false;
+    if(!pending) return resolve(null);
+    const finish = p => { if(!done){ done = true; resolve(p); } };
+    for(const a of src){
+      fetchStreams(a, type, videoId)
+        .then(list => { for(const st of list) all.push(parseStream(st, a.manifest.name, all.length)); })
+        .catch(() => {})
+        .then(() => {
+          const p = bestForNow(all);
+          if(--pending === 0 || (p && (p.direct || p.q === '1080p'))) finish(p);
+        });
+    }
+  });
 }
 
 /** The sensible default: 1080p when its file is small enough to stream, else the best-ranked. */
@@ -1468,18 +1564,19 @@ async function openQuickView(card){
   const [, , type, idEnc] = href.split('/');
   const id = decodeURIComponent(idEnc);
   const name = card.querySelector('.t')?.textContent || '';
+  warmSources(type, type === 'series' ? `${id}:1:1` : id);
   const sheet = document.createElement('div');
   sheet.className = 'sheet titleSheet';
   sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(name)}">
-      <header><b dir="auto">${esc(name)}</b><button aria-label="סגור">✕</button></header>
+      <header><b dir="auto">${esc(name)}</b><button aria-label="${esc(tr('common.close'))}">✕</button></header>
       <div class="tc-banner"></div>
       <div class="body">
         <div class="facts"></div>
-        <p class="qvdesc note" dir="auto">טוען תקציר…</p>
+        <p class="qvdesc note" dir="auto">${tr('qv.loadingSummary')}</p>
         <div class="qvact">${type === 'movie'
           ? `<button class="btn primary" id="qvplay">${qvPlayLabel(id)}</button>`
-          : `<button class="btn primary" id="qveps">▶ לפרקים ולצפייה</button>`}
-          <button class="btn ghost" id="qvmore">פרטים מלאים</button></div>
+          : `<button class="btn primary" id="qveps">${tr('qv.eps')}</button>`}
+          <button class="btn ghost" id="qvmore">${tr('qv.more')}</button></div>
       </div></div>`;
   document.body.appendChild(sheet);
   const close = () => sheet.remove();
@@ -1492,12 +1589,12 @@ async function openQuickView(card){
   const playBtn = sheet.querySelector('#qvplay');
   if(playBtn) playBtn.onclick = async () => {
     playBtn.disabled = true;
-    playBtn.textContent = 'מחפש מקור…';
+    playBtn.textContent = tr('qv.searching');
     const m = await fetchMeta(type, id).catch(() => null);
     const videoId = m?.behaviorHints?.defaultVideoId || id;
-    const pick = bestForNow(await gatherStreams(type, videoId));
+    const pick = await quickPick(type, videoId);
     if(!pick){
-      playBtn.textContent = 'לא נמצא מקור - לעמוד המלא';
+      playBtn.textContent = tr('qv.noSource');
       playBtn.disabled = false;
       playBtn.onclick = goFull;
       return;
@@ -1520,7 +1617,7 @@ async function openQuickView(card){
   }
   const desc = sheet.querySelector('.qvdesc');
   desc.classList.remove('note');
-  desc.textContent = meta?.description || 'אין תקציר.';
+  desc.textContent = meta?.description || tr('qv.noSummary');
   if(hebrewOn() && /^tt\d+$/.test(id)){
     const plot = await hebrewPlot(id).catch(() => null);
     if(plot && sheet.isConnected){ desc.dir = 'rtl'; desc.textContent = plot.text; }
@@ -1809,43 +1906,48 @@ async function viewSearch(q){
 async function viewDetail(type, id){
   const app = $('#app');
   app.innerHTML = `<div class="backdrop skel"></div>`;
-  const src = addons.filter(a => supports(a.manifest, 'meta', type, id));
+  if(type === 'movie') warmSources(type, id);                // a movie's sources load while its details do
   const meta = await fetchMeta(type, id);
-  if(!meta){ app.innerHTML = `<div class="page"><h1>הכותר לא נמצא</h1><p class="note">אף תוסף לא החזיר פרטים על הכותר הזה.</p></div>`; return; }
+  if(!meta){ app.innerHTML = `<div class="page"><h1>${tr('detail.notFound')}</h1><p class="note">${tr('detail.notFoundNote')}</p></div>`; return; }
   const saved = !!library[meta.id];
   if(hebrewOn() && /^tt\d+$/.test(meta.id)) hebrewPlot(meta.id).then(plot => {
     const el = $('#desc');
     if(!plot || !el) return;
     const PREVIEW = 650;
     const short = plot.text.length > PREVIEW ? plot.text.slice(0, plot.text.lastIndexOf(' ', PREVIEW)) + '…' : plot.text;
-    const src = `<span class="src">מתוך <a href="https://he.wikipedia.org/wiki/${encodeURIComponent(plot.article)}" target="_blank" rel="noopener">ויקיפדיה העברית</a> · CC BY-SA</span>`;
+    const link = isTvLayout() ? tr('detail.wikiName')            // a link cannot be followed from a remote
+      : `<a href="https://he.wikipedia.org/wiki/${encodeURIComponent(plot.article)}" target="_blank" rel="noopener">${tr('detail.wikiName')}</a>`;
+    if($('#dsrc')) $('#dsrc').innerHTML = tr('detail.wikiFrom', {link});
     el.dir = 'rtl';
-    el.innerHTML = esc(short).replace(/\n/g, '<br>') + (short !== plot.text ? ' <button class="readmore" id="rm">קרא עוד</button>' : '') + src;
-    if($('#rm')) $('#rm').onclick = () => { el.innerHTML = esc(plot.text).replace(/\n/g, '<br>') + src; };
+    el.innerHTML = esc(short).replace(/\n/g, '<br>') + (short !== plot.text ? ` <button class="readmore" id="rm">${tr('detail.readMore')}</button>` : '');
+    if($('#rm')) $('#rm').onclick = () => { el.innerHTML = esc(plot.text).replace(/\n/g, '<br>'); };
     const h = app.querySelector('.detail h1');
     if(h && heCache[meta.id]?.t && !h.querySelector('.orig')) h.innerHTML = `${esc(heCache[meta.id].t)}<span class="orig" dir="ltr">${esc(meta.name)}</span>`;
   }).catch(() => {});
   const videos = (meta.videos || []).filter(v => v.season !== undefined || type !== 'movie');
   const seasons = [...new Set(videos.map(v => v.season ?? 0))].sort((a,b) => (a===0) - (b===0) || a - b);
+  const libLabel = on => tr(on ? 'lib.in' : 'lib.add');
+  // Play and the quality shortcuts sit right under the title; a series' episodes get the whole width below.
   app.innerHTML = `<div class="backdrop" style="background-image:url('${esc(meta.background || meta.poster)}')"></div>
-    <div class="detail">
+    <div class="detail ${seasons.length ? 'series' : 'movie'}">
       <div class="poster-lg" style="background-image:url('${esc(meta.poster)}')"></div>
-      <div>
+      <div class="dinfo">
         <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig" dir="ltr">${esc(meta.name)}</span>` : ''}</h1>
         <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreHe(g))}</span>`).join('')}</div>
+        <div class="playrow"><span id="streams" class="psrc"><span class="srcstat">${tr('src.searching')}</span></span>
+          <button class="btn ghost ${saved?'saved':''}" id="lib">${libLabel(saved)}</button>
+          ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">${tr('detail.trailer')}</button>` : ''}</div>
+        <div id="palt"></div>
         <p class="desc" id="desc" dir="auto">${esc(meta.description)}</p>
-        <div class="people">${meta.director?.length ? `<div><b>במאי</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>שחקנים</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
-        <div class="detact"><button class="btn ghost ${saved?'saved':''}" id="lib">${saved ? 'בספרייה שלך' : 'הוסף לספרייה'}</button>
-        ${meta.trailers?.[0]?.source ? `<button class="btn ghost" id="trailer">צפה בטריילר</button>` : ''}</div>
+        <div class="src" id="dsrc"></div>
+        <div class="people">${meta.director?.length ? `<div><b>${tr('detail.director')}</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>${tr('detail.cast')}</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
       </div>
     </div>
-    <div class="cols">
-      <div class="panel" ${seasons.length ? '' : 'style="grid-column:1/-1"'}><h3>צפייה</h3><div id="streams"><p class="note">טוען…</p></div></div>
-      ${seasons.length ? `<div class="panel"><h3>פרקים</h3><div class="epwrap">
-        ${seasons.length > 1 ? `<div class="seasonbar" role="group" aria-label="עונה" data-pane="#eps">${seasons.map(s =>
-          `<button data-season="${s}">${s === 0 ? 'מיוחדים' : 'עונה ' + s}</button>`).join('')}</div>` : ''}
-        <div class="eps" id="eps"></div></div></div>` : ''}
-    </div>`;
+    ${seasons.length ? `<div class="panel epanel"><div class="epwrap">
+        ${seasons.length > 1 ? `<div class="seasonbar" role="group" aria-label="${esc(tr('detail.season'))}" data-pane="#eps">${seasons.map(s =>
+          `<button data-season="${s}">${s === 0 ? tr('detail.specials') : tr('detail.seasonN', {n: s})}</button>`).join('')}</div>` : ''}
+        <div class="eps" id="eps"></div></div></div>` : ''}`;
+  document.body.classList.toggle('titlefit', seasons.length > 0);      // on the TV a series page fits the screen
 
   $('#lib').onclick = e => {
     const b = e.currentTarget;
@@ -1853,10 +1955,10 @@ async function viewDetail(type, id){
     else library[meta.id] = {id: meta.id, type, name: meta.name, poster: meta.poster, releaseInfo: yearOf(meta), added: Date.now()};
     store.set('library', library);
     const saved = !!library[meta.id];                        // update the button in place, no reload
-    b.textContent = saved ? 'בספרייה שלך' : 'הוסף לספרייה';
+    b.textContent = libLabel(saved);
     b.classList.toggle('saved', saved);
   };
-  if($('#trailer')) $('#trailer').onclick = () => openPlayer({ytId: meta.trailers[0].source}, 'טריילר: ' + heTitle(meta.id, meta.name));
+  if($('#trailer')) $('#trailer').onclick = () => openPlayer({ytId: meta.trailers[0].source}, tr('detail.trailerTitle', {title: heTitle(meta.id, meta.name)}));
 
   const ctx = {type, meta};
   if(seasons.length){
@@ -1868,8 +1970,8 @@ async function viewDetail(type, id){
         const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
         const seen = pct > 92 || (w && !w.d);
         return `<button class="ep${seen ? ' seen' : ''}" data-id="${esc(v.id)}"><span class="n">${esc(n)}</span><span>
-          <div>${esc(v.name || v.title || 'פרק ' + n)}</div>
-          <div class="d">${v.released ? esc(new Date(v.released).toLocaleDateString()) : ''}${pct && !seen ? ` · נותרו ${Math.max(1, Math.round((w.d - w.t) / 60))} דק׳` : ''}</div>
+          <div>${esc(v.name || v.title || tr('detail.episodeN', {n}))}</div>
+          <div class="d">${v.released ? esc(new Date(v.released).toLocaleDateString()) : ''}${pct && !seen ? ` · ${tr('detail.minLeft', {n: Math.max(1, Math.round((w.d - w.t) / 60))})}` : ''}</div>
           ${pct && !seen ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}</span></button>`;
       }).join('');
       const pick = b => {
@@ -1950,47 +2052,81 @@ function playStream(s, label, ctx){
   else if(s.externalUrl && window.BoothAndroid) BoothAndroid.playUrl(s.externalUrl, label, vid, release, meta, 0);
   else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
   else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release, meta, pos);
-  else alert('מקורות טורנט מתנגנים באפליקציית VEO לאנדרואיד.');
+  else alert(tr('src.torrentApp'));
 }
 
+/** Play, the quality shortcuts and the rest of the list go into the title's action row (#streams); what is
+    still loading is a small note beside them, and the long list opens below the row (#palt). */
 function renderStreams(box, all, pending, label, ctx, errors = [], retry){
+  const alt = $('#palt');
+  const wasOpen = $('#altToggle')?.getAttribute('aria-expanded') === 'true';
+  if(alt) alt.innerHTML = '';
   const list = all.filter(x => x.q !== 'CAM' && rank(x) >= 0).sort((a, b) => rank(b) - rank(a));
   const best = list[0];
   if(!best){
     if(!pending && errors.length){
-      box.innerHTML = `<div class="play"><div class="playrow"><button class="playbtn" disabled>לא ניתן לטעון מקורות</button></div>
-        <p class="err" style="margin:0">${errors.map(esc).join('<br>')}</p><div class="playrow"><button class="btn ghost" id="sretry">נסה שוב</button></div></div>`;
+      box.innerHTML = `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>`;
       $('#sretry').onclick = retry;
       return;
     }
-    box.innerHTML = `<div class="play"><div class="playrow"><button class="playbtn" disabled>${pending ? 'מחפש מקורות…' : 'אין מקורות זמינים כרגע'}</button></div></div>`;
+    box.innerHTML = `<span class="srcstat${pending ? '' : ' idle'}">${tr(pending ? 'src.searching' : 'src.none')}</span>`;
     return;
   }
   const byQuality = ['4K', '1080p', '720p', 'SD'].map(q => list.find(x => x.q === q)).filter(Boolean);
   const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
-  box.innerHTML = `<div class="play">
-      <div class="playrow"><button class="playbtn" data-i="${best.i}">▶ נגן <small>${esc(detail(best))}</small></button></div>
-      ${byQuality.length > 1 ? `<div class="quals" role="group" aria-label="איכות">${byQuality.map(x => `<button data-i="${x.i}">${x.q}</button>`).join('')}</div>` : ''}
-      ${list.length > 1 ? `<div class="alt"><div class="playrow"><button class="altbtn" id="altToggle" aria-expanded="false">◂ מקורות נוספים (${list.length - 1})</button></div>
-        <div class="altlist" hidden>${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? 'ישיר' : '👤 ' + (x.seeds ?? 0)}</span></button>`).join('')}</div>
-      </div>` : ''}
-      ${pending ? '<p class="note" style="margin:0">מחפש מקורות נוספים…</p>' : ''}
-    </div>`;
-  box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx));
+  box.innerHTML = `<button class="playbtn" data-i="${best.i}">▶ ${tr('src.play')} <small>${esc(detail(best))}</small></button>
+      ${byQuality.length > 1 ? byQuality.map(x => `<button class="qbtn" data-i="${x.i}">${x.q}</button>`).join('') : ''}
+      ${list.length > 1 ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr('src.more', {n: list.length - 1})}</button>` : ''}
+      ${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
+  if(alt && list.length > 1) alt.innerHTML = `<div class="altlist"${wasOpen ? '' : ' hidden'}>${list.slice(1, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? tr('src.direct') : '👤 ' + (x.seeds ?? 0)}</span></button>`).join('')}</div>`;
+  [box, alt].forEach(el => el?.querySelectorAll('[data-i]').forEach(b => b.onclick = () => playStream(all[b.dataset.i].s, label, ctx)));
   if($('#altToggle')) $('#altToggle').onclick = e => {
-    const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true';
+    const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true', more = alt.querySelector('.altlist');
     btn.setAttribute('aria-expanded', String(!open));
-    btn.nextElementSibling.hidden = open;
-    if(!open) btn.nextElementSibling.querySelector('button')?.focus();
+    more.hidden = open;
+    if(!open) more.querySelector('button')?.focus();
   };
 }
+
+/* A source list is asked for once: a title's page, its poster being looked at, and the availability
+   check all share the same answer for ten minutes. */
+const streamCache = new Map();                              // "add-on|type|id" -> {at, p}
+const STREAM_TTL = 10 * 60e3;
+function fetchStreams(a, type, videoId){
+  const key = `${a.base}|${type}|${videoId}`;
+  const hit = streamCache.get(key);
+  if(hit && Date.now() - hit.at < STREAM_TTL) return hit.p;
+  const url = `${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`;
+  const p = getJSON(url, 12000).catch(() => new Promise(r => setTimeout(r, 700)).then(() => getJSON(url, 12000)))   // one quiet retry
+    .then(d => d.streams || []);
+  p.catch(() => streamCache.delete(key));                    // a failure is never remembered
+  streamCache.set(key, {at: Date.now(), p});
+  if(streamCache.size > 80) streamCache.delete(streamCache.keys().next().value);
+  return p;
+}
+function warmSources(type, videoId){
+  for(const a of addons) if(supports(a.manifest, 'stream', type, videoId)) fetchStreams(a, type, videoId).catch(() => {});
+}
+/** Start a title's source lists while the viewer is still looking at its poster: a moment's rest, not a scroll past. */
+let warmTimer = 0;
+const warmFrom = e => {
+  const a = e.target?.closest?.('a.poster[data-avail]');
+  clearTimeout(warmTimer);
+  if(!a) return;
+  warmTimer = setTimeout(() => {
+    const [type, id] = a.dataset.avail.split(':');
+    warmSources(type, type === 'series' ? `${id}:1:1` : id);
+  }, 450);
+};
+addEventListener('focusin', warmFrom);
+addEventListener('mouseover', e => { if(!isTvLayout()) warmFrom(e); });
 
 async function loadStreams({type, meta}, videoId, label){
   const box = $('#streams');
   const takeFocus = isTvLayout() && (!document.activeElement || document.activeElement === document.body
     || document.activeElement.closest('.eps'));
   const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
-  if(!src.length){ box.innerHTML = `<p class="note">לא מותקן תוסף מקורות. אפשר להוסיף אחד בעמוד <a href="#/addons">התוספים</a>.</p>`; return; }
+  if(!src.length){ box.innerHTML = `<span class="srcstat idle">${tr('src.noAddon')}</span>`; return; }
   const token = ++streamsToken;
   const ctx = {videoId, type, meta};
   const all = [], errors = [];
@@ -2006,13 +2142,9 @@ async function loadStreams({type, meta}, videoId, label){
   };
   render();
   await Promise.all(src.map(async a => {
-    const url = `${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`;
     try{
-      let d;
-      try{ d = await getJSON(url); }
-      catch(e){ await new Promise(r => setTimeout(r, 1500)); d = await getJSON(url); }   // one quiet retry
-      for(const s of d.streams || []) all.push(parseStream(s, a.manifest.name, all.length));
-    }catch(e){ errors.push(`${a.manifest.name}: ${e.message || 'אין תגובה'}`); }
+      for(const s of await fetchStreams(a, type, videoId)) all.push(parseStream(s, a.manifest.name, all.length));
+    }catch(e){ errors.push(`${a.manifest.name}: ${e.message || tr('net.noResponse')}`); }
     pending--;
     render();
   }));
@@ -2041,8 +2173,7 @@ async function hasSources(key){
   const vid = type === 'series' ? `${id}:1:1` : id;          // a series counts as available if S1E1 is
   for(const a of addons.filter(a => supports(a.manifest, 'stream', type, vid))){
     try{
-      const d = await getJSON(`${a.base}/stream/${type}/${encodeURIComponent(vid)}.json`);
-      if((d.streams || []).some(s => !isCam(s))) return true;
+      if((await fetchStreams(a, type, vid)).some(s => !isCam(s))) return true;
     }catch(e){ return null; }                                 // unknown: don't grey out on a network error
   }
   return false;
@@ -2752,6 +2883,7 @@ let listHash = '#/';                                 // the list a title was ope
 async function route(){
   rememberScreen();
   resetObservers();
+  document.body.classList.remove('titlefit');
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   document.querySelectorAll('.nav a').forEach(x => x.classList.toggle('on', x.dataset.r === (['', 'cat', 'detail', 'search', 'genres', 'genre'].includes(r) ? 'home' : ['r13', 'kan', 'mako'].includes(r) ? 'tv' : r)));
   if(['', 'cat', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
@@ -2775,7 +2907,7 @@ async function route(){
 /** The projector logo: back to the last live channel (or home, if nothing was watched yet). */
 document.querySelector('.logo').addEventListener('click', async e => {
   const last = store.get('lastChannel', null);
-  if(!last) return;                                    // no channel yet: the logo is just "home"
+  if(!last){ location.hash = '#/'; return; }           // no channel yet: the logo is just "home"
   e.preventDefault();
   try{
     const chans = await liveChannels(last.src);
@@ -2827,7 +2959,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidden"]), 
    of them is safe. Grouped by the screen that renders them. */
 const ROWS_SEL = [
   '.bar', '#cats', '.stabs',                                               // chrome: top bar, rail, settings menu
-  '.bctabs', '.strip', '.grid', '.genres', '.sopts', '.seg', '.sgroup',    // browsing rows and pickers
+  '.bctabs', '.strip', '.grid', '.genres', '.sopts', '.seg', '.sortbar',   // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.detact', '.seasonbar', '.seasons', '.eps', '.eplist',         // a title: text, actions, episodes
   '.qvact', '.playrow', '.quals', '.altlist',                              // title card + sources panel
@@ -2843,7 +2975,7 @@ const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0
 // While a sheet or the quick view is open the remote stays inside it: nothing behind it can take focus.
 const tvScope = () => document.querySelector('.sheet') || document;
 const tvRows = () => {
-  const all = [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && c.querySelector(FOCUSABLE));
+  const all = [...tvScope().querySelectorAll(ROWS_SEL)].filter(c => visible(c) && [...c.querySelectorAll(FOCUSABLE)].some(visible));
   // Only the innermost match is a row. Document order IS the order on screen - no CSS reorders
   // rows against the markup - and unlike measuring positions it cannot be shuffled by scrolling
   // or by a sticky bar reporting itself at the top of the viewport.
@@ -2851,6 +2983,12 @@ const tvRows = () => {
 };
 const itemsOf = row => [...row.querySelectorAll(FOCUSABLE)].filter(visible);
 const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+/** Where to land in [row] when arriving from [from]: a season menu's chosen season, else the item nearest across. */
+const bestIn = (row, from) => {
+  const cand = itemsOf(row), x = from ? centerX(from) : 0;
+  return (row.classList.contains('seasonbar') && cand.find(el => el.classList.contains('on')))
+    || cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]);
+};
 /* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
    under the top bar (so the category is always readable), anything else is just brought into view. */
 const barHeight = () => document.querySelector('.bar')?.offsetHeight || 0;
@@ -2889,12 +3027,17 @@ function tvMove(dir){
       if(n){
         n.click();                                  // moving down the menu opens that entry
         n.focus();                                  // click() alone doesn't reliably move focus;
-      }                                              // #cats additionally restores it after its rebuild
+        return true;                                // #cats additionally restores it after its rebuild
+      }
+      // the ends of a menu lead on to the row above or below it - never into what the menu itself controls
+      const next = row.id === 'cats' ? null : rows[rows.indexOf(row) + (dir === 'down' ? 1 : -1)];
+      if(next && !$(pane)?.contains(next)) focusItem(bestIn(next, active));
       return true;
     }
     if(dir === FWD()){                              // what the menu controls is on its far side
       const target = $(pane);
-      const first = target && (itemsOf(target)[0] || tvRows().filter(r => target.contains(r)).flatMap(itemsOf)[0]);
+      const its = target ? itemsOf(target) : [];
+      const first = its.find(el => el.classList.contains('on')) || its[0] || (target && tvRows().filter(r => target.contains(r)).flatMap(itemsOf)[0]);
       if(first) focusItem(first);
     }
     return true;
@@ -2929,8 +3072,7 @@ function tvMove(dir){
   const ri = flow.indexOf(row);
   const next = flow[ri + (dir === 'down' ? 1 : -1)];
   if(!next) return true;
-  const cand = itemsOf(next);
-  focusItem(cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]));
+  focusItem(bestIn(next, active));
   return true;
 }
 let lastMoveAt = 0;

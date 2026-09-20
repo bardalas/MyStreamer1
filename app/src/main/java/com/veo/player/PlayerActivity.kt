@@ -218,7 +218,7 @@ class PlayerActivity : AppCompatActivity() {
     /** Fill the banner with the channel and what is on it, then fetch the guide if it is not in yet. */
     private fun paintBanner() {
         val src = sources[index]
-        findViewById<TextView>(R.id.chNum).text = if (src.num > 0) "${'$'}{src.num}" else "—"
+        findViewById<TextView>(R.id.chNum).text = if (src.num > 0) "${src.num}" else "—"
         findViewById<TextView>(R.id.chName).text = src.name
         findViewById<TextView>(R.id.nowClock).text =
             android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date())
@@ -242,15 +242,15 @@ class PlayerActivity : AppCompatActivity() {
         val bar = findViewById<ProgressBar>(R.id.nowBar)
         val after = findViewById<TextView>(R.id.nextTitle)
         if (playing != null) {
-            title.text = "${'$'}{hhmm(playing.from)} · ${'$'}{playing.name}"
+            title.text = "${hhmm(playing.from)} · ${playing.name}"
             bar.visibility = View.VISIBLE
             bar.progress = (((now - playing.from) * 100) / (playing.to - playing.from).coerceAtLeast(1)).toInt()
             val left = ((playing.to - now) / 60).coerceAtLeast(0)
-            after.text = if (next != null) "עוד ${'$'}left דק׳ · אחר כך ${'$'}{hhmm(next.from)} ${'$'}{next.name}"
-                         else "נותרו ${'$'}left דק׳"
+            after.text = if (next != null) "עוד $left דק׳ · אחר כך ${hhmm(next.from)} ${next.name}"
+                         else "נותרו $left דק׳"
         } else {
             title.text = if (progs == null && src.epg.isNotBlank()) "טוען לוח שידורים…"
-                         else if (next != null) "הבא: ${'$'}{hhmm(next.from)} · ${'$'}{next.name}"
+                         else if (next != null) "הבא: ${hhmm(next.from)} · ${next.name}"
                          else "שידור חי"
             bar.visibility = View.GONE
             after.text = ""
@@ -329,7 +329,7 @@ class PlayerActivity : AppCompatActivity() {
                 setOnClickListener { pickChannel(i) }
             }
             item.addView(TextView(this).apply {
-                text = if (src.num > 0) "${'$'}{src.num}   ${'$'}{src.name}" else src.name
+                text = if (src.num > 0) "${src.num}   ${src.name}" else src.name
                 textSize = 15f
                 maxLines = 1
                 setPadding(0, 0, 0, dp(6))

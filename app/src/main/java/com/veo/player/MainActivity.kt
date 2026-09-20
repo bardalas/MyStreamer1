@@ -152,7 +152,7 @@ class MainActivity : AppCompatActivity() {
                         conn.disconnect()
                         link = URL(URL(link), next).toString()
                     }
-                    if (conn.responseCode !in 200..299) throw java.io.IOException("HTTP ${'$'}{conn.responseCode}")
+                    if (conn.responseCode !in 200..299) throw java.io.IOException("HTTP ${conn.responseCode}")
                     val total = conn.contentLengthLong
                     conn.inputStream.use { input ->
                         file.outputStream().use { out ->
@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
                         throw java.io.IOException("הקובץ שהתקבל אינו גרסה תקינה")
                     status("", false)
                     val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this@MainActivity, "${'$'}packageName.files", file)
+                        this@MainActivity, "$packageName.files", file)
                     val install = Intent(Intent.ACTION_VIEW)
                         .setDataAndType(uri, "application/vnd.android.package-archive")
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -187,7 +187,7 @@ class MainActivity : AppCompatActivity() {
                             status("אשר התקנה מ-VEO, ואז לחץ שוב על עדכן", false)
                             runCatching {
                                 startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                                    android.net.Uri.parse("package:${'$'}packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    android.net.Uri.parse("package:$packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                             }.onFailure { status("צריך לאשר למקרן להתקין עדכונים בהגדרות המכשיר", true) }
                             return@runOnUiThread
                         }
