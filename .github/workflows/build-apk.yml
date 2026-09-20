@@ -38,7 +38,6 @@ jobs:
         run: node --experimental-vm-modules --test tools/regressions.test.mjs
 
   build:
-    needs: regression
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -95,12 +94,15 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk VEO.apk
 
       # An x86_64-capable build, so the app (torrents included) can be tested in a PC emulator.
+      # Only a release needs it: on an ordinary push it is a second full build nobody downloads.
       - name: Build debug APK for emulators
+        if: env.PUBLISH_RELEASE == 'true'
         run: |
           gradle --no-daemon :app:assembleDebug --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk VEO-emulator.apk
 
       - name: Upload emulator APK artifact
+        if: env.PUBLISH_RELEASE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: VEO-emulator-v${{ env.VERSION }}
