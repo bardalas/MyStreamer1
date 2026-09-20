@@ -84,7 +84,11 @@ async function fixture(opts = {}){
   const tr = (k, p) => p?.svc ? `${k}: ${p.svc}` : k;
   const stubs = {
     'core/dom.js': {$: s => doc.querySelector(s), esc: s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c])), showErr: () => {}},
-    'core/settings.js': {rowMax: () => 10, isTvLayout: () => !!opts.tv},
+    // the taste is reached from the sources module now (it is ended the moment a title is asked
+    // for), and it asks the settings for itself: with the preview off, it does nothing here
+    'core/settings.js': {rowMax: () => 10, isTvLayout: () => !!opts.tv, IS_TV_DEVICE: !!opts.tv,
+      LAYOUT: 'tv', POSTER_SIZE: 'm',
+      settings: {layout: 'tv', poster: 'm', lang: 'he', preview: 'off', skin: 'veo'}},
     'core/store.js': {store: {get: (_k, d) => d, set: () => {}}},
     'data/addons.js': {addons: opts.addons || [], catalogFetch: async () => ({metas: []}),
       fetchMeta: (...a) => { calls.meta.push(a); return (opts.fetchMeta || (async () => metadata))(...a); },
