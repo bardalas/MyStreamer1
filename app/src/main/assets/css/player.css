@@ -35,3 +35,7 @@
 .tbar i{display:block;height:100%;width:0;background:var(--tungsten);transition:width .4s}
 .tstat button{flex:none;background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:8px 20px;font:600 14px var(--body);cursor:pointer}
 [data-layout="tv"] .tstat{font-size:17px} [data-layout="tv"] .tstat button{font-size:17px;padding:10px 24px}
+
+/* While a card is over the picture the page behind it stays where it was: a modal that lets the
+   background scroll reads as two screens at once. */
+body:has(.sheet),body:has(.update){overflow:hidden}

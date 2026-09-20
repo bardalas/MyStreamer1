@@ -1,6 +1,8 @@
 /* The Israeli Film Archive of the Jerusalem Cinematheque. */
-import {fetchText} from '../core/bridge.js';
+import {fetchText, sitePull} from '../core/bridge.js';
 import {esc} from '../core/dom.js';
+import {openSite} from './mako.js';
+import {openPlayer} from '../ui/player.js';
 
 /* ---------- Israeli Film Archive · Jerusalem Cinematheque (jfc.org.il) ----------
    130 years of films made here: features, documentaries, newsreels and home movies, with a Hebrew
@@ -61,9 +63,38 @@ export function jfcItems(html){
   return out;
 }
 
+/**
+ * A film of the archive, played here rather than on their site.
+ *
+ * The archive puts its films behind a free account, and the page of a film it lets you watch carries
+ * the stream itself. The app's hidden window shares the same cookies as the in-app browser, so once
+ * the viewer has signed in there, the page can be read and the film played in VEO's own player -
+ * with the site kept as the way in for anything the reading does not find (a film behind a payment,
+ * or one the site plays some other way).
+ */
+const JFC_STREAM_READER = `
+  const h = d.documentElement.outerHTML;
+  const m = h.match(/https?:\\/\\/[^"'\\s<>\\\\]+?\\.(?:m3u8|mp4)[^"'\\s<>\\\\]*/);
+  return JSON.stringify(m ? m[0].replace(/&amp;/g, '&') : '');`;
+
+export async function jfcPlay(url, title){
+  try{
+    const stream = await sitePull(url, JFC_STREAM_READER);
+    if(!stream) throw new Error('no stream');
+    if(window.BoothAndroid?.playVod) BoothAndroid.playVod(stream, '', title, JFC + '/');
+    else openPlayer({url: stream}, title, null);
+  }catch(e){
+    openSite(url);                                   // signed out, or a film it keeps to itself
+  }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-jfc]');
+  if(b){ e.preventDefault(); jfcPlay(b.dataset.jfc, b.dataset.title || ''); }
+});
+
 export function jfcCard(x){
   const art = x.poster ? `<div class="art" data-bg="${esc(x.poster)}">${x.paid ? '<span class="svc">בתשלום</span>' : ''}</div>`
                        : `<div class="art ph"></div>`;
-  return `<button class="poster" data-site="${esc(x.url)}" title="${esc(x.title)}">${art}
+  return `<button class="poster" data-jfc="${esc(x.url)}" data-title="${esc(x.title)}" title="${esc(x.title)}">${art}
     <div class="t" dir="rtl">${esc(x.title)}</div><div class="y">${esc([x.by, x.len].filter(Boolean).join(' · '))}</div></button>`;
 }

@@ -50,7 +50,8 @@ class MainActivity : AppCompatActivity() {
         // showing the old one after an update. A new version throws that copy away, once.
         val built = packageManager.getPackageInfo(packageName, 0).longVersionCode
         val seen = getSharedPreferences("veo", MODE_PRIVATE)
-        if (seen.getLong("built", 0L) != built) {
+        val debug = applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+        if (debug || seen.getLong("built", 0L) != built) {    // a build under test is always the new one
             web.clearCache(true)
             seen.edit().putLong("built", built).apply()
         }

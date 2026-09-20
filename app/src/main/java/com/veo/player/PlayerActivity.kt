@@ -81,6 +81,8 @@ class PlayerActivity : AppCompatActivity() {
     /** Subtitles: which of the found files is on (-1 = none) and how far they are moved, in milliseconds. */
     private var subPick = 0
     private var subShift = 0L
+    /** The chosen translation, read into memory: moving it in time is a subtraction, not a rebuild. */
+    private var captions: Captions? = null
     /** How large they are drawn, as a multiple of the player's own size; kept between films. */
     private var subScale = 1.25f
     /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
@@ -141,15 +143,42 @@ class PlayerActivity : AppCompatActivity() {
                 subs = found
                 // which file they came from is not something to read over a film; only their absence is news
                 if (found.isEmpty()) showMessage("לא נמצאו כתוביות בעברית", 3_000) else hideOsd.run()
-                if (found.isNotEmpty() && started) reloadWithSubs()
+                if (found.isNotEmpty()) useCaptions(0)
             }
         }.start()
     }
 
-    /**
-     * A copy of [sub] with every line moved by [shiftMs]: the player has no offset of its own, so the
-     * file itself is rewritten (once per offset) and the player rebuilt around it.
-     */
+    /** Show the chosen translation (or none) from now on. */
+    private fun useCaptions(pick: Int) {
+        subPick = pick
+        val sub = subs.orEmpty().getOrNull(pick)
+        captions = sub?.let { Captions.of(it.file) }?.also { it.shiftMs = subShift }
+        val view = findViewById<TextView>(R.id.cues)
+        view.visibility = if (captions == null) View.GONE else View.VISIBLE
+        view.textSize = 18f * subScale
+        view.text = ""
+        handler.removeCallbacks(tickCaptions)
+        if (captions != null) handler.post(tickCaptions)
+    }
+
+    /** Move the translation, and see it move: nothing is rebuilt, so a press is a result. */
+    private fun shiftCaptions(byMs: Long) {
+        subShift = (subShift + byMs).coerceIn(-60_000, 60_000)
+        captions?.shiftMs = subShift
+        showMessage("סנכרון כתוביות %+.1f שנ׳".format(subShift / 1000.0), 1_500)
+    }
+
+    // explicit type: it schedules itself
+    private val tickCaptions: Runnable = object : Runnable {
+        override fun run() {
+            val c = captions ?: return
+            val p = player ?: return
+            findViewById<TextView>(R.id.cues).text = c.at(p.currentPosition)
+            handler.postDelayed(this, 120)
+        }
+    }
+
+    /** Unused since the words became the app's own; kept out of the way. */
     private fun shiftedSub(sub: Subtitles.Sub, shiftMs: Long): java.io.File {
         if (shiftMs == 0L) return sub.file
         val out = java.io.File(cacheDir, "shift_${shiftMs}_${sub.file.name}")
@@ -171,6 +200,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun setSubScale(v: Float) {
         subScale = v.coerceIn(0.8f, 2.4f)
         getSharedPreferences("veo", MODE_PRIVATE).edit().putFloat("subScale", subScale).apply()
+        findViewById<TextView>(R.id.cues).textSize = 18f * subScale
         findViewById<PlayerView>(R.id.playerView).subtitleView
             ?.setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subScale)
     }
@@ -182,13 +212,15 @@ class PlayerActivity : AppCompatActivity() {
         val rows = ArrayList<Pair<String, () -> Unit>>()
         found.forEachIndexed { i, s ->
             val mark = if (i == subPick) "● " else "○ "
-            rows.add("$mark${s.label}" to { subPick = i; reloadWithSubs(); openSubsPanel() })
+            rows.add("$mark${s.label}" to { useCaptions(i); openSubsPanel() })
         }
-        rows.add((if (subPick < 0) "● " else "○ ") + "ללא כתוביות" to { subPick = -1; reloadWithSubs(); openSubsPanel() })
+        rows.add((if (subPick < 0) "● " else "○ ") + "ללא כתוביות" to { useCaptions(-1); openSubsPanel() })
         val now = "%+.1f".format(subShift / 1000.0)
-        rows.add("הקדם כתוביות · כעת $now שנ׳" to { subShift -= 500; reloadWithSubs(); openSubsPanel() })
-        rows.add("אחר כתוביות · כעת $now שנ׳" to { subShift += 500; reloadWithSubs(); openSubsPanel() })
-        if (subShift != 0L) rows.add("בטל סנכרון" to { subShift = 0; reloadWithSubs(); openSubsPanel() })
+        rows.add("הכתוביות מאחרות · הקדם 0.5 שנ׳ · כעת $now" to { shiftCaptions(-500); openSubsPanel() })
+        rows.add("הכתוביות מקדימות · אחר 0.5 שנ׳ · כעת $now" to { shiftCaptions(500); openSubsPanel() })
+        rows.add("כוונון עדין · 0.1 שנ׳ אחורה" to { shiftCaptions(-100); openSubsPanel() })
+        rows.add("כוונון עדין · 0.1 שנ׳ קדימה" to { shiftCaptions(100); openSubsPanel() })
+        if (subShift != 0L) rows.add("בטל סנכרון" to { shiftCaptions(-subShift); openSubsPanel() })
         val size = "%d%%".format((subScale * 100).toInt())
         rows.add("כתוביות גדולות יותר · $size" to { setSubScale(subScale + 0.15f); openSubsPanel() })
         rows.add("כתוביות קטנות יותר · $size" to { setSubScale(subScale - 0.15f); openSubsPanel() })
@@ -264,15 +296,9 @@ class PlayerActivity : AppCompatActivity() {
             .setBufferDurationsMs(if (live) 8_000 else 30_000, 120_000, if (live) 1_200 else 2_500, 4_000)
             .build()
 
-        val subtitleConfigs = subs.orEmpty().mapIndexed { i, s ->
-            MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(shiftedSub(s, subShift)))
-                .setMimeType(MimeTypes.APPLICATION_SUBRIP)
-                .setLanguage("he")
-                .setLabel(s.label)
-                .setSelectionFlags(if (i == subPick) C.SELECTION_FLAG_DEFAULT else 0)
-                .build()
-        }
-        val item = MediaItem.Builder().setUri(url).setSubtitleConfigurations(subtitleConfigs)
+        // The files that were found are drawn by the app (see [useCaptions]); only tracks inside the
+        // video itself are left to the player, so there is never one of each on screen.
+        val item = MediaItem.Builder().setUri(url)
             // IPTV HLS links often carry tokens/query strings, which stop ExoPlayer inferring the type.
             .apply {
                 if (url.contains(".m3u8")) setMimeType(MimeTypes.APPLICATION_M3U8)
@@ -743,7 +769,10 @@ class PlayerActivity : AppCompatActivity() {
         val status = generateSequence<Throwable>(error) { it.cause }
             .filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode
         val why = generateSequence(error.cause) { it.cause }.mapNotNull { it.message }.firstOrNull()
-        if (live && retries < 2) {
+        // A broadcaster's CDN sometimes answers a plain request with "not modified", or a 5xx it will
+        // not repeat: one more attempt costs a second and usually plays.
+        val retryable = live || status == 304 || (status != null && status >= 500)
+        if (retryable && retries < 2) {
             retries++
             showMessage("מנסה שוב… ($retries/2)", 3_500)
             player?.release()

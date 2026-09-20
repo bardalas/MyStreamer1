@@ -41,9 +41,9 @@
 /* A title on the television: the backdrop is the wallpaper, the page never scrolls. */
 /* A title on the TV: the backdrop is the room's wallpaper, and everything you can DO with the
    title - play, sources, episodes - is on the first screen, without scrolling. */
-[data-layout="tv"] .backdrop{position:relative;height:34vh;margin:0 -44px;z-index:0;opacity:1}
+[data-layout="tv"] .backdrop{position:absolute;width:62%;height:66vh;margin:0;z-index:0;opacity:1}
 [data-layout="tv"] .backdrop::after{background:linear-gradient(0deg,var(--night) 30%,var(--shade-50) 75%,var(--shade-20))}
-[data-layout="tv"] .detail{margin-top:14px;padding-top:0;grid-template-columns:110px 1fr;gap:20px;align-items:start}
+[data-layout="tv"] .detail{margin-top:0;padding-top:5vh;grid-template-columns:1fr;gap:0;max-width:min(46%,660px)}
 [data-layout="tv"] main{padding-bottom:16px}
 [data-layout="tv"] .detail h1{font-size:30px;margin:0 0 6px}
 [data-layout="tv"] .detail .facts{margin-bottom:8px}
@@ -62,9 +62,9 @@
 [data-layout="tv"] body.titlefit .playrow,
 [data-layout="tv"] body.titlefit #palt{flex:none}
 [data-layout="tv"] body.titlefit .epanel{flex:1;min-height:0}
-[data-layout="tv"] body.titlefit .backdrop{height:24vh}
-[data-layout="tv"] body.titlefit .detail{margin-top:8px}
-[data-layout="tv"] body.titlefit .desc{-webkit-line-clamp:2}
+[data-layout="tv"] body.titlefit .backdrop{height:66vh}
+[data-layout="tv"] body.titlefit .detail{margin-top:0}
+[data-layout="tv"] body.titlefit .desc{-webkit-line-clamp:3}
 [data-layout="tv"] body.titlefit .people{display:none}
 [data-layout="tv"] body.titlefit .epwrap{height:100%;align-items:stretch;grid-template-rows:minmax(0,1fr)}
 [data-layout="tv"] body.titlefit .eps,[data-layout="tv"] body.titlefit .seasonbar{max-height:none;height:100%}

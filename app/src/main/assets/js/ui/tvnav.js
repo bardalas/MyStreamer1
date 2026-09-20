@@ -34,16 +34,44 @@ export function openCard(){
   return st && getComputedStyle(st).display !== 'none' ? st : null;
 }
 export const tvScope = () => openCard() || document;
+/**
+ * What the arrows can reach, worked out once and kept until the screen changes.
+ *
+ * Finding it means asking the whole document for every group, and asking every element inside them
+ * whether it is on screen - which is hundreds of measurements, and a measurement makes the browser
+ * lay the page out again. Doing that on every press is what made a remote feel slow; the screen does
+ * not change between two presses, so neither does the answer.
+ */
+let rowCache = null;
+const itemCache = new WeakMap();
+export function forgetRows(){ rowCache = null; }
+
 export const tvRows = () => {
   const scope = tvScope();
+  if(rowCache && rowCache.scope === scope && rowCache.rows.every(r => r.isConnected)) return rowCache.rows;
   const own = scope !== document && scope.matches(ROWS_SEL) ? [scope] : [];
   const all = [...own, ...scope.querySelectorAll(ROWS_SEL)].filter(c => visible(c) && [...c.querySelectorAll(FOCUSABLE)].some(visible));
   // Only the innermost match is a row. Document order IS the order on screen - no CSS reorders
   // rows against the markup - and unlike measuring positions it cannot be shuffled by scrolling
   // or by a sticky bar reporting itself at the top of the viewport.
-  return all.filter(r => !all.some(o => o !== r && r.contains(o)));
+  const rows = all.filter(r => !all.some(o => o !== r && r.contains(o)));
+  rowCache = {scope, rows};
+  return rows;
 };
-export const itemsOf = row => [...row.querySelectorAll(FOCUSABLE)].filter(visible);
+export const itemsOf = row => {
+  const kept = itemCache.get(row);
+  if(kept && kept.length && kept.every(el => el.isConnected)) return kept;
+  const items = [...row.querySelectorAll(FOCUSABLE)].filter(visible);
+  itemCache.set(row, items);
+  return items;
+};
+// A screen that is drawn again is a different screen: anything added, removed or hidden forgets it.
+new MutationObserver(muts => {
+  for(const m of muts){
+    if(m.type === 'childList' ? (m.addedNodes.length || m.removedNodes.length) : true){ forgetRows(); return; }
+  }
+}).observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden']});
+addEventListener('hashchange', forgetRows);
 export const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
 /** Where to land in [row] when arriving from [from]: a season menu's chosen season, else the item nearest across. */
 export const bestIn = (row, from) => {
@@ -164,8 +192,8 @@ addEventListener('keydown', e => {
   const a = document.activeElement;
   if(a && (a.tagName === 'INPUT' && !a.readOnly || a.tagName === 'SELECT')) return;   // typing / picking
   e.preventDefault();
-  const now = performance.now();                     // a held key repeats fast: keep one move per ~80ms
-  if(now - lastMoveAt < 80) return;
+  const now = performance.now();                     // a held key repeats fast: keep one move per ~55ms
+  if(now - lastMoveAt < 55) return;
   lastMoveAt = now;
   tvMove(dir);
 }, true);

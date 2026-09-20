@@ -11,7 +11,7 @@ export let lastOpened = null;
 /** A title was opened from a list: coming back out lands on it, not at the top of the screen. */
 export function noteOpened(hash, id){ lastOpened = {hash, id}; }
 export function rememberScreen(){
-  const card = document.activeElement?.closest?.('.poster, .ep, .chmain');
+  const card = document.activeElement?.closest?.('.poster, .epcard, .chmain');
   const opened = lastOpened?.hash === memHash ? lastOpened.id : null;
   screenMem.set(memHash, {y: scrollY, id: card?.dataset.id || opened});
   memHash = location.hash;

@@ -39,12 +39,19 @@ export function rtvArchiveUrls(c, file, from){
   const [path, query] = c.url.split('?');
   const q = query ? '?' + query : '';
   const alt = file.replace(/^index-/, 'archive-');
+  const vid = file.replace(/^index-/, 'video-');
   const out = [path.replace(/[^/]+$/, file) + q,                     // …/<channel>/<file>
                path.replace(/\.m3u8$/, '') + '/' + file + q,         // …/<channel>.m3u8 is itself the folder
                path.replace(/[^/]+$/, alt) + q,
-               path.replace(/\.m3u8$/, '') + '/' + alt + q];
+               path.replace(/\.m3u8$/, '') + '/' + alt + q,
+               path.replace(/[^/]+$/, vid) + q,
+               path.replace(/\.m3u8$/, '') + '/' + vid + q];
   // some panels take the time as a parameter of the live address instead of a file of its own
-  if(from) out.push(c.url + (query ? '&' : '?') + `utc=${from}&lutc=${Math.floor(Date.now() / 1000)}`);
+  if(from){
+    out.push(c.url + (query ? '&' : '?') + `utc=${from}&lutc=${Math.floor(Date.now() / 1000)}`);
+    out.push(c.url + (query ? '&' : '?') + `utcstart=${from}`);
+    out.push(path.replace(/\/live\//, '/timeshift/') + q);
+  }
   if(c.cid) out.push(`http://${c.server}:80/${c.cid}/${file}?token=${c.token}`);
   const order = store.get('archFmt', -1);
   const list = [...new Set(out)];
@@ -62,15 +69,20 @@ export async function rtvArchiveProbe(c, start, end){
   if(!end || end <= start) end = now + 600;
   const file = start > now - 600 ? `timeshift_abs-${start}.m3u8` : `index-${start}-${Math.floor(end - start)}.m3u8`;
   const urls = rtvArchiveUrls(c, file, start);
+  const tried = [];
+  const hide = u => u.replace(/[A-Za-z0-9_-]{8,}/g, m => m.slice(0, 3) + '…');
   for(const u of urls){
     try{
       const text = await fetchText(u);
-      if(!/#EXTM3U/.test(text.slice(0, 200))) continue;
+      if(!/#EXTM3U/.test(text.slice(0, 200))){ tried.push(`${hide(u)} → ${text.slice(0, 40).replace(/\s+/g, ' ')}`); continue; }
       const plain = rtvArchiveUrls(c, file, start);          // the order this one was found in
       store.set('archFmt', plain.indexOf(u));
+      store.set('archTried', []);
       return u;
-    }catch(e){}
+    }catch(e){ tried.push(`${hide(u)} → ${(e.message || 'no answer').slice(0, 40)}`); }
   }
+  // nothing answered: what was asked, and what came back, is kept for the settings page to show
+  store.set('archTried', tried);
   return urls[0];
 }
 /** The same addresses, with the times left for the player to fill in: it walks the guide by itself. */

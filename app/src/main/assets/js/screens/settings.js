@@ -42,10 +42,16 @@ export function paintSettings(){
   if(!pane) return;
   const a = document.activeElement;
   const focusKey = a?.dataset?.g ? `[data-g="${a.dataset.g}"][data-v="${a.dataset.v}"]` : null;
-  const seg = (g, label, opts, note = '') => `<section class="sset"><h2>${label}</h2>
-    <div class="seg" role="group" aria-label="${esc(label)}">${opts.map(([v, n]) =>
-      `<button class="${settings[g] === v ? 'on' : ''}" data-g="${g}" data-v="${v}" aria-pressed="${settings[g] === v}">${n}</button>`).join('')}</div>
-    ${note ? `<p class="note" style="margin:8px 0 0">${note}</p>` : ''}</section>`;
+  // One line per choice, saying what it is set to; pressing it takes the next value there is. A
+  // remote then needs one press per change, and the page never hides what is chosen behind a row of
+  // pills that all look alike.
+  const seg = (g, label, opts, note = '') => {
+    const i = Math.max(0, opts.findIndex(([v]) => v === settings[g]));
+    const next = opts[(i + 1) % opts.length][0];
+    return `<section class="sset"><button class="tact" data-g="${g}" data-v="${esc(next)}">${label}
+      <span class="sub">${opts[i][1]}</span></button>
+      ${note ? `<p class="note" style="margin:8px 0 0">${note}</p>` : ''}</section>`;
+  };
   const optCard = (g, o, preview) => `<button class="setopt ${settings[g] === o.id ? 'on' : ''}" data-g="${g}" data-v="${o.id}" aria-pressed="${settings[g] === o.id}">
       ${preview}<span class="sn">${tr(`${g}.${o.id}.name`)}</span><span class="sd">${tr(`${g}.${o.id}.note`)}</span></button>`;
   const optRow = (g, o, preview) => `<button class="setopt ${settings[g] === o.id ? 'on' : ''}" data-g="${g}" data-v="${o.id}" aria-pressed="${settings[g] === o.id}">
@@ -117,7 +123,10 @@ export function paintSettings(){
     const box = $('#rtvShape');
     if(!c || !box?.isConnected) return;
     const hide = u => u.replace(/[A-Za-z0-9_-]{8,}/g, m => m.slice(0, 3) + '…');
-    box.textContent = [`${c.name}${c.rec ? ` · ${c.rec}h` : ''}`, hide(c.url), ...rtvArchiveTemplate(c).split('|').filter(Boolean).map(hide)].join('\n');
+    const tried = store.get('archTried', []);
+    box.textContent = [`${c.name}${c.rec ? ` · ${c.rec}h` : ''}`, hide(c.url),
+      ...rtvArchiveTemplate(c).split('|').filter(Boolean).map(hide),
+      ...(tried.length ? ['— מה שנוסה לאחרונה —', ...tried] : [])].join('\n');
   }).catch(() => {});
   if($('#rtvClear')) $('#rtvClear').onclick = () => { store.set('rtvKey', ''); forgetRtv(); paintSettings(); };
   pane.querySelectorAll('[data-plrm]').forEach(b => b.onclick = () => {

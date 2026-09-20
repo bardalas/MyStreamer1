@@ -140,11 +140,11 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry)
     // it will play - its size, and whether anything is still answering - is said beside it.
     const byQuality = QUALITIES.filter(q => playable.some(x => x.q === q));
     const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
-    box.innerHTML = `${byQuality.length > 1 ? byQuality.map(q => `<button class="qbtn${q === best.q ? ' on' : ''}" data-q="${q}">${q}</button>`).join('')
-        : `<span class="srcstat idle">${esc(detail(best))}</span>`}${links}
-      ${more}
-      <span class="srcstat idle">${esc(detail(best))}</span>
-      ${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
+    // One row for the quality, not one per quality: pressing it takes the next one there is.
+    const next = byQuality[(byQuality.indexOf(best.q) + 1) % byQuality.length];
+    box.innerHTML = `${byQuality.length > 1 ? `<button class="tact" id="qnext" data-q="${next}">${tr('src.quality')}
+        <span class="sub">${best.q}${best.size ? ` · ${fmtSize(best.size)}` : ''}</span></button>` : ''}
+      ${links}${more}${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
     box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
       prefQ = b.dataset.q === prefQ ? '' : b.dataset.q;         // pressing the one in use returns to automatic
       store.set('quality', prefQ);
@@ -192,8 +192,8 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
         return;
       }
     }
-    // the first thing the remote holds on a title is what it would watch
-    const first = $('#eps')?.querySelector('.ep.on, .ep');
+    // the first thing the remote holds on a title is the button that starts it
+    const first = $('#goPlay') || $('#eps')?.querySelector('.epcard.on, .epcard');
     if(first && takeFocus && !focused){ focused = true; first.focus(); }
   };
   render();

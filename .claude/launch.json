@@ -4,8 +4,8 @@
     {
       "name": "booth",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8766", "--directory", "C:/bardalasRepo/VEO/app/src/main/assets"],
-      "port": 8766
+      "runtimeArgs": ["C:/bardalasRepo/VEO/tools/serve.py", "8767"],
+      "port": 8767
     }
   ]
 }

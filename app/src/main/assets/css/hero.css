@@ -1,0 +1,62 @@
+/* ---------- a title page: the picture on one side, the choices on the other ----------
+   The artwork (and the taste playing in it) takes the far side of the screen and bleeds off it; the
+   words and everything you can do sit in a column on the side the writing starts from, one under the
+   other - which is the shape a remote reads best: up and down, never hunting across a page. */
+
+main{position:relative}
+
+.backdrop{position:absolute;inset-block-start:0;inset-inline-end:0;width:64%;height:62vh;margin:0;
+  border-start-start-radius:0;border-end-start-radius:20px;overflow:hidden}
+/* the picture fades into the page towards the column, instead of stopping at an edge */
+.backdrop::after{content:"";position:absolute;inset:0;background:
+  linear-gradient(to var(--fade-to,left),transparent 30%,var(--night) 92%),
+  linear-gradient(0deg,var(--night),transparent 40%)}
+:root[dir="ltr"]{--fade-to:right}
+
+.detail{display:block;position:relative;z-index:2;margin:0;padding-top:6vh;max-width:min(46%,620px)}
+.detail .poster-lg{display:none}                      /* the artwork is the page now */
+.dinfo{max-width:none}
+.detail h1{font-size:clamp(28px,3.6vw,46px);margin:0 0 8px}
+.dinfo .desc{margin:0;color:var(--text2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.dinfo .facts{margin:0 0 12px}
+.dinfo .people{margin-top:10px;font-size:13px;color:var(--muted)}
+
+/* everything you can do with the title, one under the other */
+.tacts{display:flex;flex-direction:column;gap:8px;margin:18px 0 0;max-width:420px}
+.tact{display:flex;align-items:center;gap:12px;width:100%;padding:11px 16px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);color:var(--light);font:600 15px var(--body);
+  cursor:pointer;text-align:start}
+.tact .sub{margin-inline-start:auto;color:var(--muted);font-weight:500;font-size:13px}
+.tact.go{background:var(--light);color:var(--night);border-color:transparent;font-size:17px;padding:13px 18px}
+.tact.go .sub{color:#0009}
+[data-layout="tv"] .tact{font-size:17px;padding:13px 18px}
+[data-layout="tv"] .tact.go{font-size:19px}
+
+/* the episodes: a row you run along, under the picture */
+.epanel{margin-top:26px}
+.epwrap{display:block}
+.eps{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 10px;max-height:none}
+.eps::-webkit-scrollbar{display:none}
+.seasonbar{display:flex;gap:8px;margin:0 0 12px;max-height:none;overflow-x:auto}
+
+.epcard{flex:0 0 clamp(200px,20vw,300px);display:flex;flex-direction:column;gap:8px;padding:0;
+  background:none;border:0;color:var(--light);text-align:start;cursor:pointer;min-width:0}
+.epcard .art{display:block;position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;
+  background:var(--surface) center/cover;transition:transform var(--travel) var(--ease),filter var(--quick) linear}
+.epcard .t{display:block;min-width:0}
+.epcard .t b{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.epcard .t small{display:block;color:var(--muted);font-size:12px}
+.epcard.seen .t b{color:var(--muted)}
+.epcard .bar{position:absolute;inset-inline:0;bottom:0;height:4px;background:#0009}
+.epcard .bar i{display:block;height:100%;background:var(--tungsten)}
+.epcard.on .t b{color:var(--tungsten)}
+[data-layout="tv"] .epcard .t b{font-size:16px}
+[data-layout="tv"] .epcard .t small{font-size:13px}
+
+/* a narrow screen keeps the older shape: the picture on top, everything under it */
+@media (max-width:900px){
+  .backdrop{position:relative;width:auto;height:34vh;margin:0 -16px;border-radius:0}
+  .backdrop::after{background:linear-gradient(0deg,var(--night),transparent 55%)}
+  .detail{max-width:none;padding-top:14px}
+  .tacts{max-width:none}
+}

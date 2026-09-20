@@ -1,5 +1,30 @@
 # VEO Android changelog
 
+## 0.40.0 — 2026-09-20
+- **A title page built the way the big services build one**: the artwork (and the taste playing in it)
+  takes one side of the screen and bleeds off it; the name, the synopsis and everything you can do sit
+  in a column on the other - one under the other, which is the shape a remote reads best. The first
+  line plays what you are up to, the second opens the episodes, the third says which quality it will
+  use. Episodes are a row of pictures you run along, not a table.
+- **Subtitles can be moved while you watch.** The translation is now read and drawn by the app itself,
+  so nudging it half a second - or a tenth - happens as you press, without rebuilding anything. The
+  same panel (Up, while a film plays) chooses the translation and its size.
+- **Moving with the remote is quick again.** What the arrows can reach used to be worked out on every
+  press - hundreds of measurements, each one making the page lay itself out again. It is worked out
+  once per screen now.
+- **Where you are is white; what is chosen wears the accent.** Two questions, two answers, never the
+  same colour - which is what made a setting's current value impossible to see.
+- **Settings are a list of plain lines**, each saying what it is set to; pressing one takes the next
+  value. No more rows of pills that all look alike.
+- **Search reaches the broadcasters**: Kan, Keshet and Reshet programmes come up beside the streaming
+  results, from catalogues the app already holds.
+- **The film archive plays here** when its page will give up the film, instead of always handing you
+  to the website.
+- A card over the picture holds the page still behind it.
+- A broadcaster's "not modified" answer is tried again rather than shown as a failure.
+- Catch-up on RaspberryTV tries nine shapes of archive address, and when none of them answers, the
+  RaspberryTV section of Settings lists what was asked and what came back.
+
 ## 0.39.1 — 2026-09-20
 - **A title page is a banner, then the words, then what there is to watch.** Nothing is written over
   the artwork any more; the facts are small labels under the synopsis; and the row above the list
