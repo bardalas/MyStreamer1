@@ -46,6 +46,8 @@ img{max-width:100%;display:block}
 .nav a.on{color:var(--light);background:var(--raise)}
 .search{flex:0 1 300px;min-width:150px;margin-inline-start:auto;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding-block:4px;padding-inline:16px 4px;width:min(340px,40vw)}
 .search input{flex:1;background:none;border:0;outline:0;min-width:0}
+.search:focus-within{border-color:var(--tungsten);box-shadow:0 0 0 2px var(--tungsten)}
+[data-layout="tv"] .search:focus-within{box-shadow:0 0 0 4px var(--tungsten)}
 .search button{background:var(--tungsten);color:var(--on-accent);border:0;border-radius:999px;padding:6px 14px;font-weight:600;cursor:pointer}
 
 main{padding:0 28px 60px}

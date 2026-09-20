@@ -27,6 +27,8 @@ class MainActivity : AppCompatActivity() {
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
+        // chrome://inspect can attach to a debug build's page; a release build stays closed
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
         web.webViewClient = WebViewClient()
         web.webChromeClient = WebChromeClient()
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
@@ -114,7 +116,9 @@ class MainActivity : AppCompatActivity() {
         /** Opens the on-screen keyboard for the focused field (TV: only after OK on the field). */
         @JavascriptInterface fun showKeyboard() {
             runOnUiThread {
-                web.requestFocus()
+                // requestFocus() on a WebView that already has focus makes it re-pick the first focusable
+                // element of the page - it took the caret away from the very field being typed into
+                if (!web.hasFocus()) web.requestFocus()
                 (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
                     .showSoftInput(web, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
             }

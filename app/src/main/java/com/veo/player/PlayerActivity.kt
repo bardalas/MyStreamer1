@@ -60,6 +60,8 @@ class PlayerActivity : AppCompatActivity() {
     /** Channel bar (live TV): which channel the viewer is pointing at while it is open. */
     private var barIndex = 0
     private val barOpen get() = findViewById<View>(R.id.chScroll).visibility == View.VISIBLE
+    /** The channel the banner describes: the one being pointed at while the list is open, else the one playing. */
+    private val shownIndex get() = if (barOpen) barIndex else index
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -217,7 +219,7 @@ class PlayerActivity : AppCompatActivity() {
 
     /** Fill the banner with the channel and what is on it, then fetch the guide if it is not in yet. */
     private fun paintBanner() {
-        val src = sources[index]
+        val src = sources[shownIndex]
         findViewById<TextView>(R.id.chNum).text = if (src.num > 0) "${src.num}" else "—"
         findViewById<TextView>(R.id.chName).text = src.name
         findViewById<TextView>(R.id.nowClock).text =
@@ -233,7 +235,7 @@ class PlayerActivity : AppCompatActivity() {
 
     /** The "now / next" part, refreshed every minute while the banner is up. */
     private fun paintNow() {
-        val src = sources.getOrNull(index) ?: return
+        val src = sources.getOrNull(shownIndex) ?: return
         val now = System.currentTimeMillis() / 1000
         val progs = guides[src.epg]
         val playing = progs?.firstOrNull { now in it.from until it.to }
@@ -256,8 +258,9 @@ class PlayerActivity : AppCompatActivity() {
             after.text = ""
         }
         findViewById<TextView>(R.id.infoNow).text =
-            if (sources.size > 1) "OK לרשימת הערוצים · מעלה/מטה להחלפה · לחיצה ארוכה על OK: צפייה אחורה"
-            else "לחיצה ארוכה על OK: צפייה אחורה"
+            if (sources.size < 2) "לחיצה ארוכה על OK: צפייה אחורה"
+            else if (barOpen && barIndex != index) "OK: מעבר לערוץ הזה · מעלה/מטה: עוד ערוצים · חזרה: ביטול"
+            else "מעלה/מטה: דפדוף בערוצים · OK: בחירה · לחיצה ארוכה על OK: צפייה אחורה"
     }
 
     private fun hhmm(epochSeconds: Long): String =
@@ -289,7 +292,7 @@ class PlayerActivity : AppCompatActivity() {
             }.getOrNull()
             runOnUiThread {
                 logos[url] = bmp
-                if (bannerOpen && sources.getOrNull(index)?.logo == url && bmp != null) {
+                if (bannerOpen && sources.getOrNull(shownIndex)?.logo == url && bmp != null) {
                     findViewById<ImageView>(R.id.chLogo).apply { setImageBitmap(bmp); visibility = View.VISIBLE }
                 }
             }
@@ -307,7 +310,7 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
         handler.postDelayed(tickBanner, 30_000)
-        if (!withList) handler.postDelayed(hideBanner, 6_000)      // browsing the list stays up
+        handler.postDelayed(hideBanner, if (withList) 12_000L else 6_000L)   // browsing the list ends by itself when left alone
     }
 
     private val hideBanner = Runnable { hideChannelBar() }
@@ -368,6 +371,15 @@ class PlayerActivity : AppCompatActivity() {
     private fun moveChannelBar(step: Int) {
         barIndex = (barIndex + step + sources.size) % sources.size
         paintChannelBar()
+        paintBanner()                                            // the banner describes the channel pointed at
+        handler.removeCallbacks(hideBanner)
+        handler.postDelayed(hideBanner, 12_000)
+    }
+
+    /** Up/Down: raise the banner and page through the channels in it - nothing changes until OK. */
+    private fun browseBy(step: Int) {
+        if (!barOpen) showChannelBar()
+        moveChannelBar(step)
     }
 
     private fun pickChannel(i: Int) {
@@ -478,8 +490,8 @@ class PlayerActivity : AppCompatActivity() {
         handler.postDelayed(hideOsd, 3_000)
     }
 
-    // Remote: OK opens the channel bar (OK again switches), long press opens catch-up,
-    // channel keys and up/down zap directly, play/pause pauses the live stream.
+    // Remote: up/down (or OK) raise the banner and page through the channels, OK on one switches to it,
+    // long press OK opens catch-up, the channel keys switch straight away, play/pause pauses the live stream.
     @OptIn(UnstableApi::class)
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
@@ -502,10 +514,11 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_BACK -> if (barOpen) { hideChannelBar(); return true }
             KeyEvent.KEYCODE_DPAD_LEFT -> if (barOpen) { moveChannelBar(1); return true }    // right-to-left list
             KeyEvent.KEYCODE_DPAD_RIGHT -> if (barOpen) { moveChannelBar(-1); return true }
-            KeyEvent.KEYCODE_CHANNEL_UP -> if (sources.size > 1) { zapBy(-1); return true }
-            KeyEvent.KEYCODE_CHANNEL_DOWN -> if (sources.size > 1) { zapBy(1); return true }
-            KeyEvent.KEYCODE_DPAD_UP -> if (sources.size > 1 && !controls && !barOpen) { zapBy(-1); return true }
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls && !barOpen) { zapBy(1); return true }
+            // the dedicated channel keys switch straight away (up = the next number, as on a television)
+            KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
+            KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }
+            KeyEvent.KEYCODE_DPAD_UP -> if (sources.size > 1 && !controls) { browseBy(-1); return true }
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls) { browseBy(1); return true }
         }
         return super.dispatchKeyEvent(event)
     }
