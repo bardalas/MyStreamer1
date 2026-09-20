@@ -134,6 +134,7 @@ document.body.classList.add('motion');
  * wherever it was before the frame appeared.
  */
 let lastFocus = null;
+let railReturnFocus = null;                         // exact content item left when the remote enters the side rail
 addEventListener('focusin', e => { if(e.target.tagName !== 'IFRAME') lastFocus = e.target; });
 const reclaim = () => {
   const a = document.activeElement;
@@ -196,6 +197,12 @@ export function tvMove(dir){
     }
     if(dir === FWD()){                              // what the menu controls is on its far side
       const target = $(pane);
+      // Returning from the global rail goes back to the exact title/control the viewer left, not
+      // to the first row. This preserves both the visual row and the page's current scroll position.
+      if(row.id === 'rail' && railReturnFocus?.isConnected && target?.contains(railReturnFocus)){
+        focusItem(railReturnFocus);
+        return true;
+      }
       // the titles are what the viewer came for: the pills above them are not where to land
       const rows = target ? tvRows().filter(r => target.contains(r)) : [];
       const cards = rows.find(r => r.querySelector('.poster, .ep, .chmain, .eprow'));
@@ -222,6 +229,7 @@ export function tvMove(dir){
       const stab = document.querySelector('.seasonbar button.on') || document.querySelector('.seasonbar button');
       if(stab && row.classList.contains('eps')){ focusItem(stab); return true; }
       if(document.body.classList.contains('railed') && $('#app').contains(active)){
+        railReturnFocus = active;                    // remember the exact movie/control before entering the rail
         focusItem($('#rail a.on') || $('#rail a'));
         return true;
       }
