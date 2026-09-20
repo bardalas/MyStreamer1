@@ -22,7 +22,12 @@ class MainActivity : AppCompatActivity() {
     private val PAGE = "https://appassets.androidplatform.net/assets/booth.html"
     private lateinit var web: WebView
     private val REQ_LIVE = 1
+    private val REQ_INSTALL = 2
     @Volatile private var updateCancelled = false
+    // An update that was downloaded but could not be installed yet (the device has still to be told
+    // to allow it). Kept so that coming back from that setting finishes the job by itself, instead
+    // of asking the viewer to find the update card again.
+    private var pendingUpdate: java.io.File? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -224,27 +229,12 @@ class MainActivity : AppCompatActivity() {
                     if (file.length() < 1_000_000 || head[0] != 'P'.code.toByte() || head[1] != 'K'.code.toByte())
                         throw java.io.IOException("הקובץ שהתקבל אינו גרסה תקינה")
                     status("", false)
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this@MainActivity, "$packageName.files", file)
-                    val install = Intent(Intent.ACTION_VIEW)
-                        .setDataAndType(uri, "application/vnd.android.package-archive")
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    runOnUiThread {
-                        // Android 8+: installing needs this app to be allowed as an install source.
-                        // Without it the installer just refuses, so send the viewer to grant it.
-                        if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
-                            status("אשר התקנה מ-VEO, ואז לחץ שוב על עדכן", false)
-                            runCatching {
-                                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                                    android.net.Uri.parse("package:$packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                            }.onFailure { status("צריך לאשר למקרן להתקין עדכונים בהגדרות המכשיר", true) }
-                            return@runOnUiThread
-                        }
-                        runCatching { startActivity(install) }
-                            .onFailure { status("לא נמצאה דרך להתקין את העדכון במכשיר הזה", true) }
-                    }
+                    runOnUiThread { installUpdate(file) }
                 } catch (e: Exception) {
-                    status("הורדת העדכון נכשלה (${e.message ?: "שגיאה"})", true)
+                    // the class name as well as the message: an IOException with nothing to say is
+                    // otherwise reported as "failed ()", which tells nobody anything
+                    val why = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+                    status("הורדת העדכון נכשלה ($why)", true)
                 }
             }.start()
         }
@@ -320,9 +310,57 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Hand a downloaded version to Android's installer, which is what asks the viewer to confirm it.
+     *
+     * Android 8 and later will only take it from an app the device has been told to allow, and a
+     * television is usually not told until the first time. Then the viewer is sent to that setting -
+     * and the file is kept, so coming back installs it without a second download. Some televisions
+     * have no such screen at all; there the security settings are the next best place to send them.
+     */
+    private fun installUpdate(file: java.io.File) {
+        val say = { msg: String, err: Boolean -> showStatus(msg, err) }
+        if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+            pendingUpdate = file
+            say("אשר ל-VEO להתקין עדכונים, ונחזור לכאן", false)
+            val ask = listOf(
+                Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    android.net.Uri.parse("package:$packageName")),
+                Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS),
+                Intent(android.provider.Settings.ACTION_SETTINGS))
+            for (i in ask) {
+                if (runCatching { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess) return
+            }
+            say("צריך לאשר התקנה ממקורות לא ידועים בהגדרות המכשיר", true)
+            return
+        }
+        val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", file)
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
+        // The old install intent is the one that reports back what happened; ACTION_VIEW opens the
+        // same installer but tells us nothing, so it is only the fallback.
+        @Suppress("DEPRECATION")
+        val asked = Intent(Intent.ACTION_INSTALL_PACKAGE).setData(uri)
+            .putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            .putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (runCatching { startActivityForResult(asked, REQ_INSTALL) }.isSuccess) return
+        val plain = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, "application/vnd.android.package-archive").addFlags(flags)
+        if (runCatching { startActivity(plain) }.isSuccess) { pendingUpdate = null; return }
+        pendingUpdate = file
+        say("לא נמצאה דרך להתקין את העדכון במכשיר הזה", true)
+    }
+
     // Back: let the page close an open panel/keyboard first, then go back, then leave the app.
     override fun onResume() {
         super.onResume()
+        // back from the device's settings: if it will take an update now, install the one already here
+        pendingUpdate?.let { file ->
+            if (file.exists() && (android.os.Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())) {
+                pendingUpdate = null
+                installUpdate(file)
+            }
+        }
         // Progress written by the player while watching -> "continue watching" in the page.
         val prefs = getSharedPreferences("watch", MODE_PRIVATE)
         val progress = prefs.getString("progress", null)
@@ -332,10 +370,33 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * What the installer answered. Its codes are negative numbers documented in `PackageManager`;
+     * the two that matter here are the ones a viewer can do something about - an install refused
+     * because what is already on the device cannot be updated in place (a copy signed by another
+     * key, or one left behind by an interrupted install), which only a clean re-install cures.
+     */
+    private fun installRefused(code: Int) {
+        val conflict = code == -7 || code == -8 || code == -25 || code == -505     // incompatible / duplicate / conflicting
+        pendingUpdate = null
+        showStatus(when {
+            conflict -> "ההתקנה נדחתה: יש להסיר את VEO מהמכשיר ולהתקין את הגרסה החדשה מחדש"
+            code == -4 -> "אין מספיק מקום פנוי במכשיר להתקנת העדכון"
+            code == 0 -> ""                                                        // the viewer said no
+            else -> "ההתקנה נדחתה על ידי המכשיר (קוד $code)"
+        }, conflict || (code != 0 && code != -1))
+    }
+
     // The player closed with "catch-up" for a channel: open its programme guide in the page.
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_INSTALL) {
+            if (resultCode == RESULT_OK) { pendingUpdate = null; showStatus("") }
+            else if (resultCode == RESULT_CANCELED) { pendingUpdate = null; showStatus("") }
+            else installRefused(data?.getIntExtra("android.intent.extra.INSTALL_RESULT", -1) ?: -1)
+            return
+        }
         val channel = data?.getStringExtra("catchup")
         if (requestCode == REQ_LIVE && resultCode == RESULT_OK && !channel.isNullOrBlank()) {
             web.evaluateJavascript("window.boothCatchup && boothCatchup(${JSONObject.quote(channel)})", null)

@@ -1,5 +1,15 @@
 # VEO Android changelog
 
+## 0.40.2 — 2026-09-20
+- **An update that says why it failed.** Android refuses an install with a toast that names no
+  cure (“package conflicts with an existing package”). The app now asks the installer for its
+  answer and turns it into words: what is already on the device cannot be updated in place — so
+  remove VEO and install the new version — or there is no room for it, or the device has still to
+  be told to allow installing from VEO.
+- **Being sent to that setting no longer loses the update.** The version that was downloaded is
+  kept, and coming back from the device's settings installs it without fetching it again. On a
+  television with no “unknown sources” screen of its own, the security settings are opened instead.
+
 ## 0.40.1 — 2026-09-20
 - **The remote stays inside a title card.** The taste plays in a frame of YouTube's, and a frame of
   someone else's can take the focus for itself - after which every arrow press went to YouTube and
