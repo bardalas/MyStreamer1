@@ -310,7 +310,13 @@ class PlayerActivity : AppCompatActivity() {
             }
             .build()
 
-        player = ExoPlayer.Builder(this)
+        // A television carries more than one decoder for the same sound, and the first one it offers is
+        // not always one that works: "Decoder failed: c2.android.mp3.decoder" is a device refusing its
+        // own software decoder, not a fault in the film. Told to fall back, the player simply asks the
+        // next decoder that claims the format, and the film plays.
+        val renderers = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+            .setEnableDecoderFallback(true)
+        player = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
             .setLoadControl(loadControl)
             .build().also {
@@ -771,8 +777,11 @@ class PlayerActivity : AppCompatActivity() {
         val why = generateSequence(error.cause) { it.cause }.mapNotNull { it.message }.firstOrNull()
         // A broadcaster's CDN sometimes answers a plain request with "not modified", or a 5xx it will
         // not repeat: one more attempt costs a second and usually plays.
-        val retryable = live || status == 304 || (status != null && status >= 500)
-        if (retryable && retries < 2) {
+        // A decoder that would not start is worth one more attempt on its own: the device may have been
+        // holding the codec for whatever played before, and the second attempt usually gets it.
+        val decoderTrouble = error.errorCodeName.contains("DECODER") && status == null
+        val retryable = live || status == 304 || (status != null && status >= 500) || decoderTrouble
+        if (retryable && retries < (if (decoderTrouble) 1 else 2)) {
             retries++
             showMessage("מנסה שוב… ($retries/2)", 3_500)
             player?.release()

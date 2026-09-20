@@ -8,7 +8,7 @@ import {esc} from '../core/dom.js';
 import {noteOpened} from '../core/screenmem.js';
 import {settings} from '../core/settings.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
-import {heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
+import {hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
 import {svcMarks} from '../data/services.js';
 import {progress} from '../data/watch.js';
@@ -27,6 +27,7 @@ const turning = () => reelable() && WIDE.matches;
 
 let spot = null;              // the title in the middle
 let settling = 0;             // what the middle will say, once the viewer has stopped moving
+let restingSince = 0;         // when the moving stopped: the taste is measured from there
 let act = null;               // its buttons, under the picture
 let hadArt = '';              // the artwork the poster carried before the picture widened
 
@@ -75,7 +76,10 @@ export function spotlight(el){
      a press must answer - but the title's own story, which costs an answer from the add-ons, a page
      of writing and a trailer, waits until they have stopped on it. Otherwise every press pays for
      work the next press throws away, which is the whole of what makes a wheel feel heavy. */
-  settling = setTimeout(() => { if(spot === el && el.isConnected) paint(el, full); }, 260);
+  settling = setTimeout(() => {
+    restingSince = performance.now();
+    if(spot === el && el.isConnected) paint(el, full);
+  }, 600);
 }
 
 /** Put the buttons under the picture, and turn the wheel until the title is in the middle. */
@@ -85,7 +89,8 @@ export function place(){
   if(!strip) return;
   const art = spot.querySelector('.art');
   act.style.left = spot.offsetLeft + 'px';
-  act.style.top = spot.offsetTop + (art?.offsetHeight || 0) + 8 + 'px';
+  // under the whole title - its picture and the name beneath it - not over the name
+  act.style.top = spot.offsetTop + spot.offsetHeight + 4 + 'px';
   act.style.width = spot.offsetWidth + 'px';
   if(!turning() || !strip.classList.contains('reel')){ strip.style.transform = ''; return; }
   strip.style.transform = `translateX(${Math.round(turn(strip, spot))}px)`;
@@ -108,23 +113,41 @@ function turn(strip, el){
 addEventListener('resize', place);
 
 /** What the title says for itself: the name at once, the rest as the add-ons answer. */
+/**
+ * Put the wide picture in place of the poster - but only once it has arrived.
+ *
+ * Setting a background the browser has still to fetch makes it decode a photograph in the middle of
+ * whatever else is happening, and passing along a row then asks for one picture after another. Asked
+ * for beforehand and put in place when it is ready, a title the viewer only passed costs nothing.
+ */
+function showArt(art, url){
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = url;
+  const put = () => {
+    if(art.isConnected && art.closest('.poster')?.classList.contains('spot'))
+      art.style.backgroundImage = `url('${url.replace(/'/g, '%27')}')`;
+  };
+  (img.decode ? img.decode() : Promise.resolve()).then(put, put);
+}
+
 async function paint(el, full){
   const art = el.querySelector('.art');
   if(!art) return;
-  const name = el.querySelector('.t span')?.textContent || el.querySelector('.t')?.textContent || '';
-  art.insertAdjacentHTML('beforeend',
-    `<div class="spotinfo"><b dir="auto">${esc(name)}</b><div class="facts"></div><p dir="auto"></p></div>`);
+  /* Under the picture, where a title's name always is - not written over the picture itself. The
+     name is already there, in the same place as every other title's; what is added is the line that
+     says what this one is, and it is added below it rather than in front of the artwork. */
+  act.innerHTML = `<div class="spotinfo"><div class="facts"></div><p dir="auto"></p></div>`;
   if(!full) return;                                  // a broadcaster's programme: its picture and its name
   const [, , type, idEnc] = el.getAttribute('href').split('/');
   const id = decodeURIComponent(idEnc);
   warmSources(type, type === 'series' ? `${id}:1:1` : id);     // so that "נגן" has something ready
   const meta = await fetchMeta(type, id).catch(() => null);
   if(spot !== el || !el.isConnected) return;
-  const info = art.querySelector('.spotinfo');
+  const info = act?.querySelector('.spotinfo');
   if(!info) return;
   if(meta){
-    if(meta.background) art.style.backgroundImage = `url('${meta.background.replace(/'/g, '%27')}')`;
-    info.querySelector('b').textContent = heTitle(meta.id, meta.name);
+    if(meta.background) showArt(art, meta.background);
     // one line of it: what it scores, when it is from, how long, what it is - and the marks of whoever has it
     info.querySelector('.facts').innerHTML = [
       meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`,
@@ -132,7 +155,10 @@ async function paint(el, full){
       ...(meta.genres || meta.genre || []).slice(0, 1).map(g => `<span>${esc(genreName(g))}</span>`),
       svcMarks(id) && `<span>${svcMarks(id)}</span>`].filter(Boolean).join('');
     info.querySelector('p').textContent = meta.description || '';
-    startTaste('.poster.spot .art', trailerId(meta), 1300, true);   // quietly: browsing is not watching
+    // Two seconds from the moment the viewer came to rest - counted from then, not from whenever the
+    // add-ons happened to answer, so it is the same wait every time. Quietly: browsing is not watching.
+    const waited = performance.now() - restingSince;
+    startTaste('.poster.spot .art', trailerId(meta), Math.max(200, 2000 - waited), true);
   }
   if(hebrewOn() && /^tt\d+$/.test(id)){
     const plot = await hebrewPlot(id).catch(() => null);

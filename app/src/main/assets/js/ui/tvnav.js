@@ -222,6 +222,14 @@ export function tvMove(dir){
       const first = (cards && itemsOf(cards)[0]) || its.find(el => el.classList.contains('on'))
         || rows.flatMap(itemsOf)[0] || its[0];
       if(first) focusItem(first);
+      return true;
+    }
+    // Backwards, a menu inside the page leads on to the rail - the way out of the screen itself.
+    // Without this the settings menu was a dead end: the only way out was upwards, past its first
+    // entry, which is not where anyone looks for the way back.
+    if(row.id !== 'rail' && document.body.classList.contains('railed')){
+      const out = $('#rail a.on') || $('#rail a');
+      if(out){ focusItem(out); return true; }
     }
     return true;
   }

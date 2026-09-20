@@ -1,5 +1,22 @@
 # VEO Android changelog
 
+## 0.41.1 — 2026-09-21
+- **The page opens on its titles.** What is half-watched was announced twice: half a screen of
+  banner at the top, and then the same thing again in its row. The banner is gone.
+- **Passing a title costs nothing now.** Its picture used to be swapped for a wide one the browser
+  had still to fetch — a photograph decoded for every title passed. The wide picture is asked for
+  first and put in place only once it has arrived, and only if the viewer is still there; the story
+  under it waits for them to stop.
+- **The taste starts two seconds after you come to rest** — counted from the moment you stopped,
+  not from whenever the add-ons happened to answer, so it is the same wait every time.
+- **A title keeps its name under it**, where every other title's name is, with one line beneath
+  saying what it is. The name is no longer taken off the poster and written over the picture.
+- **A way out of the settings menu.** Pressing back (right, in Hebrew) from the settings menu now
+  reaches the side rail. It was a dead end: the only way out was upwards, past its first entry.
+- **“Decoder failed” no longer stops a film.** A television carries more than one decoder for the
+  same sound and the first one it offers is not always one that works; the player now falls back to
+  the next decoder that claims the format, and tries once more before giving up.
+
 ## 0.41.0 — 2026-09-21
 - **One layout.** The app had four, and only one of them ever received the work: the wheel, the
   focus model, the title page and every fix of the last week were built and tried in it, while the
