@@ -11,8 +11,8 @@ android {
         applicationId = "com.booth.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3210
-        versionName = "0.32.1"
+        versionCode = 3220
+        versionName = "0.32.2"
     }
     signingConfigs {
         create("release") {
@@ -48,6 +48,9 @@ dependencies {
     implementation("com.frostwire:jlibtorrent:$jlibtorrentVersion")
     implementation("com.frostwire:jlibtorrent-android-arm64:$jlibtorrentVersion")
     implementation("com.frostwire:jlibtorrent-android-arm:$jlibtorrentVersion")
+    // Emulators on a PC are x86_64, where the ARM natives cannot load and torrents would be the one
+    // thing that could not be tested. Debug builds carry them; the release stays lean for real TVs.
+    debugImplementation("com.frostwire:jlibtorrent-android-x86_64:$jlibtorrentVersion")
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
     implementation("androidx.media3:media3-exoplayer-dash:1.11.1")

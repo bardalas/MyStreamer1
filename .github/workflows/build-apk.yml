@@ -63,6 +63,20 @@ jobs:
           # fixed name for a short, permanent download link (…/releases/latest/download/HaMakren.apk), e.g. for TVs
           cp app/build/outputs/apk/release/app-release.apk HaMakren.apk
 
+      # An x86_64-capable build, so the app (torrents included) can be tested in a PC emulator.
+      - name: Build debug APK for emulators
+        run: |
+          gradle --no-daemon :app:assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk HaMakren-emulator.apk
+
+      - name: Upload emulator APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HaMakren-emulator-v${{ env.VERSION }}
+          path: HaMakren-emulator.apk
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -77,5 +91,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           NOTES=$(awk "/^## $VERSION/{f=1;next} /^## /{f=0} f" CHANGELOG.md)
-          gh release create "$GITHUB_REF_NAME" "MyStreamer-v$VERSION.apk" HaMakren.apk \
+          gh release create "$GITHUB_REF_NAME" "MyStreamer-v$VERSION.apk" HaMakren.apk HaMakren-emulator.apk \
             -R "$GITHUB_REPOSITORY" --title "המקרן v$VERSION" --notes "${NOTES:-Release v$VERSION}"
