@@ -16,7 +16,6 @@ const deferred = () => {
   return {promise, resolve, reject};
 };
 const flush = async () => { for(let i = 0; i < 30; i++) await Promise.resolve(); };
-const hero = {type: 'series', metaId: 'show', videoId: 'show:1:4', name: 'Test Show', poster: 'poster', t: 600, d: 1800};
 const metadata = {id: 'show', name: 'Test Show', behaviorHints: {defaultVideoId: 'show:1:1'},
   videos: [{id: 'show:1:1', season: 1, episode: 1}, {id: 'show:1:4', season: 1, episode: 4}]};
 const stream = {url: 'https://media.invalid/video.m3u8', name: '1080p'};
@@ -127,100 +126,11 @@ async function fixture(opts = {}){
     if(m.status === 'linked') await m.evaluate();
     return m.namespace;
   }
-  async function rows(h = hero){ const ns = await load('ui/rows.js'); ns.renderRows([], {cont: [h]}); return ns; }
-  return {doc, app, box, alt, location, calls, clock, timers, load, rows, button: () => ids.get('heroPlay')};
+  return {doc, app, box, alt, location, calls, clock, timers, load};
 }
 
-// Resume identity and metadata fallback.
-test('saved episode wins over an older unfinished episode and defaultVideoId', async () => {
-  const f = await fixture(); await f.rows(); await f.button().onclick();
-  assert.equal(f.calls.quick[0][1], 'show:1:4'); assert.equal(f.calls.plays[0].ctx.videoId, 'show:1:4');
-  assert.equal(f.calls.plays[0].label, 'Test Show S1E4');
-});
-test('saved episode survives metadata failure with the hero poster', async () => {
-  const f = await fixture({fetchMeta: async () => { throw Error('metadata offline'); }});
-  await f.rows(); await f.button().onclick();
-  assert.equal(f.calls.quick[0][1], hero.videoId); assert.equal(f.calls.plays[0].ctx.meta.poster, 'poster');
-  assert.equal(f.calls.plays[0].label, 'Test Show');
-});
-test('saved ID need not be present in partial metadata', async () => {
-  const f = await fixture({fetchMeta: async () => ({...metadata, videos: metadata.videos.slice(0, 1)})});
-  await f.rows(); await f.button().onclick();
-  assert.equal(f.calls.plays[0].ctx.videoId, hero.videoId); assert.equal(f.calls.plays[0].label, 'Test Show');
-});
-test('saved movie ID wins over metadata default', async () => {
-  const f = await fixture(); await f.rows({...hero, type: 'movie', videoId: 'saved-film'}); await f.button().onclick();
-  assert.equal(f.calls.quick[0][1], 'saved-film');
-});
-test('missing series ID falls back to nextEpisode, without changing the global algorithm', async () => {
-  const f = await fixture(); await f.rows({...hero, videoId: ''}); await f.button().onclick();
-  assert.equal(f.calls.quick[0][1], 'show:1:1'); assert.equal(f.calls.plays[0].label, 'Test Show S1E1');
-});
-test('unknown series does not invent an episode ID', async () => {
-  const f = await fixture({fetchMeta: async () => null}); await f.rows({...hero, videoId: ''}); await f.button().onclick();
-  assert.equal(f.calls.quick.length, 0); assert.equal(f.location.hash, '#/detail/series/show');
-});
-test('movie without metadata or saved ID falls back to its metadata ID', async () => {
-  const f = await fixture({fetchMeta: async () => null}); await f.rows({...hero, type: 'movie', videoId: ''}); await f.button().onclick();
-  assert.equal(f.calls.quick[0][1], 'show');
-});
-test('real player bridge resumes the chosen episode at 600000 milliseconds', async () => {
-  const f = await fixture({realSources: true, native: true, addons: [addon], fetchStreams: async () => [stream],
-    progress: {[hero.videoId]: {t: 600, d: 1800}}});
-  await f.rows(); await f.button().onclick();
-  assert.equal(f.calls.plays.length, 1); assert.equal(f.calls.plays[0].args[2], hero.videoId);
-  assert.equal(f.calls.plays[0].args[5], 600000);
-});
-
-// Deferred promises exercise races instead of sleeping or using live services.
-test('double click produces only one metadata lookup and one playback', async () => {
-  const d = deferred(); const f = await fixture({fetchMeta: () => d.promise}); await f.rows();
-  const btn = f.button(); btn.focus(); const a = btn.onclick(), b = btn.onclick(); await flush();
-  assert.equal(f.calls.meta.length, 1); assert.equal(btn.getAttribute('aria-busy'), 'true');
-  assert.equal(btn.disabled, false); assert.equal(f.doc.activeElement, btn);
-  d.resolve(metadata); await Promise.all([a, b]);
-  assert.equal(f.calls.plays.length, 1); assert.equal(btn.getAttribute('aria-busy'), null);
-});
-test('navigation during metadata prevents source lookup even when the old node is connected', async () => {
-  const d = deferred(); const f = await fixture({fetchMeta: () => d.promise}); await f.rows(); const pending = f.button().onclick();
-  await flush(); f.location.hash = '#/library'; d.resolve(metadata); await pending;
-  assert.equal(f.calls.quick.length, 0); assert.equal(f.calls.plays.length, 0);
-});
-for(const result of [{s: stream}, null]) test(`navigation during quickPick ignores ${result ? 'a stream' : 'a details fallback'}`, async () => {
-  const d = deferred(); const f = await fixture({quickPick: () => d.promise}); await f.rows(); const pending = f.button().onclick();
-  await flush(); f.location.hash = '#/library'; d.resolve(result); await pending;
-  assert.equal(f.calls.plays.length, 0); assert.equal(f.location.hash, '#/library');
-});
-test('same-hash redraw cannot play old content or clear a newer request lock', async () => {
-  const a = deferred(), b = deferred(); let n = 0;
-  const f = await fixture({quickPick: () => (++n === 1 ? a : b).promise});
-  const rows = await f.rows(); const oldButton = f.button(); const first = oldButton.onclick(); await flush();
-  rows.renderRows([], {cont: [{...hero, videoId: 'show:1:5'}]}); const newButton = f.button();
-  const second = newButton.onclick(); await flush(); a.resolve({s: stream}); await first;
-  assert.equal(f.calls.plays.length, 0); assert.equal(newButton.getAttribute('aria-busy'), 'true');
-  await newButton.onclick(); assert.equal(f.calls.quick.length, 2);
-  b.resolve({s: stream}); await second;
-  assert.equal(f.calls.plays.length, 1); assert.equal(f.calls.plays[0].ctx.videoId, 'show:1:5');
-});
-test('router invalidation works before same-hash DOM replacement', async () => {
-  const d = deferred(); const f = await fixture({quickPick: () => d.promise}); await f.rows();
-  const pending = f.button().onclick(); await flush();
-  (await f.load('core/requests.js')).invalidateView(); d.resolve({s: stream}); await pending;
-  assert.equal(f.calls.plays.length, 0);
-});
-test('playback error releases the lock, reports failure and permits retry', async () => {
-  let n = 0; const f = await fixture({quickPick: async () => { if(++n === 1) throw Error('lookup failed'); return {s: stream}; }});
-  await f.rows(); await f.button().onclick();
-  assert.equal(f.doc.ids.get('heroStatus').textContent, 'lookup failed');
-  assert.equal(f.button().getAttribute('aria-busy'), null);
-  await f.button().onclick(); assert.equal(f.calls.plays.length, 1); assert.equal(f.timers.size, 0);
-});
-test('metadata timeout still resumes a saved ID and late metadata is ignored', async () => {
-  const d = deferred(); const f = await fixture({fetchMeta: () => d.promise}); await f.rows();
-  const pending = f.button().onclick(); await flush(); await f.clock.tick(15000); await pending;
-  assert.equal(f.calls.plays[0].ctx.videoId, hero.videoId); d.resolve(metadata); await flush();
-  assert.equal(f.calls.plays.length, 1); assert.equal(f.timers.size, 0);
-});
+/* The half-watched banner these once covered is gone (0.41.1): what is half-watched is a title in
+   its row like any other, and the episode to resume is chosen on the title's own page. */
 
 // Source aggregation, deadlines, navigation and availability.
 test('built-in sources run without any matching add-on and link to the program', async () => {
@@ -333,20 +243,6 @@ test('empty broadcaster item names do not match every long title', async () => {
   await s.loadStreams(movie, 'movie', 'Test Show'); assert.equal(f.box.querySelectorAll('[data-i]').length, 0);
 });
 
-for(const [t, d, pct] of [[0,100,0], [25,100,25], [50,100,50], [100,100,100], [150,100,100], [-1,100,0],
-  [25,0,0], [25,undefined,0], [Infinity,100,0], [NaN,100,0], [25,Infinity,0], ['25',100,0]]){
-  test(`partial progress uses one bounded fill: t=${t}, d=${d}`, async () => {
-    const f = await fixture(); await f.rows({...hero, t, d});
-    if(pct) assert.match(f.app.innerHTML, new RegExp(`class="bprog hero-prog"><i style="width:${pct}%"></i>`));
-    else assert.doesNotMatch(f.app.innerHTML, /class="bprog hero-prog"/);
-    assert.doesNotMatch(f.app.innerHTML, /<i><b|width:(NaN|Infinity|-)/);
-  });
-}
-test('Hero CSS uses the single fill without changing the global progress selector', async () => {
-  const css = await readFile(path.join(assets, 'css/layouts.css'), 'utf8');
-  assert.match(css, /\.hero-prog > i\{[^}]*background:var\(--tungsten\)/);
-  assert.doesNotMatch(css, /\.hero-prog i b|\.bprog i\{/);
-});
 test('router invalidates asynchronous work before every view, including same-hash routes', async () => {
   const app = await readFile(path.join(assets, 'js/app.js'), 'utf8');
   assert.match(app, /export async function route\(\)\{\s*invalidateView\(\)/);
