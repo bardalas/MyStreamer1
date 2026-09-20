@@ -135,11 +135,24 @@ class MainActivity : AppCompatActivity() {
                 } }
                 try {
                     val file = java.io.File(cacheDir, "update.apk")
-                    val conn = URL(url).openConnection() as HttpURLConnection
-                    conn.instanceFollowRedirects = true
-                    conn.connectTimeout = 15_000
-                    conn.readTimeout = 30_000
-                    conn.connect()
+                    // GitHub sends the release asset on to its storage host; HttpURLConnection will
+                    // not follow a redirect that changes protocol, so follow them ourselves.
+                    var link = url
+                    var conn: HttpURLConnection
+                    var hops = 0
+                    while (true) {
+                        conn = URL(link).openConnection() as HttpURLConnection
+                        conn.instanceFollowRedirects = false
+                        conn.connectTimeout = 15_000
+                        conn.readTimeout = 30_000
+                        conn.setRequestProperty("Accept", "application/octet-stream")
+                        conn.connect()
+                        val next = if (conn.responseCode in 301..308) conn.getHeaderField("Location") else null
+                        if (next == null || ++hops > 5) break
+                        conn.disconnect()
+                        link = URL(URL(link), next).toString()
+                    }
+                    if (conn.responseCode !in 200..299) throw java.io.IOException("HTTP ${'$'}{conn.responseCode}")
                     val total = conn.contentLengthLong
                     conn.inputStream.use { input ->
                         file.outputStream().use { out ->
@@ -157,12 +170,30 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
+                    // An error page saved under the APK's name installs nothing: every APK is a zip.
+                    val head = file.inputStream().use { ByteArray(2).also { b -> it.read(b) } }
+                    if (file.length() < 1_000_000 || head[0] != 'P'.code.toByte() || head[1] != 'K'.code.toByte())
+                        throw java.io.IOException("הקובץ שהתקבל אינו גרסה תקינה")
                     status("", false)
                     val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this@MainActivity, "$packageName.files", file)
-                    startActivity(Intent(Intent.ACTION_VIEW)
+                        this@MainActivity, "${'$'}packageName.files", file)
+                    val install = Intent(Intent.ACTION_VIEW)
                         .setDataAndType(uri, "application/vnd.android.package-archive")
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runOnUiThread {
+                        // Android 8+: installing needs this app to be allowed as an install source.
+                        // Without it the installer just refuses, so send the viewer to grant it.
+                        if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+                            status("אשר התקנה מהמקרן, ואז לחץ שוב על עדכן", false)
+                            runCatching {
+                                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                    android.net.Uri.parse("package:${'$'}packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            }.onFailure { status("צריך לאשר למקרן להתקין עדכונים בהגדרות המכשיר", true) }
+                            return@runOnUiThread
+                        }
+                        runCatching { startActivity(install) }
+                            .onFailure { status("לא נמצאה דרך להתקין את העדכון במכשיר הזה", true) }
+                    }
                 } catch (e: Exception) {
                     status("הורדת העדכון נכשלה (${e.message ?: "שגיאה"})", true)
                 }

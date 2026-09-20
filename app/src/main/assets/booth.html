@@ -2549,8 +2549,8 @@ async function checkUpdate(force){
   document.body.appendChild(card);
   $('#updGo').onclick = () => {
     card.remove();
-    if(BoothAndroid.updateApp) BoothAndroid.updateApp(APK_URL);
-    else BoothAndroid.openExternal(APK_URL);
+    try{ BoothAndroid.updateApp(APK_URL); }         // downloads and installs inside the app
+    catch(e){ BoothAndroid.openExternal(APK_URL); } // only builds older than 0.29 land here
   };
   $('#updLater').onclick = () => { store.set('updSkip', tag); card.remove(); };
   if(isTvLayout()) $('#updGo').focus();
