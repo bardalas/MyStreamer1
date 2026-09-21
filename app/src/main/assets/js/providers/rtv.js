@@ -55,7 +55,9 @@ export function archiveShapes(c, file, from){
   ];
   // some panels take the time as a parameter of the live address instead of a file of its own
   if(from){
-    shapes.push(['utc',       c.url + (query ? '&' : '?') + `utc=${from}&lutc=${Math.floor(Date.now() / 1000)}`]);
+    // `lutc` is the service's "now"; a template keeps it as a placeholder for the player to fill in
+    const nowSec = String(from).includes('{') ? '{now}' : Math.floor(Date.now() / 1000);
+    shapes.push(['utc',       c.url + (query ? '&' : '?') + `utc=${from}&lutc=${nowSec}`]);
     shapes.push(['utcstart',  c.url + (query ? '&' : '?') + `utcstart=${from}`]);
     shapes.push(['timeshift', path.replace(/\/live\//, '/timeshift/') + q]);
   }
@@ -65,7 +67,7 @@ export function archiveShapes(c, file, from){
 /** The addresses to try, the one that answered last time first. */
 function rtvArchiveUrls(c, file, from){
   const shapes = archiveShapes(c, file, from);
-  const known = store.get('archShape', '');
+  const known = store.get(ARCH_KEY, '');
   const first = shapes.filter(([name]) => name === known);
   const seen = new Set();
   return [...first, ...shapes].map(([, url]) => url).filter(u => !seen.has(u) && seen.add(u));
@@ -77,13 +79,40 @@ function rtvArchiveUrls(c, file, from){
  */
 /** How long a viewer waits for an archive to be found before being told it was not. */
 const ARCHIVE_DEADLINE = 12e3;
+/** How far from the minute asked for an archive may begin and still be that programme. */
+const ARCHIVE_SLACK_S = 600;
+/* The spelling that was found to play the past. Its first key, 'archShape', held whatever answered
+   first - which on this service was the live broadcast - so it is not trusted, and read no more. */
+export const ARCH_KEY = 'archShapeChecked';
+
+/**
+ * Whether [u] really plays the minute [start], rather than the live broadcast.
+ *
+ * A panel may answer every address it is given with a perfectly good playlist - its live one - so a
+ * playlist coming back proves nothing. What does is the clock written into it: the first programme
+ * time of an archive is the minute asked for, and of the live broadcast it is now. A playlist with no
+ * clock is accepted only if it is a finished one (a live broadcast never is).
+ */
+async function playsAt(u, start){
+  const top = await fetchText(u);
+  if(!/#EXTM3U/.test(top.slice(0, 200))) return false;
+  let media = top;
+  if(/#EXT-X-STREAM-INF/.test(top)){
+    const variant = top.split('\n').map(l => l.trim()).find(l => l && !l.startsWith('#'));
+    if(!variant) return false;
+    media = await fetchText(new URL(variant, u).toString());
+  }
+  const when = (media.match(/#EXT-X-PROGRAM-DATE-TIME:(\S+)/) || [])[1];
+  if(when) return Math.abs(Date.parse(when) / 1000 - start) < ARCHIVE_SLACK_S;
+  return /#EXT-X-ENDLIST|#EXT-X-PLAYLIST-TYPE:(VOD|EVENT)/.test(media);
+}
 export async function rtvArchiveProbe(c, start, end){
   const now = Date.now() / 1000;
   start = Math.floor(start);
   if(!end || end <= start) end = now + 600;
   const file = start > now - 600 ? `timeshift_abs-${start}.m3u8` : `index-${start}-${Math.floor(end - start)}.m3u8`;
   const shapes = archiveShapes(c, file, start);
-  const known = store.get('archShape', '');
+  const known = store.get(ARCH_KEY, '');
   const order = [...shapes.filter(([n]) => n === known), ...shapes.filter(([n]) => n !== known)];
   const tried = [];
   const hide = u => u.replace(/[A-Za-z0-9_-]{8,}/g, m => m.slice(0, 3) + '…');
@@ -94,12 +123,11 @@ export async function rtvArchiveProbe(c, start, end){
   for(const [name, u] of order){
     if(Date.now() > until){ tried.push('— נגמר הזמן —'); break; }
     try{
-      const text = await fetchText(u);
-      if(!/#EXTM3U/.test(text.slice(0, 200))){ tried.push(`${hide(u)} → ${text.slice(0, 40).replace(/\s+/g, ' ')}`); continue; }
-      store.set('archShape', name);                          // the spelling this service answers to
+      if(!await playsAt(u, start)){ tried.push(`${name}: ${hide(u)} → the live broadcast, not the programme`); continue; }
+      store.set(ARCH_KEY, name);                             // the spelling that really plays the past
       store.set('archTried', []);
       return u;
-    }catch(e){ tried.push(`${hide(u)} → ${(e.message || 'no answer').slice(0, 40)}`); }
+    }catch(e){ tried.push(`${name}: ${hide(u)} → ${(e.message || 'no answer').slice(0, 40)}`); }
   }
   store.set('archTried', tried);
   return order[0][1];

@@ -485,6 +485,7 @@ class PlayerActivity : AppCompatActivity() {
         if (list.isEmpty()) return src.url
         return list[archTry.coerceIn(0, list.size - 1)]
             .replace("{from}", "${p.from}").replace("{dur}", "${p.to - p.from}")
+            .replace("{now}", "${System.currentTimeMillis() / 1000}")
     }
 
     /** Guide per channel (by its endpoint), fetched once and kept for the session. */

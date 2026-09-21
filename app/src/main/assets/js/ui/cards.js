@@ -7,6 +7,12 @@ import {svcMarks} from '../data/services.js';
 import {progressIdx} from '../data/watch.js';
 import {tr} from '../i18n.js';
 
+/* The catalogues hand out their smallest poster, about 240 pixels wide. A poster on a television is
+   drawn over three hundred device pixels wide, so that picture was being stretched - which is why the
+   posters looked soft. The same address serves the same poster at 500 and 780 pixels; the middle one
+   is sharp at the size a row draws it and still light enough for a screen of forty. */
+export const posterAt = (url, size) => (url || '').replace(/\/poster\/(small|medium|large)\//, `/poster/${size}/`);
+
 export function card(m){
   const p = progressIdx.get(m.id);
   // A film that was watched to the end carries a tick; one left in the middle carries how far it got.
@@ -16,7 +22,7 @@ export function card(m){
   const marks = (done ? `<span class="seen" title="${esc(tr('card.watched'))}">✓</span>` : '')
     + (pct ? `<span class="track" title="${esc(tr('card.left', {n: Math.max(1, Math.round((p.d - p.t) / 60))}))}"><i style="width:${pct.toFixed(0)}%"></i></span>` : '');
   const art = m.poster
-    ? `<div class="art" data-bg="${esc(m.poster)}">${marks}</div>`
+    ? `<div class="art" data-bg="${esc(posterAt(m.poster, 'medium'))}">${marks}</div>`
     : `<div class="art noart">${esc(m.name)}${marks}</div>`;
   const name = heTitle(m.id, m.name);
   const key = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series') ? `${m.type}:${m.id}` : '';

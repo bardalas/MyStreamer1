@@ -11,13 +11,11 @@ export let tasteTimer = 0, tasteStop = null;
 /** Drop whatever the taste left behind: its timers, its listener and the frame itself. */
 export function endTaste(){ clearTimeout(tasteTimer); tasteStop?.(); tasteStop = null; }
 /**
- * A taste of [yt] behind whatever is in [host]: a few seconds of the trailer - with its sound unless
- * [quiet] - at the
- * quality that starts fastest - nobody is going to study it - and out of the remote's reach. It starts
- * muted because that is the only way a page is allowed to start anything, and is unmuted the moment it
- * is really playing; that same moment is when it is revealed, so a trailer that cannot be embedded
- * leaves the artwork alone instead of putting a black box over it. One taste at a time: starting
- * another, or leaving the screen, ends this one.
+ * A taste of [yt] behind whatever is in [host]: thirty seconds of the trailer - with its sound unless
+ * [quiet] - at the quality that starts fastest, and out of the remote's reach. It is revealed only once
+ * it is really playing and the player's own controls have faded, so a trailer that cannot be embedded
+ * leaves the artwork alone instead of putting a black box over it, and nothing of the player is ever
+ * seen. One taste at a time: starting another, or leaving the screen, ends this one.
  */
 /** How long a taste plays, once it can be seen. */
 const TASTE_MS = 30e3;
@@ -55,6 +53,8 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
       cmd('setPlaybackQuality', ['medium']);        // a full-screen frame otherwise asks for HD, and stalls
       // No subtitles: loading them brought the player's bar up over the picture, and a taste is to be
       // looked at, not read.
+      // while browsing it stays quiet: a row of trailers shouting at the viewer is not a taste, it is
+      // a takeover. The sound belongs to the title they chose to open.
       // while browsing it stays quiet: a row of trailers shouting at the viewer is not a taste, it is
       // a takeover. The sound belongs to the title they chose to open.
       if(!quiet){ cmd('unMute'); cmd('setVolume', [60]); }

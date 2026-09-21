@@ -98,7 +98,7 @@ export async function viewDetail(type, id){
           <div class="eps" id="eps"></div></div></div>
     </div>`;
   document.body.classList.add('titlefit');             // on the TV a title page fits the screen, and its list scrolls
-  startTaste('.backdrop', trailerId(meta), 400);                       // the artwork gives way to a taste
+  startTaste('.backdrop', trailerId(meta), 0);                         // the artwork gives way to a taste, at once
 
   // the picture is the play button: there is nothing else it could mean
   $('.backdrop').onclick = () => play();

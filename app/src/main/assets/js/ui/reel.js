@@ -13,6 +13,7 @@ import {genreName} from '../data/names.js';
 import {imdbTag, svcMarks} from '../data/services.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
+import {posterAt} from './cards.js';
 import {endTaste, startTaste, trailerId} from './taste.js';
 
 /* The still point of the wheel is where the row begins - the right, in Hebrew. A title brought to it
@@ -109,6 +110,21 @@ addEventListener('resize', place);
 
 /** What the title says for itself: the name at once, the rest as the add-ons answer. */
 
+/** The same poster, sharp enough for the middle of the wheel: fetched first, put in place when ready. */
+function sharpen(art){
+  const now = art.dataset.bg || '';
+  const big = posterAt(now, 'large');
+  if(!big || big === now) return;
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = big;
+  const put = () => {
+    if(art.isConnected && art.closest('.poster')?.classList.contains('spot'))
+      art.style.backgroundImage = `url("${big.replace(/"/g, '%22')}")`;
+  };
+  (img.decode ? img.decode() : Promise.resolve()).then(put, () => {});
+}
+
 async function paint(el, full){
   const art = el.querySelector('.art');
   if(!art) return;
@@ -116,6 +132,7 @@ async function paint(el, full){
      name is already there, in the same place as every other title's; what is added is the line that
      says what this one is, and it is added below it rather than in front of the artwork. */
   act.innerHTML = `<div class="spotinfo"><div class="facts"></div><p dir="auto"></p></div>`;
+  sharpen(art);
   if(!full) return;                                  // a broadcaster's programme: its picture and its name
   const [, , type, idEnc] = el.getAttribute('href').split('/');
   const id = decodeURIComponent(idEnc);

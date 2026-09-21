@@ -1,5 +1,19 @@
 # VEO Android changelog
 
+## 0.43.6 — 2026-09-21
+- **RaspberryTV catch-up plays the programme, not the live broadcast.** Measured on the service: it
+  answers every spelling of an archive address with a valid playlist, but eight of the nine are its
+  *live* playlist — only `?utc=` starts at the minute asked for. The app took the first playlist it
+  was given, so a past programme always came back as live. An address is now accepted only when the
+  clock written in its playlist is the programme's own minute; the one that passes is remembered and
+  used first, by the guide on the page and by the player walking back through a channel.
+- **Sharper posters.** The catalogues hand out a 240-pixel poster, which a television draws over
+  three hundred pixels wide; posters are now fetched at 500, and the title in the middle of a row at
+  780 — the same picture, put in place once it has arrived.
+- **The taste starts sooner**: at once on a title page instead of after a pause, over connections
+  opened when the app starts, and fading in twice as fast. It still waits for YouTube's own controls
+  to go before it is shown, so the screen stays clean.
+
 ## 0.43.5 — 2026-09-21
 - **The film no longer stalls when its subtitles arrive.** When the translation came in, a few
   seconds into the film, the player was told to choose its tracks again — which on a stream is a

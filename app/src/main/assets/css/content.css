@@ -3,7 +3,7 @@
 /* the taste: the trailer covers the artwork, quiet and out of reach - the gradient above it keeps the words
    readable. Its size is measured and set when it is inserted, so it covers whatever it was put into. */
 .taste{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:0;pointer-events:none;
-  z-index:0;opacity:0;transition:opacity .9s}
+  z-index:0;opacity:0;transition:opacity .45s}
 .taste.on{opacity:1}
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 22px;font-weight:600;cursor:pointer;text-decoration:none}
 .btn.primary{background:var(--tungsten);color:var(--on-accent)}

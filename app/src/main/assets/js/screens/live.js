@@ -2,7 +2,7 @@
 import {$, esc, showErr} from '../core/dom.js';
 import {store} from '../core/store.js';
 import {liveChannels, liveSources, nowPlaying, watchChannel} from '../providers/live.js';
-import {hhmm, openChannel, openRtvKey, rtvArchiveProbe} from '../providers/rtv.js';
+import {ARCH_KEY, hhmm, openChannel, openRtvKey, rtvArchiveProbe} from '../providers/rtv.js';
 
 export async function viewLive(){
   const app = $('#app');
@@ -47,7 +47,7 @@ export async function viewLive(){
   // Which spelling of the archive this service answers to is asked once, quietly, while the channels are
   // being read - so that walking back through a channel plays the first time it is tried.
   const withRec = chans.find(c => c.rec && c.url);
-  if(withRec && store.get('archFmt', -1) < 0){
+  if(withRec && !store.get(ARCH_KEY, '')){
     const hour = Math.floor(Date.now() / 1000) - 3600;
     rtvArchiveProbe(withRec, hour, hour + 1800).catch(() => {});
   }

@@ -300,6 +300,13 @@ for `gradle assembleRelease` (no signing secrets exist outside CI anyway).
   silently turned off all D-pad navigation. `IS_TV_DEVICE` (from `BoothAndroid.isTv()`) covers the
   real device; `settings.layout === 'tv'` alone is kept only so the TV nav model can be exercised
   from a desktop browser during development.
+- **A catch-up address is proven by the clock in its playlist, never by a playlist coming back.**
+  The RaspberryTV panel answers *every* spelling of an archive address with a valid master playlist -
+  its live one. Measured: of nine shapes, eight return the live broadcast (first
+  `#EXT-X-PROGRAM-DATE-TIME` = now) and only `video.m3u8?utc=<start>&lutc=<now>` starts at the minute
+  asked for. `playsAt()` in `providers/rtv.js` follows the variant and compares that clock; the winner
+  is remembered under `ARCH_KEY` and put first in the template the player walks (`{from}`, `{dur}`,
+  `{now}` are filled in by `PlayerActivity.archiveUrl`).
 - **A screen that awaits must check it is still the screen.** `core/requests.js` `guardView(el)` and
   `invalidateView()` exist for this: every view that paints after an `await` (detail, search, live,
   the source list) holds either a guard or the element it is going to write into, and checks
