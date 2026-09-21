@@ -6,7 +6,7 @@ import {SKINS, isTvLayout, resetSettings, setSetting, settings} from '../core/se
 import {store} from '../core/store.js';
 import {addons} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
-import {checkPin, failSum, grownUpSum, kidsOn, pinLockedFor, setPin} from '../data/kids.js';
+import {KID_AGES, checkPin, failSum, grownUpSum, kidsOn, pinLockedFor, setPin} from '../data/kids.js';
 import {clearProgress} from '../data/watch.js';
 import {UI_LANGS, tr} from '../i18n.js';
 import {parseM3U, playlistCache, playlists, setPlaylists} from '../providers/live.js';
@@ -97,6 +97,7 @@ const PREFS = {
     get: () => SUB_SIZES.reduce((a, b) => Math.abs(b[0] - subScale()) < Math.abs(a[0] - subScale()) ? b : a)[0],
     say: () => Math.round(subScale() * 100) + '%', exact: v => Math.abs(subScale() - v) < .01, set: setSubScale},
   nosrc: {title: 'set.nosrc.title', note: 'set.nosrc.note', opts: () => [['grey', tr('set.nosrc.grey')], ['hide', tr('set.nosrc.hide')]]},
+  kidsAge: {title: 'kids.age.title', note: 'kids.age.note', opts: () => Object.keys(KID_AGES).map(k => [k, tr('kids.age.' + k)])},
 };
 const prefNow = k => PREFS[k].get ? PREFS[k].get() : settings[k];
 function prefPut(k, v){
@@ -161,9 +162,11 @@ const PANES = {
   },
   kids: () => kidsOn()
     ? section(tr('kids.title'), lines(line({fid: 'kidsOff', label: tr('kids.turnOff'), note: tr('kids.turnOffNote'), attrs: 'data-act="kidsOff"'})
+        // the age, like leaving, is the parents' to change: behind the code
+        + line({fid: 'kidsAge', label: tr('kids.age.title'), note: tr('kids.age.lockedNote'), value: tr('kids.age.' + settings.kidsAge), attrs: 'data-act="kidsAge"'})
         + line({fid: 'kidsPin', label: tr('kids.change'), note: tr('kids.changeNote'), attrs: 'data-act="kidsPin"'})), tr('kids.onNote'))
     : section(tr('kids.title'), `<ul class="kidlist">${['what1', 'what2', 'what3'].map(k => `<li>${tr('kids.' + k)}</li>`).join('')}</ul>`
-        + lines(line({fid: 'kidsOn', label: tr('kids.turnOn'), note: tr('kids.turnOnNote'), attrs: 'data-act="kidsOn"'}))),
+        + lines(pref('kidsAge') + line({fid: 'kidsOn', label: tr('kids.turnOn'), note: tr('kids.turnOnNote'), attrs: 'data-act="kidsOn"'}))),
   about: () => section(tr('set.about.title'), lines(info('VEO', APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'))
       + line({fid: 'upd', label: tr('set.about.check'), note: tr('set.about.checkNote'), value: updKey ? tr(updKey) : '', attrs: 'data-act="upd"'})))
     + section(tr('set.sec.data'), lines(line({fid: 'hist', label: tr('set.hist.title'), note: tr('set.hist.note'), value: tr('set.hist.btn'), danger: true, attrs: 'data-act="hist"'})
@@ -245,6 +248,12 @@ const ACTS = {
     setSetting('kids', 'off');
     viewSettings('kids');
     $('[data-fid="kidsOn"]')?.focus();
+  },
+  kidsAge: async () => {
+    if(!await askPin(tr('kids.pin.enter'))) return paintSettings('kidsAge');
+    const v = await pickFrom(tr('kids.age.title'), PREFS.kidsAge.opts(), settings.kidsAge);
+    if(v) setSetting('kidsAge', v);
+    paintSettings('kidsAge');
   },
   kidsPin: async () => {
     const ok = await askPin(tr('kids.pin.current')) && await choosePin();

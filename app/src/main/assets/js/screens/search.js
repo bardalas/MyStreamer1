@@ -2,7 +2,7 @@
 import {$, esc, getJSON, showErr} from '../core/dom.js';
 import {addons, fetchMeta} from '../data/addons.js';
 import {hasHebrew, hebrewSearch} from '../data/hebrew.js';
-import {isKidSafe, kidsOn} from '../data/kids.js';
+import {kidsOn, kidsPick} from '../data/kids.js';
 import {typeName} from '../data/names.js';
 import {kanBox, kanCard} from '../providers/kan.js';
 import {makoCard, makoPrograms} from '../providers/mako.js';
@@ -43,7 +43,8 @@ async function searchChannels(q, host){
 /** What a search finds carries no genres: in the kids profile each title is judged by its own page. */
 async function kidsOnly(ms){
   const full = await Promise.all(ms.slice(0, 12).map(m => /^tt\d+$/.test(m.id) ? fetchMeta(m.type, m.id).catch(() => null) : null));
-  return ms.slice(0, 12).filter((m, i) => full[i] && isKidSafe({type: m.type, ...full[i]}));
+  const ok = new Set((await kidsPick(full.filter(Boolean))).map(f => f.id));
+  return ms.slice(0, 12).filter(m => ok.has(m.id));
 }
 
 export async function viewSearch(q){

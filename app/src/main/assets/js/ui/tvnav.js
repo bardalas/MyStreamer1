@@ -155,7 +155,11 @@ export function focusItem(el){
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: how});
   const row = el.closest('.row');
   if(row){
-    const want = Math.max(0, Math.round(row.getBoundingClientRect().top + scrollY - 14));
+    // a little room above the row for its heading - but never a sliver of whatever stands above it (the
+    // source tabs over the first row, the foot of the row before): that goes off the screen whole
+    const above = row.previousElementSibling?.getBoundingClientRect();
+    const floor = above && above.height ? above.bottom + scrollY : 0;
+    const want = Math.max(0, Math.round(Math.max(floor, row.getBoundingClientRect().top + scrollY - 14)));
     if(Math.abs(scrollY - want) > 4) glide(want);
     return;
   }

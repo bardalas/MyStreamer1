@@ -12,8 +12,25 @@
    cartoons. The block list holds the animation made for grown-ups that the rules would let through. */
 import {settings} from '../core/settings.js';
 import {store} from '../core/store.js';
+import {ageFor, ratingsFor} from './ratings.js';
 
 export const kidsOn = () => settings.kids === 'on';
+
+/* How old the child is (Settings → Kids profile): a title rated for anyone older is not shown. A title with
+   no rating known (most series, small productions) is judged by its genres alone. */
+export const KID_AGES = {young: 6, kids: 9, older: 12};
+const ageOk = id => { const a = ageFor(id); return a == null || a <= (KID_AGES[settings.kidsAge] ?? 9); };
+/** The ratings of [ids], waited for a moment at most: a slow answer leaves the genres to decide for now -
+    and when it comes, whatever it rules out is taken off the screen (app.js hears 'veo:kidsout'). */
+const RATINGS_WAIT_MS = 2500;
+function rated(ids){
+  const all = ratingsFor(ids);
+  all.then(() => {
+    const out = ids.filter(id => !ageOk(id));
+    if(out.length && kidsOn()) dispatchEvent(new CustomEvent('veo:kidsout', {detail: out}));
+  });
+  return Promise.race([all, new Promise(r => setTimeout(r, RATINGS_WAIT_MS))]);
+}
 
 /** Genres that keep a title from children, whatever else it is. */
 const DENY = ['Horror', 'Thriller', 'Crime', 'War', 'Film-Noir', 'Reality-TV', 'Talk-Show', 'News'];
@@ -53,18 +70,33 @@ export function isKidSafe(m, vouched = false){
 /* Titles the profile has shown: a title that was on a child's screen can be opened, even when its own
    page lists genres the row it came from did not. */
 const shown = new Set();
-/** A catalogue's answer, as the profile shows it: only titles for children (catalogFetch). The full
-    length stays with it, so a row that pages through a catalogue keeps counting the catalogue's titles. */
-export function forKids(d, type, extra){
+/** A catalogue's answer, as the profile shows it: only titles for children, and none rated for older
+    ones (catalogFetch). The full length stays with it, so a row that pages through a catalogue keeps
+    counting the catalogue's titles. */
+export async function forKids(d, type, extra){
   const all = d?.metas || [];
   const vouched = type === 'movie' && KID_ASK.test(extra || '');
-  const metas = all.filter(m => isKidSafe({type, ...m}, vouched));
+  const safe = all.filter(m => isKidSafe({type, ...m}, vouched));
+  await rated(safe.map(m => m.id));
+  const metas = safe.filter(m => ageOk(m.id));
   metas.forEach(m => shown.add(m.id));
   return {...d, metas, raw: all.length};
 }
+/** Which of [metas] (with their genres) the profile shows - for lists that do not come through a catalogue. */
+export async function kidsPick(metas){
+  const safe = metas.filter(m => isKidSafe(m));
+  await rated(safe.map(m => m.id));
+  return safe.filter(m => ageOk(m.id));
+}
 /** Whether a title's own page may open in the profile: one it showed, one a child already opened in it
-    (the rows that vouched for it may have moved on since), or one that passes on its own genres. */
-export const kidsMayOpen = meta => !BLOCK.has(meta.id) && (shown.has(meta.id) || ids.has(meta.id) || isKidSafe(meta));
+    (the rows that vouched for it may have moved on since), or one that passes on its own genres - and
+    in every case, not rated for a child older than this one. */
+export async function kidsMayOpen(meta){
+  if(BLOCK.has(meta.id) || !(shown.has(meta.id) || ids.has(meta.id) || isKidSafe(meta))) return false;
+  // one title, asked for on its own: worth a longer wait than a row's
+  await Promise.race([ratingsFor([meta.id]), new Promise(r => setTimeout(r, 10000))]);
+  return ageOk(meta.id);
+}
 
 /* What a child watched and saved stays theirs: the profile's continue-watching and favourites show only
    titles opened in it, and the grown-ups' do not show up on the child's screen. */

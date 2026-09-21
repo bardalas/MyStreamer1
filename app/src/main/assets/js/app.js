@@ -141,6 +141,12 @@ window.boothCatchup = async name => {
 };
 
 addEventListener('hashchange', route);
+/* A rating that came after its row was drawn, for a child older than this one: the title leaves the screen. */
+addEventListener('veo:kidsout', e => {
+  for(const id of e.detail) document.querySelectorAll(`#app .poster[data-id="${CSS.escape(id)}"]`).forEach(p => p.remove());
+  const [, r, , id] = location.hash.split('/').map(decodeURIComponent);
+  if(r === 'detail' && e.detail.includes(id)) location.hash = '#/';   // and its page, if it is open
+});
 /* No connection: one bar at the bottom instead of a screenful of errors; the screen reloads by itself
    as soon as the line is back. */
 export const offbar = Object.assign(document.createElement('div'), {id: 'offbar', role: 'status'});

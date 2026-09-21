@@ -209,8 +209,12 @@ services only (`originsFor`); `route()` keeps it to `KIDS_ROUTES`; a title page 
 judges each result by its own meta. Live TV, the broadcasters, YouTube, web pages and updates are out of
 reach (JS, and natively: `MainActivity.kidsProfile()` reads the `kids` pref `syncNativeTheme` writes).
 Leaving it needs the four-digit code (salted hash, five tries then a five-minute lock) or a grown-up's
-sum; a reset keeps the profile on. The genres are the only age signal the catalogues give - when an
-adult title slips through, add its IMDb id to `BLOCK`.
+sum; a reset keeps the profile on. **Age ratings** (`data/ratings.js`): the ratings films were given (MPA,
+FSK, BBFC, ACB, ClassInd) are asked of Wikidata by IMDb id - QLever first, Wikidata's own query service when
+that fails - kept on the device, and a title's age is their median; the profile hides anything rated above
+`settings.kidsAge` (6 / 9 / 12, changed behind the code), a rating that arrives late takes its title off the
+screen (`veo:kidsout`), and a title page shows the age for everyone. Titles with no rating (most series)
+go by genre alone - when an adult title slips through, add its IMDb id to `BLOCK`.
 The app opts out of Android 16's predictive Back (`enableOnBackInvokedCallback="false"`): the page walks
 its own Back ladder and the player reads the Back key, and neither is called otherwise.
 

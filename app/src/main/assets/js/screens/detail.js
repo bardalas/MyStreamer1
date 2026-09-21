@@ -6,6 +6,7 @@ import {store} from '../core/store.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
 import {heCache, heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {kidsMayOpen, kidsOn, noteKidsTitle} from '../data/kids.js';
+import {ageFor, ageLabel, ratingsFor} from '../data/ratings.js';
 import {genreName} from '../data/names.js';
 import {imdbTag, svcFacts} from '../data/services.js';
 import {library, progress} from '../data/watch.js';
@@ -57,7 +58,9 @@ export async function viewDetail(type, id){
   if(!meta){ app.innerHTML = `<div class="page"><h1>${tr('detail.notFound')}</h1><p class="note">${tr('detail.notFoundNote')}</p></div>`; return; }
   // the kids profile opens a title only when it is for children, from wherever the address came
   if(kidsOn()){
-    if(!kidsMayOpen({type, ...meta})){ app.innerHTML = `<div class="page kidsno"><h1>${tr('kids.blocked')}</h1><p class="note">${tr('kids.blockedNote')}</p><a class="btn primary" href="#/">${tr('kids.home')}</a></div>`; return; }
+    const may = await kidsMayOpen({type, ...meta});
+    if(!inView()) return;
+    if(!may){ app.innerHTML = `<div class="page kidsno"><h1>${tr('kids.blocked')}</h1><p class="note">${tr('kids.blockedNote')}</p><a class="btn primary" href="#/">${tr('kids.home')}</a></div>`; return; }
     noteKidsTitle(meta.id);
   }
   const saved = !!library[meta.id];
@@ -104,6 +107,12 @@ export async function viewDetail(type, id){
           <div class="eps" id="eps"></div></div></div>
     </div>`;
   document.body.classList.add('titlefit');             // on the TV a title page fits the screen, and its list scrolls
+  // the age it is rated for, once Wikidata has said (kept on the device from then on)
+  ratingsFor([meta.id]).then(() => {
+    const a = ageFor(meta.id), facts = app.querySelector('.detail .facts');
+    if(a != null && facts && inView() && !facts.querySelector('.agetag'))
+      facts.insertAdjacentHTML('afterbegin', `<span class="agetag" title="${esc(tr('age.title'))}"><b dir="ltr">${esc(ageLabel(a))}</b></span>`);
+  });
   startTaste('.backdrop', trailerId(meta), 0);                         // the artwork gives way to a taste, at once
 
   // the picture is the play button: there is nothing else it could mean

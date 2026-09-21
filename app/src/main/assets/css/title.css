@@ -110,6 +110,8 @@
 .altbtn[aria-expanded="true"]::after{content:" ▴"}
 .altlist{margin-top:8px;max-height:30vh;overflow:auto;scrollbar-width:none}
 .altlist::-webkit-scrollbar{width:0}
+/* the age a title is rated for, boxed the way ratings are printed */
+.facts .agetag b{display:inline-block;border:1.5px solid var(--muted);border-radius:4px;padding:0 6px;font-weight:700;color:var(--light)}
 .srow{display:flex;gap:12px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--line);background:none;color:var(--light);padding:10px 4px;cursor:pointer;font-size:14px}
 .srow:hover,.srow:focus-visible{background:var(--raise)}
 .srow b{flex:0 0 52px;font-weight:600}
