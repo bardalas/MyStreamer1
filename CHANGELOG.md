@@ -1,5 +1,13 @@
 # VEO Android changelog
 
+## 0.45.1 — 2026-09-21
+- **On a phone the app stays under the clock and battery** and above the navigation bar: it no longer
+  runs under them at the top and bottom of the screen.
+- **YouTube captions are sized for the screen** - no longer huge on a phone - and follow the subtitle
+  size in Settings → Playback.
+- **Report a problem** (Settings → About): a few words, sent with the version, the device, the last
+  screens and the last errors, to the app's GitHub issues.
+
 ## 0.45.0 — 2026-09-21
 - **Profiles: who is watching.** The app starts on a "Who's watching?" screen when there is more than
   one profile. Each profile has its own picture and name, and keeps its own settings, continue
