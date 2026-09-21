@@ -6,6 +6,7 @@ import {typeName} from '../data/names.js';
 import {kanBox, kanCard} from '../providers/kan.js';
 import {makoCard, makoPrograms} from '../providers/mako.js';
 import {r13card, r13row} from '../providers/reshet.js';
+import {tr} from '../i18n.js';
 import {card, skeletons} from '../ui/cards.js';
 
 /**
@@ -42,19 +43,23 @@ export async function viewSearch(q){
   $('#q').value = q;
   const app = $('#app');
   const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => (c.extra||[]).some(e => e.name === 'search') || (c.extraSupported||[]).includes('search')).map(c => ({a, c})));
-  app.innerHTML = `<div class="page"><h1>תוצאות עבור „${esc(q)}”</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(typeName(x.c.type))} <small>${esc(x.a.manifest.name)}</small></h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || '<p class="note">אף אחד מהתוספים שלך לא תומך בחיפוש.</p>'}</div>`;
+  app.innerHTML = `<div class="page"><h1>${esc(tr('search.results', {q}))}</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(typeName(x.c.type))} <small>${esc(x.a.manifest.name)}</small></h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || `<p class="note">${esc(tr('search.noAddons'))}</p>`}</div>`;
   // the broadcasters answer from lists already in hand, so their row comes up first
   app.querySelector('.page h1').insertAdjacentHTML('afterend', '<div id="sChan"></div>');
   searchChannels(q, $('#sChan'));
   if(hasHebrew(q)){
-    app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>בעברית <small>Wikidata</small></h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
-    hebrewSearch(q).then(ms => { $('#sHe').innerHTML = ms.map(card).join('') || '<p class="note">לא נמצאו תוצאות.</p>'; })
-      .catch(e => showErr($('#sHe'), 'החיפוש בעברית נכשל', e, () => viewSearch(q)));
+    app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>${esc(tr('search.hebrew'))} <small>Wikidata</small></h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
+    // the strip this query built: a later query builds its own, and an answer to this one must not
+    // be written into it
+    const heStrip = $('#sHe');
+    hebrewSearch(q).then(ms => { if(heStrip.isConnected) heStrip.innerHTML = ms.map(card).join('') || `<p class="note">${esc(tr('search.none'))}</p>`; })
+      .catch(e => { if(heStrip.isConnected) showErr(heStrip, tr('search.heFailed'), e, () => viewSearch(q)); });
   }
   cats.forEach(async (x, i) => {
+    const strip = $('#s' + i);                       // held now: by the time the answer comes it may be gone
     try{
       const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}/search=${encodeURIComponent(q)}.json`);
-      $('#s'+i).innerHTML = (d.metas||[]).map(card).join('') || '<p class="note">לא נמצאו תוצאות.</p>';
-    }catch(e){ showErr($('#s'+i), 'החיפוש נכשל', e, () => viewSearch(q)); }
+      if(strip.isConnected) strip.innerHTML = (d.metas||[]).map(card).join('') || `<p class="note">${esc(tr('search.none'))}</p>`;
+    }catch(e){ if(strip.isConnected) showErr(strip, tr('search.failed'), e, () => viewSearch(q)); }
   });
 }

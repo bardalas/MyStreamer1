@@ -47,6 +47,10 @@ class PlayerActivity : AppCompatActivity() {
 
     private var player: ExoPlayer? = null
     private var resumePosition = 0L
+    // The search for a translation is still running. Without it, "none found" and "not looked yet"
+    // were the same empty list, and the panel told a viewer there was nothing while the search was
+    // still going on.
+    @Volatile private var subsPending = false
     private var started = false
     /** Hebrew subtitles for this video; null until the lookup started at play time has finished. */
     private var subs: List<Subtitles.Sub>? = null
@@ -135,12 +139,14 @@ class PlayerActivity : AppCompatActivity() {
         // Play now, look for Hebrew subtitles in the background: side-loaded subtitles have to be part
         // of the MediaItem, so when they arrive the player is rebuilt at the very same position.
         subs = emptyList()
+        subsPending = true                          // empty and "not looked yet" are different things
         showMessage("מחפש כתוביות בעברית…", 0)
         Thread {
             val found = Subtitles.await(25_000)
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 subs = found
+                subsPending = false
                 // which file they came from is not something to read over a film; only their absence is news
                 if (found.isEmpty()) showMessage("לא נמצאו כתוביות בעברית", 3_000) else hideOsd.run()
                 if (found.isNotEmpty()) useCaptions(0)
@@ -148,17 +154,36 @@ class PlayerActivity : AppCompatActivity() {
         }.start()
     }
 
-    /** Show the chosen translation (or none) from now on. */
+    /**
+     * Show the chosen translation (or none) from now on - on both surfaces there are.
+     *
+     * A film can carry its own subtitles inside it, which the player draws, while the app draws the
+     * files it found. Choosing in the panel only ever moved the app's own drawing, so "no subtitles"
+     * left an embedded track on the screen and choosing a file could put two translations on it at
+     * once. The player is now told the same thing the panel was told.
+     */
     private fun useCaptions(pick: Int) {
         subPick = pick
         val sub = subs.orEmpty().getOrNull(pick)
         captions = sub?.let { Captions.of(it.file) }?.also { it.shiftMs = subShift }
+        val drawing = captions?.any == true
         val view = findViewById<TextView>(R.id.cues)
-        view.visibility = if (captions == null) View.GONE else View.VISIBLE
+        view.visibility = if (drawing) View.VISIBLE else View.GONE
         view.textSize = 18f * subScale
         view.text = ""
         handler.removeCallbacks(tickCaptions)
-        if (captions != null) handler.post(tickCaptions)
+        if (drawing) handler.post(tickCaptions)
+        player?.let { applyTextTracks(it) }
+    }
+
+    /** The player shows its own track only when the app is not drawing one, and never when none is wanted. */
+    @OptIn(UnstableApi::class)
+    private fun applyTextTracks(p: ExoPlayer) {
+        val mine = captions?.any == true
+        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
+            .setPreferredTextLanguage(if (mine || subPick < 0) null else "he")
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, mine || subPick < 0)
+            .build()
     }
 
     /** Move the translation, and see it move: nothing is rebuilt, so a press is a result. */
@@ -239,7 +264,9 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun openSubsPanel() {
         if (subs.orEmpty().isEmpty()) {
-            showMessage(if (subs == null) "מחפש כתוביות…" else "לא נמצאו כתוביות לסרט הזה", 2_500)
+            // still looking is not the same as nothing to find, and a viewer can wait for one of them
+            if (subsPending) showMessage("מחפש כתוביות…", 0)
+            else showMessage("לא נמצאו כתוביות לסרט הזה", 2_500)
             return
         }
         val rows = subsRows()
@@ -350,7 +377,11 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         started = true
-        if (subs != null) buildPlayer()
+        buildPlayer()
+        // The drawing of the translation stops itself when the player is released - it is a loop that
+        // asks the player where it is - so coming back from the home screen has to start it again, or
+        // the film plays on with no subtitles until the viewer picks them a second time.
+        if (captions != null) { handler.removeCallbacks(tickCaptions); handler.post(tickCaptions) }
     }
 
     @OptIn(UnstableApi::class)
@@ -417,10 +448,7 @@ class PlayerActivity : AppCompatActivity() {
             .build().also {
                 // Hebrew subtitles on by default (also picks embedded Hebrew tracks in MKVs) - unless the
                 // viewer turned them off in the subtitles panel.
-                it.trackSelectionParameters = it.trackSelectionParameters.buildUpon()
-                    .setPreferredTextLanguage(if (subPick < 0) null else "he")
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, subPick < 0)
-                    .build()
+                applyTextTracks(it)                   // one owner for what is shown, panel and player alike
                 it.addListener(object : Player.Listener {
                     override fun onPlayerError(error: PlaybackException) = onError(error)
                     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = showPaused(!playWhenReady)
@@ -433,12 +461,15 @@ class PlayerActivity : AppCompatActivity() {
                 // a jump lands on the nearest picture the file starts from: far less to fetch, and it is
                 // a second either way in a film
                 if (!live) it.setSeekParameters(SeekParameters.PREVIOUS_SYNC)
+                applyTextTracks(it)                        // what the panel chose, told to the player too
                 findViewById<PlayerView>(R.id.playerView).apply {
                     player = it
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)   // fetching looks like work, not like nothing
                     if (!live) hideController()
                 }
                 it.setMediaItem(item)
+                // the tick died with the player that was released; it lives again with this one
+                if (captions != null) { handler.removeCallbacks(tickCaptions); handler.post(tickCaptions) }
                 if (!live) it.seekTo(resumePosition)
                 it.prepare()
                 it.playWhenReady = true
@@ -543,7 +574,7 @@ class PlayerActivity : AppCompatActivity() {
         android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date(epochSeconds * 1000))
 
     private fun loadGuide(url: String) {
-        if (!loadingGuides.add(url)) return
+        if (isDestroyed || !loadingGuides.add(url)) return
         // Every channel in the list wants its guide at once, so they queue three at a time, each with a
         // short patience, and what came back is kept for half an hour: opening the list again is instant.
         guideExec.execute {
@@ -564,9 +595,15 @@ class PlayerActivity : AppCompatActivity() {
                         if (from > 0 && to > from) Prog(from, to, it.optString("name")) else null
                     }
                 }.sortedBy { it.from }
-            }.getOrDefault(emptyList())
+            }
             runOnUiThread {
-                guides[url] = list
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                // A guide that did not answer is remembered as "no programmes", and an empty guide is
+                // what the arrows read as "this channel has no past to walk" - so one timed-out fetch
+                // silently changed what Left and Right do, for the rest of the session. A failure is
+                // forgotten instead, and the next time the banner is raised it is asked again.
+                list.onSuccess { guides[url] = it }
+                list.onFailure { loadingGuides.remove(url) }
                 if (bannerOpen) paintNow()
                 (findViewById<ListView>(R.id.chList).adapter as? BaseAdapter)?.notifyDataSetChanged()
             }
@@ -1115,6 +1152,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
+        guideExec.shutdownNow()          // a guide nobody will see is work nobody needs
         // Leaving the player ends the torrent stream and frees its downloaded data.
         if (isFinishing && intent.getBooleanExtra("torrent", false)) {
             Thread { TorrentEngine.stopCurrent() }.start()

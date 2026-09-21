@@ -4,7 +4,7 @@ import {invalidateView} from './core/requests.js';
 import {rememberScreen, restoreScreen} from './core/screenmem.js';
 import {store} from './core/store.js';
 import {loadAddons} from './data/addons.js';
-import {availObserver} from './data/availability.js';
+import {availObserver, resetAvailBudget} from './data/availability.js';
 import {armHeAndAvail, heObserver} from './data/hebrew.js';
 import {checkReminders} from './data/reminders.js';
 import {loadServices} from './data/services.js';
@@ -45,6 +45,7 @@ $('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); i
 /** Let go of the previous screen's observers; the MutationObserver re-arms whatever the new one renders. */
 export function resetObservers(){
   endTaste();                                        // whatever was about to start playing, is not
+  resetAvailBudget();                                // a new screen may ask about its own titles
   for(const o of [bgObserver, heObserver, availObserver]) o.disconnect();
   document.querySelectorAll('[data-bgw]').forEach(el => { if(!el.style.backgroundImage) delete el.dataset.bgw; });
   requestAnimationFrame(() => { lazyBg(document); armHeAndAvail(document); });

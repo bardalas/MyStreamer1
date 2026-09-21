@@ -7,6 +7,7 @@ import {tr} from '../i18n.js';
 /* ---------- Reshet 13 VOD & live (13tv.co.il) — the site's own Kaltura OTT API, as a guest ---------- */
 export const R13 = {api: 'https://5031.frp1.ott.kaltura.com/api_v3/service/', ks: '', exp: 0};
 export const R13_SERIES = '1259', R13_EPISODE = '1268', R13_CHANNEL = '1265';
+const R13_TTL = 3e5;                                 // five minutes: these lists move slowly
 export async function r13(svc, body){
   const r = await fetch(`${R13.api}${svc}?format=1`, {method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({apiVersion: '5.4.0', clientTag: 'ReshetWeb', ...body})});
@@ -55,14 +56,23 @@ export function r13card(o){
       <div class="t" dir="auto">${esc(o.name)}</div></button>`;
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-r13]'); if(b){ e.preventDefault(); r13playEpisode(b.dataset.r13, b.dataset.title); } });
+/* Every other broadcaster's catalogue is kept for a few minutes; this one was fetched again for
+   every row that wanted it, every search that touched it and every return to the screen - a hundred
+   assets from Kaltura, each time. */
+const r13rows = new Map();
 export async function r13row(kind){
-  if(kind === 'series') return r13list(`(and asset_type='${R13_SERIES}')`, 'VIEWS_DESC', 100);
-  return r13list(`(and asset_type='${R13_EPISODE}')`, 'CREATE_DATE_DESC', 30);
+  const hit = r13rows.get(kind);
+  if(hit && Date.now() - hit.at < R13_TTL) return hit.list;
+  const list = kind === 'series'
+    ? await r13list(`(and asset_type='${R13_SERIES}')`, 'VIEWS_DESC', 100)
+    : await r13list(`(and asset_type='${R13_EPISODE}')`, 'CREATE_DATE_DESC', 30);
+  r13rows.set(kind, {at: Date.now(), list});
+  return list;
 }
 /** Reshet 13 live channels (main channel, comedy, reality, holiday) with playable HLS URLs. */
 export let r13chanCache = null;
 export async function r13channels(){
-  if(r13chanCache && Date.now() - r13chanCache.at < 3e5) return r13chanCache.list;
+  if(r13chanCache && Date.now() - r13chanCache.at < R13_TTL) return r13chanCache.list;
   const chans = (await r13list(`(and asset_type='${R13_CHANNEL}')`, 'NAME_ASC', 20)).filter(o => !/test|בדיקה|kaltura|cnn/i.test(o.name));
   const out = await Promise.all(chans.map(async o => {
     try{ const {url} = await r13source(o.id, true);

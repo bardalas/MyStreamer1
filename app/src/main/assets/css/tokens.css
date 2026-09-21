@@ -37,5 +37,3 @@
   --glow:rgba(200,65,45,.3);--glow-soft:rgba(200,65,45,.25);--beam:rgba(200,65,45,.07);--ghost:rgba(29,26,22,.08)}
 
 /* ---------- layouts (Settings) ---------- */
-:root[data-poster="s"]{--poster-w:104px}
-:root[data-poster="l"]{--poster-w:168px}

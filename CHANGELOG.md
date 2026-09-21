@@ -1,5 +1,43 @@
 # VEO Android changelog
 
+## 0.43.0 — 2026-09-21
+A full audit of the code and a QA sweep over every screen: forty readers and adversarial checkers
+went through the whole source, thirty findings were raised and twenty-nine survived the check. All
+of them are fixed here. The ones a viewer will notice:
+- **Resetting the settings no longer takes the app's own look with it.** The reset wrote a settings
+  object without the layout, the page became `data-layout="undefined"`, and every rule written for
+  the layout stopped matching. There is one door for settings now, and it re-pins what the whole
+  stylesheet depends on.
+- **Switching the interface language works.** It threw and changed nothing: the language belongs to
+  the strings' own module, and only that module may move it.
+- **A series opens on the episode you are up to**, across seasons — it always opened on season one,
+  so “continue watching” a series you were deep into offered its first episode.
+- **Back closes the card in front of you** instead of leaving the app. The update card was not on the
+  list of things Back knew about, while it held the remote captive; every card is now closed by its
+  own button. Two update cards could also appear at once — one check at a time now.
+- **A screen that was left stops painting.** A slow title page, a slow search, a slow playlist and a
+  late add-on answer all used to paint over whatever the viewer had gone to next.
+- **Your place in the source list is kept** while the list is redrawn under you by every add-on that
+  answers late.
+- **Subtitles come back with the film.** Their drawing stopped for good when the player was released
+  — backgrounding the app, or the rebuild when a translation arrives — and “no subtitles” left a
+  track embedded in the film on screen. The panel and the player are now told the same thing, and
+  “still looking” is no longer reported as “nothing found”.
+- **The archive of a channel remembers which spelling of its address answered** by name rather than
+  by a place in a list that changes length, and the search for one has a deadline instead of running
+  until every address has failed.
+- **An add-on that stopped answering can be removed.** It was hidden from the page it would be
+  removed on, while still costing nine seconds of every start.
+- A lobby tab of the film archive no longer tries to play the lobby. Titles below the fold are
+  checked for sources again after the page redraws itself. Reshet's catalogue is fetched once rather
+  than for every row, search and return. What is held in memory has one ceiling on every path into
+  it. The EPG threads end with the player instead of outliving it, and a guide that failed to load
+  is no longer remembered as “this channel has no past”, which silently changed what Left and Right
+  did for the rest of the session.
+- **Less code**: the wheel's deleted buttons took their machinery with them, the three removed
+  layouts and three poster sizes took their rules and their strings, and two screens stopped writing
+  Hebrew straight into their markup.
+
 ## 0.42.0 — 2026-09-21
 - **A film continues where it stopped.** The position was written as the player shut down — after the
   page underneath had already been asked for it — so every film resumed one watching behind: what was

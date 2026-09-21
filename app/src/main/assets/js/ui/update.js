@@ -21,7 +21,18 @@ export function isNewer(latest, current){
   return false;
 }
 
-export async function checkUpdate(force){
+/* One check at a time. Two calls that overlapped both passed the "is a card already up?" test - it
+   is asked before the fetch, and answered after it - and appended a card each; the one underneath
+   could then never be reached, and it holds the remote inside it. Callers that ask while a check is
+   running get that check's own promise, so what they see afterwards is the real outcome. */
+let inflight = null;
+export function checkUpdate(force){
+  if(inflight) return inflight;
+  inflight = runCheck(force).finally(() => { inflight = null; });
+  return inflight;
+}
+
+async function runCheck(force){
   if(!APP_VERSION || !window.BoothAndroid?.openExternal) return;        // only inside the app
   if(document.querySelector('.update')) return;                         // one card at a time
   // a cold start always checks; returning to the foreground re-checks at most twice an hour
@@ -34,7 +45,7 @@ export async function checkUpdate(force){
   const card = document.createElement('div');
   card.className = 'update';
   card.innerHTML = `<span><b>${tr('update.available', {tag: esc(tag)})}</b></span>
-    <span class="btns"><button class="go" id="updGo">${tr('update.now')}</button><button id="updLater">${tr('update.later')}</button></span>`;
+    <span class="btns"><button class="go" id="updGo">${tr('update.now')}</button><button id="updLater" data-back>${tr('update.later')}</button></span>`;
   document.body.appendChild(card);
   $('#updGo').onclick = () => {
     card.remove();

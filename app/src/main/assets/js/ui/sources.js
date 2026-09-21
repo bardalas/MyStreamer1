@@ -14,24 +14,6 @@ import {r13meta, r13row} from '../providers/reshet.js';
 import {openPlayer} from './player.js';
 import {endTaste} from './taste.js';
 
-export function quickPick(type, videoId){
-  return new Promise(resolve => {
-    const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
-    const all = [];
-    let pending = src.length, done = false;
-    if(!pending) return resolve(null);
-    const finish = p => { if(!done){ done = true; resolve(p); } };
-    for(const a of src){
-      fetchStreams(a, type, videoId)
-        .then(list => { for(const st of list) all.push(parseStream(st, a.manifest.name, all.length)); })
-        .catch(() => {})
-        .then(() => {
-          const p = bestForNow(all);
-          if(--pending === 0 || (p && (p.direct || p.q === '1080p'))) finish(p);
-        });
-    }
-  });
-}
 
 /** Which quality the viewer asked for, if any: kept between titles, because a taste for 1080p is a taste. */
 export let prefQ = store.get('quality', '');
@@ -39,12 +21,6 @@ export const QUALITIES = ['4K', '1080p', '720p', 'SD'];
 /** The source to play: the best one of the chosen quality, or simply the best. */
 export const pickQ = list => (prefQ && list.find(x => x.q === prefQ)) || list[0];
 
-/** The sensible default: 1080p when its file is small enough to stream, else the best-ranked. */
-export function bestForNow(list){
-  const ok = list.filter(x => x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a));
-  const fits = x => !x.size || x.size < 5 * GB;               // big files start slowly and stall when streamed
-  return ok.find(x => x.q === '1080p' && fits(x)) || ok.find(fits) || ok[0] || null;
-}
 
 
 
@@ -126,6 +102,13 @@ export function playStream(s, label, ctx){
     still loading is a small note beside them, and the long list opens below the row (#palt). */
 export function renderStreams(box, all, pending, label, ctx, errors = [], retry, isCurrent = () => true){
   if(!isCurrent()) return;
+  /* The list is drawn again every time another add-on answers, and the viewer is standing in it while
+     that happens: the button under them is thrown away and their place with it, which on a remote
+     means the focus falls to the page and the next press goes somewhere else entirely. What they were
+     on is remembered by what it does, and given back once the new list is up. */
+  const held = document.activeElement;
+  const heldKey = held && (box.contains(held) || $('#palt')?.contains(held))
+    ? (held.dataset.i !== undefined ? `[data-i="${held.dataset.i}"]` : held.id ? '#' + held.id : '') : '';
   const alt = $('#palt');
   const wasOpen = $('#altToggle')?.getAttribute('aria-expanded') === 'true';
   if(alt) alt.innerHTML = '';
@@ -169,6 +152,10 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
   wireRemind(box, ctx);
   if(alt && rest.length) alt.innerHTML = `<div class="altlist"${wasOpen ? '' : ' hidden'}>${rest.slice(0, 40).map(x => `<button class="srow" data-i="${x.i}"><b>${x.q === 'Other' ? '—' : x.q}</b><span>${x.size ? fmtSize(x.size) : ''}</span><span>${x.direct ? tr('src.direct') : (x.seeds ?? 0) < 1 ? tr('src.weak') : '👤 ' + x.seeds}</span></button>`).join('')}</div>`;
   [box, alt].forEach(el => el?.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { if(isCurrent()) playStream(all[b.dataset.i].s, label, ctx); }));
+  if(heldKey){
+    const back = box.querySelector(heldKey) || alt?.querySelector(heldKey) || $('#altToggle');
+    if(back) back.focus({preventScroll: true});
+  }
   if($('#altToggle')) $('#altToggle').onclick = e => {
     if(!isCurrent()) return;
     const btn = e.currentTarget, open = btn.getAttribute('aria-expanded') === 'true', more = alt.querySelector('.altlist');

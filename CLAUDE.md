@@ -30,7 +30,7 @@ app/src/main/assets/
       store.js          what is kept on the device
       dom.js            $, esc, getJSON, the lazy-image observer
       bridge.js         the way to the Android app (native fetch, the site reader, the migration)
-      settings.js       the viewer's choices, and the skin/layout they imply
+      settings.js       the viewer's choices (one door: `pinned()` re-pins the layout and poster size)
       screenmem.js      where the viewer was, so Back puts them back
     data/               what the app knows
       addons.js         manifests, catalogues, details, streams
@@ -210,7 +210,9 @@ There is no native focus system in a WebView, so one is built from scratch:
   an entry *and open it*, Left/Right step into what the column controls (via `data-pane` on the
   row, e.g. `data-pane="#eps"`).
 - `isTvLayout()` gates the whole system: `IS_TV_DEVICE || settings.layout === 'tv'`. The **device**
-  check must never be removed — see Gotchas.
+  check must never be removed — see Gotchas. Since 0.41.0 the app has one layout (`LAYOUT = 'tv'`) and
+  one poster size, both re-pinned by `pinned()` in `core/settings.js`: every other layout's rules and
+  strings are gone, and a caller that writes settings without them cannot drop them any more.
 
 ### Live TV (`PlayerActivity.kt`)
 Channel data (`Source`) carries `num`/`logo`/`epg` (a per-channel EPG endpoint URL) sent from
@@ -298,6 +300,16 @@ for `gradle assembleRelease` (no signing secrets exist outside CI anyway).
   silently turned off all D-pad navigation. `IS_TV_DEVICE` (from `BoothAndroid.isTv()`) covers the
   real device; `settings.layout === 'tv'` alone is kept only so the TV nav model can be exercised
   from a desktop browser during development.
+- **A screen that awaits must check it is still the screen.** `core/requests.js` `guardView(el)` and
+  `invalidateView()` exist for this: every view that paints after an `await` (detail, search, live,
+  the source list) holds either a guard or the element it is going to write into, and checks
+  `isConnected` first. Without it a slow answer paints over whatever the viewer went to next.
+- **The player's position is written in `onPause`, not `onStop`.** Android resumes the activity
+  underneath before stopping the one being left, and `MainActivity.onResume` is what reads the
+  position back — written in `onStop` it always arrived one watching too late.
+- **A card over the page is closed by its own button.** `openCard()` is the one definition of "a card
+  is up" (`.sheet`, `.update`, a visible `#tstatus`); `boothBack` clicks that card's `[data-back]`
+  button rather than removing the element, so Back means what the card's own button means.
 - **Kotlin string templates must be plain `$`.** A file once contained `${'$'}{x}` (from a shell heredoc)
   which prints literally: the live banner showed "src.num" and the updater's FileProvider authority was
   wrong. Grep for `'$'` after generating Kotlin from a script.

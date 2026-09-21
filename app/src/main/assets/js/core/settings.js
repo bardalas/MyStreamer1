@@ -1,6 +1,6 @@
 /* The viewer's choices - theme, layout, language - and what the app looks like because of them. */
 import {store} from './store.js';
-import {STRINGS, UI, applyUiLang} from '../i18n.js';
+import {UI, setUiLang} from '../i18n.js';
 
 export const IS_TV_DEVICE = (() => { try{ return !!window.BoothAndroid?.isTv?.(); }catch(e){ return false; } })();
 export const isTvLayout = () => IS_TV_DEVICE || (typeof settings !== 'undefined' && settings.layout === 'tv');
@@ -25,7 +25,12 @@ export const LAYOUT = 'tv';
    size every screen was designed around. */
 export const POSTER_SIZE = 'm';
 export const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-export let settings = Object.assign({skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off', preview: 'on'}, store.get('settings', {}), {layout: LAYOUT, poster: POSTER_SIZE});
+/* One door for every set of settings there will ever be. The two that the whole stylesheet depends
+   on are pinned here rather than written by each caller: a reset that forgot them once put
+   data-layout="undefined" on the page, and every rule written for the layout stopped matching. */
+const pinned = s => Object.assign({skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod',
+  kids: 'off', preview: 'on'}, s, {layout: LAYOUT, poster: POSTER_SIZE});
+export let settings = pinned(store.get('settings', {}));
 /** The player draws its own banner and channel list in native views: hand it this skin and direction. */
 export function syncNativeTheme(){
   const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();
@@ -38,14 +43,14 @@ export function syncNativeTheme(){
 export function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
-  if(STRINGS[settings.uiLang] && settings.uiLang !== UI){ UI = settings.uiLang; applyUiLang(); }
+  setUiLang(settings.uiLang);                       // the strings' own module decides what is a language
   syncNativeTheme();
 }
 applySettings();
 
 /** Replace every setting at once (the reset in Settings); the page is repainted by the caller. */
 export function setSettings(next){
-  settings = next;
+  settings = pinned(next);
   store.set('settings', settings);
   applySettings();
 }

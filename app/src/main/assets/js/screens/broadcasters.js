@@ -58,10 +58,10 @@ export async function viewJfcTab(tabs){
   const path = store.get('jfcLobby', JFC_LOBBIES[0][0]);
   const picker = `<div class="page" style="padding-top:0">
     <div class="ltabs" role="group" aria-label="חלקי הארכיון">${JFC_LOBBIES.map(([u, n]) =>
-      `<button class="${u === path ? 'on' : ''}" data-jfc="${esc(u)}">${esc(n)}</button>`).join('')}</div>
+      `<button class="${u === path ? 'on' : ''}" data-lobby="${esc(u)}">${esc(n)}</button>`).join('')}</div>
     <p class="note" style="margin:10px 0 0">הסרטים מתנגנים באתר הארכיון, בתוך האפליקציה. חלק מהסרטים דורשים חשבון חינם באתר, וחלק בתשלום.</p></div>`;
   $('#app').innerHTML = tabs + picker + `<div id="jfcrows"><p class="note" style="padding:0 28px">טוען מהארכיון…</p></div>`;
-  $('#app').querySelectorAll('[data-jfc]').forEach(b => b.onclick = () => { store.set('jfcLobby', b.dataset.jfc); viewJfcTab(tabs); });
+  $('#app').querySelectorAll('[data-lobby]').forEach(b => b.onclick = () => { store.set('jfcLobby', b.dataset.lobby); viewJfcTab(tabs); });
   try{
     const rows = await jfcLobby(path);
     const host = $('#jfcrows');

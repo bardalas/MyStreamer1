@@ -22,9 +22,13 @@ export async function viewLive(){
   if($('#rtvOpen')) $('#rtvOpen').onclick = () => openRtvKey(viewLive);
   app.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { store.set('livePl', b.dataset.pl); store.set('liveGroup', ''); viewLive(); });
 
+  // The channels of the playlist that was chosen: another playlist may have been chosen since, and
+  // a list that arrives late must not be painted over the one the viewer is now looking at.
+  const mine = $('#chs');
   let chans;
   try{ chans = await liveChannels(sel); }
-  catch(err){ showErr($('#chs'), 'לא ניתן לטעון את הערוצים', err, viewLive); return; }
+  catch(err){ if(mine.isConnected) showErr(mine, 'לא ניתן לטעון את הערוצים', err, viewLive); return; }
+  if(!mine.isConnected) return;
 
   const groups = [...new Set(chans.map(c => c.group))];
   let liveGroup = store.get('liveGroup', '');

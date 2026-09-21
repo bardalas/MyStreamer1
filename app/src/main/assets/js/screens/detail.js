@@ -1,5 +1,6 @@
 /* A title's own page. */
 import {$, esc} from '../core/dom.js';
+import {guardView} from '../core/requests.js';
 import {isTvLayout} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
@@ -9,6 +10,7 @@ import {svcFacts} from '../data/services.js';
 import {library, progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {card} from '../ui/cards.js';
+import {nextEpisode} from '../ui/reel.js';
 import {startTaste, trailerId} from '../ui/taste.js';
 import {openPlayer} from '../ui/player.js';
 import {loadStreams} from '../ui/sources.js';
@@ -32,14 +34,17 @@ const IC = {
 
 export async function viewDetail(type, id){
   const app = $('#app');
+  // the add-ons answer in their own time; by then this may not be the screen any more
+  const inView = guardView(app);
   app.innerHTML = `<div class="backdrop skel"></div>`;
   if(type === 'movie') warmSources(type, id);                // a movie's sources load while its details do
   const meta = await fetchMeta(type, id);
+  if(!inView()) return;                              // the viewer has moved on; this page is nobody's
   if(!meta){ app.innerHTML = `<div class="page"><h1>${tr('detail.notFound')}</h1><p class="note">${tr('detail.notFoundNote')}</p></div>`; return; }
   const saved = !!library[meta.id];
   if(hebrewOn() && /^tt\d+$/.test(meta.id)) hebrewPlot(meta.id).then(plot => {
     const el = $('#desc');
-    if(!plot || !el) return;
+    if(!inView() || !plot || !el) return;             // a summary belongs to the title that asked for it
     const PREVIEW = 650;
     const short = plot.text.length > PREVIEW ? plot.text.slice(0, plot.text.lastIndexOf(' ', PREVIEW)) + '…' : plot.text;
     const link = isTvLayout() ? tr('detail.wikiName')            // a link cannot be followed from a remote
@@ -143,7 +148,7 @@ export async function viewDetail(type, id){
       $('#eps').querySelectorAll('.epcard').forEach(b => b.onclick = () => pick(b, true));
       // open on the episode you are in the middle of, otherwise the first one you have not seen
       const started = eps.find(v => { const w = progress[v.id]; return w && w.d && w.t / w.d <= .92; });
-      const next = started || eps.find(v => !progress[v.id]) || eps[0];
+      const next = eps.find(v => v.id === up?.id) || started || eps.find(v => !progress[v.id]) || eps[0];
       const btn = next && $('#eps').querySelector(`.epcard[data-id="${CSS.escape(next.id)}"]`);
       if(btn){
         pick(btn);
@@ -151,7 +156,12 @@ export async function viewDetail(type, id){
         if(isTvLayout() && (!document.activeElement || document.activeElement === document.body)) btn.focus({preventScroll: true});
       }
     };
-    const first = seasons.find(s => s !== 0) ?? seasons[0];
+    /* The season the viewer is in the middle of - not season one. nextEpisode() is what the card's
+       play button uses, so the page and the button agree by construction, and it crosses a season
+       boundary (finish season two and it offers the first of season three). */
+    const up = nextEpisode(meta);
+    const upVid = up && videos.find(v => v.id === up.id);
+    const first = upVid ? (upVid.season ?? 0) : (seasons.find(s => s !== 0) ?? seasons[0]);
     const pickSeason = s => {
       $('#app').querySelectorAll('.seasonbar [data-season]').forEach(b => b.classList.toggle('on', b.dataset.season == s));
       renderEps(s);

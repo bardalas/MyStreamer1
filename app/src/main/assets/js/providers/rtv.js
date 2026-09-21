@@ -35,55 +35,74 @@ export const BROWSER_UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (K
  * says, so every likely one is handed to the player, in order, and it moves to the next if a programme
  * does not open: the channel's own folder, the channel as a folder, and the service's direct address.
  */
-export function rtvArchiveUrls(c, file, from){
+export function archiveShapes(c, file, from){
   const [path, query] = c.url.split('?');
   const q = query ? '?' + query : '';
   const alt = file.replace(/^index-/, 'archive-');
   const vid = file.replace(/^index-/, 'video-');
-  const out = [path.replace(/[^/]+$/, file) + q,                     // …/<channel>/<file>
-               path.replace(/\.m3u8$/, '') + '/' + file + q,         // …/<channel>.m3u8 is itself the folder
-               path.replace(/[^/]+$/, alt) + q,
-               path.replace(/\.m3u8$/, '') + '/' + alt + q,
-               path.replace(/[^/]+$/, vid) + q,
-               path.replace(/\.m3u8$/, '') + '/' + vid + q];
+  /* Every spelling of an archive address that a panel has been seen to use, each with a name.
+     The name is what is remembered when one of them answers: an index into this list used to be,
+     and the list is not the same length every time (the parameter shapes only exist when a time is
+     asked for, and one of them carries the current clock, so the de-duplication moves), which meant
+     the remembered place pointed at a different address on the next programme. */
+  const shapes = [
+    ['file',          path.replace(/[^/]+$/, file) + q],              // …/<channel>/<file>
+    ['folder',        path.replace(/\.m3u8$/, '') + '/' + file + q],  // …/<channel>.m3u8 is itself the folder
+    ['archive',       path.replace(/[^/]+$/, alt) + q],
+    ['archiveFolder', path.replace(/\.m3u8$/, '') + '/' + alt + q],
+    ['video',         path.replace(/[^/]+$/, vid) + q],
+    ['videoFolder',   path.replace(/\.m3u8$/, '') + '/' + vid + q],
+  ];
   // some panels take the time as a parameter of the live address instead of a file of its own
   if(from){
-    out.push(c.url + (query ? '&' : '?') + `utc=${from}&lutc=${Math.floor(Date.now() / 1000)}`);
-    out.push(c.url + (query ? '&' : '?') + `utcstart=${from}`);
-    out.push(path.replace(/\/live\//, '/timeshift/') + q);
+    shapes.push(['utc',       c.url + (query ? '&' : '?') + `utc=${from}&lutc=${Math.floor(Date.now() / 1000)}`]);
+    shapes.push(['utcstart',  c.url + (query ? '&' : '?') + `utcstart=${from}`]);
+    shapes.push(['timeshift', path.replace(/\/live\//, '/timeshift/') + q]);
   }
-  if(c.cid) out.push(`http://${c.server}:80/${c.cid}/${file}?token=${c.token}`);
-  const order = store.get('archFmt', -1);
-  const list = [...new Set(out)];
-  // the shape that answered last time is tried first
-  return order >= 0 && order < list.length ? [list[order], ...list.filter((_, i) => i !== order)] : list;
+  if(c.cid) shapes.push(['portal', `http://${c.server}:80/${c.cid}/${file}?token=${c.token}`]);
+  return shapes;
+}
+/** The addresses to try, the one that answered last time first. */
+function rtvArchiveUrls(c, file, from){
+  const shapes = archiveShapes(c, file, from);
+  const known = store.get('archShape', '');
+  const first = shapes.filter(([name]) => name === known);
+  const seen = new Set();
+  return [...first, ...shapes].map(([, url]) => url).filter(u => !seen.has(u) && seen.add(u));
 }
 /**
  * Which of those addresses this service actually answers to is not something its playlist says, so the
  * app asks: the first one that gives back a playlist is the one used, and which of them it was is
  * remembered for the next programme.
  */
+/** How long a viewer waits for an archive to be found before being told it was not. */
+const ARCHIVE_DEADLINE = 12e3;
 export async function rtvArchiveProbe(c, start, end){
   const now = Date.now() / 1000;
   start = Math.floor(start);
   if(!end || end <= start) end = now + 600;
   const file = start > now - 600 ? `timeshift_abs-${start}.m3u8` : `index-${start}-${Math.floor(end - start)}.m3u8`;
-  const urls = rtvArchiveUrls(c, file, start);
+  const shapes = archiveShapes(c, file, start);
+  const known = store.get('archShape', '');
+  const order = [...shapes.filter(([n]) => n === known), ...shapes.filter(([n]) => n !== known)];
   const tried = [];
   const hide = u => u.replace(/[A-Za-z0-9_-]{8,}/g, m => m.slice(0, 3) + '…');
-  for(const u of urls){
+  /* Ten addresses tried one after another, each waiting on a service that may simply not answer, is
+     a wait with no end for a viewer looking at a picture that has not changed. The whole search gets
+     one deadline; what was asked and what came back is kept either way, for the settings page. */
+  const until = Date.now() + ARCHIVE_DEADLINE;
+  for(const [name, u] of order){
+    if(Date.now() > until){ tried.push('— נגמר הזמן —'); break; }
     try{
       const text = await fetchText(u);
       if(!/#EXTM3U/.test(text.slice(0, 200))){ tried.push(`${hide(u)} → ${text.slice(0, 40).replace(/\s+/g, ' ')}`); continue; }
-      const plain = rtvArchiveUrls(c, file, start);          // the order this one was found in
-      store.set('archFmt', plain.indexOf(u));
+      store.set('archShape', name);                          // the spelling this service answers to
       store.set('archTried', []);
       return u;
     }catch(e){ tried.push(`${hide(u)} → ${(e.message || 'no answer').slice(0, 40)}`); }
   }
-  // nothing answered: what was asked, and what came back, is kept for the settings page to show
   store.set('archTried', tried);
-  return urls[0];
+  return order[0][1];
 }
 /** The same addresses, with the times left for the player to fill in: it walks the guide by itself. */
 export function rtvArchiveTemplate(c){

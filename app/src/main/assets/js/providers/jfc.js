@@ -89,7 +89,8 @@ export async function jfcPlay(url, title){
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-jfc]');
-  if(b){ e.preventDefault(); jfcPlay(b.dataset.jfc, b.dataset.title || ''); }
+  // a film of the archive carries its own address; anything else wearing this mark is not ours
+  if(b && /^https?:/.test(b.dataset.jfc)){ e.preventDefault(); jfcPlay(b.dataset.jfc, b.dataset.title || ''); }
 });
 
 export function jfcCard(x){

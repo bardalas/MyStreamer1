@@ -12,6 +12,9 @@ import java.io.File
  * offset is half a second or a minute.
  */
 class Captions private constructor(private val cues: List<Cue>) {
+    /** Whether this file gave up any lines at all: an unreadable one parses to nothing. */
+    val any get() = cues.isNotEmpty()
+
 
     private class Cue(val from: Long, val to: Long, val text: String)
 

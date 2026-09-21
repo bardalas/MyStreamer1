@@ -1,24 +1,8 @@
 /* ---------- The layouts, and the television - they override what came before ---------- */
 /* The layouts: the same content, arranged for a wall, a list or a television. */
 /* Poster wall: no banner, every row wraps into a grid */
-[data-layout="grid"] main{padding-top:8px}
-[data-layout="grid"] .strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--poster-w),1fr));gap:22px 16px;overflow:visible}
-[data-layout="grid"] .poster{position:relative}
-[data-layout="grid"] .poster .t{position:absolute;inset-inline:0;bottom:0;margin:0;padding:22px 8px 7px;
   background:linear-gradient(transparent,#000d);font-size:13px;opacity:0;transition:opacity var(--travel) var(--ease)}
-[data-layout="grid"] .poster .y{display:none}
-[data-layout="grid"] .poster:hover .t,[data-layout="grid"] .poster:focus-visible .t,
-[data-layout="grid"] .poster:focus-within .t{opacity:1}
 /* List: compact rows with small art, title and year */
-[data-layout="list"] main{padding-top:8px}
-[data-layout="list"] .strip,[data-layout="list"] .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px 16px;overflow:visible}
-[data-layout="list"] .poster{display:grid;grid-template-columns:72px 1fr;grid-template-rows:auto 1fr;column-gap:14px;padding:10px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
-[data-layout="list"] .poster .art{grid-row:1 / span 2;width:72px}
-[data-layout="list"] .poster .t{font-size:15px;font-weight:600}
-[data-layout="list"] .row h2{font-size:17px}
-[data-layout="list"] .poster .t{margin-top:2px}
-[data-layout="list"] .poster:hover .art,[data-layout="list"] .poster:focus-visible .art{transform:none;box-shadow:none}
-[data-layout="list"] .poster:hover,[data-layout="list"] .poster:focus-visible{background:var(--raise)}
 /* TV: 10-foot UI - larger type, posters and focus for a remote */
 [data-layout="tv"] body{font-size:17px}
 [data-layout="tv"] .poster{flex-basis:var(--poster-w)}
@@ -51,9 +35,9 @@
 /* a series on the TV never scrolls the page: the header keeps its size and the episodes fill what is left */
 [data-layout="tv"] body.titlefit{height:100vh;overflow:hidden;display:flex;flex-direction:column}
 [data-layout="tv"] body.titlefit main#app{flex:1;min-height:0;display:flex;flex-direction:column;z-index:1;position:relative;padding:0;overflow:hidden}
-[data-layout="tv"] body.titlefit .backdrop{height:100vh !important;width:100vw !important;position:fixed !important;inset:0 !important;z-index:0 !important;margin:0 !important;border-radius:0 !important}
+[data-layout="tv"] body.titlefit .backdrop{height:100vh;width:100vw;position:fixed;inset:0;z-index:0;margin:0;border-radius:0}
 [data-layout="tv"] body.titlefit .backdrop::after{background:linear-gradient(0deg,var(--night) 20%,transparent 60%),
-  linear-gradient(to var(--fade-to,left),var(--night) 5%,transparent 80%) !important}
+  linear-gradient(to var(--fade-to,left),var(--night) 5%,transparent 80%)}
 
 [data-layout="tv"] body.titlefit .detail-overlay{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:0 28px 4vh;z-index:2;position:relative;box-sizing:border-box;pointer-events:none}
 [data-layout="tv"] body.titlefit .detail-overlay > *{pointer-events:auto}

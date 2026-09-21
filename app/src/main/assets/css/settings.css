@@ -35,14 +35,6 @@
 .swatch{display:flex;align-items:flex-end;gap:5px;height:72px;border-radius:7px;padding:9px;border:1px solid var(--line)}
 .swatch i{width:18px;height:18px;border-radius:50%}
 .swatch b{margin-inline-start:auto;font-family:var(--display);font-size:24px;line-height:1}
-.lprev{display:flex;flex-direction:column;gap:4px;height:72px;padding:6px;border-radius:7px;background:var(--night);border:1px solid var(--line)}
-.lprev .b{height:22px;flex:none;border-radius:3px;background:var(--raise)}
-.lprev .r{display:flex;gap:4px;flex:1}
-.lprev .r i{flex:1;border-radius:2px;background:var(--tungsten);opacity:.5}
-.lprev .r.big i{opacity:.8}
-.lprev .l{display:flex;gap:6px;align-items:center;flex:1}
-.lprev .l i{width:11px;align-self:stretch;border-radius:2px;background:var(--tungsten);opacity:.5}
-.lprev .l em{flex:1;height:5px;border-radius:3px;background:var(--muted);opacity:.55}
 .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px}
 
 /* Settings: the side menu and the page beside it. */

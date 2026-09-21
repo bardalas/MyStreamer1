@@ -25,11 +25,6 @@ he: {
   'skin.forest.name': 'יער', 'skin.forest.note': 'ירוק עמוק עם ליים',
   'skin.netflix.name': 'נטפליקס', 'skin.netflix.note': 'שחור מלא עם האדום המוכר',
   'skin.daylight.name': 'אור יום', 'skin.daylight.note': 'רקע בהיר, הדגשה באדום',
-  'layout.cinema.name': 'קולנוע', 'layout.cinema.note': 'שורות שמסתובבות, והכותר שבמרכז נפתח עם טעימה',
-  'layout.grid.name': 'קיר פוסטרים', 'layout.grid.note': 'בלי באנר; כל שורה נפרשת לרשת',
-  'layout.list.name': 'רשימה', 'layout.list.note': 'שורות קומפקטיות עם שמות. הכי נוח בטלפון',
-  'layout.tv.name': 'טלוויזיה', 'layout.tv.note': 'פוסטרים וטקסט גדולים לשלט',
-  'poster.s': 'קטן', 'poster.m': 'בינוני', 'poster.l': 'גדול',
   'set.title': 'הגדרות', 'set.tabsAria': 'נושאי ההגדרות',
   'set.tab.start': 'פתיחה וצפייה', 'set.tab.look': 'עיצוב ותצוגה', 'set.tab.home': 'מסך הבית',
   'set.tab.live': 'שידור חי ופלייליסטים', 'set.tab.addons': 'תוספים וכתוביות', 'set.tab.about': 'איפוס ומידע',
@@ -38,7 +33,7 @@ he: {
   'set.lang.title': 'שמות ותקצירים', 'set.lang.he': 'עברית', 'set.lang.en': 'English',
   'set.lang.note': 'השמות בעברית מגיעים מ־Wikidata והתקצירים מוויקיפדיה העברית. כותרים בלי ערך בעברית נשארים באנגלית.',
   'set.uilang.title': 'שפת הממשק', 'set.uilang.note': 'שפת התפריטים והכפתורים. כיוון הפריסה (ימין לשמאל או שמאל לימין) מתעדכן אוטומטית.',
-  'set.skin.title': 'ערכת עיצוב', 'set.layout.title': 'פריסה', 'set.poster.title': 'גודל פוסטרים',
+  'set.skin.title': 'ערכת עיצוב',
   'set.nosrc.title': 'כותרים בלי מקורות', 'set.nosrc.grey': 'להאפיר', 'set.nosrc.hide': 'להסתיר',
   'set.nosrc.note': 'כותר שאין לו כרגע מקור צפייה — להשאיר אותו מעומעם, או להוציא אותו מהמסך.',
   'set.home.title': 'קטגוריות במסך הבית', 'set.home.note': 'סמן מה יוצג, והזז למעלה או למטה כדי לקבוע את הסדר.',
@@ -61,7 +56,7 @@ he: {
   'set.about.found': 'נמצאה גרסה חדשה', 'set.about.latest': 'זו הגרסה העדכנית',
   'addons.intro': 'הדבק קישור manifest של כל תוסף תואם Stremio. הקטלוגים, הפרטים ומקורות הצפייה מגיעים מהתוספים שמותקנים כאן.',
   'addons.manifestAria': 'קישור manifest', 'addons.install': 'התקן',
-  'addons.hidden': '{n} תוספים לא זמינים כרגע ומוסתרים.', 'addons.already': 'התוסף הזה כבר מותקן.',
+  'addons.silent': 'לא עונה כרגע', 'addons.already': 'התוסף הזה כבר מותקן.',
   'addons.invalid': 'זה לא קובץ manifest תקין', 'addons.installed': '{name} הותקן.',
   'addons.failed': 'ההתקנה נכשלה: {err}. ודא שהקישור מסתיים ב־manifest.json.',
   'src.play': 'נגן', 'src.more': 'מקורות ({n})', 'src.direct': 'ישיר', 'src.watchOn': 'צפייה ב־{svc}',
@@ -76,6 +71,9 @@ he: {
   'detail.wikiFrom': 'מתוך {link} · CC BY-SA', 'detail.wikiName': 'ויקיפדיה העברית',
   'detail.readMore': 'קרא עוד', 'detail.director': 'במאי', 'detail.cast': 'שחקנים',
   'lib.in': 'במועדפים', 'lib.add': 'הוסף למועדפים',
+  'search.results': 'תוצאות עבור „{q}”', 'search.noAddons': 'אף אחד מהתוספים שלך לא תומך בחיפוש.',
+  'search.hebrew': 'בעברית', 'search.none': 'לא נמצאו תוצאות.', 'search.failed': 'החיפוש נכשל',
+  'search.heFailed': 'החיפוש בעברית נכשל',
   'lib.title': 'מועדפים', 'lib.empty': 'אין עדיין מועדפים. פתח כותר ובחר „הוסף למועדפים”.',
   'detail.episodes': 'פרקים', 'detail.playEp': 'עונה {s} · פרק {e}', 'detail.playFilm': 'הפעל', 'detail.resume': 'המשך צפייה',
   'detail.startFilm': 'התחל לנגן', 'detail.resumeAt': 'המשך מ־{t}', 'detail.fromStart': 'נגן מהתחלה',
@@ -133,11 +131,6 @@ en: {
   'skin.forest.name': 'Forest', 'skin.forest.note': 'Deep green with lime',
   'skin.netflix.name': 'Netflix', 'skin.netflix.note': 'Full black with the familiar red',
   'skin.daylight.name': 'Daylight', 'skin.daylight.note': 'Light background, red accent',
-  'layout.cinema.name': 'Cinema', 'layout.cinema.note': 'Rows that turn, and the title in the middle opens with a taste',
-  'layout.grid.name': 'Poster wall', 'layout.grid.note': 'No banner; every row unfolds into a grid',
-  'layout.list.name': 'List', 'layout.list.note': 'Compact rows with titles. Best on a phone',
-  'layout.tv.name': 'TV', 'layout.tv.note': 'Large posters and text for the remote',
-  'poster.s': 'Small', 'poster.m': 'Medium', 'poster.l': 'Large',
   'set.title': 'Settings', 'set.tabsAria': 'Settings sections',
   'set.tab.start': 'Startup & viewing', 'set.tab.look': 'Look & display', 'set.tab.home': 'Home screen',
   'set.tab.live': 'Live TV & playlists', 'set.tab.addons': 'Add-ons & subtitles', 'set.tab.about': 'Reset & about',
@@ -146,7 +139,7 @@ en: {
   'set.lang.title': 'Titles & summaries', 'set.lang.he': 'Hebrew', 'set.lang.en': 'English',
   'set.lang.note': 'Hebrew titles come from Wikidata and summaries from Hebrew Wikipedia. Titles without a Hebrew entry stay in English.',
   'set.uilang.title': 'Interface language', 'set.uilang.note': 'The language of menus and buttons. The layout direction (right-to-left or left-to-right) follows automatically.',
-  'set.skin.title': 'Theme', 'set.layout.title': 'Layout', 'set.poster.title': 'Poster size',
+  'set.skin.title': 'Theme',
   'set.nosrc.title': 'Titles without sources', 'set.nosrc.grey': 'Grey out', 'set.nosrc.hide': 'Hide',
   'set.nosrc.note': 'A title with nothing to watch right now: keep it dimmed, or take it off the screen.',
   'set.home.title': 'Home screen categories', 'set.home.note': 'Tick what to show, and move entries up or down to set the order.',
@@ -169,7 +162,7 @@ en: {
   'set.about.found': 'A new version is available', 'set.about.latest': 'You have the latest version',
   'addons.intro': 'Paste the manifest link of any Stremio-compatible add-on. Catalogues, details and streaming sources come from the add-ons installed here.',
   'addons.manifestAria': 'Manifest link', 'addons.install': 'Install',
-  'addons.hidden': '{n} add-ons are unavailable right now and hidden.', 'addons.already': 'This add-on is already installed.',
+  'addons.silent': 'Not answering', 'addons.already': 'This add-on is already installed.',
   'addons.invalid': 'This is not a valid manifest file', 'addons.installed': '{name} installed.',
   'addons.failed': 'Installation failed: {err}. Make sure the link ends with manifest.json.',
   'src.play': 'Play', 'src.more': 'Sources ({n})', 'src.direct': 'Direct', 'src.watchOn': 'Watch on {svc}',
@@ -184,6 +177,9 @@ en: {
   'detail.wikiFrom': 'From {link} · CC BY-SA', 'detail.wikiName': 'Hebrew Wikipedia',
   'detail.readMore': 'Read more', 'detail.director': 'Director', 'detail.cast': 'Cast',
   'lib.in': 'In your favourites', 'lib.add': 'Add to favourites',
+  'search.results': 'Results for “{q}”', 'search.noAddons': 'None of your add-ons supports search.',
+  'search.hebrew': 'In Hebrew', 'search.none': 'Nothing found.', 'search.failed': 'The search failed',
+  'search.heFailed': 'The Hebrew search failed',
   'lib.title': 'Favourites', 'lib.empty': 'No favourites yet. Open a title and choose “Add to favourites”.',
   'detail.episodes': 'Episodes', 'detail.playEp': 'S{s} · E{e}', 'detail.playFilm': 'Play', 'detail.resume': 'Resume',
   'detail.startFilm': 'Start playing', 'detail.resumeAt': 'Resume from {t}', 'detail.fromStart': 'Play from the start',
@@ -231,6 +227,15 @@ function tr(key, vars){
   return vars ? s.replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m) : s;
 }
 /** Set lang and direction, and fill in the static markup (data-i18n, data-i18n-ph, data-i18n-aria). */
+/**
+ * Switch the language the page speaks.
+ *
+ * Every string is read through UI, so only this module may move it - an importer holds a copy of the
+ * value, not the variable, and assigning to it from outside is a TypeError against a module binding.
+ * That is what switching the language used to do: throw, and change nothing.
+ */
+function setUiLang(l){ if(!STRINGS[l] || l === UI) return; UI = l; applyUiLang(); }
+
 function applyUiLang(){
   const r = document.documentElement;
   r.lang = UI; r.dir = dirOf(UI);
@@ -244,4 +249,4 @@ const missingStrings = () => { const all = new Set(Object.values(STRINGS).flatMa
 const FWD = () => document.documentElement.dir === 'rtl' ? 'left' : 'right';
 applyUiLang();
 
-export {UI_LANGS, STRINGS, UI, tr, applyUiLang, missingStrings, FWD};
+export {UI_LANGS, STRINGS, UI, setUiLang, tr, applyUiLang, missingStrings, FWD};

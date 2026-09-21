@@ -3,7 +3,6 @@ import {listHash, route} from '../app.js';
 import {$} from '../core/dom.js';
 import {IS_TV_DEVICE, isTvLayout, settings} from '../core/settings.js';
 import {FWD} from '../i18n.js';
-import {stepSpot} from './reel.js';
 
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
    follows the focus — instead of the browser scrolling on its own. */
@@ -13,12 +12,11 @@ export const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidd
    of them is safe. Grouped by the screen that renders them. */
 export const ROWS_SEL = [
   '#rail', '.stabs', '.spane', '.sset',                                  // chrome: the side menu, the settings menu
-  '.hero-info',                                                            // hero section
   '.bctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',              // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
   '.tacts', '#palt', '.src',                                               // a title: what can be done with it
-  '.qvact', '.playrow', '.altlist',                                        // title card + sources
+  '.playrow', '.altlist',                                                  // the sources of a title
   '.live-top', '#cont', '#bchead', '.chlist',                              // live TV
   '.days', '.progs', '.keypad', '.keyform',                                // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
@@ -337,10 +335,18 @@ new MutationObserver(muts => { for(const m of muts) for(const n of m.addedNodes)
   .observe(document.body, {childList: true, subtree: true});
 // Back on the remote/phone: close an open panel or keyboard first (called by the app before going back).
 window.boothBack = () => {
-  const status = $('#tstatus');
-  if(status && getComputedStyle(status).display !== 'none'){ $('#tstatusBtn').click(); return true; }
-  const sheet = document.querySelector('.sheet');
-  if(sheet){ sheet.remove(); return true; }
+  /* A card over the picture is closed by its own button, whichever card it is: Back then means what
+     that button means - the update stays skipped, the download is cancelled, the reminder is put away
+     - and there is one list of what counts as a card (openCard) rather than two that drift apart.
+     The update card was missing from the old list, so Back left the app while it held the remote. */
+  const card = openCard();
+  if(card){
+    const shut = card.querySelector('[data-back]');
+    if(shut){ shut.click(); return true; }
+    card.remove();
+    tvFocus();
+    return true;
+  }
   const a = document.activeElement;
   if(a && a.tagName === 'INPUT' && !a.readOnly && IS_TV_DEVICE){ a.blur(); return true; }
   const up = parentHash();

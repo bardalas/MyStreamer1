@@ -67,8 +67,8 @@ export function catalogFetch(a, type, id, extra){
   const disk = store.get('catx:' + url, null);
   if(disk && Date.now() - disk.at < CAT_DISK){
     const p = Promise.resolve({metas: disk.metas});
-    catMem.set(url, {at: Date.now(), p});
-    fresh().then(d => catMem.set(url, {at: Date.now(), p: Promise.resolve(d)})).catch(() => {});
+    memPut(catMem, url, {at: Date.now(), p});
+    fresh().then(d => memPut(catMem, url, {at: Date.now(), p: Promise.resolve(d)})).catch(() => {});
     return p;
   }
   const p = fresh();
@@ -91,6 +91,16 @@ export async function fetchMeta(type, id){
 }
 /** What to watch next in a series: the episode left in the middle, else the first one never started. */
 
+/* What is kept in memory between screens. The ceiling belongs to the putting, not to one path
+   through it: it used to sit on the fresh-fetch branch alone, so a session that kept finding its
+   answers on disk grew without one. Re-inserting moves an entry to the end, so what goes first is
+   what has been untouched longest rather than whatever happened to be stored first. */
+const MEM_MAX = 60;
+const memPut = (map, key, value) => {
+  map.delete(key);
+  map.set(key, value);
+  while(map.size > MEM_MAX) map.delete(map.keys().next().value);
+};
 export const streamCache = new Map();                              // "add-on|type|id" -> {at, p}
 export const STREAM_TTL = 10 * 60e3;
 export function fetchStreams(a, type, videoId){
@@ -104,8 +114,7 @@ export function fetchStreams(a, type, videoId){
     .catch(e => { if(e?.status) throw e; return new Promise(r => setTimeout(r, 700)).then(() => getJSON(url, 12000)); })
     .then(d => d.streams || []);
   p.catch(() => streamCache.delete(key));                    // a failure is never remembered
-  streamCache.set(key, {at: Date.now(), p});
-  if(streamCache.size > 80) streamCache.delete(streamCache.keys().next().value);
+  memPut(streamCache, key, {at: Date.now(), p});
   return p;
 }
 export function warmSources(type, videoId){

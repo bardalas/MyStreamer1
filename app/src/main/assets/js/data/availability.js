@@ -31,12 +31,19 @@ export async function hasSources(key){
   }
   return false;
 }
-export let availScreen = 0;                                          // how many probes this screen already used
-addEventListener('hashchange', () => { availPending.clear(); availScreen = 0; });
+/* How many titles one screen may ask about. Forty posters asking at once would be forty requests to
+   every stream add-on, and the ones above the fold are the ones a viewer is looking at. The count
+   belongs to the drawing of a screen, not to the address bar: the page redraws itself without
+   changing the hash - coming back online, the watch progress arriving, the quarter-hour refresh - and
+   after such a redraw nothing was ever asked again. */
+const AVAIL_BUDGET = 24;
+export let availScreen = 0;
+export function resetAvailBudget(){ availPending.clear(); availScreen = 0; }
 export function queueAvail(keys){
-  if(availScreen > 24) return;                               // never turn a screen into a request storm
-  availScreen += keys.length;
-  for(const k of keys) if(!availKnown(k)) availPending.add(k);
+  const fresh = keys.filter(k => !availKnown(k)).slice(0, AVAIL_BUDGET - availScreen);
+  if(!fresh.length) return;
+  availScreen += fresh.length;                               // only what was really asked is charged
+  for(const k of fresh) availPending.add(k);
   if(!availBusy) availFlush();
 }
 export async function availFlush(){

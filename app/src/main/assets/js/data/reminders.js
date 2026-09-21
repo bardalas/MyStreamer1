@@ -48,7 +48,7 @@ export function announceSource(it){
   const card = document.createElement('div');
   card.className = 'update';
   card.innerHTML = `<span><b>${esc(tr('remind.found', {name: it.name || ''}))}</b></span>
-    <span class="btns"><button class="go" id="remGo">${tr('remind.watch')}</button><button id="remShut">${tr('common.close')}</button></span>`;
+    <span class="btns"><button class="go" id="remGo">${tr('remind.watch')}</button><button id="remShut" data-back>${tr('common.close')}</button></span>`;
   document.body.appendChild(card);
   card.querySelector('#remGo').onclick = () => { card.remove(); location.hash = `#/detail/${it.type}/${encodeURIComponent(it.id)}`; };
   card.querySelector('#remShut').onclick = () => { card.remove(); tvFocus(); };

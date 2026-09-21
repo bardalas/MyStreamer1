@@ -14,7 +14,6 @@ import {svcMarks} from '../data/services.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {endTaste, startTaste, trailerId} from './taste.js';
-import {playStream, quickPick} from './sources.js';
 
 /* The still point of the wheel is where the row begins - the right, in Hebrew. A title brought to it
    has the whole row ahead of it and nothing wasted behind it, and from the first title on, moving
@@ -176,39 +175,12 @@ export function nextEpisode(meta){
   if(started) return {...at(started), resume: true};
   return {...at(vids.find(v => !progress[v.id]) || vids[0]), resume: false};
 }
-/** The watching button: continue where it stopped, or start it. */
-export function playLabel(metaId){
-  const w = Object.values(progress).find(x => x.metaId === metaId);
-  if(w && w.d && w.t < w.d - 60) return tr('qv.continue', {n: Math.max(1, Math.round((w.d - w.t) / 60))});
-  return tr('qv.play');
-}
 /** The full page: everything the row has no room for - the episodes, every source. */
 export function open(el){
   const href = el.getAttribute('href');
   noteOpened(location.hash, el.dataset.id);          // where to come back to
   endTaste();
   location.hash = href;
-}
-/**
- * Watch it now: a film from where it stopped, a series from the episode you are up to. The card says
- * what it is doing in its own words - the line that held the summary - and if nothing can be played,
- * the full page takes over, where every source is listed.
- */
-export async function play(el){
-  const [, , type, idEnc] = el.getAttribute('href').split('/');
-  const id = decodeURIComponent(idEnc);
-  const line = el.querySelector('.spotinfo p'), said = line?.textContent;
-  if(line) line.textContent = tr('qv.searching');
-  const meta = await fetchMeta(type, id).catch(() => null);
-  const ep = type === 'series' ? nextEpisode(meta) : null;
-  const videoId = ep ? ep.id : (meta?.behaviorHints?.defaultVideoId || id);
-  const pick = await quickPick(type, videoId);
-  if(!el.isConnected) return;
-  if(line) line.textContent = said || '';
-  if(!pick) return open(el);
-  endTaste();
-  const name = meta?.name || el.querySelector('.t')?.textContent || '';
-  playStream(pick.s, ep ? `${name} S${ep.season}E${ep.episode}` : name, {videoId, type, meta: meta || {id, name}});
 }
 
 /* ---------- arriving on a title ---------- */
@@ -229,20 +201,6 @@ document.addEventListener('click', e => {
 });
 addEventListener('hashchange', clearSpot);
 
-/**
- * One title along the row, without leaving the card: whatever the viewer was on - the picture, or
- * either of its buttons - they are still on it when the next title arrives.
- */
-export function stepSpot(forward, keep = -1){
-  if(!spot) return false;
-  const strip = spot.closest('.strip');
-  const posters = [...strip.querySelectorAll('a.poster')];
-  const next = posters[posters.indexOf(spot) + (forward ? 1 : -1)];
-  if(!next) return false;
-  spotlight(next);
-  next.focus({preventScroll: true});
-  return true;
-}
 
 /** The first title of the first row takes the middle by itself, so a screen opens on its content. */
 export function autoSpot(strip){
