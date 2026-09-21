@@ -6,6 +6,7 @@ import {store} from '../core/store.js';
 import {addons, fetchStreams, supports} from '../data/addons.js';
 import {setAvail} from '../data/availability.js';
 import {remindButton, wireRemind} from '../data/reminders.js';
+import {svcDress, svcIcon} from '../data/services.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {kanBox} from '../providers/kan.js';
@@ -117,8 +118,11 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
   // documentary one seeder is all there is - but never behind a button that says "play", and never
   // counted as "this title can be watched".
   const playable = list.filter(x => rank(x) > 0);
-  const links = all.filter(x => x.external)
-    .map(x => `<button class="qbtn" data-i="${x.i}">${esc(tr('src.watchOn', {svc: x.name || x.addon}))}</button>`).join('');
+  // a link to a service is dressed as that service - its icon, its colour - like its label above
+  const links = all.filter(x => x.external).map(x => {
+    const svc = x.name || x.addon;
+    return `<button class="qbtn svclink" data-i="${x.i}" style="${svcDress(svc)}">${svcIcon(svc)}${esc(tr('src.watchOn', {svc}))}</button>`;
+  }).join('');
   const best = pickQ(playable);
   const rest = best ? list.filter(x => x !== best) : list;
   const more = rest.length ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr(best ? 'src.more' : 'src.weakN', {n: rest.length})}</button>` : '';

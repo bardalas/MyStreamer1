@@ -11,7 +11,12 @@
 .dinfo .facts{margin:10px 0 16px;font-size:12.5px;gap:6px}
 .dinfo .facts span{padding:3px 8px;font-size:12.5px}
 .facts span{background:var(--raise);border-radius:4px;padding:3px 9px;font-size:13px;color:var(--text2)}
-.facts .imdb{font-weight:600}
+/* IMDb is a mark people know by sight: its own yellow, its own wordmark, and the rating beside it
+   in the page's own colour - a number on a yellow field would read as a warning. */
+.facts .imdb{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--light);padding-inline-start:4px}
+.facts .imdb i{background:#f5c518;color:#000;font:800 11px/1 var(--body);font-style:normal;
+  letter-spacing:-.02em;padding:3px 5px;border-radius:3px}
+[data-layout="tv"] .facts .imdb i{font-size:12px;padding:4px 6px}
 .desc{max-width:68ch;color:var(--text2)}
 .people{color:var(--muted);font-size:14px;margin:12px 0 22px;max-width:68ch}
 .people b{color:var(--light);font-weight:500}

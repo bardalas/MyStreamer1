@@ -98,6 +98,7 @@ async function fixture(opts = {}){
       supports: (...a) => opts.supports ? opts.supports(...a) : true},
     'data/availability.js': {setAvail: (...a) => calls.availability.push(a)},
     'data/reminders.js': {remindButton: () => '<button id="remind">remind</button>', wireRemind: () => {}},
+    'data/services.js': {svcDress: () => '', svcIcon: () => ''},
     'data/watch.js': {progress: opts.progress || {}},
     'data/catalogs.js': {SC_ID: 'sc'},
     'data/names.js': {srcName: () => '', typeName: () => ''},

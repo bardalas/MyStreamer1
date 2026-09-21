@@ -10,7 +10,7 @@ import {settings} from '../core/settings.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
 import {hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
-import {svcMarks} from '../data/services.js';
+import {imdbTag, svcMarks} from '../data/services.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {endTaste, startTaste, trailerId} from './taste.js';
@@ -149,7 +149,7 @@ async function paint(el, full){
     if(meta.background) showArt(art, meta.background);
     // one line of it: what it scores, when it is from, how long, what it is - and the marks of whoever has it
     info.querySelector('.facts').innerHTML = [
-      meta.imdbRating && `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>`,
+      meta.imdbRating && imdbTag(meta.imdbRating),
       yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`, meta.runtime && `<span>${esc(meta.runtime)}</span>`,
       ...(meta.genres || meta.genre || []).slice(0, 1).map(g => `<span>${esc(genreName(g))}</span>`),
       svcMarks(id) && `<span>${svcMarks(id)}</span>`].filter(Boolean).join('');

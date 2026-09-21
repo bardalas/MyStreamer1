@@ -6,7 +6,7 @@ import {store} from '../core/store.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
 import {heCache, heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
-import {svcFacts} from '../data/services.js';
+import {imdbTag, svcFacts} from '../data/services.js';
 import {library, progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {card} from '../ui/cards.js';
@@ -68,7 +68,7 @@ export async function viewDetail(type, id){
           <h1 dir="auto">${esc(heTitle(meta.id, meta.name))}${heTitle(meta.id, '') ? `<span class="orig"><bdi>${esc(meta.name)}</bdi></span>` : ''}</h1>
           <p class="desc" id="desc" dir="auto">${esc(meta.description)}</p>
           <div class="src" id="dsrc"></div>
-          <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? `<span class="imdb">IMDb ${esc(meta.imdbRating)}</span>` : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
+          <div class="facts">${svcFacts(meta.id)}${meta.imdbRating ? imdbTag(meta.imdbRating) : ''}${yearOf(meta) ? `<span>${esc(yearOf(meta))}</span>` : ''}${meta.runtime ? `<span>${esc(meta.runtime)}</span>` : ''}${(meta.genres||meta.genre||[]).map(g => `<span>${esc(genreName(g))}</span>`).join('')}</div>
           <div class="people">${meta.director?.length ? `<div><b>${tr('detail.director')}</b> ${esc([].concat(meta.director).join(', '))}</div>` : ''}${meta.cast?.length ? `<div><b>${tr('detail.cast')}</b> ${esc(meta.cast.slice(0,6).join(', '))}</div>` : ''}</div>
         </div>
       </div>
@@ -118,14 +118,7 @@ export async function viewDetail(type, id){
     const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = Math.floor(s % 60);
     return h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
   };
-  /** The line that starts it says which of the two it will do; "from the beginning" is offered beside it. */
-  const sayWhere = id => {
-    const w = progress[id], part = w && w.d && w.t < w.d - 60 ? w.t : 0;
-    const line = $('#eps')?.querySelector('.epcard.solo b');
-    if(line) line.textContent = part ? tr('detail.resumeAt', {t: clock(part)}) : tr('detail.startFilm');
-    const again = $('#restart');
-    if(again) again.hidden = !part;
-  };
+
   if(seasons.length){
     const renderEps = s => {
       const eps = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0));
@@ -169,24 +162,21 @@ export async function viewDetail(type, id){
     pickSeason(first);
     $('#app').querySelectorAll('.seasonbar [data-season]').forEach(b => b.onclick = () => pickSeason(b.dataset.season));
   } else {
-    // A film is a list of one: the same choice, and the same way of starting it.
+    /* A film has two ways in, and they sit side by side under the actions: from the beginning, and -
+       once it has been started - from where the viewer stopped. The remote lands on the second,
+       because that is what somebody coming back to a film came back for. Each says exactly what it
+       will do; the name of the film is already the heading of the page. */
     const vid = meta.behaviorHints?.defaultVideoId || meta.id;
     const w = progress[vid];
-    const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
-    const seen = pct > 92;
-    // The name of the film is already the heading of the page; the line under it is the one thing
-    // there is to do with it, so it says that - and being the only line, it wears no band of its own.
-    $('#eps').innerHTML = epCard({id: vid, name: tr('detail.startFilm'),
-      released: null, episode: ''}, meta).replace('<small></small>',
-      `<small>${[yearOf(meta), meta.runtime].filter(Boolean).map(esc).join(' · ')}</small>`)
-      .replace('class="epcard', 'class="epcard solo');
-    const row = $('#eps').querySelector('.epcard');
+    const part = w && w.d && w.t < w.d - 60 ? w.t : 0;
+    $('#eps').classList.add('filmgo');              // one line, not a list (a class: :has() is too new for some TVs)
+    $('#eps').innerHTML = `<button class="fgo" id="fStart">${esc(tr('detail.startFilm'))}</button>`
+      + (part ? `<button class="fgo" id="fResume">${esc(tr('detail.resumeAt', {t: clock(part)}))}</button>` : '');
     chosen = {id: vid, label: meta.name};
     showProgress(vid);
-    row.onclick = () => { row.classList.add('on'); play(); };
-    row.classList.add('on');
-    sayWhere(vid);                                   // "continue from 41:20", or "start playing"
-    if($('#restart')) $('#restart').onclick = () => play(true);
+    $('#fStart').onclick = () => play(true);
+    if($('#fResume')) $('#fResume').onclick = () => play(false);
+    if(isTvLayout()) ($('#fResume') || $('#fStart')).focus({preventScroll: true});
     loadStreams(ctx, vid, meta.name);                    // the sources are looked for straight away
   }
 }

@@ -1,5 +1,14 @@
 # VEO Android changelog
 
+## 0.43.1 — 2026-09-21
+- **A film page as it was drawn.** The two ways into a film sit side by side under its actions —
+  “התחל לנגן”, and once it has been started “המשך בצפייה מ־1:02:02” — as words, with the one the remote
+  is on framed in the accent. The remote lands on the resume, which is what someone coming back to a
+  film came back for.
+- **Labels wear their brands.** IMDb is its own yellow wordmark with the rating beside it; a
+  streaming service's label carries its icon and its own colour, and so does the button that opens a
+  title on that service (“צפייה ב־HBO Max” in HBO's purple, Netflix in Netflix red).
+
 ## 0.43.0 — 2026-09-21
 A full audit of the code and a QA sweep over every screen: forty readers and adversarial checkers
 went through the whole source, thirty findings were raised and twenty-nine survived the check. All

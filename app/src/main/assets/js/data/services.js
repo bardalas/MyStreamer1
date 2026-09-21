@@ -36,7 +36,24 @@ export const svcMarks = id => {
   return `<span class="svcs" title="${esc(l.join(' · '))}">${l.slice(0, 2).map(svcMark).join('')}${
     l.length > 2 ? `<span class="svcm" style="background:#5a6072">+${l.length - 2}</span>` : ''}</span>`;
 };
-export const svcFacts = id => svcOf(id).map(n => `<span class="svcf">${svcMark(n)}${esc(n)}</span>`).join('');
+/* A service is recognised by its colour before its name is read, so the label wears it: the service's
+   own colour, laid on thinly enough to stay a label rather than becoming a button. The tint is worked
+   out here rather than in the stylesheet, because a television's browser is not always new enough for
+   the colour functions CSS has for this. */
+const tint = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+};
+/** The inline dress of a label for [name]: its colour, thinly - or nothing for a name that is not a service. */
+export const svcDress = name => {
+  const hex = SVC_MARK[name]?.[1];
+  return hex ? `background:${tint(hex, .22)};border-color:${tint(hex, .6)}` : '';
+};
+/** Its icon, or nothing for a name that is not a service we know. */
+export const svcIcon = name => SVC_MARK[name] ? svcMark(name) : '';
+export const svcFacts = id => svcOf(id).map(n => `<span class="svcf" style="${svcDress(n)}">${svcMark(n)}${esc(n)}</span>`).join('');
+/** IMDb's mark, in IMDb's yellow, with the rating beside it. */
+export const imdbTag = rating => `<span class="imdb"><i>IMDb</i>${esc(rating)}</span>`;
 /** The catalogues answer after the cards are drawn, so the marks are added to what is already on screen. */
 export function applyBadges(){
   document.querySelectorAll('a.poster[data-id]').forEach(a => {
