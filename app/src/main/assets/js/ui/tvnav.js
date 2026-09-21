@@ -12,7 +12,7 @@ export const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidd
    of them is safe. Grouped by the screen that renders them. */
 export const ROWS_SEL = [
   '#rail', '.stabs', '.spane', '.sset',                                  // chrome: the side menu, the settings menu
-  '.bctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',              // browsing rows and pickers
+  '.bctabs', '.srctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',  // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
   '.tacts', '#palt', '.src',                                               // a title: what can be done with it
@@ -111,8 +111,9 @@ export const bestIn = (row, from) => {
   // the one the viewer was on before, or the row's first - not whatever happens to be across the page
   if(row.classList.contains('reel'))
     return cand.find(el => el.classList.contains('spot')) || cand.find(el => el.dataset.wasSpot) || cand[0];
-  // the season being shown, and the episode lined up to play, are where arriving on those rows lands
-  return (row.classList.contains('seasonbar') && cand.find(el => el.classList.contains('on')))
+  // the season being shown, the episode lined up to play, and the source the wheel is showing are
+  // where arriving on those rows lands
+  return ((row.classList.contains('seasonbar') || row.classList.contains('srctabs')) && cand.find(el => el.classList.contains('on')))
     || (row.classList.contains('eps') && cand.find(el => el.classList.contains('on')))
     || cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]);
 };
@@ -255,7 +256,11 @@ export function tvMove(dir){
     if(!isCol){
       const step = dir === fwd ? 1 : -1;
       const next = items[i + step];
-      if(next){ focusItem(next); return true; }
+      /* Only along the line the viewer is on. In a grid the item before the first of a line is the last
+         of the line above it: going there took the viewer up through the titles, when the edge of the
+         line is where the way back to the side menu is. */
+      const a = active.getBoundingClientRect(), n = next?.getBoundingClientRect();
+      if(next && n.top < a.bottom && n.bottom > a.top){ focusItem(next); return true; }
     }
     if(dir !== fwd){                              // back to the side menu, if there is one
       const tab = document.querySelector('.stabs button.on') || document.querySelector('.stabs button');
@@ -288,6 +293,14 @@ export function tvMove(dir){
     const same = line.filter(el => Math.abs(mid(el) - band) < 6);
     focusItem(same.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best));
     return true;
+  }
+  // Down from the source tabs waits for the row they turn: while it is still being filled it cannot take
+  // the focus, and the viewer would be carried past it to the row below.
+  // Not for longer than a moment, though: a source that is slow to answer does not keep the viewer there.
+  const skel = dir === 'down' && row.classList.contains('srctabs') && document.querySelector('#row0 .skel');
+  if(skel){
+    if(!skel.dataset.since) skel.dataset.since = Date.now();
+    if(Date.now() - skel.dataset.since < TABS_WAIT_MS) return true;
   }
   const railed = document.body.classList.contains('railed');
   const flow = rows.filter(r => r === row || !(railed && r.id === 'rail'));
@@ -338,6 +351,8 @@ armInputs(document);
 new MutationObserver(muts => { for(const m of muts) for(const n of m.addedNodes) if(n.nodeType === 1) armInputs(n.matches('input') ? n.parentNode : n); })
   .observe(document.body, {childList: true, subtree: true});
 // Back on the remote/phone: close an open panel or keyboard first (called by the app before going back).
+/** The longest Down from the source tabs waits for the row they turn (above). */
+const TABS_WAIT_MS = 2500;
 window.boothBack = () => {
   /* A card over the picture is closed by its own button, whichever card it is: Back then means what
      that button means - the update stays skipped, the download is cancelled, the reminder is put away
@@ -366,6 +381,7 @@ export function parentHash(){
   if(['r13', 'kan', 'mako'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
   if(r === 'addons') return '#/settings';
   if(r === 'detail') return listHash;
+  if(r === 'all') return location.hash.split('/')[2] === 'series' ? '#/cat/series' : '#/cat/movies';   // a library, to its page
   return '#/';
 }
 /** Go somewhere without growing the history: Back is our own ladder now. */
@@ -380,8 +396,18 @@ window.boothSearchKey = () => { const q = $('#q'); q.focus(); q.readOnly = false
 addEventListener('hashchange', () => setTimeout(tvFocus, 900));
 export function tvFocus(tries = 0){
   if(settings.layout !== 'tv' || (document.activeElement && document.activeElement !== document.body)) return;
-  // the titles are what the viewer came for: the pills above them are not where to land
-  const first = document.querySelector('#app .poster[href], #app a[href], #app button');
+  // the titles are what the viewer came for: the pills and tabs above them are not where to land. A
+  // screen whose titles are still on their way (a poster without a link is a placeholder) is given a
+  // few more moments for them before anything else is taken.
+  // The first row is where a screen begins - and its titles, not whichever row happened to answer first.
+  // (A selector list answers in page order, so the title in the middle is asked for on its own.)
+  const lead = document.querySelector('#app .strip');
+  const waiting = tries < 4;
+  const title = document.querySelector('#app .poster.spot') || lead?.querySelector('a.poster[href], button.poster')
+    || ((!waiting || !lead?.querySelector('.poster')) && document.querySelector('#app a.poster[href], #app button.poster'));
+  const coming = !title && document.querySelector('#app .poster') && waiting;
+  // with no title to land on, the chosen source tab - landing on another one would switch the row
+  const first = title || (!coming && (document.querySelector('#app .srctab.on') || document.querySelector('#app a[href], #app button')));
   // a screen that has not answered yet is asked again: landing in the menu instead would open it
   // over the very titles the viewer is waiting for
   if(first) first.focus();

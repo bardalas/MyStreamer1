@@ -29,12 +29,20 @@ export const svcMark = name => {
   const [txt, bg] = SVC_MARK[name] || [name.slice(0, 2).toUpperCase(), '#5a6072'];
   return `<span class="svcm" style="background:${bg}" title="${esc(name)}">${esc(txt)}</span>`;
 };
-/** Up to two marks, and how many more there are. */
-export const svcMarks = id => {
-  const l = svcOf(id);
-  if(!l.length) return '';
-  return `<span class="svcs" title="${esc(l.join(' · '))}">${l.slice(0, 2).map(svcMark).join('')}${
-    l.length > 2 ? `<span class="svcm" style="background:#5a6072">+${l.length - 2}</span>` : ''}</span>`;
+/* Each glyph's width for its height (tools/svc_glyphs.py prints them when it makes the glyphs). */
+const GLYPH_RATIO = {nfx: .553, cts: 1, atp: 2.259, dnp: 2.915, amp: 3.857, hbm: 1.394, pmp: 1.259};
+/**
+ * A service as a one-colour glyph - its logo without its tile (assets/svc/g, made from the logos by
+ * tools/svc_glyphs.py), or its initials where there is no logo. For where marks sit side by side or
+ * over a picture - the source tabs, the corner of a poster - and eight coloured tiles would be noise.
+ * The logo is a mask filled with the text colour, so it is dark on a light skin, light on a dark one,
+ * and turns with the rest of a button when the remote is on it.
+ */
+export const svcGlyph = name => {
+  const file = SVC_LOGO[name];
+  if(!file) return `<b class="glyph txt">${esc((SVC_MARK[name] || [name.slice(0, 2).toUpperCase()])[0])}</b>`;
+  const url = `url(svc/g/${file}.png)`;
+  return `<i class="glyph" role="img" aria-label="${esc(name)}" style="-webkit-mask-image:${url};mask-image:${url};--r:${GLYPH_RATIO[file] || 1}"></i>`;
 };
 /* A service is recognised by its colour before its name is read, so the label wears it: the service's
    own colour, laid on thinly enough to stay a label rather than becoming a button. The tint is worked
@@ -54,13 +62,13 @@ export const svcIcon = name => SVC_MARK[name] ? svcMark(name) : '';
 export const svcFacts = id => svcOf(id).map(n => `<span class="svcf" style="${svcDress(n)}">${svcMark(n)}${esc(n)}</span>`).join('');
 /** IMDb's mark, in IMDb's yellow, with the rating beside it. */
 export const imdbTag = rating => `<span class="imdb"><i>IMDb</i>${esc(rating)}</span>`;
-/** The catalogues answer after the cards are drawn, so the marks are added to what is already on screen. */
+/** The catalogues answer after the cards are drawn, so the marks are added to what is already on screen:
+    in the corner of each picture that does not carry one yet (ui/cards.js). */
 export function applyBadges(){
   document.querySelectorAll('a.poster[data-id]').forEach(a => {
-    const name = a.querySelector('.t [data-heid]');
-    if(!name || a.querySelector('.svcs')) return;
-    const marks = svcMarks(a.dataset.id);
-    if(marks) name.insertAdjacentHTML('afterend', marks);
+    const art = a.querySelector('.art');
+    const svc = svcOf(a.dataset.id)[0];
+    if(art && svc && !art.querySelector('.svcbadge')) art.insertAdjacentHTML('beforeend', `<span class="svcbadge">${svcGlyph(svc)}</span>`);
   });
 }
 /** Once a day: collect every streaming service's catalogue into id -> services. */

@@ -10,7 +10,7 @@ import {settings} from '../core/settings.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
 import {hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
-import {imdbTag, svcMarks} from '../data/services.js';
+import {imdbTag} from '../data/services.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {posterAt} from './cards.js';
@@ -142,12 +142,11 @@ async function paint(el, full){
   const info = act?.querySelector('.spotinfo');
   if(!info) return;
   if(meta){
-    // one line of it: what it scores, when it is from, how long, what it is - and the marks of whoever has it
+    // one line of it: what it scores, when it is from, how long, what it is (who has it is on its cover)
     info.querySelector('.facts').innerHTML = [
       meta.imdbRating && imdbTag(meta.imdbRating),
       yearOf(meta) && `<span>${esc(yearOf(meta))}</span>`, meta.runtime && `<span>${esc(meta.runtime)}</span>`,
-      ...(meta.genres || meta.genre || []).slice(0, 1).map(g => `<span>${esc(genreName(g))}</span>`),
-      svcMarks(id) && `<span>${svcMarks(id)}</span>`].filter(Boolean).join('');
+      ...(meta.genres || meta.genre || []).slice(0, 1).map(g => `<span>${esc(genreName(g))}</span>`)].filter(Boolean).join('');
     info.querySelector('p').textContent = meta.description || '';
     // Two seconds from the moment the viewer came to rest - counted from then, not from whenever the
     // add-ons happened to answer, so it is the same wait every time. Quietly: browsing is not watching.
@@ -179,9 +178,10 @@ export function open(el){
 }
 
 /* ---------- arriving on a title ---------- */
-// by remote, by tab, or by hand: whatever takes the focus takes the middle
+// by remote, by tab, or by hand: whatever takes the focus takes the middle - a title, or a programme
+// that opens its own way (the archive's films are buttons)
 document.addEventListener('focusin', e => {
-  const p = e.target.closest?.('a.poster');
+  const p = e.target.closest?.('a.poster, button.poster');
   if(p && p.closest('.strip')) spotlight(p);
 });
 document.addEventListener('click', e => {
@@ -200,6 +200,6 @@ addEventListener('hashchange', clearSpot);
 /** The first title of the first row takes the middle by itself, so a screen opens on its content. */
 export function autoSpot(strip){
   if(spot || !strip) return;
-  const first = strip.querySelector('a.poster[href]');
+  const first = strip.querySelector('a.poster[href], button.poster');
   if(first) spotlight(first);
 }

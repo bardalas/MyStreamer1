@@ -17,6 +17,7 @@ import {viewR13Series} from './providers/reshet.js';
 import {openChannel} from './providers/rtv.js';
 import {viewAddons} from './screens/addons.js';
 import {viewTv} from './screens/broadcasters.js';
+import {viewAll} from './screens/catalog.js';
 import {viewDetail} from './screens/detail.js';
 import {viewCategory, viewGenre, viewGenres, viewHome} from './screens/home.js';
 import {viewLibrary} from './screens/library.js';
@@ -65,8 +66,9 @@ export async function route(){
   canvas.classList.remove('fresh'); void canvas.offsetWidth; canvas.classList.add('fresh');
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   // the menu lights the place you are in; a title or a search keeps the one it was opened from
-  markNav(r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : ['live', 'library', 'settings'].includes(r) ? r : '');
-  if(['', 'cat', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
+  markNav(r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : r === 'all' ? (a === 'movie' ? 'movies' : 'series')
+    : ['live', 'library', 'settings'].includes(r) ? r : '');
+  if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
   if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
   else if(r === 'r13') viewR13Series(a, b);
@@ -74,6 +76,7 @@ export async function route(){
   else if(r === 'tv') viewTv(a);
   else if(r === 'mako') viewMakoProgram(a, b);
   else if(r === 'cat') viewCategory(a);
+  else if(r === 'all') viewAll(a);
   else if(r === 'live') viewLive();
   else if(r === 'search') viewSearch(a);
   else if(r === 'detail') viewDetail(a, b);

@@ -1,22 +1,18 @@
 /* Rows of titles, and the screen they are laid out on. */
 import {$, esc, showErr} from '../core/dom.js';
 import {rowMax} from '../core/settings.js';
-import {addons, catalogFetch} from '../data/addons.js';
-import {SC_ID} from '../data/catalogs.js';
+import {catalogFetch} from '../data/addons.js';
 import {srcName, typeName} from '../data/names.js';
-import {SERVICES, noteServices} from '../data/services.js';
 import {tr} from '../i18n.js';
-import {JFC_LOBBIES, jfcCard, jfcLobby} from '../providers/jfc.js';
 import {kanBox, kanCard} from '../providers/kan.js';
-import {makoCard, makoPrograms} from '../providers/mako.js';
-import {r13, r13card, r13row} from '../providers/reshet.js';
+import {r13card, r13row} from '../providers/reshet.js';
 import {card, skeletons} from './cards.js';
-import {autoSpot, reelable} from './reel.js';
+import {ORIGINS, interleave, loadOrigin, moreOfOrigin} from './origins.js';
+import {autoSpot, clearSpot, reelable} from './reel.js';
 
 export const rowTag = x => {
   const parts = [];
-  if(x.merge) parts.push(x.merge.map(id => SERVICES[id]).join(' · '));
-  else if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); parts.push(srcName(x.a)); }
+  if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); parts.push(srcName(x.a)); }
   // a broadcaster's row is a taste of everything they have: its heading leads to the rest
   const more = x.more ? ` <a class="rowmore" href="${esc(x.more)}">${tr('row.all')}</a>` : '';
   return (parts.length ? ` <small>${esc(parts.join(' · '))}</small>` : '') + more;
@@ -28,18 +24,21 @@ export const reel = (inner, id = '') =>
   `<div class="reelwrap"><div class="strip${reelable() ? ' reel' : ''}"${id ? ` id="${id}"` : ''}>${inner}</div></div>`;
 
 
-export function renderRows(rows, {cont = [], heading = '', top = ''} = {}){
+/** [contAt]: how many rows come before "continue watching" - on Movies and Series it follows the wheel
+    the tabs turn, so nothing comes between the tabs and their row. */
+export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0} = {}){
   const app = $('#app');
   // What is half-watched belongs in its row with the rest of it. It used to be announced again at
   // the top of the page, half a screen high, saying what the row below already said - so the page
   // opened on an announcement instead of on its titles.
   const items = cont;
 
+  const blocks = rows.map((x, i) => `<div class="row">${x.title ? `<h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2>` : ''}${reel(skeletons(8), 'row' + i)}</div>`);
+  if(items.length) blocks.splice(contAt, 0, `<div class="row"><h2>${tr('row.continue')}</h2>${reel(items.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join(''))}</div>`);
   app.innerHTML = `
     ${heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : ''}
     ${top}
-    ${items.length ? `<div class="row"><h2>${tr('row.continue')}</h2>${reel(items.map(x => card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})).join(''))}</div>` : ''}
-    ${rows.map((x, i) => `<div class="row"><h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2>${reel(skeletons(8), 'row' + i)}</div>`).join('')}
+    ${blocks.join('')}
     ${!rows.length ? `<p class="note">${tr('row.noCatalogs')}</p>` : ''}`;
 
   autoSpot($('#app .strip'));
@@ -55,58 +54,88 @@ export function renderRows(rows, {cont = [], heading = '', top = ''} = {}){
   const fillRow = async (x, i) => {
     const el = $('#row' + i);
     const again = () => fillRow(x, i);
-    if(x.merge){
-      try{
-        const sc = addons.find(a => a.manifest.id === SC_ID);
-        const lists = await Promise.all(x.merge.map(async id => {
-          const c = (sc?.manifest.catalogs || []).find(c => c.id === id && c.type === x.type);
-          if(!c) return [];
-          const metas = (await catalogFetch(sc, c.type, c.id).catch(() => ({metas: []}))).metas || [];
-          metas.forEach(m => noteServices(m.id, SERVICES[id]));
-          return metas;
-        }));
-        const merged = [];                                   // round-robin so every service is represented
-        for(let k = 0; merged.length < 200 && lists.some(l => l[k]); k++) for(const l of lists) if(l[k] && !merged.some(m => m.id === l[k].id)) merged.push(l[k]);
-        if(el) el.innerHTML = dedupe(i, merged).slice(0, rowMax()).map(card).join('') || `<p class="note">${tr('row.none')}</p>`;
-      }catch(e){ showErr(el, tr('row.failed'), e, again); }
-      return;
-    }
+    // a broadcaster's own screen (screens/broadcasters.js): one of Kan's sections, or Reshet's list
     if(x.kan){
       try{
-        const secs = await kanBox();
-        const sec = secs.find(z => x.kan.test(z.title));
+        const sec = (await kanBox()).find(z => x.kan.test(z.title));
         el.innerHTML = sec ? sec.items.slice(0, rowMax()).map(kanCard).join('') : `<p class="note">${tr('row.none')}</p>`;
       }catch(e){ showErr(el, tr('row.failedKan'), e, again); }
-      return;
-    }
-    // Kan without its films: everything else the broadcaster has, as one row under the series
-    if(x.kanAll){
-      try{
-        const secs = await kanBox();
-        const seen = new Set(), items = [];
-        for(const sec of secs){
-          if(/סרטים/.test(sec.title)) continue;
-          for(const it of sec.items) if(!seen.has(it.url)){ seen.add(it.url); items.push(it); }
-        }
-        if(el) el.innerHTML = items.slice(0, rowMax()).map(kanCard).join('') || `<p class="note">${tr('row.none')}</p>`;
-      }catch(e){ showErr(el, tr('row.failedKan'), e, again); }
-      return;
-    }
-    if(x.mako){
-      try{ if(el) el.innerHTML = (await makoPrograms('')).slice(0, rowMax()).map(makoCard).join('') || `<p class="note">${tr('row.none')}</p>`; }
-      catch(e){ showErr(el, tr('row.failedMako'), e, again); }
-      return;
-    }
-    if(x.jfc){
-      try{
-        const items = (await jfcLobby(JFC_LOBBIES[0][0])).flatMap(r => r.items);
-        if(el) el.innerHTML = items.slice(0, rowMax()).map(jfcCard).join('') || `<p class="note">${tr('row.none')}</p>`;
-      }catch(e){ showErr(el, tr('row.failedJfc'), e, again); }
       return;
     }
     if(x.r13){
       try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || `<p class="note">${tr('row.none')}</p>`; }
       catch(e){ showErr(el, tr('row.failedR13'), e, again); }
+      return;
+    }
+    if(x.origins){
+      /* A row of sources - the streaming services on Home, whatever the tabs have chosen on Movies and
+         Series, one broadcaster's programmes. Each source's list is taken in turn, so every one of them
+         is represented; when there is more than one, each poster carries its source's mark in the
+         corner. The row is drawn from the sources that answer within FIRST_PAINT_MS - a broadcaster's
+         site can take half a minute - and a later one joins the row's pool, reached at its end. A row
+         of one source waits for it, and says so, with a way to try again, if it cannot be reached. */
+      const token = x.token = (x.token || 0) + 1;       // a tab changed while this was loading: drop it
+      const live = () => token === x.token && !!el?.isConnected;
+      const origins = x.origins.map(id => ORIGINS.find(o => o.id === id)).filter(Boolean);
+      const badge = x.badge ?? origins.length > 1;
+      const lists = origins.map(() => null), failed = [];
+      let drawn = false, settled = 0, pool = [], seen = new Set();
+      // each service's pages, counted as they come - a service that answers late is paged like the rest
+      const paged = origins.filter(o => o.svc).map(o => ({o, fetched: 0, done: false}));
+      const draw = items => {
+        // only what is drawn is claimed: the rest may still be shown by a row below
+        const free = x.tabbed ? items : items.filter(it => !(claimed.get(it.id) < i));
+        const shown = x.tabbed ? free.slice(0, rowMax()) : dedupe(i, free.slice(0, rowMax()));
+        el.innerHTML = shown.map(it => it.html).join('') || `<p class="note">${tr('row.none')}</p>`;
+        el.style.transform = '';
+        return free.slice(rowMax());
+      };
+      const late = list => {
+        if(!live()) return;
+        const fresh = list.filter(it => !seen.has(it.id));
+        fresh.forEach(it => seen.add(it.id));
+        if(el.querySelector('.poster')){
+          pool.push(...fresh);
+          const st = endless.get(el);                    // a row that had given all it had has more again
+          if(st && fresh.length && el.querySelectorAll('.poster').length < ENDLESS_MAX) st.done = false;
+        }
+        else if(fresh.length){ pool.push(...draw(fresh)); autoSpot(el); }   // the row had nothing yet: this is its first
+        // every source has answered, nothing came, and some could not be reached: say so, with a retry
+        else if(settled === origins.length && failed.some(Boolean)) showErr(el, tr('row.failed'), failed.find(Boolean), again);
+      };
+      const loads = origins.map((o, k) => loadOrigin(o, x.type, badge).catch(e => { failed[k] = e; return []; })
+        .then(list => {
+          settled++;
+          const p = paged.find(p => p.o === o);
+          if(p){ p.fetched = list.length; p.done = !!failed[k]; }
+          if(drawn) late(list); else lists[k] = list;
+        }));
+      await (origins.length > 1 ? Promise.race([Promise.all(loads), new Promise(r => setTimeout(r, FIRST_PAINT_MS))]) : Promise.all(loads));
+      if(lists.every(l => l === null)) await Promise.race(loads);   // nothing in time: the first to answer
+      if(!live()) return;
+      drawn = true;
+      if(origins.length && failed.filter(Boolean).length === origins.length){
+        const one = origins.length === 1 ? FAILED[origins[0].id] : '';
+        showErr(el, tr(one || 'row.failed'), failed.find(Boolean), again);
+        return;
+      }
+      const merged = interleave(lists.map(l => l || []));
+      merged.forEach(it => seen.add(it.id));
+      pool = draw(merged);
+      endless.set(el, {i, dedupe: x.tabbed ? (_, l) => l : dedupe, card: it => it.html, next: async () => {
+        if(!pool.length){
+          const pages = await Promise.all(paged.filter(p => !p.done).map(async p => {
+            const page = await moreOfOrigin(p.o, x.type, p.fetched, badge);
+            p.fetched += page.length;
+            const fresh = page.filter(it => !seen.has(it.id));
+            if(!fresh.length) p.done = true;             // nothing new: this source has no more to give
+            fresh.forEach(it => seen.add(it.id));
+            return fresh;
+          }));
+          pool.push(...interleave(pages));
+        }
+        return pool.splice(0, rowMax());
+      }});
       return;
     }
     try{
@@ -116,7 +145,66 @@ export function renderRows(rows, {cont = [], heading = '', top = ''} = {}){
     }catch(e){ showErr(el, tr('row.failedCat'), e, again); }
   };
   // the first row to answer offers the first title to the middle; whoever is already there keeps it
+  current = {rows, fillRow};
   rows.forEach((x, i) => fillRow(x, i).then(() => autoSpot($('#app .strip'))));
 }
 
-/** Movies and Series: the same catalogues, one type at a time. */
+/** How long a row of several sources waits for the slow ones before it is drawn from the rest. */
+const FIRST_PAINT_MS = 2500;
+/** What a row of one source says when that source cannot be reached. */
+const FAILED = {kan: 'row.failedKan', mako: 'row.failedMako', r13: 'row.failedR13', jfc: 'row.failedJfc'};
+/** The screen's rows, so that a row can be told to show something else (the source tabs). */
+let current = null;
+/** Show [origins] in row [i] - the source tabs over Movies and Series. */
+export function retune(i, origins){
+  const x = current?.rows[i];
+  if(!x) return;
+  x.origins = origins;
+  const el = $('#row' + i);
+  if(!el) return;
+  if(el.contains(document.querySelector('.poster.spot'))) clearSpot();   // the title in the middle is about to go
+  endless.delete(el);                                  // and so is how it grew: a page still coming belongs to the old source
+  el.innerHTML = skeletons(8);
+  el.style.transform = '';
+  current.fillRow(x, i).then(() => autoSpot(el));
+}
+
+/* ---------- a row that does not end ----------
+   A row of the streaming services keeps growing as the remote reaches its last few titles: first
+   from what the services' first pages already held (a page is about a hundred titles, a row shows two
+   dozen), then from each service's next page, taken in turn. Only titles not already on the page are
+   added, and a row stops at a size a television can hold. A service that answers a page with nothing
+   new is spent - a catalogue that ignored the page number would otherwise be asked forever. */
+const endless = new WeakMap();                         // a row's strip -> how it gets more
+const ENDLESS_NEAR = 6;                                // how close to the end the remote gets before more comes
+const ENDLESS_MAX = 300;                               // the most one row ever holds
+async function extend(strip){
+  const st = endless.get(strip);
+  if(!st || st.busy || st.done || !strip.isConnected) return;
+  st.busy = true;
+  try{
+    const room = ENDLESS_MAX - strip.querySelectorAll('.poster').length;
+    const here = new Set([...strip.querySelectorAll('[data-id]')].map(e => e.dataset.id));
+    const batch = [];
+    for(let tries = 0; batch.length < Math.min(rowMax(), room) && tries < 4; tries++){
+      const more = await st.next();
+      if(endless.get(strip) !== st) return;           // the row was given another source while this was coming
+      if(!more.length){ st.done = true; break; }
+      // one at a time, and no further than the row has room for: a title claimed is a title a row below
+      // can no longer show, so only what will be drawn is claimed
+      for(const m of more){
+        if(batch.length >= room) break;
+        if(!here.has(m.id) && st.dedupe(st.i, [m]).length){ here.add(m.id); batch.push(m); }
+      }
+    }
+    if(room <= batch.length) st.done = true;
+    if(batch.length && strip.isConnected) strip.insertAdjacentHTML('beforeend', batch.map(st.card).join(''));
+  }finally{ st.busy = false; }
+}
+document.addEventListener('focusin', e => {
+  const poster = e.target.closest?.('.poster');
+  const strip = poster?.closest('.strip');
+  if(!strip || !endless.has(strip)) return;
+  const all = [...strip.querySelectorAll('.poster')];
+  if(all.indexOf(poster) >= all.length - ENDLESS_NEAR) extend(strip);
+});

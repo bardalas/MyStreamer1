@@ -13,7 +13,7 @@ body.motion :focus,body.motion :focus-visible{outline:none}
 .stabs button:focus,.days button:focus,
 .keypad button:focus,.playbtn:focus,.livebtn:focus,.readmore:focus,
 .update button:focus,.tstat button:focus,.oops button:focus,
-.catorder button:focus,.danger:focus,.tact:focus,.seg button:focus{
+.catorder button:focus,.danger:focus,.tact:focus,.seg button:focus,.srctab:focus,.libgo:focus{
   background:var(--light);color:var(--night);border-color:transparent;box-shadow:none}
 .tact:focus .sub,.seg button:focus .sub{color:#0009}
 .tact.ic:focus svg{color:var(--night)}

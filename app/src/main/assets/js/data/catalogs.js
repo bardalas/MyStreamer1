@@ -52,9 +52,9 @@ export const CATEGORIES = [
   {id: 'docs', rows: [[SC_ID, 'cts', undefined, 'cat.row.docs'], [CINEMETA_ID, 'top', 'genre=Documentary', 'cat.row.docsPop'], [SC_ID, 'mgl', undefined, 'cat.row.docsMore']]},
 ];
 export const catName = c => tr('cat.' + c.id);
-// "New on the streaming services": every service's catalogue merged into one row per type (services show as badges).
+// Every streaming service's titles of one type, in one row: each poster carries its service's mark (ui/rows.js).
 export const STREAMING = ['nfx', 'atp', 'dnp', 'amp', 'hbm', 'pmp'];
-export const mergedRow = (type, title) => ({merge: STREAMING, type, title});
+export const mergedRow = (type, title) => ({origins: STREAMING, type, title});
 /** Categories in the user's order, without the hidden ones (Settings → מסך הבית). */
 export function userCategories(){
   const order = settings.cats || CATEGORIES.map(c => c.id);

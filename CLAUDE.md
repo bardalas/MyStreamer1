@@ -174,13 +174,24 @@ and render as "Watch on …" buttons that open the service (never handed to the 
 web page). A torrent with no seeders ranks below everything but is still listed - for a rare documentary
 it is the only thing there is.
 
-### Browsing model (`js/data/catalogs.js`, `js/data/sort.js`)
-The rail lists *collections* (All, Movies, Series, and `CATEGORIES`: Israeli, Kids, Documentaries); the
-pills on every page (`SORT_GROUPS`: Genre, Year, Rating, Sort) *refine* the current collection. When any
-pill is on, `gridFrom()` shows one ranked grid and states how many titles, how sorted and from which
-sources; a genre also pulls Cinemeta's popular/top-rated titles of that genre (`withGenreRows`). Rows carry
-a small tag (`rowTag`): type and source, or the services merged into the row. Genres are not a page any
-more (`viewGenre` just sets the filter, for old links).
+### Browsing model (`js/data/catalogs.js`, `js/data/sort.js`, `js/ui/origins.js`, `js/screens/catalog.js`)
+The rail lists *collections* (All, Movies, Series, and `CATEGORIES`: Israeli, Kids, Documentaries). Home
+and the categories carry the pills (`SORT_GROUPS`: Genre, Service, Year, Rating, Sort; state in
+`pageFilters`); when any pill is on, `gridFrom()` shows one ranked grid and states how many titles, how
+sorted and from which sources; a genre also pulls Cinemeta's popular/top-rated titles of that genre
+(`withGenreRows`). Genres are not a page any more (`viewGenre` just sets the filter, for old links).
+- **Movies / Series** (`screens/home.js` `viewType`) are for browsing: a strip of *source tabs* (`.srctabs`:
+  All + every source in `ORIGINS` - the streaming services, Kan, Keshet, Reshet, the film archive, the
+  Israeli catalogues) turns row 0 (`retune()`), then continue-watching, then `typeRows` (popular, best,
+  Israeli, the broadcasters' rows, genres). A row of sources is `{origins: [ids], type}` (`fillRow`).
+- **The library** of a type (`#/all/movie|series`, `screens/catalog.js` - *not* `screens/library.js`, which
+  is the viewer's favourites) is for finding: every title of the type from every source in one grid, under
+  pills of its own (`new Filters('libSort:<type>')`, so they never turn Home into a grid), with a side
+  panel on the focused title (picture, facts, plot, then a quiet taste).
+- A service is marked **once, on the cover** (`.svcbadge`), never beside the name. Its mark there and in the
+  tabs is a one-colour glyph: `svc/g/<id>.png`, made from the logos by `tools/svc_glyphs.py` and drawn as a
+  CSS mask filled with `currentColor` (so it follows the skin and the focus); their width/height ratios
+  live in `GLYPH_RATIO` in `data/services.js` - re-run the script and update them when a logo changes.
 
 ### Title page and the TV screen
 On the TV a series page never scrolls the page (`body.titlefit`): the header keeps its size and the
@@ -205,7 +216,8 @@ There is no native focus system in a WebView, so one is built from scratch:
 - `tvMove(dir)` moves within a row on Up/Down by checking whether any item sits on a different
   visual line than the active one; if none does (a genuinely horizontal strip), it falls through
   to "next row". This one check correctly handles horizontal strips, vertical lists, and grids
-  without needing to special-case which kind a row is.
+  without needing to special-case which kind a row is. Left/Right only move **along the visual line**:
+  at a grid line's edge the back direction goes to the rail (it used to walk up into the line above).
 - A "column" row (`.stabs`, `.seasonbar`, the category rail) is handled separately: Up/Down pick
   an entry *and open it*, Left/Right step into what the column controls (via `data-pane` on the
   row, e.g. `data-pane="#eps"`).
