@@ -3,14 +3,16 @@ import {$, bgObserver, lazyBg} from './core/dom.js';
 import {invalidateView} from './core/requests.js';
 import {rememberScreen, restoreScreen} from './core/screenmem.js';
 import {settings} from './core/settings.js';
-import {store} from './core/store.js';
+import {profileId, store} from './core/store.js';
 import {loadAddons} from './data/addons.js';
 import {availObserver, resetAvailBudget} from './data/availability.js';
 import {armHeAndAvail, heObserver} from './data/hebrew.js';
-import {kidsOn} from './data/kids.js';
+import {kidsOn, kidsTeen, liveAllowed} from './data/kids.js';
 import {channelName} from './data/names.js';
+import {enterProfile, needsPicker} from './data/profiles.js';
 import {checkReminders} from './data/reminders.js';
 import {loadServices} from './data/services.js';
+import {learnFromHistory} from './data/taste.js';
 import {indexProgress, progress, pruneProgress} from './data/watch.js';
 import {tr} from './i18n.js';
 import {viewKanProgram} from './providers/kan.js';
@@ -19,14 +21,16 @@ import {viewMakoProgram} from './providers/mako.js';
 import {viewR13Series} from './providers/reshet.js';
 import {openChannel} from './providers/rtv.js';
 import {viewAddons} from './screens/addons.js';
-import {viewTv} from './screens/broadcasters.js';
+import {viewShows, viewTv} from './screens/broadcasters.js';
 import {viewAll} from './screens/catalog.js';
 import {viewDetail} from './screens/detail.js';
 import {viewCategory, viewGenre, viewGenres, viewHome} from './screens/home.js';
 import {viewLibrary} from './screens/library.js';
 import {viewLive} from './screens/live.js';
+import {paintRailProfile, viewProfile, viewWho} from './screens/profiles.js';
 import {viewSearch} from './screens/search.js';
 import {viewSettings} from './screens/settings.js';
+import {viewWebShow} from './screens/web.js';
 import {endTaste} from './ui/taste.js';
 import {markNav} from './ui/rail.js';
 import {checkUpdate} from './ui/update.js';
@@ -59,14 +63,19 @@ export function resetObservers(){
    back where you were instead of at the top of the page. */
 export let listHash = '#/';                                 // the list a title was opened from
 export let lastPaint = 0;                                   // when this screen was drawn, so a stale one is redrawn
-/** The screens of the kids profile: its home, Movies and Series, the library, a title, search, favourites
-    and settings (which shows only the way out). Live TV and the broadcasters' own pages are not among them. */
-const KIDS_ROUTES = ['', 'detail', 'library', 'settings', 'search', 'all'];
-const kidsMay = (r, a) => r === 'cat' ? ['movies', 'series'].includes(a) : KIDS_ROUTES.includes(r);
+/** The screens of the kids profile: its home, Movies and Series, the library, a title, search, favourites,
+    settings (which shows only the way out) and the profile picker. A child's has neither live TV nor the
+    broadcasters' own pages; a teenager's has the programmes and the magazine, and from 16 live TV. */
+const KIDS_ROUTES = ['', 'detail', 'library', 'settings', 'search', 'all', 'who'];
+const TEEN_ROUTES = ['cat', 'genres', 'genre', 'shows', 'web', 'kan', 'r13', 'tv'];   // not Keshet: its episodes are its own site's
+const kidsMay = (r, a) => KIDS_ROUTES.includes(r) || (r === 'cat' && ['movies', 'series'].includes(a))
+  || (kidsTeen() && TEEN_ROUTES.includes(r)) || (r === 'live' && liveAllowed());
 export async function route(){
   invalidateView();                                 // cancel work from the previous view before rendering
   const [, r0 = '', a0] = location.hash.split('/').map(decodeURIComponent);
-  if(kidsOn() && !kidsMay(r0, a0)) history.replaceState(null, '', '#/');   // anywhere else is the profile's home
+  // until someone is chosen, the picker is the only screen there is (a grown-up may make a new profile from it)
+  if(needsPicker() && r0 !== 'who' && !(r0 === 'profile' && a0 === 'new' && !kidsOn())) history.replaceState(null, '', '#/who');
+  else if(kidsOn() && !kidsMay(r0, a0)) history.replaceState(null, '', '#/');   // anywhere else is the profile's home
   rememberScreen();
   resetObservers();
   document.body.classList.remove('titlefit');
@@ -74,15 +83,19 @@ export async function route(){
   const canvas = $('#app');
   canvas.classList.remove('fresh'); void canvas.offsetWidth; canvas.classList.add('fresh');
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
+  document.body.classList.toggle('who', r === 'who');   // the picker has the screen to itself (screens/profiles.js)
   // the menu lights the place you are in; a title or a search keeps the one it was opened from
   markNav(r === '' ? 'home' : r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : r === 'all' ? (a === 'movie' ? 'movies' : 'series')
-    : ['live', 'library', 'settings'].includes(r) ? r : '');
-  if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
+    : r === 'shows' || r === 'web' ? 'shows' : r === 'tv' ? (a === 'jfc' ? 'movies' : 'shows') : ['live', 'library', 'settings', 'who'].includes(r) ? r
+    : r === 'profile' ? 'settings' : '');
+  if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library', 'shows', 'tv'].includes(r)) listHash = location.hash || '#/';
   if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
   else if(r === 'r13') viewR13Series(a, b);
   else if(r === 'kan') viewKanProgram(a, b);
   else if(r === 'tv') viewTv(a);
+  else if(r === 'shows') viewShows(a);
+  else if(r === 'web') viewWebShow(a);
   else if(r === 'mako') viewMakoProgram(a, b);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'all') viewAll(a);
@@ -92,12 +105,14 @@ export async function route(){
   else if(r === 'library') viewLibrary();
   else if(r === 'addons') viewAddons();
   else if(r === 'settings') viewSettings(a);
+  else if(r === 'who') viewWho();
+  else if(r === 'profile') viewProfile(a);
   else viewHome();
   restoreScreen();
   lastPaint = Date.now();
 }
 /** The last live channel watched, playing (or Live TV, when it cannot be found). */
-async function tuneLastChannel(){
+export async function tuneLastChannel(){
   const last = store.get('lastChannel', null);
   try{
     const chans = await liveChannels(last.src);
@@ -112,16 +127,20 @@ document.querySelector('.logo').addEventListener('click', e => {
   e.preventDefault();
   tuneLastChannel();
 });
-/** The player reports how far the viewer got; it feeds "המשך צפייה" and resuming. */
+/** The player reports how far the viewer got; it feeds "המשך צפייה" and resuming. Each report says whose
+    it is (ui/sources.js): one made in another profile - the app was left for the player in it, and came
+    back to a page opened in this one - goes to that profile's own history. */
 window.boothProgress = json => {
   try{
-    const entries = JSON.parse(json);
+    const entries = JSON.parse(json), others = {};
     for(const [videoId, e] of Object.entries(entries)){
       if(!e || !e.d) continue;
       const w = {t: +e.t || 0, d: +e.d || 0, at: +e.at || Date.now(), metaId: e.metaId || videoId, type: e.type || 'movie', name: e.name || '', poster: e.poster || ''};
       w.done = w.t > w.d - 60;            // watched to the end: a tick on the poster, and out of "continue watching"
-      progress[videoId] = w;
+      if(e.pid && e.pid !== profileId) (others[e.pid] ||= {})[videoId] = w;
+      else progress[videoId] = w;
     }
+    for(const [pid, ws] of Object.entries(others)) store.setFor(pid, 'progress', {...store.getFor(pid, 'progress', {}), ...ws});
     pruneProgress();
     store.set('progress', progress);
     indexProgress();
@@ -131,7 +150,7 @@ window.boothProgress = json => {
 
 /** The player asks for a channel's catch-up (long press OK while watching). */
 window.boothCatchup = async name => {
-  if(kidsOn()) return;
+  if(!liveAllowed()) return;
   const last = store.get('lastChannel', null);
   try{
     const chans = await liveChannels(last?.src || 'il');
@@ -157,29 +176,40 @@ addEventListener('offline', paintNet);
 addEventListener('online', () => { paintNet(); route(); });
 paintNet();
 /* ---------- boot ----------
-   VEO opens on the screen chosen in Settings → General; the kids profile always opens on its home. */
-const START = {live: '#/live', movies: '#/cat/movies', series: '#/cat/series'};
+   VEO opens on the profile picker when there is someone to choose (screens/profiles.js), and then - or at
+   once - on the screen chosen in Settings → General; the kids profile always opens on its home. */
+export const START = {live: '#/live', movies: '#/cat/movies', series: '#/cat/series'};
 const bare = !location.hash;
-if(bare && !kidsOn() && START[settings.start]) history.replaceState(null, '', START[settings.start]);
+const picking = needsPicker();
+// the picker holds the screen from the first frame: nothing else can be reached before it is drawn
+if(picking){ history.replaceState(null, '', '#/who'); document.body.classList.add('who'); }
+else{
+  enterProfile(profileId);                          // nothing to choose: the profile the app is in is who is watching
+  if(bare && !kidsOn() && START[settings.start]) history.replaceState(null, '', START[settings.start]);
+}
+paintRailProfile();
 export async function boot(){
+  if(picking) route();                                 // the picker needs no add-ons: it is up at once
   if(await migrateStore()) return;                     // what was kept before is being brought over
   const ready = loadAddons();
   const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
-  route();                                             // render now, with whatever has answered
+  if(!picking || location.hash !== '#/who') route();   // render now, with whatever has answered (the picker is up already)
   if(first === 'slow'){
     await ready;                                       // and when the add-ons finally arrive,
     if(['', '#/', '#'].includes(location.hash)) route();   // fill the home screen they left empty
   }
-  if(bare && !kidsOn() && settings.start === 'lastch' && store.get('lastChannel', null)) tuneLastChannel();
+  if(bare && !picking && !kidsOn() && settings.start === 'lastch' && store.get('lastChannel', null)) tuneLastChannel();
   setTimeout(loadServices, 3000);
+  setTimeout(learnFromHistory, 12000);                 // a profile from before the app learnt tastes: from its history
   if(kidsOn()) return;                                 // no offers to install, no reminders of grown-up titles
-  setTimeout(() => checkUpdate(true), 2500);
-  setTimeout(checkReminders, 9000);
+  // nothing is offered over the picker: not an update, and not a reminder of a profile not yet chosen
+  setTimeout(() => needsPicker() || checkUpdate(true), 2500);
+  setTimeout(() => needsPicker() || checkReminders(), 9000);
 }
 boot();
 addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible'){ endTaste(); return; }
-  if(!kidsOn()){ checkUpdate(); checkReminders(); }
+  if(!kidsOn() && !needsPicker()){ checkUpdate(); checkReminders(); }
   // a screen left open for a while is old news: draw it again, with fresh titles and another featured one
   if(Date.now() - lastPaint > 15 * 60e3) route();
 });

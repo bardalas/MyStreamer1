@@ -6,14 +6,16 @@ import {kidsOn} from '../data/kids.js';
 import {srcName, typeName} from '../data/names.js';
 import {tr} from '../i18n.js';
 import {kanBox, kanCard} from '../providers/kan.js';
+import {makoCard, makoPrograms} from '../providers/mako.js';
 import {r13card, r13row} from '../providers/reshet.js';
+import {webEpisodeCard, webLatest, webShowCard, webShows} from '../providers/web.js';
 import {card, skeletons} from './cards.js';
 import {ORIGINS, interleave, loadOrigin, moreOfOrigin} from './origins.js';
 import {autoSpot, clearSpot, reelable} from './reel.js';
 
 export const rowTag = x => {
   const parts = [];
-  if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); parts.push(srcName(x.a)); }
+  if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); if(srcName(x.a)) parts.push(srcName(x.a)); }
   // a broadcaster's row is a taste of everything they have: its heading leads to the rest
   const more = x.more ? ` <a class="rowmore" href="${esc(x.more)}">${tr('row.all')}</a>` : '';
   return (parts.length ? ` <small>${esc(parts.join(' · '))}</small>` : '') + more;
@@ -64,8 +66,23 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       return;
     }
     if(x.r13){
-      try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || `<p class="note">${tr('row.none')}</p>`; }
+      // [x.genre]: only the programmes Reshet files under that genre
+      const ofGenre = o => !x.genre || (o.tags?.Genre?.objects || []).some(t => t.value === x.genre);
+      try{ el.innerHTML = (await r13row(x.r13)).filter(ofGenre).slice(0, rowMax()).map(r13card).join('') || `<p class="note">${tr('row.none')}</p>`; }
       catch(e){ showErr(el, tr('row.failedR13'), e, again); }
+      return;
+    }
+    if(x.web){                                          // the magazine: its newest episodes, or one genre's programmes
+      try{
+        const list = x.web === 'latest' ? await webLatest() : await webShows(x.web);
+        el.innerHTML = list.slice(0, rowMax()).map(({show, ep}) => x.web === 'latest' ? webEpisodeCard(ep, show) : webShowCard(show, ep)).join('')
+          || `<p class="note">${tr('row.none')}</p>`;
+      }catch(e){ showErr(el, tr('web.failed'), e, again); }
+      return;
+    }
+    if(x.mako != null){                                 // one of Keshet's genres ('' is all of its programmes)
+      try{ el.innerHTML = (await makoPrograms(x.mako)).slice(0, rowMax()).map(makoCard).join('') || `<p class="note">${tr('row.none')}</p>`; }
+      catch(e){ showErr(el, tr('row.failedMako'), e, again); }
       return;
     }
     if(x.origins){
@@ -78,6 +95,9 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       const token = x.token = (x.token || 0) + 1;       // a tab changed while this was loading: drop it
       const live = () => token === x.token && !!el?.isConnected;
       const origins = x.origins.map(id => ORIGINS.find(o => o.id === id)).filter(Boolean);
+      // [x.pick]: a view of the sources' titles - the newest, the best, one genre - chosen from what they
+      // gave; such a row shows what it picked and does not page on (the next page is not picked from)
+      const pick = x.pick || (l => l);
       const badge = x.badge ?? origins.length > 1;
       const lists = origins.map(() => null), failed = [];
       let drawn = false, settled = 0, pool = [], seen = new Set();
@@ -93,7 +113,7 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       };
       const late = list => {
         if(!live()) return;
-        const fresh = list.filter(it => !seen.has(it.id));
+        const fresh = pick(list.filter(it => !seen.has(it.id)));
         fresh.forEach(it => seen.add(it.id));
         if(el.querySelector('.poster')){
           pool.push(...fresh);
@@ -122,7 +142,8 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       }
       const merged = interleave(lists.map(l => l || []));
       merged.forEach(it => seen.add(it.id));
-      pool = draw(merged);
+      pool = draw(pick(merged));
+      if(x.pick) return;
       endless.set(el, {i, dedupe: x.tabbed ? (_, l) => l : dedupe, card: it => it.html, next: async () => {
         // pages are asked for until one brings something new or every source is spent - in the kids
         // profile a page can hold nothing for children and still not be the last
@@ -145,19 +166,23 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
     }
     try{
       const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
-      const metas = d.metas || [];
+      const metas = x.keep ? (d.metas || []).filter(x.keep) : d.metas || [];     // [x.keep]: only some of the catalogue
       if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || `<p class="note">${tr('row.empty')}</p>`;
     }catch(e){ showErr(el, tr('row.failedCat'), e, again); }
   };
   // the first row to answer offers the first title to the middle; whoever is already there keeps it
   current = {rows, fillRow};
-  rows.forEach((x, i) => fillRow(x, i).then(() => { autoSpot($('#app .strip')); showRow($('#row' + i)); }));
+  rows.forEach((x, i) => fillRow(x, i).then(() => { autoSpot($('#app .strip')); showRow($('#row' + i), x); }));
 }
 
-/** The kids profile filters every row: a row left with nothing for children is not shown - until something comes. */
-function showRow(el){
+/** A row with next to nothing in it is not shown - until something comes: in the kids profile, one the
+    filter left empty; anywhere, one picked from a catalogue (a service's newest, one genre of it) that
+    found fewer than three titles. */
+function showRow(el, x){
   const row = el?.closest('.row');
-  if(row) row.hidden = kidsOn() && !el.querySelector('.poster, .skel, .oops');
+  if(!row || el.querySelector('.skel, .oops')) return;
+  const n = el.querySelectorAll('.poster').length;
+  row.hidden = (kidsOn() && !n) || (!!(x?.pick || x?.keep || x?.sparse) && n < 3);
 }
 /** How long a row of several sources waits for the slow ones before it is drawn from the rest. */
 const FIRST_PAINT_MS = 2500;

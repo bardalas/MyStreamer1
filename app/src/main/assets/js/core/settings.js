@@ -26,13 +26,51 @@ export const LAYOUT = 'tv';
 export const POSTER_SIZE = 'm';
 /** Every choice and what it is until the viewer makes it - the one list of them (booth.html reads the
     few it paints before the page is up from the stored settings, falling back to the same values). */
-export const DEFAULTS = {skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off',
+export const DEFAULTS = {skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'hide', start: 'vod', kids: 'off',
   preview: 'on', subs: 'auto', cap: 'all', kidsAge: 'kids'};
 /* One door for every set of settings there will ever be. The two that the whole stylesheet depends
    on are pinned here rather than written by each caller: a reset that forgot them once put
    data-layout="undefined" on the page, and every rule written for the layout stopped matching. */
 const pinned = s => Object.assign({}, DEFAULTS, s, {layout: LAYOUT, poster: POSTER_SIZE});
-export let settings = pinned(store.get('settings', {}));
+/* The settings are the profile's (core/store.js) - but the choices about the device rather than about
+   who is watching it, what the television can decode, are kept once for the device and every profile
+   sees the same. They were a profile's own before there were profiles: the first one's are adopted. */
+const DEVICE = ['cap'];
+const deviceOwn = () => store.get('device', {});
+{
+  const own = store.get('settings', {}), dev = deviceOwn();
+  const missing = DEVICE.filter(k => !(k in dev) && k in own);
+  if(missing.length) store.set('device', {...dev, ...Object.fromEntries(missing.map(k => [k, own[k]]))});
+}
+export let settings = pinned({...store.get('settings', {}), ...deviceOwn()});
+
+/** The kids profile's levels: the oldest age a title may be rated for. Up to 12 the profile is a child's -
+    family and animated titles only, and the broadcasters' programmes and live TV are kept out; from 14 it
+    is a teenager's, and a title is judged by its rating (data/kids.js). booth.html paints the tier from
+    the same table before the page is up. */
+export const AGE_LEVELS = {young: 6, kids: 9, older: 12, teen14: 14, teen16: 16, adult18: 18};
+export const TEEN_AGE = 14;
+/** The age the kids profile is set to (9 when the level is not one there is). */
+export const kidsAge = () => AGE_LEVELS[settings.kidsAge] ?? 9;
+/** 'off', or the kids profile's tier: 'child' (up to 12), 'teen' (14) or 'teen16' (16 and 18). */
+export const kidsTier = () => settings.kids !== 'on' ? 'off' : kidsAge() >= 16 ? 'teen16' : kidsAge() >= TEEN_AGE ? 'teen' : 'child';
+
+/* The subtitles' size belongs to the player, which is also where it is changed from (its panel) - but it
+   is the viewer's choice: each profile keeps its own, hands it to the player when the page opens in it,
+   and takes back what the player changed whenever the page is shown again. */
+const nativeScale = () => { try{ const v = +window.BoothAndroid?.getSubScale?.(); return v > 0 ? v : null; }catch(e){ return null; } };
+const near = (a, b) => Math.abs(a - b) < .01;       // a Java float comes back not quite what was sent
+/** The player's size is this profile's: kept, and remembered as the last one handed to it (for the device). */
+const adoptScale = n => { settings.subScale = n; store.set('settings', settings); store.set('subSent', n); };
+{
+  // the player's size moved from the last one the page handed it: it was changed there, while the page was away
+  const n = nativeScale(), sent = store.get('subSent', null);
+  if(n && (settings.subScale == null || (sent != null && !near(n, sent)))) adoptScale(n);
+}
+addEventListener('visibilitychange', () => {
+  const n = document.visibilityState === 'visible' && nativeScale();
+  if(n && !near(n, +(settings.subScale ?? 0))) adoptScale(n);
+});
 /**
  * The player draws its own banner and channel list in native views: hand it this skin and direction -
  * and the choices it acts on itself: whether subtitles come on by themselves, and whether the kids
@@ -45,12 +83,13 @@ export function syncNativeTheme(){
       night: v('--night'), raise: v('--raise'), line: v('--line'),
       light: v('--light'), muted: v('--muted'), accent: v('--tungsten'), onAccent: v('--on-accent'),
       subs: settings.subs, kids: settings.kids}));
+    if(settings.subScale && window.BoothAndroid?.setSubScale){ BoothAndroid.setSubScale(+settings.subScale); store.set('subSent', +settings.subScale); }
   }catch(e){}
 }
 export function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
-  r.dataset.kids = settings.kids;
+  r.dataset.kids = kidsTier();
   setUiLang(settings.uiLang);                       // the strings' own module decides what is a language
   syncNativeTheme();
 }
@@ -58,7 +97,7 @@ applySettings();
 
 /** Replace every setting at once; the page is repainted by the caller. */
 export function setSettings(next){
-  settings = pinned(next);
+  settings = pinned({...next, ...deviceOwn()});
   store.set('settings', settings);
   applySettings();
 }
@@ -66,6 +105,7 @@ export function setSettings(next){
 export function setSetting(key, value){
   settings[key] = value;
   store.set('settings', settings);
+  if(DEVICE.includes(key)) store.set('device', {...deviceOwn(), [key]: value});
   applySettings();
 }
 /**
@@ -74,5 +114,5 @@ export function setSetting(key, value){
  * must not be able to leave it by resetting). Titles and summaries follow the interface language.
  */
 export function resetSettings(){
-  setSettings({uiLang: settings.uiLang, lang: settings.uiLang === 'he' ? 'he' : 'en', kids: settings.kids});
+  setSettings({uiLang: settings.uiLang, lang: settings.uiLang === 'he' ? 'he' : 'en', kids: settings.kids, kidsAge: settings.kidsAge});
 }

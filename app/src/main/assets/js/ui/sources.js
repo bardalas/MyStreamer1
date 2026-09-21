@@ -2,12 +2,13 @@
 import {$, esc} from '../core/dom.js';
 import {guardView, withDeadline} from '../core/requests.js';
 import {isTvLayout, settings} from '../core/settings.js';
-import {store} from '../core/store.js';
+import {profileId, store} from '../core/store.js';
 import {addons, fetchStreams, supports} from '../data/addons.js';
 import {setAvail} from '../data/availability.js';
 import {kidsOn} from '../data/kids.js';
 import {remindButton, wireRemind} from '../data/reminders.js';
 import {svcDress, svcIcon} from '../data/services.js';
+import {PLAYED, noteTaste} from '../data/taste.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {kanBox} from '../providers/kan.js';
@@ -15,6 +16,7 @@ import {makoPrograms} from '../providers/mako.js';
 import {r13meta, r13row} from '../providers/reshet.js';
 import {openPlayer} from './player.js';
 import {endTaste} from './taste.js';
+import {startBusy} from './torrent.js';
 
 
 /** Which quality the viewer asked for, if any: kept between titles, because a taste for 1080p is a taste. */
@@ -93,18 +95,23 @@ export function playStream(s, label, ctx){
   const release = s.behaviorHints?.filename || (s.title || s.description || '').split('\n')[0] || '';
   const vid = ctx.videoId || '';
   // what is playing (for "continue watching") and where to resume from
-  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || ''});
+  // (and whose it is: the profile the page is in - app.js boothProgress)
+  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || '', pid: profileId});
+  noteTaste(ctx.meta, PLAYED);                     // what is played says most about what the profile likes (data/taste.js)
   // Where to start: where the viewer stopped, unless they asked for the beginning - or unless they
   // were within a minute of the end, which is a film that is over rather than one to go back into.
   const done = progress[vid];
   const pos = ctx.fromStart || !(done && done.d && done.t < done.d - 60) ? 0 : Math.floor(done.t * 1000);
   if(s.externalUrl && s.externalUrl.startsWith('#')){ location.hash = s.externalUrl; return; }
-  if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label, vid, release, meta, pos);
+  if(s.url && window.BoothAndroid){ startBusy(false); BoothAndroid.playUrl(s.url, label, vid, release, meta, pos); }
   else if(s.url || s.ytId) openPlayer(s, label, ctx);
   // a page on a service, not a video: it belongs to whatever opens that service on this device
   else if(s.externalUrl && window.BoothAndroid) BoothAndroid.openExternal(s.externalUrl);
   else if(s.externalUrl) window.open(s.externalUrl, '_blank', 'noopener');
-  else if(s.infoHash && window.BoothAndroid) BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release, meta, pos);
+  else if(s.infoHash && window.BoothAndroid){
+    startBusy(true);
+    BoothAndroid.playTorrent(s.infoHash, Number.isInteger(s.fileIdx) ? s.fileIdx : -1, label, JSON.stringify(s.sources || []), vid, release, meta, pos);
+  }
   else alert(tr('src.torrentApp'));
 }
 
@@ -135,7 +142,8 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
     return `<button class="qbtn svclink" data-i="${x.i}" style="${svcDress(svc)}">${svcIcon(svc)}${esc(tr('src.watchOn', {svc}))}</button>`;
   }).join('');
   const best = pickQ(playable);
-  const rest = best ? list.filter(x => x !== best) : list;
+  // the list under the row follows the quality chosen: its sources first (each part still best first)
+  const rest = (best ? list.filter(x => x !== best) : list).sort((a, b) => (b.q === best?.q) - (a.q === best?.q));
   const more = rest.length ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr(best ? 'src.more' : 'src.weakN', {n: rest.length})}</button>` : '';
   const failure = errors.length ? `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>` : '';
   if(!best){
@@ -275,6 +283,6 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
     const playable = all.some(x => !x.external && x.q !== 'CAM' && rank(x) > 0);
     // An error, no add-ons, or a service page is not evidence of unavailability.
     if(playable) setAvail(`${type}:${meta.id}`, true);
-    else if(!errors.length && !all.some(x => x.external)) setAvail(`${type}:${meta.id}`, false);
+    else if(!errors.length && !all.some(x => x.external)) setAvail(`${type}:${meta.id}`, false, true);   // every add-on said so: sure
   }
 }

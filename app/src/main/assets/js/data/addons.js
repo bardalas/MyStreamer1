@@ -30,6 +30,28 @@ if(store.get('defaultsRev', 1) < 4){
 }
 export let addons = [];   // {url, base, manifest}
 
+/* ---------- which services the Streaming Catalogs add-on lists ----------
+   The add-on keeps its settings in its address: the part before /manifest.json is, in base64,
+   providers:rpdbKey:country:timestamp:top10Global:top10Country:top10CountryCode - what its own configure
+   page writes. The services are chosen in Settings by writing a new address the same way. */
+const SC_HOST = 'stremio-netflix-catalog-addon';
+const scUrl = () => addonUrls.find(u => u.includes(SC_HOST));
+function scFields(url){
+  try{ return atob(decodeURIComponent(url.split('/').slice(-2)[0])).split(':'); }catch(e){ return null; }
+}
+/** The services the add-on is set to list, by their codes (data/services.js), in its order. */
+export const scProviders = () => (scFields(scUrl() || '')?.[0] || '').split(',').filter(Boolean);
+/** List [codes] instead: the add-on's address is written anew with its other settings as they were, and
+    the add-ons are read again. An add-on that was removed is put back. */
+export async function setScProviders(codes){
+  const was = scUrl(), url = was || STREAMING_CATALOGS, f = scFields(url);
+  if(!f || !codes.length) return;
+  f[0] = codes.join(',');
+  const next = url.replace(/[^/]+\/manifest\.json$/, encodeURIComponent(btoa(f.join(':'))) + '/manifest.json');
+  setAddonUrls(was ? addonUrls.map(u => u === was ? next : u) : [...addonUrls, next]);
+  await loadAddons();
+}
+
 
 export function supports(m, resource, type, id){
   for(const r of m.resources || []){
@@ -45,8 +67,22 @@ export function supports(m, resource, type, id){
 }
 export const yearOf = m => m.releaseInfo || (m.year ?? '') || (m.released ? m.released.slice(0,4) : '');
 
+/**
+ * The add-ons, from their manifests. Each manifest is kept on the device: one whose host does not answer
+ * as the app starts (a television is often up before its network, and some hosts are slow to wake) is
+ * taken from the last time it did, rather than left out until the next start - which left Movies and
+ * Series without a single catalogue.
+ */
 export async function loadAddons(){
-  const res = await Promise.allSettled(addonUrls.map(async url => ({url, base: baseOf(url), manifest: await getJSON(normUrl(url))})));
+  const kept = store.get('manifests', {}), keep = {};
+  const res = await Promise.allSettled(addonUrls.map(async url => {
+    let manifest;
+    try{ manifest = await getJSON(normUrl(url)); }
+    catch(e){ manifest = kept[url]; if(!manifest) throw e; }
+    keep[url] = manifest;
+    return {url, base: baseOf(url), manifest};
+  }));
+  store.lazy('manifests', keep);
   addons = res.filter(r => r.status === 'fulfilled').map(r => r.value).concat(LOCAL_ADDON);
 }
 
@@ -59,6 +95,9 @@ export function catalogFetch(a, type, id, extra){
   const p = catalogRaw(a, type, id, extra);
   return kidsOn() ? p.then(d => forKids(d, type, extra)) : p;
 }
+/** A catalogue's titles, all of them, whoever is watching: for what is kept for the device (the services'
+    map) and for pools that are filtered when they are shown (data/taste.js). */
+export const catalogAll = (a, type, id, extra) => catalogRaw(a, type, id, extra);
 function catalogRaw(a, type, id, extra){
   if(a.local) return extra && /skip=/.test(extra) ? Promise.resolve({metas: []}) : a.local(id);
   const url = `${a.base}/catalog/${type}/${id}${extra ? '/' + extra : ''}.json`;

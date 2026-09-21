@@ -1,7 +1,7 @@
 /* Sorting and filtering: one pill per subject, and the grid they turn a screen into. */
 import {$, esc, lazyBg} from '../core/dom.js';
 import {store} from '../core/store.js';
-import {addons, catalogFetch} from './addons.js';
+import {addons, catalogFetch, scProviders} from './addons.js';
 import {CINEMETA_ID, SC_ID} from './catalogs.js';
 import {heTitle} from './hebrew.js';
 import {genreName, srcName} from './names.js';
@@ -16,7 +16,8 @@ export const GENRES = ['Comedy', 'Action', 'Drama', 'Thriller', 'Horror', 'Sci-F
   'Fantasy', 'Documentary', 'Mystery', 'History', 'War', 'Music', 'Sport', 'Western'];
 export const SORT_GROUPS = [
   {key: 'genre', label: 'sort.genre', opts: [['', 'sort.genre.all'], ...GENRES.map(g => [g, ''])]},
-  {key: 'svc', label: 'sort.svc', opts: [['', 'sort.svc.all'], ...Object.keys(SERVICES).map(k => [k, ''])]},
+  // the services the add-on is set to list, as it is now (Settings)
+  {key: 'svc', label: 'sort.svc', get opts(){ return [['', 'sort.svc.all'], ...scProviders().filter(k => SERVICES[k]).map(k => [k, ''])]; }},
   {key: 'year', label: 'sort.year', opts: [['', 'sort.year.all'], ['2020', 'sort.year.2020'], ['2010', 'sort.year.2010'], ['2000', 'sort.year.2000'], ['old', 'sort.year.old']]},
   {key: 'rate', label: 'sort.rate', opts: [['', 'sort.rate.all'], ['7', 'sort.rate.7'], ['8', 'sort.rate.8']]},
   {key: 'by', label: 'sort.by', opts: [['pop', 'sort.by.pop'], ['rating', 'sort.by.rating'], ['year', 'sort.by.year'], ['az', 'sort.by.az']]},
@@ -122,7 +123,7 @@ export async function gridFrom(rows, heading, redraw){
   grid.innerHTML = out.length ? out.slice(0, 200).map(card).join('') : `<p class="note">${tr('sort.none')}</p>`;
   const by = SORT_GROUPS.find(g => g.key === 'by');
   $('#gnote').textContent = tr('sort.summary', {n: Math.min(out.length, 200), by: optLabel(by, by.opts.find(([v]) => v === pageFilters.st.by)),
-    from: [...new Set(all.filter(x => x.a).map(x => srcName(x.a)))].join(', ')});
+    from: [...new Set(all.filter(x => x.a).map(x => srcName(x.a)).filter(Boolean))].join(', ')});
   lazyBg(grid);
 }
 /** A row as the catalogues behind it: a row of sources (ui/origins.js) is its services' catalogues -

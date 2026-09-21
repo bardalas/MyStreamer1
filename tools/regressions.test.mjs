@@ -91,7 +91,7 @@ async function fixture(opts = {}){
     'core/settings.js': {rowMax: () => 10, isTvLayout: () => !!opts.tv, IS_TV_DEVICE: !!opts.tv,
       LAYOUT: 'tv', POSTER_SIZE: 'm',
       settings: {layout: 'tv', poster: 'm', lang: 'he', preview: 'off', skin: 'veo'}},
-    'core/store.js': {store: {get: (_k, d) => d, set: () => {}}},
+    'core/store.js': {store: {get: (_k, d) => d, set: () => {}}, profileId: 'p1'},
     'data/addons.js': {addons: opts.addons || [], catalogFetch: async () => ({metas: []}),
       fetchMeta: (...a) => { calls.meta.push(a); return (opts.fetchMeta || (async () => metadata))(...a); },
       fetchStreams: (...a) => { calls.streams.push(a); return (opts.fetchStreams || (async () => []))(...a); },
@@ -101,6 +101,8 @@ async function fixture(opts = {}){
     'data/kids.js': {kidsOn: () => false},
     'data/reminders.js': {remindButton: () => '<button id="remind">remind</button>', wireRemind: () => {}},
     'data/watch.js': {progress: opts.progress || {}},
+    // what the profile likes is learnt as it plays: nothing to learn in these tests
+    'data/taste.js': {PLAYED: 3, noteTaste: () => {}},
     'data/catalogs.js': {SC_ID: 'sc'},
     'data/names.js': {srcName: () => '', typeName: () => ''},
     'data/services.js': {SERVICES: {}, noteServices: () => {}, svcDress: () => '', svcIcon: () => ''},
@@ -112,6 +114,7 @@ async function fixture(opts = {}){
     'ui/cards.js': {card: () => '', skeletons: () => ''},
     'ui/reel.js': {autoSpot: () => {}, reelable: () => false, nextEpisode: m => m?.videos?.[0]},
     'ui/player.js': {openPlayer: (s, label, ctx) => calls.plays.push({s, label, ctx})},
+    'ui/torrent.js': {startBusy: () => {}},              // the busy card over the page: not what is tested here
   };
   if(!opts.realSources) stubs['ui/sources.js'] = {
     quickPick: (...a) => { calls.quick.push(a); return (opts.quickPick || (async () => ({s: stream})))(...a); },
@@ -239,7 +242,8 @@ for(const [name, opts, expected] of [
 ]) test(`availability cache: ${name}`, async () => {
   const f = await fixture({realSources: true, addons: [addon], ...opts}); const s = await f.load('ui/sources.js');
   await s.loadStreams(movie, 'movie', 'Test Show');
-  assert.deepEqual(f.calls.availability, expected === undefined ? [] : [['movie:movie', expected]]);
+  // an empty answer from every add-on is sure (the title's own page asked them all in full)
+  assert.deepEqual(f.calls.availability, expected === undefined ? [] : [expected ? ['movie:movie', true] : ['movie:movie', false, true]]);
 });
 test('missing content title does not launch irrelevant broadcaster searches', async () => {
   const f = await fixture({realSources: true}); const s = await f.load('ui/sources.js');

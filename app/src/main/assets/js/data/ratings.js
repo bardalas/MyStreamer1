@@ -1,14 +1,20 @@
 /* ---------- age ratings ----------
-   How old a viewer should be for a title. The catalogues do not say; Wikidata keeps the ratings films were
-   given - in the US (MPA), Germany (FSK), the UK (BBFC), Australia (ACB) and Brazil (ClassInd). They are
-   asked for in batches, by IMDb id, with one query, and kept on the device. The systems disagree (Harry
-   Potter's fourth film is PG-13, FSK 12, BBFC 12, ClassInd 12 and ACB M), so a title's age is the middle
-   of them. Most series have none: for those the kids profile goes by its genres alone.
-   Wikidata's own query service can be slow (seconds, at busy times a minute), so the same data is asked
-   of QLever (the University of Freiburg's copy of Wikidata, much quicker) first and of Wikidata only when
-   that fails; the query asks for as little as it can - the rating items themselves, not their names: the
-   common ones are known here by their ids, and any other is named once through the regular API and kept -
-   and nothing waits on it for long. */
+   How old a viewer should be for a title. The catalogues do not say. IMDb does: the certificates a title
+   was given here in Israel and in America, films and series alike, asked for in batches by id and kept on
+   the device. The stricter of the two counts: Israel's are often far looser (The Dark Knight and Whiplash
+   are "ALL" here, PG-13 and R there; IMDb's Israeli "PG" sits on R films), and a parent's filter should
+   err the careful way. IMDb answers an app only when it says which client it is, so the question goes
+   through the native side (core/bridge.js postText). A question that fails leaves the title unknown, to
+   be asked again - never "not rated", which a teenager's profile would let through.
+   What IMDb has no certificate for is asked of Wikidata, which keeps the ratings films were given in the
+   US (MPA), Germany (FSK), the UK (BBFC), Australia (ACB) and Brazil (ClassInd). Those systems disagree
+   (Harry Potter's fourth film is PG-13, FSK 12, BBFC 12, ClassInd 12 and ACB M), so there a title's age is
+   the middle of them. Wikidata's own query service can be slow (seconds, at busy times a minute), so the
+   same data is asked of QLever (the University of Freiburg's copy of Wikidata, much quicker) first and of
+   Wikidata only when that fails; the query asks for as little as it can - the rating items themselves, not
+   their names: the common ones are known here by their ids, and any other is named once through the
+   regular API and kept - and nothing waits on it for long. */
+import {postText} from '../core/bridge.js';
 import {getJSON} from '../core/dom.js';
 import {capMap, store} from '../core/store.js';
 import {tr} from '../i18n.js';
@@ -47,6 +53,9 @@ function ageOf(sys, label){
 }
 
 const ages = store.get('ageRate', {});                   // tt -> age, or -1 when no rating is known
+// Ratings kept before IMDb was asked (most series as having none), and before the stricter of Israel's and
+// America's counted, are asked again, once.
+if(store.get('ageRev', 0) < 2){ for(const k of Object.keys(ages)) delete ages[k]; store.set('ageRate', ages); store.set('ageRev', 2); }
 /** A title's age, or null when none of the systems rated it. */
 export const ageFor = id => ages[id] >= 0 ? ages[id] : null;
 /** An age as a viewer reads it: "12+" - or "all ages". */
@@ -64,11 +73,62 @@ export function ratingsFor(ids){
 async function flush(){
   const batch = [...queue], done = waiting;
   queue = new Set(); waiting = [];
-  for(let i = 0; i < batch.length; i += 100) await ask(batch.slice(i, i + 100)).catch(() => {});
+  for(let i = 0; i < batch.length; i += IMDB_BATCH){
+    const part = batch.slice(i, i + IMDB_BATCH);
+    // IMDb not reached: Wikidata may still know them, but its "none" is no answer - they are asked again
+    let imdbAnswered = true;
+    const rest = await fromImdb(part).catch(() => { imdbAnswered = false; return part.filter(id => !(id in ages)); });
+    if(rest.length) await ask(rest, imdbAnswered).catch(() => {});
+  }
   store.lazy('ageRate', capMap(ages, 8000));
   done.forEach(res => res());
 }
-async function ask(ids){
+/* ---------- IMDb's certificates ---------- */
+const IMDB = 'https://api.graphql.imdb.com/', IMDB_BATCH = 50;
+/** The age each American certificate stands for - cinema and television. "Parental guidance" says no age:
+    it is counted as seven, as Wikidata's PG is (below). */
+const US = {G: 0, PG: 7, 'PG-13': 13, R: 17, 'NC-17': 18, X: 18,
+  'TV-Y': 0, 'TV-Y7': 7, 'TV-Y7-FV': 7, 'TV-G': 0, 'TV-PG': 10, 'TV-14': 14, 'TV-MA': 17};
+/** A certificate's age, or null. Israel's are an age ("16"), "All", or "PG". */
+function certAge(rating, country){
+  const r = String(rating || '').trim();
+  if(!r) return null;
+  if(country === 'US') return US[r] ?? null;
+  if(/^(all|u|g|l|0)$/i.test(r)) return 0;
+  if(/^pg$/i.test(r)) return null;                       // IMDb's Israeli "PG" is on R films: the American one decides
+  const n = r.match(/\d+/);
+  return n ? +n[0] : null;
+}
+/** The certificates of [ids] in [country]: id -> age, for the ones that have one there. */
+async function certificates(ids, country){
+  const q = `{titles(ids:${JSON.stringify(ids)}){id certificate{rating country{id}}}}`;
+  const d = JSON.parse(await postText(IMDB, JSON.stringify({query: q}),
+    {'Content-Type': 'application/json', 'x-imdb-client-name': 'imdb-web-next-localized', 'x-imdb-user-country': country}));
+  if(!Array.isArray(d?.data?.titles)) throw new Error('IMDb: ' + (d?.errors?.[0]?.message || 'no answer'));
+  const out = {};
+  for(const t of d.data.titles){
+    const c = t?.certificate;
+    const age = c && (c.country?.id === country || !c.country) ? certAge(c.rating, country) : null;
+    if(age != null) out[t.id] = age;
+  }
+  return out;
+}
+/** The ages IMDb knows of [ids] - the stricter of Israel's certificate and America's, or whichever there is;
+    returns the ids it knew nothing of. Throws only when neither country could be asked. */
+async function fromImdb(ids){
+  const [il, us] = await Promise.allSettled([certificates(ids, 'IL'), certificates(ids, 'US')]);
+  if(il.status === 'rejected' && us.status === 'rejected') throw il.reason;
+  const rest = [];
+  for(const id of ids){
+    const v = [il.value?.[id], us.value?.[id]].filter(a => a != null);
+    if(v.length) ages[id] = Math.max(...v); else rest.push(id);
+  }
+  return rest;
+}
+
+/* ---------- Wikidata's ratings ---------- */
+/** [final]: IMDb answered for these and knew nothing, so Wikidata's "none" stands; otherwise it is not kept. */
+async function ask(ids, final = true){
   const q = `PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 SELECT ?imdb ?p ?v WHERE { VALUES ?imdb { ${ids.map(i => `"${i}"`).join(' ')} } ?item wdt:P345 ?imdb .
     VALUES ?p { ${Object.keys(PROPS).map(p => 'wdt:' + p).join(' ')} } ?item ?p ?v }`;
@@ -90,7 +150,9 @@ SELECT ?imdb ?p ?v WHERE { VALUES ?imdb { ${ids.map(i => `"${i}"`).join(' ')} } 
     m[sys] = Math.max(m[sys] ?? 0, age);
   }
   for(const id of ids){
+    if(ages[id] >= 0) continue;                          // IMDb answered for it meanwhile (another batch)
     const v = Object.values(per[id] || {}).sort((a, b) => a - b), h = v.length >> 1;
-    ages[id] = !v.length ? -1 : v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
+    if(v.length) ages[id] = v.length % 2 ? v[h] : (v[h - 1] + v[h]) / 2;
+    else if(final) ages[id] = -1;
   }
 }

@@ -22,6 +22,8 @@ import {viewHome} from './home.js';
 
 const TYPES = ['movie', 'series'];
 const filters = Object.fromEntries(TYPES.map(t => [t, new Filters('libSort:' + t)]));
+/** Opened from the type's home, the grid shows the source chosen there ('' for All). */
+export const libraryFrom = (type, src) => filters[type]?.set('svc', src || '');
 /** Posters drawn at a time; more are drawn as the remote (or the finger) nears the end of the grid. */
 const PAGE = 60;
 /** How far below the screen the end of the grid may be before more is drawn. */
@@ -35,7 +37,10 @@ const TASTE_AFTER_MS = 2000;
 
 /** The pills of a library: its "service" is every source the type has - the broadcasters and the archive too. */
 const groupsFor = type => SORT_GROUPS.map(g => g.key !== 'svc' ? g
-  : {...g, opts: [g.opts[0], ...originsFor(type).map(o => [o.id, o.svc ? '' : 'origin.' + o.id])]});
+  : {...g, opts: [g.opts[0], ...originsFor(type).map(o => [o.id, o.svc ? '' : 'origin.' + o.id]), [NONE, 'src.none']]});
+/** The choice of titles on none of the streaming services. */
+const NONE = 'none';
+const onService = it => [...it.from].some(o => SERVICES[o]) || svcOf(it.id).length > 0;
 
 /**
  * Every source of [type], as promises of lists of items ({id, html, meta?, name, origin}), in the order
@@ -82,7 +87,8 @@ const facts = m => !!(m && (m.imdbRating || m.genres?.length || m.genre?.length)
 /** Whether [it] passes the library's choices [st]. A programme without facts passes only while no fact is asked for. */
 function passes(it, st){
   const src = st.svc;
-  if(src && !it.from.has(src) && !(SERVICES[src] && svcOf(it.id).includes(SERVICES[src]))) return false;
+  if(src === NONE){ if(onService(it)) return false; }
+  else if(src && !it.from.has(src) && !(SERVICES[src] && svcOf(it.id).includes(SERVICES[src]))) return false;
   return it.meta ? factsMatch(it.meta, st) : !(st.genre || st.year || st.rate);
 }
 const asFacts = it => ({id: it.id, name: it.meta?.name || it.name || '', imdbRating: it.meta?.imdbRating,
@@ -99,7 +105,9 @@ export async function viewAll(type){
   const redraw = () => viewAll(type);
   endTaste();
   ahead?.disconnect();
-  $('#app').innerHTML = `<div class="page pagehead libhead"><h1>${esc(tr(type === 'movie' ? 'lib.movies' : 'lib.series'))}</h1>${sortBar(f, groups)}</div>
+  const home = type === 'movie' ? ['#/cat/movies', 'cats.movies'] : ['#/cat/series', 'cats.series'];
+  $('#app').innerHTML = `<div class="page pagehead libhead"><nav class="crumbs" aria-label="${esc(tr('lib.crumbs'))}"><a href="${home[0]}" tabindex="-1">${esc(tr(home[1]))}</a><i class="crumbsep" aria-hidden="true"></i></nav>
+    <h1>${esc(tr(type === 'movie' ? 'lib.movies' : 'lib.series'))}</h1>${sortBar(f, groups)}</div>
     <div class="page libbody"><p class="sortnote" id="libnote"></p>
       <div class="libwrap">
         <div class="libmain"><div class="grid" id="libgrid">${skeletons(18)}</div><div class="libmore" id="libmore"></div></div>

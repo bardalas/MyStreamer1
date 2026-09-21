@@ -128,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             val sources = runCatching {
                 JSONArray(sourcesJson).let { a -> List(a.length()) { a.getString(it) } }
             }.getOrDefault(emptyList())
-            showStatus("מתחיל טורנט…")
+            showStatus("{\"p\":\"start\"}")                   // the page words it, in its language (ui/torrent.js)
             TorrentEngine.stream(
                 applicationContext, infoHash, fileIdx, sources,
                 onStatus = { showStatus(it) },
@@ -137,7 +137,8 @@ class MainActivity : AppCompatActivity() {
                         .putExtra("url", url).putExtra("title", title).putExtra("torrent", true)
                         .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos))
                 } },
-                onError = { showStatus("שגיאת טורנט: $it", error = true) }
+                // a failure goes as a code the page words ("e:nopeers"); one with no code of its own, as e:other
+                onError = { showStatus(if (Regex("^e:\\w+$").matches(it)) it else "e:other", error = true) }
             )
         }
 
@@ -148,6 +149,19 @@ class MainActivity : AppCompatActivity() {
                     .putExtra("url", url).putExtra("title", title).putExtra("live", true)
                     .putExtra("ua", userAgent).putExtra("referer", referer))
             }
+        }
+
+        /**
+         * A YouTube video's captions in [lang], for the page's player (ui/ytplayer.js), which plays the video
+         * itself: found and translated here (YouTube.kt), and handed to the page as an .srt file's text.
+         */
+        @JavascriptInterface fun ytCaptions(videoId: String, lang: String) {
+            Thread {
+                val srt = runCatching { YouTube.captions(videoId, lang) }.getOrDefault("")
+                if (srt.isNotEmpty()) runOnUiThread {
+                    web.evaluateJavascript("window.boothYtCaptions && boothYtCaptions(${JSONObject.quote(videoId)}, ${JSONObject.quote(srt)})", null)
+                }
+            }.start()
         }
 
         /** Official broadcaster videos play in the YouTube app (web page as fallback). */
@@ -335,6 +349,31 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     web.evaluateJavascript(
                         "window.boothFetchDone && boothFetchDone(${JSONObject.quote(callbackId)}, $ok, ${JSONObject.quote(body)})", null)
+                }
+            }.start()
+        }
+
+        /** A POST with the page's own headers (IMDb answers only a client that names itself - data/ratings.js). */
+        @JavascriptInterface fun postText(url: String, body: String, headersJson: String, callbackId: String) {
+            Thread {
+                val (ok, text) = try {
+                    val conn = URL(url).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 10_000
+                    conn.readTimeout = 20_000
+                    conn.requestMethod = "POST"
+                    conn.doOutput = true
+                    conn.setRequestProperty("User-Agent",
+                        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36")
+                    runCatching { JSONObject(headersJson) }.getOrNull()?.let { h -> h.keys().forEach { conn.setRequestProperty(it, h.optString(it)) } }
+                    conn.outputStream.use { it.write(body.toByteArray()) }
+                    if (conn.responseCode >= 400) throw IllegalStateException("HTTP ${conn.responseCode}")
+                    true to conn.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+                } catch (t: Throwable) {
+                    false to (t.message ?: t.javaClass.simpleName)
+                }
+                runOnUiThread {
+                    web.evaluateJavascript(
+                        "window.boothFetchDone && boothFetchDone(${JSONObject.quote(callbackId)}, $ok, ${JSONObject.quote(text)})", null)
                 }
             }.start()
         }

@@ -2,7 +2,7 @@
 import {$, esc, getJSON, showErr} from '../core/dom.js';
 import {addons, fetchMeta} from '../data/addons.js';
 import {hasHebrew, hebrewSearch} from '../data/hebrew.js';
-import {kidsOn, kidsPick} from '../data/kids.js';
+import {kidsChild, kidsOn, kidsPick} from '../data/kids.js';
 import {typeName} from '../data/names.js';
 import {kanBox, kanCard} from '../providers/kan.js';
 import {makoCard, makoPrograms} from '../providers/mako.js';
@@ -55,7 +55,7 @@ export async function viewSearch(q){
   // the broadcasters answer from lists already in hand, so their row comes up first
   app.querySelector('.page h1').insertAdjacentHTML('afterend', '<div id="sChan"></div>');
   // the kids profile searches only what can be judged: the broadcasters' programmes carry no genres
-  if(!kidsOn()) searchChannels(q, $('#sChan'));
+  if(!kidsChild()) searchChannels(q, $('#sChan'));
   if(hasHebrew(q)){
     app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>${esc(tr('search.hebrew'))} </h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
     // the strip this query built: a later query builds its own, and an answer to this one must not

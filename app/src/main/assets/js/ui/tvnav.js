@@ -2,6 +2,7 @@
 import {listHash, route} from '../app.js';
 import {$} from '../core/dom.js';
 import {IS_TV_DEVICE, isTvLayout, settings} from '../core/settings.js';
+import {chosen} from '../data/profiles.js';
 import {FWD} from '../i18n.js';
 
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
@@ -21,6 +22,7 @@ export const ROWS_SEL = [
   '.days', '.progs', '.keypad', '.keyform', '.cextra',                     // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
   '.catorder', '.addpl', '.add', '.addon',                                 // settings lists, add-ons
+  '.whos', '.whoacts', '.profhead', '.avgrid', '.profacts',                // who is watching, and a profile's page
 ].join(', ');
 // offsetParent is null for position:fixed elements (per spec) even when they're plainly on
 // screen - the rail, the update card and the torrent-status card are all fixed. A size check
@@ -157,9 +159,24 @@ export function focusItem(el){
   if(row){
     // a little room above the row for its heading - but never a sliver of whatever stands above it (the
     // source tabs over the first row, the foot of the row before): that goes off the screen whole
-    const above = row.previousElementSibling?.getBoundingClientRect();
+    const prev = row.previousElementSibling, above = prev?.getBoundingClientRect();
     const floor = above && above.height ? above.bottom + scrollY : 0;
-    const want = Math.max(0, Math.round(Math.max(floor, row.getBoundingClientRect().top + scrollY - 14)));
+    // The first row of a page is shown with as much of the page's head over it as leaves the whole of the
+    // row on the screen - the title the remote is on and, on a wheel, what is said about it (.spotact): the
+    // head's name and tabs say what the row is, and a description cut in half says nothing.
+    const top = row.getBoundingClientRect().top + scrollY;
+    let want = Math.max(0, Math.round(Math.max(floor, top - 14)));
+    if(prev && !prev.classList.contains('row')){
+      const bottom = Math.max(el.getBoundingClientRect().bottom, row.querySelector('.spotact')?.getBoundingClientRect().bottom || 0) + scrollY;
+      want = Math.max(0, Math.round(Math.min(top - 14, bottom - innerHeight + 12)));
+      // and a part of the head goes whole, never cut through (the page's name half off the top of the screen)
+      if(want > 0) for(const part of prev.children){
+        const r = part.getBoundingClientRect();
+        if(r.bottom + scrollY <= want) continue;
+        if(r.top + scrollY < want) want = Math.round(Math.min(r.bottom + scrollY, top - 14));
+        break;
+      }
+    }
     if(Math.abs(scrollY - want) > 4) glide(want);
     return;
   }
@@ -327,7 +344,7 @@ addEventListener('keydown', e => {
   // the arrows belong to the remote - and to a wheel, wherever it is turning
   if((!isTvLayout() && !document.activeElement?.closest?.('.strip.reel, .spotact')) || e.altKey || e.ctrlKey || e.metaKey) return;
   const dir = {ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'}[e.key];
-  if(!dir) return;
+  if(!dir || document.getElementById('ytp')) return;   // a video playing in the page takes the arrows (ui/ytplayer.js)
   const a = document.activeElement;
   if(a && (a.tagName === 'INPUT' && !a.readOnly || a.tagName === 'SELECT')) return;   // typing / picking
   e.preventDefault();
@@ -370,6 +387,9 @@ window.boothBack = () => {
      that button means - the update stays skipped, the download is cancelled, the reminder is put away
      - and there is one list of what counts as a card (openCard) rather than two that drift apart.
      The update card was missing from the old list, so Back left the app while it held the remote. */
+  // the page's own player is closed by its own button - Back never walks the page under the picture
+  const playing = document.querySelector('#player.open #close');
+  if(playing){ playing.click(); tvFocus(); return true; }
   const card = openCard();
   if(card){
     const shut = card.querySelector('[data-back]');
@@ -393,7 +413,9 @@ export function parentHash(){
   // A title goes back to the list it was opened from; everything else to what it sits under.
   const r = (location.hash.split('/')[1] || '').split('?')[0];
   if(!r) return null;                                                  // home
-  if(['r13', 'kan', 'mako'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
+  if(['r13', 'kan', 'mako', 'web'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
+  if(r === 'who') return chosen() ? '#/' : null;                    // the picker the app starts on: Back leaves the app
+  if(r === 'profile') return '#/settings/profiles';
   if(r === 'addons') return '#/settings';
   if(r === 'detail') return listHash;
   if(r === 'all') return location.hash.split('/')[2] === 'series' ? '#/cat/series' : '#/cat/movies';   // a library, to its page

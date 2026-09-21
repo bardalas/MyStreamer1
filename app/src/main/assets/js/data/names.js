@@ -47,5 +47,6 @@ export function channelName(name){
   if(UI !== 'he') return plain;
   return HE_CHANNELS.find(([re]) => re.test(plain))?.[1] || plain;
 }
-/** Where a catalogue comes from, for people: the built-in ones are Wikidata searches. */
-export const srcName = a => a.local ? 'Wikidata' : a.manifest.name;
+/** Where a catalogue comes from, for people: the built-in ones are Wikidata searches; one that says
+    its own ([src], '' for none - the suggestions, data/taste.js) says so. */
+export const srcName = a => a.src ?? (a.local ? 'Wikidata' : a.manifest.name);
