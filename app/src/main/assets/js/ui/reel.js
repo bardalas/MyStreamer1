@@ -28,7 +28,6 @@ let spot = null;              // the title in the middle
 let settling = 0;             // what the middle will say, once the viewer has stopped moving
 let restingSince = 0;         // when the moving stopped: the taste is measured from there
 let act = null;               // its buttons, under the picture
-let hadArt = '';              // the artwork the poster carried before the picture widened
 
 /** Let the middle go: the picture narrows back into a poster and the taste stops. */
 export function clearSpot(){
@@ -41,7 +40,6 @@ export function clearSpot(){
     if(art){
       art.querySelector('.taste')?.remove();
       art.querySelector('.spotinfo')?.remove();
-      art.style.backgroundImage = hadArt;
       art.classList.remove('taste-on');
     }
     // the row stays where the viewer left it - the title they were on, now a poster, keeps the middle
@@ -49,7 +47,7 @@ export function clearSpot(){
     if(strip?.classList.contains('reel') && turning()) strip.style.transform = `translateX(${Math.round(turn(strip, spot))}px)`;
   }
   act?.remove();
-  spot = null; act = null; hadArt = '';
+  spot = null; act = null;
 }
 
 /** Bring [el] to the middle of its row. */
@@ -62,8 +60,6 @@ export function spotlight(el){
   strip.querySelectorAll('[data-was-spot]').forEach(x => delete x.dataset.wasSpot);
   el.classList.add('spot');
   delete el.dataset.wasSpot;
-  const art = el.querySelector('.art');
-  hadArt = art?.style.backgroundImage || '';
   const full = (el.getAttribute('href') || '').startsWith('#/detail/');
   act = document.createElement('div');
   act.className = 'spotact';
@@ -112,23 +108,6 @@ function turn(strip, el){
 addEventListener('resize', place);
 
 /** What the title says for itself: the name at once, the rest as the add-ons answer. */
-/**
- * Put the wide picture in place of the poster - but only once it has arrived.
- *
- * Setting a background the browser has still to fetch makes it decode a photograph in the middle of
- * whatever else is happening, and passing along a row then asks for one picture after another. Asked
- * for beforehand and put in place when it is ready, a title the viewer only passed costs nothing.
- */
-function showArt(art, url){
-  const img = new Image();
-  img.decoding = 'async';
-  img.src = url;
-  const put = () => {
-    if(art.isConnected && art.closest('.poster')?.classList.contains('spot'))
-      art.style.backgroundImage = `url('${url.replace(/'/g, '%27')}')`;
-  };
-  (img.decode ? img.decode() : Promise.resolve()).then(put, put);
-}
 
 async function paint(el, full){
   const art = el.querySelector('.art');
@@ -146,7 +125,6 @@ async function paint(el, full){
   const info = act?.querySelector('.spotinfo');
   if(!info) return;
   if(meta){
-    if(meta.background) showArt(art, meta.background);
     // one line of it: what it scores, when it is from, how long, what it is - and the marks of whoever has it
     info.querySelector('.facts').innerHTML = [
       meta.imdbRating && imdbTag(meta.imdbRating),

@@ -4,7 +4,6 @@
 /* The banner is the banner: nothing is written over it, and the words begin under it. */
 .detail{display:grid;grid-template-columns:1fr;gap:16px;position:relative;z-index:2;margin-top:18px;padding-top:0}
 .detail .poster-lg{display:none}
-.epanel .epcard .art{display:none}
 .detail h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,48px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
 .facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 /* under the synopsis, the facts are labels rather than a headline of their own */
@@ -40,22 +39,42 @@
 .dinfo .src a{color:var(--muted)}
 [data-layout="tv"] .desc .readmore{display:none}
 .psrc{display:contents}
-.epanel{margin-top:22px}
-.panel{background:var(--surface);border-radius:10px;padding:18px}
-/* the list of what there is to watch floats over the page: a line between its rows is enough */
-.epanel{background:none;border:0;padding:0}
-.epanel .ep{background:#ffffff08;border:1px solid transparent}
-.epanel .ep:hover{background:#ffffff12}
-.panel h3{margin:0 0 12px;font-family:var(--display);font-size:19px}
-.eps{overflow:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:none}
-.eps::-webkit-scrollbar{width:0}
-.ep{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;text-align:start;background:none;border:0;border-radius:6px;padding:6px 8px;cursor:pointer;color:var(--light);font-size:15px}
-.ep>span:last-child{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-width:0}
-.ep>span:last-child>div:first-child{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ep.seen .n::after{content:'✓';display:block;font-size:11px;color:var(--muted)}
-.ep.seen>span>div:first-child{color:var(--muted)}
-.ep .bar{flex:0 0 100%;position:static;padding:0;border:0;height:3px;border-radius:2px;background:var(--line);margin-top:4px}
-.ep .bar>i{display:block;height:100%;border-radius:2px;background:var(--tungsten)}
+/* ---------- a series: its seasons and its episodes ----------
+   Drawn in the same hand as a film's two ways in: words, not boxes. The seasons are a line above the
+   list; the one shown is bright and underlined, the one the remote is on is framed in the accent. The
+   episodes are a list that scrolls inside itself so the page never does - a number, a name, when it
+   aired, and a thread of progress under one that was started. Nothing is filled: the frame is the
+   only mark of where the viewer is, and the accent on the name the only mark of what is lined up. */
+.epanel{margin-top:18px}
+.epwrap{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.seasonbar{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.seasonbar::-webkit-scrollbar{display:none}
+.seasonbar button{flex:none;background:none;border:2px solid transparent;border-radius:3px;padding:4px 10px;
+  color:var(--muted);font:600 16px var(--body);cursor:pointer;white-space:nowrap}
+.seasonbar button.on{color:var(--light);text-decoration:underline;text-decoration-color:var(--tungsten);
+  text-decoration-thickness:2px;text-underline-offset:7px}
+.seasonbar button:focus,.seasonbar button:hover{border-color:var(--tungsten);outline:none;color:var(--light)}
+
+.eps{display:flex;flex-direction:column;gap:0;overflow-y:auto;scrollbar-width:none;max-height:46vh;padding:2px}
+.eps::-webkit-scrollbar{display:none}
+.epcard{display:grid;grid-template-columns:2.4em minmax(0,1fr);align-items:center;column-gap:6px;width:100%;
+  background:none;border:2px solid transparent;border-radius:3px;padding:4px 8px;color:var(--light);
+  text-align:start;cursor:pointer;font:inherit}
+.epcard .n{color:var(--muted);font-weight:600;font-size:15px;text-align:center}
+.epcard .t{min-width:0}
+.epcard .t b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.epcard .t small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.epcard .ebar{grid-column:2;height:3px;border-radius:2px;background:var(--line);margin-top:6px}
+.epcard .ebar i{display:block;height:100%;border-radius:2px;background:var(--tungsten)}
+.epcard.on .t b{color:var(--tungsten)}
+.epcard.seen .t b{color:var(--muted)}
+.epcard.seen .n::after{content:' ✓'}
+.epcard:focus,.epcard:hover{border-color:var(--tungsten);outline:none}
+[data-layout="tv"] .seasonbar button{font-size:18px}
+[data-layout="tv"] .epcard .t b{font-size:17px}
+[data-layout="tv"] .epcard .t small{font-size:13px}
+[data-layout="tv"] .epcard .n{font-size:17px}
+
 /* something did not load: say so once, with a way to try again */
 .oops{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raise);color:var(--muted);font-size:14px}
 .oops button{background:none;border:1px solid var(--line);color:var(--light);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
@@ -71,7 +90,6 @@
 
 
 /* sources: Play, the quality shortcuts and the rest of the list share one row */
-.panel{min-width:0}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
 .chip.on{background:var(--tungsten);border-color:var(--tungsten);color:var(--on-accent);font-weight:600}
 .playrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -110,24 +128,6 @@
 .err{color:var(--err);font-size:14px}
 
 
-/* Episodes: a season column on the side, the list beside it. */
-/* Episodes: a season column on the side, the list beside it. Both scroll inside their own box,
-   so a long series never spreads down the whole screen. */
-.epwrap{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
-.epwrap:has(.seasonbar){grid-template-columns:minmax(92px,auto) minmax(0,1fr)}
-.seasonbar{display:flex;flex-direction:column;gap:3px;max-height:46vh;overflow:auto;scrollbar-width:none;
-  border-inline-end:1px solid var(--line);padding-inline-end:10px}
-.seasonbar::-webkit-scrollbar{width:0}
-.seasonbar button{background:none;border:0;border-radius:8px;padding:8px 12px;text-align:start;white-space:nowrap;
-  color:var(--muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
-.seasonbar button.on{background:var(--raise);color:var(--light);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
-.seasonbar button:hover,.seasonbar button:focus-visible{color:var(--light)}
-.eps{max-height:46vh}
-.eps .epcard .art{display:none}
-.epcard .t b{font-size:18px !important; color: var(--light)}
-.epcard .t small{font-size:14px !important; color: var(--muted)}
-[data-layout="tv"] .seasonbar button{font-size:16px;padding:10px 14px}
-@media(max-width:600px){.epwrap:has(.seasonbar){grid-template-columns:minmax(78px,auto) minmax(0,1fr)}}
 .seg button{border:0;background:none;border-radius:999px;padding:8px 18px;cursor:pointer;color:var(--muted);font-weight:600}
 .seg button.on{background:var(--tungsten);color:var(--on-accent)}
 

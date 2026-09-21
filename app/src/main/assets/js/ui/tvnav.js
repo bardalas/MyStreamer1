@@ -111,7 +111,9 @@ export const bestIn = (row, from) => {
   // the one the viewer was on before, or the row's first - not whatever happens to be across the page
   if(row.classList.contains('reel'))
     return cand.find(el => el.classList.contains('spot')) || cand.find(el => el.dataset.wasSpot) || cand[0];
+  // the season being shown, and the episode lined up to play, are where arriving on those rows lands
   return (row.classList.contains('seasonbar') && cand.find(el => el.classList.contains('on')))
+    || (row.classList.contains('eps') && cand.find(el => el.classList.contains('on')))
     || cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]);
 };
 /* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
@@ -249,8 +251,7 @@ export function tvMove(dir){
     const fwd = ltr ? 'right' : FWD();
     // Episodes are a column; a film's two ways in are one line, and Left/Right must move between them
     // - as a column they could not, and the far one was out of reach of the remote altogether.
-    const isCol = ((row.classList.contains('eps') && !row.classList.contains('filmgo'))
-      || row.classList.contains('seasonbar')) && isTvLayout();
+    const isCol = row.classList.contains('eps') && !row.classList.contains('filmgo') && isTvLayout();
     if(!isCol){
       const step = dir === fwd ? 1 : -1;
       const next = items[i + step];

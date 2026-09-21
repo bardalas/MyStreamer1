@@ -8,22 +8,34 @@ import {heCache, heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
 import {imdbTag, svcFacts} from '../data/services.js';
 import {library, progress} from '../data/watch.js';
-import {tr} from '../i18n.js';
+import {UI, tr} from '../i18n.js';
 import {card} from '../ui/cards.js';
 import {nextEpisode} from '../ui/reel.js';
 import {startTaste, trailerId} from '../ui/taste.js';
 import {openPlayer} from '../ui/player.js';
 import {loadStreams} from '../ui/sources.js';
 
-/** One thing to watch, as a card in the row: its picture, its number and name, and how far it got. */
-function epCard(v, meta){
+/* An episode's own name, or ours when it has none worth reading. Catalogues call half of all
+   episodes "Episode 4", in English; that says nothing the number beside it does not already say. */
+const epName = (v, n) => {
+  const own = (v.name || v.title || '').trim();
+  return own && !/^(episode|ep\.?)\s*\d+$/i.test(own) ? own : tr('detail.episodeN', {n});
+};
+/** A date as the viewer's language writes it: "24 בדצמ׳ 2008", not "12/24/2008". */
+const epDate = d => new Date(d).toLocaleDateString(UI === 'he' ? 'he-IL' : 'en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+
+/** One thing to watch, as a line of the list: its number, its name, when it aired, and how far it got. */
+function epCard(v){
   const n = v.episode ?? v.number ?? '';
   const w = progress[v.id];
   const pct = w && w.d ? Math.min(100, w.t / w.d * 100) : 0;
   const seen = pct > 92 || (w && !w.d);
+  const left = pct && !seen ? tr('detail.minLeft', {n: Math.max(1, Math.round((w.d - w.t) / 60))}) : '';
+  const sub = [v.released ? epDate(v.released) : '', left].filter(Boolean).map(esc).join(' · ');
   return `<button class="epcard${seen ? ' seen' : ''}" data-id="${esc(v.id)}">
-    <span class="t"><b>${n !== '' ? `${esc(n)}. ` : ''}${esc(v.name || v.title || tr('detail.episodeN', {n}))}</b>
-      <small>${[v.released ? new Date(v.released).toLocaleDateString() : '', pct && !seen ? tr('detail.minLeft', {n: Math.max(1, Math.round((w.d - w.t) / 60))}) : ''].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
+    <span class="n">${esc(n)}</span>
+    <span class="t"><b>${esc(epName(v, n))}</b>${sub ? `<small>${sub}</small>` : ''}</span>
+    ${pct && !seen ? `<span class="ebar"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}</button>`;
 }
 
 /* Two marks, drawn in the line's own colour. */
@@ -81,7 +93,7 @@ export async function viewDetail(type, id){
       </div>
       <div id="palt"></div>
       <div class="epanel"><div class="epwrap">
-          ${seasons.length > 1 ? `<div class="seasonbar" role="group" aria-label="${esc(tr('detail.season'))}" data-pane="#eps">${seasons.map(s =>
+          ${seasons.length > 1 ? `<div class="seasonbar" role="group" aria-label="${esc(tr('detail.season'))}">${seasons.map(s =>
             `<button data-season="${s}" class="sbtn">${s === 0 ? tr('detail.specials') : tr('detail.seasonN', {n: s})}</button>`).join('')}</div>` : ''}
           <div class="eps" id="eps"></div></div></div>
     </div>`;
@@ -123,7 +135,7 @@ export async function viewDetail(type, id){
   if(seasons.length){
     const renderEps = s => {
       const eps = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0));
-      $('#eps').innerHTML = eps.map(v => epCard(v, meta)).join('');
+      $('#eps').innerHTML = eps.map(epCard).join('');
       const pick = (b, watch) => {
         $('#eps').querySelectorAll('.epcard').forEach(x => x.classList.remove('on')); b.classList.add('on');
         const v = videos.find(x => x.id === b.dataset.id);
@@ -161,7 +173,17 @@ export async function viewDetail(type, id){
       renderEps(s);
     };
     pickSeason(first);
-    $('#app').querySelectorAll('.seasonbar [data-season]').forEach(b => b.onclick = () => pickSeason(b.dataset.season));
+    /* Moving along the seasons shows each one's episodes as the remote arrives on it - a line of tabs
+       that had to be pressed as well as reached asked for two actions where one says it. The switch
+       waits a moment, so running past three seasons draws one list, not three. */
+    let seasonWait = 0;
+    $('#app').querySelectorAll('.seasonbar [data-season]').forEach(b => {
+      b.onclick = () => pickSeason(b.dataset.season);
+      b.onfocus = () => {
+        clearTimeout(seasonWait);
+        if(!b.classList.contains('on')) seasonWait = setTimeout(() => { if(b.isConnected) pickSeason(b.dataset.season); }, 220);
+      };
+    });
   } else {
     /* A film has two ways in, and they sit side by side under the actions: from the beginning, and -
        once it has been started - from where the viewer stopped. The remote lands on the second,

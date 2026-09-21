@@ -1,5 +1,20 @@
 # VEO Android changelog
 
+## 0.43.3 — 2026-09-21
+- **A series page in the same hand as a film's.** The seasons are a line of words above the episodes
+  instead of a column beside them — the one shown is underlined, the one the remote is on is framed,
+  and arriving on a season shows its episodes without a second press. The episodes are a clean list:
+  a number, a name, and the date as Hebrew writes it (“21 בינו׳ 2008”, not “1/21/2008”), a thread of
+  progress under one that was started, a tick on one that was finished. “Episode 4”, which half of
+  all catalogues call their episodes, is shown as “פרק 4”. Nothing is filled: the frame is where you
+  are, the accent is what is lined up to play. The remote lands on that episode, Up reaches the
+  seasons and Down comes back to it.
+- **A title keeps its picture.** Standing on a title in a row swapped its poster for a wider image
+  fetched on the spot; it now keeps the one it arrived with. (The swap could also blank a poster
+  whose image had not finished loading when the remote reached it.)
+- The styles for the episode list lived in three stylesheets, each overriding the last with
+  `!important`; they are one description now.
+
 ## 0.43.2 — 2026-09-21
 - **“התחל לנגן” can be reached with the remote.** A film's two ways in sit in the same element as a
   series' episodes, which the remote treats as a column — so Left and Right could not move between

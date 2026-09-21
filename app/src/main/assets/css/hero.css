@@ -40,26 +40,6 @@ main{position:relative}
 [data-layout="tv"] .tact.ic{width:40px;height:40px}
 [data-layout="tv"] .tact.ic svg{width:20px;height:20px}
 
-/* the episodes: a row you run along, under the picture */
-.epanel{margin-top:26px}
-.epwrap{display:block}
-.eps{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 10px;max-height:none}
-.eps::-webkit-scrollbar{display:none}
-.seasonbar{display:flex;gap:8px;margin:0 0 12px;max-height:none;overflow-x:auto}
-
-.epcard{flex:0 0 clamp(200px,20vw,300px);display:flex;flex-direction:column;gap:8px;padding:0;
-  background:none;border:0;color:var(--light);text-align:start;cursor:pointer;min-width:0}
-.epcard .art{display:block;position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;
-  background:var(--surface) center/cover;transition:transform var(--travel) var(--ease),filter var(--quick) linear}
-.epcard .t{display:block;min-width:0}
-.epcard .t b{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.epcard .t small{display:block;color:var(--muted);font-size:12px}
-.epcard.seen .t b{color:var(--muted)}
-.epcard .bar{position:absolute;inset-inline:0;bottom:0;height:4px;background:#0009}
-.epcard .bar i{display:block;height:100%;background:var(--tungsten)}
-.epcard.on .t b{color:var(--tungsten)}
-[data-layout="tv"] .epcard .t b{font-size:16px}
-[data-layout="tv"] .epcard .t small{font-size:13px}
 
 /* a narrow screen keeps the older shape: the picture on top, everything under it */
 @media (max-width:899px){
