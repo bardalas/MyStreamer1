@@ -27,6 +27,7 @@ import {viewLibrary} from './screens/library.js';
 import {viewLive} from './screens/live.js';
 import {viewSearch} from './screens/search.js';
 import {viewSettings} from './screens/settings.js';
+import {viewWebShow} from './screens/web.js';
 import {endTaste} from './ui/taste.js';
 import {markNav} from './ui/rail.js';
 import {checkUpdate} from './ui/update.js';
@@ -76,7 +77,7 @@ export async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   // the menu lights the place you are in; a title or a search keeps the one it was opened from
   markNav(r === '' ? 'home' : r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : r === 'all' ? (a === 'movie' ? 'movies' : 'series')
-    : r === 'shows' ? 'shows' : r === 'tv' ? (a === 'jfc' ? 'movies' : 'shows') : ['live', 'library', 'settings'].includes(r) ? r : '');
+    : r === 'shows' || r === 'web' ? 'shows' : r === 'tv' ? (a === 'jfc' ? 'movies' : 'shows') : ['live', 'library', 'settings'].includes(r) ? r : '');
   if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library', 'shows', 'tv'].includes(r)) listHash = location.hash || '#/';
   if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
@@ -84,6 +85,7 @@ export async function route(){
   else if(r === 'kan') viewKanProgram(a, b);
   else if(r === 'tv') viewTv(a);
   else if(r === 'shows') viewShows(a);
+  else if(r === 'web') viewWebShow(a);
   else if(r === 'mako') viewMakoProgram(a, b);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'all') viewAll(a);

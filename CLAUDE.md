@@ -183,7 +183,12 @@ sorted and from which sources; a genre also pulls Cinemeta's popular/top-rated t
 (`withGenreRows`). Genres are not a page any more (`viewGenre` just sets the filter, for old links).
 - **The menu**: Home, Movies, Series, **Shows**, Live, Favourites, Settings. **Shows** (`#/shows/<all|kan|keshet|reshet>`,
   `screens/broadcasters.js` `viewShows`) holds the broadcasters' programmes (Kan, Keshet, Reshet): tabs over the page,
-  All = a wheel of every programme, what aired last and a row per broadcaster. `#/tv/jfc` is the film archive's page.
+  All = a wheel of every programme, what aired last and a row per broadcaster. Each broadcaster's tab is laid out
+  alike: a wheel of all its programmes, then a row per genre (Kan's sections, `MAKO_GENRES`, Reshet's `Genre` tags).
+  The **Magazine** tab (`providers/web.js`, `screens/web.js`, `#/web/<channel>`): hand-picked internet programmes by
+  genre, each a programme with its latest *full* episodes (the channel's long-form list, `UULF…`, read as a feed -
+  never shorts or lives); nothing on screen names the source. Add a programme to `WEB_GENRES` only after checking its
+  feed. `#/tv/jfc` is the film archive's page.
 - **Movies / Series** (`screens/home.js` `viewType`) are a home for the type: source tabs (All, the streaming
   services, the Israeli catalogues, and for films the archive - `ORIGINS` without the `shows` ones) choose the *whole*
   page. All: the wheel of every source, continue-watching, New (Cinemeta `year`), Trending, Best, Israeli, genres.

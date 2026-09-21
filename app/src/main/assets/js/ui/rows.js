@@ -8,6 +8,7 @@ import {tr} from '../i18n.js';
 import {kanBox, kanCard} from '../providers/kan.js';
 import {makoCard, makoPrograms} from '../providers/mako.js';
 import {r13card, r13row} from '../providers/reshet.js';
+import {webEpisodeCard, webLatest, webShowCard, webShows} from '../providers/web.js';
 import {card, skeletons} from './cards.js';
 import {ORIGINS, interleave, loadOrigin, moreOfOrigin} from './origins.js';
 import {autoSpot, clearSpot, reelable} from './reel.js';
@@ -69,6 +70,14 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       const ofGenre = o => !x.genre || (o.tags?.Genre?.objects || []).some(t => t.value === x.genre);
       try{ el.innerHTML = (await r13row(x.r13)).filter(ofGenre).slice(0, rowMax()).map(r13card).join('') || `<p class="note">${tr('row.none')}</p>`; }
       catch(e){ showErr(el, tr('row.failedR13'), e, again); }
+      return;
+    }
+    if(x.web){                                          // the magazine: its newest episodes, or one genre's programmes
+      try{
+        const list = x.web === 'latest' ? await webLatest() : await webShows(x.web);
+        el.innerHTML = list.slice(0, rowMax()).map(({show, ep}) => x.web === 'latest' ? webEpisodeCard(ep, show) : webShowCard(show, ep)).join('')
+          || `<p class="note">${tr('row.none')}</p>`;
+      }catch(e){ showErr(el, tr('web.failed'), e, again); }
       return;
     }
     if(x.mako != null){                                 // one of Keshet's genres ('' is all of its programmes)

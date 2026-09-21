@@ -396,7 +396,7 @@ export function parentHash(){
   // A title goes back to the list it was opened from; everything else to what it sits under.
   const r = (location.hash.split('/')[1] || '').split('?')[0];
   if(!r) return null;                                                  // home
-  if(['r13', 'kan', 'mako'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
+  if(['r13', 'kan', 'mako', 'web'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
   if(r === 'addons') return '#/settings';
   if(r === 'detail') return listHash;
   if(r === 'all') return location.hash.split('/')[2] === 'series' ? '#/cat/series' : '#/cat/movies';   // a library, to its page

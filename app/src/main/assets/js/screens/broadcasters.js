@@ -6,6 +6,7 @@ import {JFC_LOBBIES, jfcCard, jfcLobby} from '../providers/jfc.js';
 import {KAN, kanBox} from '../providers/kan.js';
 import {IL_CHANNELS, watchChannel} from '../providers/live.js';
 import {MAKO_GENRES} from '../providers/mako.js';
+import {WEB_GENRES, webGenreName} from '../providers/web.js';
 import {r13, r13channels} from '../providers/reshet.js';
 import {tr} from '../i18n.js';
 import {originMark} from '../ui/origins.js';
@@ -22,8 +23,9 @@ export const BC_TABS = [
   {id: 'kan', origin: 'kan', color: '#1b9ad6'},
   {id: 'keshet', origin: 'mako', color: '#f29100'},
   {id: 'reshet', origin: 'r13', color: '#d9262f'},
+  {id: 'web'},                                           // the magazine: programmes made for the internet (providers/web.js)
 ];
-const bcName = b => b.id === 'all' ? tr('src.all') : tr('origin.' + b.origin);
+const bcName = b => b.id === 'all' ? tr('src.all') : b.id === 'web' ? tr('web.tab') : tr('origin.' + b.origin);
 /** How long the remote rests on a tab before the page turns to it. */
 const TAB_SETTLE_MS = 450;
 /** The genres Reshet files its programmes under, in the order they are shown (a genre with fewer than
@@ -36,6 +38,8 @@ const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * when it says, then a row for each of its genres - Kan's own sections, Keshet's and Reshet's genres.
  */
 async function bcRows(bc){
+  if(bc.id === 'web') return [{web: 'latest', tabbed: true, title: tr('web.latest')},
+    ...WEB_GENRES.map(g => ({web: g.id, title: webGenreName(g.id), sparse: true}))];
   const wheel = {origins: [bc.origin], type: 'series', tabbed: true, title: tr('shows.allOf', {bc: bcName(bc)})};
   if(bc.id === 'reshet') return [wheel, {r13: 'recent', title: tr('shows.recent')},
     ...R13_GENRES.map(genre => ({r13: 'series', genre, title: genre, sparse: true}))];
@@ -74,7 +78,8 @@ export async function viewShows(which){
       {r13: 'recent', title: tr('shows.recent')},
       {origins: ['kan'], type: 'series', title: tr('row.fromKan'), more: '#/shows/kan'},
       {origins: ['mako'], type: 'series', title: tr('row.fromKeshet'), more: '#/shows/keshet'},
-      {origins: ['r13'], type: 'series', title: tr('row.fromReshet'), more: '#/shows/reshet'}];
+      {origins: ['r13'], type: 'series', title: tr('row.fromReshet'), more: '#/shows/reshet'},
+      {web: 'latest', title: tr('web.latestAll'), more: '#/shows/web'}];
     renderRows(rows, {top: tabs});
     return wire();
   }
