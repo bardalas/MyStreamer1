@@ -8,6 +8,7 @@ import {loadAddons} from './data/addons.js';
 import {availObserver, resetAvailBudget} from './data/availability.js';
 import {armHeAndAvail, heObserver} from './data/hebrew.js';
 import {kidsOn} from './data/kids.js';
+import {channelName} from './data/names.js';
 import {checkReminders} from './data/reminders.js';
 import {loadServices} from './data/services.js';
 import {indexProgress, progress, pruneProgress} from './data/watch.js';
@@ -134,7 +135,7 @@ window.boothCatchup = async name => {
   const last = store.get('lastChannel', null);
   try{
     const chans = await liveChannels(last?.src || 'il');
-    const c = chans.find(x => x.name === name);
+    const c = chans.find(x => x.name === name || channelName(x.name) === name);   // the player knows it by the name it showed
     if(c) openChannel(c);
   }catch(e){}
 };

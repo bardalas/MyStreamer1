@@ -58,34 +58,48 @@
 
 /* The wall of channels. */
 /* live tv: channel list */
-.live-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
-.live-top .field{padding:7px 12px}
-.live-top #lq{flex:1;min-width:160px;max-width:320px}
-.live-groups{display:contents}                    /* its chips sit in the same row as the search */
-[data-layout="tv"] .live-groups .chip{font-size:16px;padding:9px 16px}
-.continue{display:flex;align-items:center;gap:10px;width:100%;max-width:900px;border:1px solid var(--line);background:var(--surface);color:var(--light);border-radius:10px;padding:12px 16px;margin:0 0 14px;cursor:pointer;font-size:15px;text-align:start}
-.continue:hover,.continue:focus-visible{border-color:var(--tungsten)}
-.continue span{color:var(--tungsten);font-weight:700}
-.chlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
-.chrow{position:relative;display:flex;min-width:0}
-.chmain{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0;cursor:pointer;text-align:start;
-  padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--light)}
-.chmain:hover,.chmain:focus-visible{background:var(--raise);border-color:var(--tungsten)}
-.chhead{display:flex;align-items:center;gap:12px;min-width:0}
-.chlogo{flex:none;width:48px;height:48px;border-radius:12px;background:#ffffff0f;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.chlogo img{max-width:40px;max-height:40px;object-fit:contain}
-.chlogo span{color:var(--tungsten);font-weight:700;font-size:17px}
-.chinfo{display:flex;flex-direction:column;min-width:0;gap:2px;flex:1}
-.chinfo b{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chnum{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
-.chinfo small{color:var(--text2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chinfo .bar{display:block;position:static;padding:0;border:0;height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:6px}
-.chinfo .bar i{display:block;height:100%;background:var(--tungsten)}
-[data-layout="tv"] .chlist{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
-[data-layout="tv"] .chinfo b{font-size:19px}
-[data-layout="tv"] .chinfo small{font-size:14px}
-[data-layout="tv"] .chlogo{width:60px;height:60px}
-[data-layout="tv"] .chlogo img{max-width:50px;max-height:50px}
+/* ---------- Live channels: the sources as tabs, a tile per channel ---------- */
+.livehead{display:flex;align-items:center;flex-wrap:wrap;gap:12px 28px;margin:0 0 16px}
+.livehead h1{margin:0}
+.livetabs{flex:1;min-width:0}                        /* the look of the source tabs (content.css): words, an accent line */
+.livetabs .srctab{font-size:16px}
+.livehead #lq{width:220px;padding:8px 14px}
+.livesearch{display:flex}
+.live-groups{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.live-groups[hidden]{display:none}
+[data-layout="tv"] .live-groups .chip{font-size:15px;padding:7px 14px}
+/* a tile: the logo on its own ground with the channel's number in its corner, the name, what is on now
+   and how far into it, and at the foot its times, "watched last" and the mark of a channel with a past */
+.chlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+[data-layout="tv"] .chlist{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.chmain{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;padding:10px 10px 8px;background:var(--surface);
+  border:2px solid transparent;border-radius:14px;color:var(--light);font:inherit;text-align:start;cursor:pointer}
+.chmain:hover{border-color:var(--line)}
+.chmain.last{border-color:var(--tungsten)}
+.chtop{position:relative;display:block}
+.chlogo{height:66px;border-radius:10px;background:#ffffff0d;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.chlogo img{max-width:70%;max-height:46px;object-fit:contain}
+.chlogo span{color:var(--tungsten);font:700 22px var(--display)}
+.chnum{position:absolute;top:5px;inset-inline-start:8px;color:var(--muted);font:600 12px var(--body);font-variant-numeric:tabular-nums}
+.chname{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.chnow{color:var(--text2);font-size:13px;min-height:1.35em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chmain .bar{display:block;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.chmain .bar i{display:block;height:100%;background:var(--tungsten)}
+.chfoot{display:flex;align-items:center;gap:8px;min-height:18px;color:var(--muted);font-size:12px}
+.chtime{font-variant-numeric:tabular-nums;white-space:nowrap}
+.chfoot:empty{display:none}
+.chtag{position:absolute;top:5px;inset-inline-end:6px;background:var(--tungsten);color:var(--on-accent);border-radius:999px;padding:0 8px;
+  font-weight:700;font-size:11px;line-height:1.6;white-space:nowrap}
+.pastmark{display:inline-flex;color:var(--muted)}
+.pastmark svg{width:16px;height:16px}
+.chfoot .pastmark{margin-inline-start:auto}
+.livehint{margin:14px 0 0}
+.livehint .pastmark{vertical-align:-3px;margin:0 2px}
+.liveadd{margin-top:18px;max-width:640px}
+[data-layout="tv"] .chname{font-size:17px}
+[data-layout="tv"] .chnow{font-size:14px}
+[data-layout="tv"] .chlogo{height:74px}
+[data-layout="tv"] .chlogo img{max-height:52px}
 
 /* wide (16:9) cards for TV-channel shows and episodes */
 .poster.wide{flex-basis:calc(var(--poster-w) * 1.55)}

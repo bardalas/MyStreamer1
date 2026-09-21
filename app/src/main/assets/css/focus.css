@@ -34,7 +34,7 @@ body.motion :focus,body.motion :focus-visible{outline:none}
 
 /* rows and cards: they light up, with a mark down the side you arrived from */
 .ep:focus,.eprow:focus,.srow:focus,.prog:focus,.chan:focus,
-.continue:focus,.chmain:focus,
+.continue:focus,
 .addon:focus-within{
   background:var(--raise);box-shadow:inset calc(3px * var(--flip)) 0 0 var(--tungsten)}
 
@@ -44,6 +44,10 @@ body.motion :focus,body.motion :focus-visible{outline:none}
 .poster:focus .art{transform:translateY(-3px) scale(1.03);
   outline:3px solid var(--light);outline-offset:3px}
 .poster:focus .t{color:var(--tungsten)}
+
+/* a channel's tile is a picture too: it wears the ring, and says its name in the accent */
+.chmain:focus{background:var(--raise);border-color:var(--light);box-shadow:0 0 0 2px var(--light)}
+.chmain:focus .chname{color:var(--tungsten)}
 
 /* the search box is a field: it keeps a field's outline */
 body.motion .search input:focus{border-color:var(--tungsten);box-shadow:0 0 0 2px var(--tungsten)}

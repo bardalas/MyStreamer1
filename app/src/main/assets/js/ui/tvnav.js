@@ -17,7 +17,7 @@ export const ROWS_SEL = [
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
   '.tacts', '#palt', '.src',                                               // a title: what can be done with it
   '.playrow', '.altlist',                                                  // the sources of a title
-  '.live-top', '#cont', '#bchead', '.chlist',                              // live TV
+  '.livesearch', '.live-groups', '#bchead', '.chlist',                     // live TV
   '.days', '.progs', '.keypad', '.keyform', '.cextra',                     // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
   '.catorder', '.addpl', '.add', '.addon',                                 // settings lists, add-ons

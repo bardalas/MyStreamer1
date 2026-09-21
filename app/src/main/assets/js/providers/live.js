@@ -3,17 +3,19 @@ import {fetchText} from '../core/bridge.js';
 import {store} from '../core/store.js';
 import {r13channels} from './reshet.js';
 import {RTV_EPG, loadRtv, rtvArchiveTemplate} from './rtv.js';
+import {channelName} from '../data/names.js';
+import {tr} from '../i18n.js';
 import {openPlayer} from '../ui/player.js';
 
 /* ---------- live tv: built-in Israeli channels + user M3U playlists ---------- */
 // Official free-to-air broadcaster streams only.
 export const IL_CHANNELS = [
-  {name: 'Kan 11', group: 'ישראל', url: 'https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Kan11Logo.svg/960px-Kan11Logo.svg.png'},
-  {name: 'Now 14', group: 'ישראל', url: 'https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8', logo: 'https://i.imgur.com/Iq2Kb69.png'},
-  {name: 'Makan 33', group: 'ישראל', url: 'https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8', logo: 'https://i.imgur.com/RVtQTed.png'},
-  {name: 'i24NEWS Hebrew', group: 'חדשות', url: 'https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8', logo: 'https://www.i24news.tv/images/favicon.png'},
-  {name: 'i24NEWS Arabic', group: 'חדשות', url: 'https://i24newsarabic-cdn.encoders.immergo.tv/master.m3u8', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/LOGO_i24NEWS.png/960px-LOGO_i24NEWS.png'},
-  {name: 'Channel 9', group: 'ישראל', url: 'https://contact.gostreaming.tv/Con-11/index.m3u8', logo: 'https://i.imgur.com/pttM3KQ.png'},
+  {name: 'Kan 11', group: 'Israel', url: 'https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Kan11Logo.svg/960px-Kan11Logo.svg.png'},
+  {name: 'Now 14', group: 'Israel', url: 'https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8', logo: 'https://i.imgur.com/Iq2Kb69.png'},
+  {name: 'Makan 33', group: 'Israel', url: 'https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8', logo: 'https://i.imgur.com/RVtQTed.png'},
+  {name: 'i24NEWS Hebrew', group: 'News', url: 'https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8', logo: 'https://www.i24news.tv/images/favicon.png'},
+  {name: 'i24NEWS Arabic', group: 'News', url: 'https://i24newsarabic-cdn.encoders.immergo.tv/master.m3u8', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/LOGO_i24NEWS.png/960px-LOGO_i24NEWS.png'},
+  {name: 'Channel 9', group: 'Israel', url: 'https://contact.gostreaming.tv/Con-11/index.m3u8', logo: 'https://i.imgur.com/pttM3KQ.png'},
 ];
 export let playlists = store.get('playlists', []);        // [{name, url}] added by the user
 export const playlistCache = {};                           // url -> channels
@@ -31,7 +33,7 @@ export function parseM3U(text){
       const attr = k => { const m = line.match(new RegExp(k + '=(?:"([^"]*)"|([^\\s,]+))')); return m ? (m[1] ?? m[2] ?? '') : ''; };
       const bare = line.replace(/[\w-]+="[^"]*"/g, '');
       cur = {name: bare.slice(bare.indexOf(',') + 1).trim() || 'ערוץ', logo: attr('tvg-logo'),
-             group: attr('group-title') || 'ערוצים', ua: attr('http-user-agent'), referer: attr('http-referrer'),
+             group: attr('group-title'), ua: attr('http-user-agent'), referer: attr('http-referrer'),
              epg: attr('tvg-id'), rec: parseInt(attr('tvg-rec')) || 0};
     } else if(line.startsWith('#EXTVLCOPT:')){
       if(!cur) continue;
@@ -74,7 +76,7 @@ export async function nowPlaying(c){
 /** Everything the Live TV page can show: RaspberryTV (if a key is set), official channels, own playlists. */
 export function liveSources(){
   return [...(store.get('rtvKey', '') ? [{key: 'rtv', name: 'RaspberryTV'}] : []),
-          {key: 'il', name: 'ערוצים ישראליים'}, ...playlists.map(p => ({key: p.url, name: p.name}))];
+          {key: 'il', name: tr('live.il')}, ...playlists.map(p => ({key: p.url, name: p.name}))];
 }
 export async function liveChannels(key){
   if(key === 'il'){
@@ -89,10 +91,12 @@ export async function liveChannels(key){
 /** Play a channel full screen, with the rest of the list available for zapping. */
 export function watchChannel(list, i, sourceKey){
   store.set('lastChannel', {src: sourceKey, name: list[i].name});
+  const shown = list.map(c => channelName(c.name)), twice = new Set(shown.filter((n, k) => shown.indexOf(n) !== k));
   if(window.BoothAndroid && BoothAndroid.playChannels)
     // logo + guide endpoint travel with the channel so the player's banner can show what is on
     BoothAndroid.playChannels(JSON.stringify(list.map((c, n) => ({
-      name: c.name, url: c.url, ua: c.ua || '', referer: c.referer || '',
+      // the player's banner and list say it as the page does
+      name: twice.has(shown[n]) ? c.name : shown[n], url: c.url, ua: c.ua || '', referer: c.referer || '',
       num: n + 1, logo: c.logo || '', epg: c.epg ? RTV_EPG(c.epg) : '',
       arch: rtvArchiveTemplate(c), rec: c.rec || 0
     }))), i);

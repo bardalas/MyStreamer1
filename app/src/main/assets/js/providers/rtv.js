@@ -2,6 +2,8 @@
 import {fetchText} from '../core/bridge.js';
 import {$, esc} from '../core/dom.js';
 import {store} from '../core/store.js';
+import {channelName} from '../data/names.js';
+import {UI, tr} from '../i18n.js';
 import {parseM3U, playLive} from './live.js';
 
 /* ---------- RaspberryTV: live channels + catch-up with the subscriber's access key ----------
@@ -24,7 +26,7 @@ export async function loadRtv(){
     if(m){ c.server = m[1]; c.token = m[2]; c.cid = m[3]; }
     c.ua ||= BROWSER_UA;                      // some IPTV servers turn away the player's default agent
   }
-  if(!chans.length) throw new Error('הרשימה ריקה. ודא שהמנוי פעיל ושהקוד נכון');
+  if(!chans.length) throw new Error(tr('live.rtvEmpty'));
   return rtvCache = chans;
 }
 
@@ -133,8 +135,9 @@ export function rtvArchiveTemplate(c){
   return c.rec ? rtvArchiveUrls(c, 'index-{from}-{dur}.m3u8', '{from}').join('|') : '';
 }
 
-export const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-export const hhmm = t => new Date(t * 1000).toLocaleTimeString('he-IL', {hour: '2-digit', minute: '2-digit'});
+/** Times and days as the interface language writes them. */
+const locale = () => UI === 'he' ? 'he-IL' : 'en-GB';
+export const hhmm = t => new Date(t * 1000).toLocaleTimeString(locale(), {hour: '2-digit', minute: '2-digit'});
 export const dayKey = t => new Date(t * 1000).toDateString();
 
 /** Channel sheet: watch live, or pick a past programme from the guide (catch-up). */
@@ -142,12 +145,14 @@ export async function openChannel(c){
   document.querySelector('.sheet')?.remove();
   const sheet = document.createElement('div');
   sheet.className = 'sheet';
-  sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(c.name)}">
-      <header>${c.logo ? `<img src="${esc(c.logo)}" alt="">` : ''}<b>${esc(c.name)}</b><button aria-label="סגור">✕</button></header>
-      <div class="body"><div class="playrow"><button class="playbtn" id="goLive">▶ שידור חי</button></div>
-        ${c.rec ? `<div id="guide"><p class="note">טוען את לוח השידורים…</p></div>` : ''}</div></div>`;
+  const name = channelName(c.name);
+  sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(name)}">
+      <header>${c.logo ? `<img src="${esc(c.logo)}" alt="">` : ''}<b>${esc(name)}</b><button data-back aria-label="${esc(tr('common.close'))}">✕</button></header>
+      <div class="body"><div class="playrow"><button class="playbtn" id="goLive">▶ ${tr('live.watchLive')}</button></div>
+        ${c.rec ? `<div id="guide"><p class="note">${tr('live.guideLoading')}</p></div>` : ''}</div></div>`;
   document.body.appendChild(sheet);
-  const close = () => sheet.remove();
+  const was = document.activeElement;
+  const close = () => { sheet.remove(); if(was?.isConnected) was.focus(); };   // back on the channel it was opened from
   sheet.querySelector('header button').onclick = close;
   sheet.onclick = e => { if(e.target === sheet) close(); };
   sheet.querySelector('#goLive').onclick = () => { close(); playLive(c); };
@@ -165,35 +170,35 @@ export async function openChannel(c){
 
   if(!progs.length){
     // No programme guide: jump back by time instead.
-    guide.innerHTML = `<p class="note" style="margin:0">אין לוח שידורים לערוץ הזה. אפשר לחזור אחורה לפי שעה (עד ${c.rec} ימים):</p>
-      <div class="keyform"><input class="field" type="datetime-local" id="tpick" dir="ltr"><button class="btn primary" id="tgo">נגן מהשעה הזו</button></div>`;
+    guide.innerHTML = `<p class="note" id="tnote" style="margin:0">${tr('live.noGuide', {d: c.rec})}</p>
+      <div class="keyform"><input class="field" type="datetime-local" id="tpick" dir="ltr"><button class="btn primary" id="tgo">${tr('live.playFrom')}</button></div>`;
     const pad = n => String(n).padStart(2, '0');
     const d = new Date(Date.now() - 3600e3);
     sheet.querySelector('#tpick').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     sheet.querySelector('#tgo').onclick = async () => {
       const t = new Date(sheet.querySelector('#tpick').value).getTime() / 1000;
-      if(!t || t < from || t > now) return alert(`אפשר לבחור זמן מ־${c.rec} הימים האחרונים בלבד.`);
-      close(); playLive({...c, url: await rtvArchiveProbe(c, t, t + 3 * 3600), name: `${c.name} · ${hhmm(t)}`});
+      if(!t || t < from || t > now){ sheet.querySelector('#tnote').textContent = tr('live.pickRange', {d: c.rec}); return; }
+      close(); playLive({...c, url: await rtvArchiveProbe(c, t, t + 3 * 3600), name: `${name} · ${hhmm(t)}`});
     };
     return;
   }
 
   const days = [...new Set(progs.map(g => dayKey(g.t)))];
   const today = new Date().toDateString(), yesterday = new Date(Date.now() - 864e5).toDateString();
-  const dayLabel = k => k === today ? 'היום' : k === yesterday ? 'אתמול' : `יום ${DAY_NAMES[new Date(k).getDay()]}`;
+  const dayLabel = k => k === today ? tr('live.today') : k === yesterday ? tr('live.yesterday') : new Date(k).toLocaleDateString(locale(), {weekday: 'long'});
   let sel = today in Object.fromEntries(days.map(k => [k, 1])) ? today : days[days.length - 1];
   const draw = () => {
     const list = progs.filter(g => dayKey(g.t) === sel);
     guide.innerHTML = `<div class="days">${days.map(k => `<button class="${k === sel ? 'on' : ''}" data-day="${esc(k)}">${dayLabel(k)}</button>`).join('')}</div>
       <div class="progs">${list.map((g, i) => {
         const state = g.t > now ? 'future' : g.to > now ? 'now' : '';
-        return `<button class="prog ${state}" data-p="${progs.indexOf(g)}" ${state === 'future' ? 'disabled' : ''} title="${esc(g.descr)}"><time>${hhmm(g.t)}</time><span>${esc(g.name)}${state === 'now' ? ' · עכשיו' : ''}</span></button>`;
+        return `<button class="prog ${state}" data-p="${progs.indexOf(g)}" ${state === 'future' ? 'disabled' : ''} title="${esc(g.descr)}"><time>${hhmm(g.t)}</time><span>${esc(g.name)}${state === 'now' ? ` · ${tr('live.now')}` : ''}</span></button>`;
       }).join('')}</div>`;
     guide.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { sel = b.dataset.day; draw(); });
     guide.querySelectorAll('.prog:not(.future)').forEach(b => b.onclick = async () => {
       const g = progs[b.dataset.p];
       close();
-      playLive({...c, url: await rtvArchiveProbe(c, g.t, g.to), name: `${c.name} · ${g.name}`});
+      playLive({...c, url: await rtvArchiveProbe(c, g.t, g.to), name: `${name} · ${g.name}`});
     });
     guide.querySelector('.prog.now')?.scrollIntoView({block: 'center'});
   };
