@@ -41,7 +41,9 @@ export function clearSpot(){
     if(art){
       art.querySelector('.taste')?.remove();
       art.querySelector('.spotinfo')?.remove();
-      art.classList.remove('taste-on');
+      art.classList.remove('taste-on', 'framed');
+      // a poster again: its own picture back in place of the wide one
+      if(art.dataset.land){ delete art.dataset.land; if(art.dataset.bg) art.style.backgroundImage = `url("${art.dataset.bg.replace(/"/g, '%22')}")`; }
     }
     // the row stays where the viewer left it - the title they were on, now a poster, keeps the middle
     const strip = spot.closest('.strip');
@@ -61,6 +63,8 @@ export function spotlight(el){
   strip.querySelectorAll('[data-was-spot]').forEach(x => delete x.dataset.wasSpot);
   el.classList.add('spot');
   delete el.dataset.wasSpot;
+  // a poster made wide shows whole, in its own blurred copy, until the title's wide picture comes (paint)
+  if(!el.classList.contains('wide')) el.querySelector('.art')?.classList.add('framed');
   const full = (el.getAttribute('href') || '').startsWith('#/detail/');
   act = document.createElement('div');
   act.className = 'spotact';
@@ -110,6 +114,25 @@ addEventListener('resize', place);
 
 /** What the title says for itself: the name at once, the rest as the add-ons answer. */
 
+/* A portrait poster does not fill a wide frame: cut to the frame's shape it is a band across its middle -
+   legs, a chin. So the middle of the wheel shows the title's own wide picture, the one its page opens on
+   (Cinemeta keeps one by IMDb id), once the viewer has stopped on it and it has arrived; until then, and
+   where there is none - a broadcaster's programme, the Israeli catalogues - the whole poster stands in
+   the middle of a blurred, darker copy of itself (css/reel.css .framed). */
+const wideOf = id => /^tt\d+$/.test(id || '') ? `https://images.metahub.space/background/medium/${id}/img` : '';
+function widen(el, art){
+  const src = !el.classList.contains('wide') && wideOf(el.dataset.id);
+  if(!src) return;
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = src;
+  (img.decode ? img.decode() : new Promise((res, rej) => { img.onload = res; img.onerror = rej; })).then(() => {
+    if(spot !== el || !art.isConnected || img.naturalWidth <= img.naturalHeight) return;
+    art.style.backgroundImage = `url("${src}")`;
+    art.dataset.land = '1';
+    art.classList.remove('framed');
+  }, () => {});
+}
 /** The same poster, sharp enough for the middle of the wheel: fetched first, put in place when ready. */
 function sharpen(art){
   const now = art.dataset.bg || '';
@@ -119,7 +142,7 @@ function sharpen(art){
   img.decoding = 'async';
   img.src = big;
   const put = () => {
-    if(art.isConnected && art.closest('.poster')?.classList.contains('spot'))
+    if(art.isConnected && !art.dataset.land && art.closest('.poster')?.classList.contains('spot'))
       art.style.backgroundImage = `url("${big.replace(/"/g, '%22')}")`;
   };
   (img.decode ? img.decode() : Promise.resolve()).then(put, () => {});
@@ -133,6 +156,7 @@ async function paint(el, full){
      says what this one is, and it is added below it rather than in front of the artwork. */
   act.innerHTML = `<div class="spotinfo"><div class="facts"></div><p dir="auto"></p></div>`;
   sharpen(art);
+  widen(el, art);
   if(!full) return;                                  // a broadcaster's programme: its picture and its name
   const [, , type, idEnc] = el.getAttribute('href').split('/');
   const id = decodeURIComponent(idEnc);

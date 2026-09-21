@@ -16,6 +16,15 @@
 .poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e;animation:spotIn var(--travel) var(--ease) both}
 @keyframes spotIn{from{opacity:.45;transform:scale(.97)}to{opacity:1;transform:none}}
 .poster.spot:hover .art{transform:none}
+/* a portrait poster in the wide frame (js/ui/reel.js widen): the whole of it, in the middle of a blurred,
+   darker copy of itself - never cut to a band across its middle. Both layers take the picture the card has
+   (inherit), so sharpening it sharpens them. What sits on the picture stays over them. */
+.poster.spot .art.framed{background-size:0 0}
+.poster.spot .art.framed::before,.poster.spot .art.framed::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:inherit;background-repeat:no-repeat;background-position:center}
+.poster.spot .art.framed::before{background-size:cover;filter:blur(24px) brightness(.5) saturate(1.2);transform:scale(1.15)}
+.poster.spot .art.framed::after{background-size:contain}
+.poster.spot .art.framed>*{z-index:1}
 /* the name stays where every other title's name is: under its picture */
 /* how far into it the viewer got stays visible over the taste and over the words */
 .poster.spot .track{z-index:3;height:6px}
