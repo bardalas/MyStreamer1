@@ -1,5 +1,16 @@
 # VEO Android changelog
 
+## 0.45.2 — 2026-09-21
+- **Smoother.** Moving between rows glides instead of jumping; the middle of a row fades the title's
+  wide picture in over its poster instead of swapping it, sooner, and at once for a title seen
+  before; the blurred background and the check for titles with nowhere to watch cost less.
+- **Profiles look grown-up.** 45 pictures on deep colours - film, music, sport, nature, animals and
+  more - or the profile's initial. A profile's page opens on its name; the picture has its own
+  chooser, so the name is one press away.
+- **The app says less.** The explanations under settings and on the profile, kids, report and
+  add-on pages are gone.
+- **Report a problem** shows a code a phone can actually scan.
+
 ## 0.45.1 — 2026-09-21
 - **On a phone the app stays under the clock and battery** and above the navigation bar: it no longer
   runs under them at the top and bottom of the screen.
