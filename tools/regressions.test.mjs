@@ -114,6 +114,7 @@ async function fixture(opts = {}){
     'ui/cards.js': {card: () => '', skeletons: () => ''},
     'ui/reel.js': {autoSpot: () => {}, reelable: () => false, nextEpisode: m => m?.videos?.[0]},
     'ui/player.js': {openPlayer: (s, label, ctx) => calls.plays.push({s, label, ctx})},
+    'ui/torrent.js': {startBusy: () => {}},              // the busy card over the page: not what is tested here
   };
   if(!opts.realSources) stubs['ui/sources.js'] = {
     quickPick: (...a) => { calls.quick.push(a); return (opts.quickPick || (async () => ({s: stream})))(...a); },
@@ -241,7 +242,8 @@ for(const [name, opts, expected] of [
 ]) test(`availability cache: ${name}`, async () => {
   const f = await fixture({realSources: true, addons: [addon], ...opts}); const s = await f.load('ui/sources.js');
   await s.loadStreams(movie, 'movie', 'Test Show');
-  assert.deepEqual(f.calls.availability, expected === undefined ? [] : [['movie:movie', expected]]);
+  // an empty answer from every add-on is sure (the title's own page asked them all in full)
+  assert.deepEqual(f.calls.availability, expected === undefined ? [] : [expected ? ['movie:movie', true] : ['movie:movie', false, true]]);
 });
 test('missing content title does not launch irrelevant broadcaster searches', async () => {
   const f = await fixture({realSources: true}); const s = await f.load('ui/sources.js');

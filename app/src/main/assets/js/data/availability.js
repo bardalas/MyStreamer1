@@ -10,15 +10,25 @@ export const AVAIL_TTL = 3 * 864e5;
 export const availPending = new Set();
 export let availBusy = false;
 export const isNoSrc = e => e && !e[0] && (e[2] || 0) >= 2;
-// known = available (fresh), or confirmed empty twice (fresh); a single empty answer is re-checked after 10 minutes
+// known = available (fresh), or confirmed empty twice (fresh); a single empty answer is asked again a minute on
+const RECHECK_MS = 60e3;
 export const availKnown = k => { const e = avail[k]; if(!e) return false; const age = Date.now() - e[1];
-  return e[0] || isNoSrc(e) ? age < AVAIL_TTL : age < 6e5; };
-export function setAvail(key, ok){
+  return e[0] || isNoSrc(e) ? age < AVAIL_TTL : age < RECHECK_MS; };
+/** [key] has sources ([ok]) or not. [sure]: every add-on answered in full (a title's own page) - no second
+    asking is needed for that. A poster found empty leaves the screen (Settings: hidden, the default), and
+    the remote, if it was standing on it, moves to the next one. */
+export function setAvail(key, ok, sure = false){
   const prev = avail[key];
-  avail[key] = ok ? [true, Date.now(), 0] : [false, Date.now(), prev && !prev[0] ? (prev[2] || 1) + 1 : 1];
+  avail[key] = ok ? [true, Date.now(), 0] : [false, Date.now(), sure ? 2 : prev && !prev[0] ? (prev[2] || 1) + 1 : 1];
   store.lazy('avail', capMap(avail, 2000));
   const none = isNoSrc(avail[key]);
-  document.querySelectorAll(`[data-avail="${key}"]`).forEach(el => el.classList.toggle('nosrc', none));
+  document.querySelectorAll(`[data-avail="${key}"]`).forEach(el => {
+    if(none && el.contains(document.activeElement) && document.documentElement.dataset.nosrc === 'hide')
+      (el.nextElementSibling || el.previousElementSibling)?.focus();
+    el.classList.toggle('nosrc', none);
+  });
+  // one empty answer is not enough to hide a title (an add-on can answer empty for a moment): once more, soon
+  if(!ok && !none) setTimeout(() => { if(document.querySelector(`[data-avail="${key}"]`) && !availKnown(key)){ availPending.add(key); if(!availBusy) availFlush(); } }, RECHECK_MS);
 }
 export async function hasSources(key){
   const [type, id] = key.split(':');
@@ -36,7 +46,7 @@ export async function hasSources(key){
    belongs to the drawing of a screen, not to the address bar: the page redraws itself without
    changing the hash - coming back online, the watch progress arriving, the quarter-hour refresh - and
    after such a redraw nothing was ever asked again. */
-const AVAIL_BUDGET = 24;
+const AVAIL_BUDGET = 48;
 export let availScreen = 0;
 export function resetAvailBudget(){ availPending.clear(); availScreen = 0; }
 export function queueAvail(keys){
@@ -49,10 +59,10 @@ export function queueAvail(keys){
 export async function availFlush(){
   availBusy = true;
   while(availPending.size){
-    const batch = [...availPending].slice(0, 2);          // gentle on the stream add-on
+    const batch = [...availPending].slice(0, 3);          // gentle on the stream add-on
     batch.forEach(k => availPending.delete(k));
     await Promise.all(batch.map(async k => { const ok = await hasSources(k); if(ok !== null) setAvail(k, ok); }));
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 200));
   }
   availBusy = false;
 }

@@ -26,7 +26,7 @@ export const LAYOUT = 'tv';
 export const POSTER_SIZE = 'm';
 /** Every choice and what it is until the viewer makes it - the one list of them (booth.html reads the
     few it paints before the page is up from the stored settings, falling back to the same values). */
-export const DEFAULTS = {skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off',
+export const DEFAULTS = {skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'hide', start: 'vod', kids: 'off',
   preview: 'on', subs: 'auto', cap: 'all', kidsAge: 'kids'};
 /* One door for every set of settings there will ever be. The two that the whole stylesheet depends
    on are pinned here rather than written by each caller: a reset that forgot them once put

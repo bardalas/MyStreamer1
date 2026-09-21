@@ -52,16 +52,26 @@
    accent) or has failed (the error colour) - with its own quiet way out */
 .tstat{display:none;position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:10000;
   flex-direction:row;align-items:center;gap:12px;max-width:min(520px,calc(100vw - 32px));padding-block:5px;padding-inline:16px 5px;
-  border-radius:14px;background:var(--raise);background:color-mix(in srgb,var(--raise) 94%,transparent);border:1px solid var(--line);color:var(--light);
+  border-radius:14px;background:var(--raise);border:1px solid var(--line);color:var(--light);
   font:14px/1.35 var(--body);box-shadow:0 10px 26px #0009}
 .tstat::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--tungsten)}
 .tstat.bad::before{background:var(--err)}
 .tstat span{min-width:0}
+#tstatusSub{display:none;color:var(--muted);font-size:.85em;font-variant-numeric:tabular-nums}
+.tstat.busy #tstatusSub:not(:empty){display:block;margin-top:-8px}
 .tbar{flex:none;width:84px;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
 .tbar[hidden]{display:none}
 .tbar i{display:block;height:100%;width:0;background:var(--tungsten);transition:width .4s}
 .tstat button{flex:none;background:var(--surface);color:var(--light);border:0;border-radius:10px;padding:7px 14px;font:600 14px var(--body);cursor:pointer}
 [data-layout="tv"] .tstat{font-size:16px} [data-layout="tv"] .tstat button{font-size:15px;padding:8px 16px}
+/* a source being opened (js/ui/torrent.js startBusy): a card in the middle over a dimmed screen, a wheel turning */
+.tstat.busy{top:50%;bottom:auto;transform:translate(-50%,-50%);flex-direction:column;gap:14px;min-width:min(360px,calc(100vw - 32px));
+  padding:26px 28px 18px;border-radius:18px;text-align:center;box-shadow:0 0 0 100vmax #000a,0 18px 44px #000c;animation:fadeIn var(--quick) ease both}
+.tstat.busy::before{width:34px;height:34px;border-radius:50%;background:none;border:3px solid var(--line);border-top-color:var(--tungsten);
+  animation:spin .8s linear infinite}
+.tstat.busy .tbar{width:200px}
+.tstat.busy button{padding-inline:22px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* While a card is over the picture the page behind it stays where it was: a modal that lets the
    background scroll reads as two screens at once. */
