@@ -3,7 +3,7 @@ import {$, esc} from '../core/dom.js';
 import {guardView, withDeadline} from '../core/requests.js';
 import {isTvLayout, settings} from '../core/settings.js';
 import {profileId, store} from '../core/store.js';
-import {addons, fetchStreams, supports} from '../data/addons.js';
+import {addons, fetchMeta, fetchStreams, supports} from '../data/addons.js';
 import {setAvail} from '../data/availability.js';
 import {kidsOn} from '../data/kids.js';
 import {remindButton, wireRemind} from '../data/reminders.js';
@@ -16,7 +16,7 @@ import {makoPrograms} from '../providers/mako.js';
 import {r13meta, r13row} from '../providers/reshet.js';
 import {openPlayer} from './player.js';
 import {endTaste} from './taste.js';
-import {startBusy} from './torrent.js';
+import {endBusy, startBusy} from './torrent.js';
 
 
 /** Which quality the viewer asked for, if any: kept between titles, because a taste for 1080p is a taste. */
@@ -89,14 +89,31 @@ export function rank(x){
 /** Whether [x] is a format the viewer said this device does not play. */
 const beyondDevice = x => settings.cap !== 'all' && (x.q === '4K' || (settings.cap === 'nohevc' && x.tags.some(t => t === 'HEVC' || t === 'DV')));
 
+/* ---------- a series: the episode after this one ---------- */
+/** A series' episodes in the order they are watched: the specials (season 0) left out. */
+export const episodesOf = meta => (meta?.videos || []).filter(v => v.id && (v.season ?? 0) > 0)
+  .sort((a, b) => (a.season - b.season) || ((a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0)));
+const epNum = v => v.episode ?? v.number ?? 1;
+/** How the player names an episode: the series, then the season and episode (screens/detail.js). */
+export const episodeLabel = (meta, v) => `${meta.name} S${v.season}E${epNum(v)}`;
+/** The series whose episode is playing, so that the next one needs no second look-up. */
+let playingSeries = null;
+
 export function playStream(s, label, ctx){
   endTaste();                    // the trailer's work is done the moment the title itself is asked for
   // Release/file name lets the app pick Hebrew subtitles timed for this exact release.
   const release = s.behaviorHints?.filename || (s.title || s.description || '').split('\n')[0] || '';
   const vid = ctx.videoId || '';
+  // An episode: the player offers the one after it as it ends (PlayerActivity showNext), and comes back
+  // with it (boothNextEpisode below).
+  const eps = ctx.type !== 'movie' ? episodesOf(ctx.meta) : [];
+  const after = eps[eps.findIndex(v => v.id === vid) + 1];
+  const next = eps.some(v => v.id === vid) && after
+    ? {next: after.id, nextName: `S${after.season}E${epNum(after)}${after.name || after.title ? ' · ' + (after.name || after.title) : ''}`} : {};
+  if(next.next) playingSeries = ctx.meta;
   // what is playing (for "continue watching") and where to resume from
   // (and whose it is: the profile the page is in - app.js boothProgress)
-  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || '', pid: profileId});
+  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || '', pid: profileId, ...next});
   noteTaste(ctx.meta, PLAYED);                     // what is played says most about what the profile likes (data/taste.js)
   // Where to start: where the viewer stopped, unless they asked for the beginning - or unless they
   // were within a minute of the end, which is a film that is over rather than one to go back into.
@@ -114,6 +131,42 @@ export function playStream(s, label, ctx){
   }
   else alert(tr('src.torrentApp'));
 }
+
+/* The player came back from an episode's end asking for the next one: its sources are looked for the way
+   a title's page looks for them - every add-on that has it, the first answer and a moment for the rest -
+   without the page, which may be anywhere by now, and the best of them plays. */
+let nextToken = 0;
+window.boothNextEpisode = async (vid, raw) => {
+  const token = ++nextToken, live = () => token === nextToken;
+  startBusy(false, tr('tor.next'), () => { nextToken++; });
+  let info = {};
+  try{ info = JSON.parse(raw || '{}'); }catch(e){}
+  const metaId = info.metaId || vid.split(':').slice(0, -2).join(':');
+  let meta = playingSeries?.id === metaId ? playingSeries : null;
+  const type = info.type || 'series';
+  if(!meta?.videos?.some(v => v.id === vid)) meta = await fetchMeta(type, metaId).catch(() => null);
+  const ep = meta && episodesOf(meta).find(v => v.id === vid);
+  if(!live()) return;
+  const fail = () => { if(live()){ endBusy(); window.boothTorrentStatus?.('e:nonext', true); } };
+  if(!ep) return fail();
+  const all = [];
+  await new Promise(done => {
+    const src = addons.filter(a => supports(a.manifest, 'stream', type, vid));
+    let left = src.length, grace = 0;
+    if(!left) return done();
+    for(const a of src) withDeadline(() => fetchStreams(a, type, vid), 30000)
+      .then(streams => streams.forEach(s => all.push(parseStream(s, a.manifest.name, all.length))), () => {})
+      .finally(() => {
+        if(!--left) return done();
+        // one has answered: the rest get a moment, not the wait (loadStreams)
+        if(!grace && all.some(x => rank(x) > 0)) grace = setTimeout(done, 1500);
+      });
+  });
+  if(!live()) return;
+  const best = pickQ(all.filter(x => !x.external && x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a)));
+  if(!best) return fail();
+  playStream(best.s, episodeLabel(meta, ep), {videoId: vid, type, meta});
+};
 
 /** Play, the quality shortcuts and the rest of the list go into the title's action row (#streams); what is
     still loading is a small note beside them, and the long list opens below the row (#palt). */

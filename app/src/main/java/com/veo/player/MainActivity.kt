@@ -26,6 +26,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var root: android.view.View
     private val REQ_LIVE = 1
     private val REQ_INSTALL = 2
+    /** A film or an episode: it may come back asking for the episode after it. */
+    private val REQ_PLAY = 3
     @Volatile private var updateCancelled = false
     // True while a version is being downloaded: the one thing on the status card that must survive a
     // trip out of the app and back (see onResume, which otherwise clears whatever is left on it).
@@ -117,9 +119,9 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface fun playUrl(url: String, title: String, videoId: String, release: String, meta: String, pos: Long) {
             Subtitles.prefetch(applicationContext, videoId, release)
             runOnUiThread {
-                startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
+                startActivityForResult(Intent(this@MainActivity, PlayerActivity::class.java)
                     .putExtra("url", url).putExtra("title", title)
-                    .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos))
+                    .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos), REQ_PLAY)
             }
         }
 
@@ -137,9 +139,9 @@ class MainActivity : AppCompatActivity() {
                 applicationContext, infoHash, fileIdx, sources,
                 onStatus = { showStatus(it) },
                 onReady = { url -> runOnUiThread {
-                    startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
+                    startActivityForResult(Intent(this@MainActivity, PlayerActivity::class.java)
                         .putExtra("url", url).putExtra("title", title).putExtra("torrent", true)
-                        .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos))
+                        .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos), REQ_PLAY)
                 } },
                 // a failure goes as a code the page words ("e:nopeers"); one with no code of its own, as e:other
                 onError = { showStatus(if (Regex("^e:\\w+$").matches(it)) it else "e:other", error = true) }
@@ -550,6 +552,12 @@ class MainActivity : AppCompatActivity() {
             if (resultCode == RESULT_OK) { pendingUpdate = null; showStatus("") }
             else if (resultCode == RESULT_CANCELED) { pendingUpdate = null; showStatus("") }
             else installRefused(data?.getIntExtra("android.intent.extra.INSTALL_RESULT", -1) ?: -1)
+            return
+        }
+        // an episode ended, and the viewer went on to the next one: the page finds its source
+        val next = data?.getStringExtra("next")
+        if (requestCode == REQ_PLAY && resultCode == RESULT_OK && !next.isNullOrBlank()) {
+            web.evaluateJavascript("window.boothNextEpisode && boothNextEpisode(${JSONObject.quote(next)}, ${JSONObject.quote(data?.getStringExtra("meta") ?: "{}")})", null)
             return
         }
         val channel = data?.getStringExtra("catchup")

@@ -126,6 +126,29 @@
             android:textColor="#AAB0BD" android:textSize="16sp" />
     </LinearLayout>
 
+    <!-- A series: the episode after this one, offered as this one ends (OK plays it). -->
+    <LinearLayout
+        android:id="@+id/nextbox"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end" android:layout_margin="36dp"
+        android:orientation="vertical" android:paddingHorizontal="22dp" android:paddingVertical="16dp"
+        android:background="#F0070910" android:visibility="gone">
+        <TextView
+            android:id="@+id/nextLbl"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="הפרק הבא" android:textColor="#AAB0BD" android:textSize="14sp" />
+        <TextView
+            android:id="@+id/nextName"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="2dp" android:maxWidth="420dp" android:maxLines="1" android:ellipsize="end"
+            android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold" />
+        <TextView
+            android:id="@+id/nextGo"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:paddingHorizontal="20dp" android:paddingVertical="9dp"
+            android:textSize="17sp" android:textStyle="bold" />
+    </LinearLayout>
+
     <!-- Live TV: the channel list, floating over the picture (long press OK). -->
     <FrameLayout
         android:id="@+id/chPanel"

@@ -67,6 +67,16 @@ class PlayerActivity : AppCompatActivity() {
     private var retries = 0
     /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
     private val watchId get() = intent.getStringExtra("vid") ?: ""
+    /** A series: the episode after this one, as the page found it (its id, and how it is called) - blank
+     *  for a film, or for the last episode there is. */
+    private val nextMeta by lazy { runCatching { org.json.JSONObject(intent.getStringExtra("meta") ?: "{}") }.getOrNull() }
+    private val nextVid get() = nextMeta?.optString("next").orEmpty()
+    /** The viewer put the card away (Back): it stays away until the end, unless they go back before it. */
+    private var nextDismissed = false
+    /** Seconds left before the next episode starts by itself, once this one has ended; -1 while it has not. */
+    private var nextCount = -1
+    /** Leaving for the next episode: this one counts as watched to the end, and its torrent is already let go. */
+    private var toNext = false
     /** Live TV: the arrows walk the channel's guide in the banner. [walking] is that state, and
      *  [walkAt] the programme pointed at - null while it points at the live edge. Nothing changes on
      *  the screen until OK. */
@@ -396,6 +406,74 @@ class PlayerActivity : AppCompatActivity() {
         // asks the player where it is - so coming back from the home screen has to start it again, or
         // the film plays on with no subtitles until the viewer picks them a second time.
         if (captions != null) { handler.removeCallbacks(tickCaptions); handler.post(tickCaptions) }
+        if (nextVid.isNotEmpty() && !live) { handler.removeCallbacks(watchEnd); handler.postDelayed(watchEnd, 1_000) }
+    }
+
+    /* ---------- a series: the next episode ---------- */
+
+    /** The last stretch of an episode - the credits, more or less: at most a minute, at least half of one. */
+    private fun creditsFrom(dur: Long) = dur - (dur / 40).coerceIn(30_000L, 60_000L)
+
+    // explicit type: it schedules itself. Once a second, while the episode plays: into its last stretch
+    // the card comes up, and a jump back out of it puts the card away again.
+    private val watchEnd: Runnable = Runnable {
+        val p = player ?: return@Runnable                  // released: onStart starts it again
+        val dur = p.duration
+        if (dur > 5 * 60_000L && nextCount < 0) {
+            val pos = p.currentPosition
+            if (pos >= creditsFrom(dur)) { if (!nextDismissed) showNext(ended = false) }
+            else { nextDismissed = false; hideNext() }
+        }
+        handler.postDelayed(watchEnd, 1_000)
+    }
+
+    private val nextOpen get() = findViewById<View>(R.id.nextbox).visibility == View.VISIBLE
+
+    /** The card: what comes next, and the button that plays it. Once the episode has ended it counts
+     *  down and goes by itself - a viewer who watched to the end wants the next one. */
+    private fun showNext(ended: Boolean) {
+        if (toNext) return
+        val box = findViewById<View>(R.id.nextbox)
+        findViewById<TextView>(R.id.nextName).text = nextMeta?.optString("nextName").orEmpty()
+        if (ended && nextCount < 0) { nextCount = 10; handler.removeCallbacks(countNext); handler.postDelayed(countNext, 1_000) }
+        paintNext()
+        box.setOnClickListener { goNext() }
+        if (box.visibility != View.VISIBLE) {
+            box.alpha = 0f
+            box.visibility = View.VISIBLE
+            box.animate().alpha(1f).setDuration(250).start()
+        }
+    }
+
+    private fun paintNext() {
+        findViewById<TextView>(R.id.nextGo).text =
+            if (nextCount >= 0) "▶  לפרק הבא ($nextCount)" else "▶  לפרק הבא"
+    }
+
+    private val countNext: Runnable = Runnable {
+        if (nextCount < 0 || !nextOpen) return@Runnable
+        if (--nextCount <= 0) { goNext(); return@Runnable }
+        paintNext()
+        handler.postDelayed(countNext, 1_000)
+    }
+
+    private fun hideNext() {
+        handler.removeCallbacks(countNext)
+        nextCount = -1
+        findViewById<View>(R.id.nextbox).visibility = View.GONE
+    }
+
+    /** Back to the app with the episode to play next: it finds that episode's source (ui/sources.js). */
+    private fun goNext() {
+        if (toNext) return
+        toNext = true
+        handler.removeCallbacks(countNext)
+        player?.let { saveProgress(it.duration, it.duration) }
+        // The torrent is let go now, not when this screen is gone: the next episode may well be in the
+        // same torrent (a season pack), and its stream must not be the one stopped a moment later.
+        if (intent.getBooleanExtra("torrent", false)) Thread { TorrentEngine.stopCurrent() }.start()
+        setResult(RESULT_OK, android.content.Intent().putExtra("next", nextVid).putExtra("meta", intent.getStringExtra("meta") ?: "{}"))
+        finish()
     }
 
     @OptIn(UnstableApi::class)
@@ -474,6 +552,7 @@ class PlayerActivity : AppCompatActivity() {
                     override fun onPlayerError(error: PlaybackException) = onError(error)
                     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = showPaused(!playWhenReady)
                     override fun onPlaybackStateChanged(state: Int) {
+                        if (state == Player.STATE_ENDED && nextVid.isNotEmpty() && !live) showNext(ended = true)
                         if (state != Player.STATE_READY) return
                         hideErrorPanel()
                         if (retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
@@ -518,6 +597,16 @@ class PlayerActivity : AppCompatActivity() {
         val dir = if (skin.rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         findViewById<View>(R.id.infobar).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xEB)) }
         findViewById<View>(R.id.errbox).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xF0)) }
+        findViewById<View>(R.id.nextbox).apply {
+            layoutDirection = dir
+            setBackgroundColor(fade(skin.night, 0xF0))
+            // the corner the writing ends in: bottom left in Hebrew
+            (layoutParams as android.widget.FrameLayout.LayoutParams).gravity =
+                android.view.Gravity.BOTTOM or (if (skin.rtl) android.view.Gravity.LEFT else android.view.Gravity.RIGHT)
+        }
+        findViewById<TextView>(R.id.nextLbl).setTextColor(skin.muted)
+        findViewById<TextView>(R.id.nextName).setTextColor(skin.light)
+        findViewById<TextView>(R.id.nextGo).apply { setBackgroundColor(skin.accent); setTextColor(skin.onAccent) }
         findViewById<TextView>(R.id.chNum).apply { setBackgroundColor(skin.accent); setTextColor(skin.onAccent) }
         findViewById<TextView>(R.id.chName).setTextColor(skin.light)
         findViewById<TextView>(R.id.nowTitle).setTextColor(skin.light)
@@ -654,6 +743,7 @@ class PlayerActivity : AppCompatActivity() {
         // ways, is one too many
         if (!live && findViewById<PlayerView>(R.id.playerView).useController) return
         findViewById<View>(R.id.infobar).visibility = View.VISIBLE
+        liftNext()
         if (!live) {
             paintFilm()
             handler.removeCallbacks(hideBanner)
@@ -716,6 +806,14 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
         findViewById<View>(R.id.infobar).visibility = View.GONE
+        liftNext()
+    }
+
+    /** The card for the next episode stands above the banner while the banner is up. */
+    private fun liftNext() {
+        val bar = findViewById<View>(R.id.infobar)
+        findViewById<View>(R.id.nextbox).translationY =
+            if (bar.visibility == View.VISIBLE) -(bar.height.takeIf { it > 0 } ?: dp(110)).toFloat() else 0f
     }
 
     private fun pickChannel(i: Int) {
@@ -992,6 +1090,7 @@ class PlayerActivity : AppCompatActivity() {
      */
     private fun showPaused(paused: Boolean) {
         findViewById<View>(R.id.pausebox).visibility = if (paused && !live) View.VISIBLE else View.GONE
+        if (paused && !live) showBanner()
     }
 
     /** The panel over the video: why it stopped, and the buttons that get the viewer moving again. */
@@ -1093,13 +1192,20 @@ class PlayerActivity : AppCompatActivity() {
             return true
         }
         val bar = findViewById<PlayerView>(R.id.playerView)
-        // OK on a film pauses it - and brings up the controls with it, so that a viewer who stopped to
-        // look at something can see where they are; pressing it again plays on and puts them away.
+        // The card for the next episode: OK plays it, Back puts it away (the arrows still move through
+        // the film, and a jump back out of its last stretch takes the card with it).
+        if (nextOpen && !live) {
+            if (ok) { if (down && event.repeatCount == 0) goNext(); return true }
+            if (code == KeyEvent.KEYCODE_BACK) { if (down) { nextDismissed = true; hideNext() }; return true }
+        }
+        // OK on a film pauses it - and brings up the banner with it (showPaused), so that a viewer who
+        // stopped to look at something can see where they are in it; pressing it again plays on and puts
+        // it away.
         if (ok && !live && !walking && !bar.isControllerFullyVisible) {
             if (down && event.repeatCount == 0) player?.let {
                 val wasPlaying = it.playWhenReady
                 it.playWhenReady = !wasPlaying
-                if (wasPlaying) bar.showController() else bar.hideController()
+                if (wasPlaying) bar.showController() else { bar.hideController(); hideChannelBar() }
             }
             return true
         }
@@ -1175,10 +1281,12 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     /** Store how far the viewer got, for "continue watching" (the page picks it up on return). */
-    private fun saveProgress(pos: Long, dur: Long) {
+    private fun saveProgress(at: Long, dur: Long) {
+        val pos = if (toNext && dur > 0) dur else at
         if (live || watchId.isBlank() || pos < 10_000 || dur <= 0) return
         val meta = intent.getStringExtra("meta") ?: "{}"
         val entry = org.json.JSONObject(meta).apply {
+            remove("next"); remove("nextName")
             put("videoId", watchId)
             put("t", pos / 1000)
             put("d", dur / 1000)
@@ -1195,7 +1303,7 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacksAndMessages(null)
         guideExec.shutdownNow()          // a guide nobody will see is work nobody needs
         // Leaving the player ends the torrent stream and frees its downloaded data.
-        if (isFinishing && intent.getBooleanExtra("torrent", false)) {
+        if (isFinishing && !toNext && intent.getBooleanExtra("torrent", false)) {
             Thread { TorrentEngine.stopCurrent() }.start()
         }
     }

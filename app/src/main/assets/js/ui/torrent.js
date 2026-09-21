@@ -24,24 +24,24 @@ export let tstatTimer = 0;
    player opens or the viewer gives up. A press that seemed to do nothing, and a viewer wandering off
    through the app while the film was starting behind them, were what it answers. */
 let busyTorrent = false, busyFrom = null;
-export function startBusy(torrent){
+export function startBusy(torrent, msg = tr('tor.start'), onCancel = null){
   busyTorrent = torrent;
   busyFrom = document.activeElement;                   // given back on cancelling: the source that was pressed
   clearTimeout(tstatTimer);
   const bar = document.getElementById('tstatus');
   bar.classList.add('busy');
   bar.classList.remove('bad');
-  document.getElementById('tstatusMsg').textContent = tr('tor.start');
+  document.getElementById('tstatusMsg').textContent = msg;
   document.getElementById('tstatusSub').textContent = '';
   document.getElementById('tbar').hidden = true;
   const btn = document.getElementById('tstatusBtn');
   btn.textContent = tr('common.cancel');
-  btn.onclick = () => { if(busyTorrent && window.BoothAndroid) BoothAndroid.cancelTorrent(); endBusy(); busyFrom?.isConnected ? busyFrom.focus() : tvFocus(); };
+  btn.onclick = () => { onCancel?.(); if(busyTorrent && window.BoothAndroid) BoothAndroid.cancelTorrent(); endBusy(); busyFrom?.isConnected ? busyFrom.focus() : tvFocus(); };
   bar.style.display = 'flex';
   bar.dataset.held = 1;
   btn.focus();
 }
-function endBusy(){
+export function endBusy(){
   const bar = document.getElementById('tstatus');
   bar.classList.remove('busy');
   bar.style.display = 'none';

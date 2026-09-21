@@ -114,7 +114,7 @@ async function fixture(opts = {}){
     'ui/cards.js': {card: () => '', skeletons: () => ''},
     'ui/reel.js': {autoSpot: () => {}, reelable: () => false, nextEpisode: m => m?.videos?.[0]},
     'ui/player.js': {openPlayer: (s, label, ctx) => calls.plays.push({s, label, ctx})},
-    'ui/torrent.js': {startBusy: () => {}},              // the busy card over the page: not what is tested here
+    'ui/torrent.js': {startBusy: () => {}, endBusy: () => {}},              // the busy card over the page: not what is tested here
   };
   if(!opts.realSources) stubs['ui/sources.js'] = {
     quickPick: (...a) => { calls.quick.push(a); return (opts.quickPick || (async () => ({s: stream})))(...a); },

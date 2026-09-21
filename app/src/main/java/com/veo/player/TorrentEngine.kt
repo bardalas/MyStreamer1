@@ -139,14 +139,18 @@ object TorrentEngine {
         }.start()
     }
 
-    /** Stops the active stream, removes the torrent and deletes its data. */
-    fun stopCurrent() {
+    /** Stops the active stream, removes the torrent and deletes its data. One stop at a time: the player
+     *  lets go of an episode as the next one is being started, and the new stream's own stop (the first
+     *  thing [stream] does) waits here until the old files are gone - it may be the same torrent. */
+    private val stopping = Any()
+    fun stopCurrent() = synchronized(stopping) {
         val (srv, hash, dir) = synchronized(this) {
             Triple(server, currentHash, currentDir).also { server = null; currentHash = null; currentDir = null }
         }
         srv?.stop()
         hash?.let { h -> session.find(h)?.let { session.remove(it) } }
         dir?.deleteRecursively()
+        Unit
     }
 
     /** Cancels a request still fetching info/buffering (e.g. the user backed out). */
