@@ -1,7 +1,12 @@
 /* ---------- who is watching (js/screens/profiles.js) ---------- */
 /* an avatar: a picture on its colour, a rounded square like the app's tiles */
 .avatar{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;border-radius:9px;
-  background:var(--av,var(--raise));font-size:18px;line-height:1;overflow:hidden}
+  background:var(--av,var(--raise));font-size:18px;line-height:1;overflow:hidden;box-shadow:inset 0 0 0 1px #ffffff14}
+/* the initial: a letter in the app's own type, white on the colour */
+.avatar.initial{color:#fff;font:800 17px/1 var(--display);letter-spacing:-.02em}
+.avatar.big.initial{font-size:64px}
+.profhead .avatar.big.initial{font-size:46px}
+.avatar.railav.initial{font-size:14px}
 .avatar.big{width:132px;height:132px;border-radius:26px;font-size:74px}
 .avatar.railav{width:26px;height:26px;border-radius:8px;font-size:16px}
 .addav{background:var(--surface);color:var(--muted);border:2px dashed var(--line);font:300 64px/1 var(--body)}
@@ -31,7 +36,13 @@ body.who main{margin-inline-start:0}
 .profhead{display:flex;align-items:center;gap:22px;margin:0 0 26px}
 .profhead .avatar.big{width:96px;height:96px;border-radius:22px;font-size:54px}
 .profhead .field{flex:1;max-width:420px;font:600 22px var(--body);padding:12px 16px}
-.avgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:12px;max-width:760px}
+/* the picture is a button: it opens the pictures to choose from */
+.avbtn{padding:0;border:0;background:none;border-radius:24px;cursor:pointer}
+.avbtn .avatar{transition:transform var(--quick) var(--ease),box-shadow var(--quick) var(--ease)}
+.avbtn:focus,.avbtn:hover{background:none;outline:0}
+.avbtn:focus .avatar,.avbtn:hover .avatar{transform:scale(1.06);box-shadow:0 0 0 4px var(--light)}
+.avsheet .body{max-height:70vh;overflow-y:auto}
+.avgrid{display:grid;grid-template-columns:repeat(8,64px);gap:12px;justify-content:center}
 .av{padding:0;border:0;background:none;border-radius:16px;cursor:pointer;justify-self:center}
 .av .avatar{width:60px;height:60px;border-radius:15px;font-size:34px;transition:transform var(--quick) var(--ease),box-shadow var(--quick) var(--ease)}
 .av.on .avatar{box-shadow:0 0 0 3px var(--tungsten)}

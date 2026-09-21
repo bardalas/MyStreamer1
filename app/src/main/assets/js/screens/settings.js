@@ -89,21 +89,21 @@ const SUB_SIZES = [['1', '100%'], ['1.25', '125%'], ['1.5', '150%'], ['1.8', '18
 const subScale = () => +(settings.subScale ?? 1.25);
 const setSubScale = v => setSetting('subScale', +v);      // the profile's own, handed to the player (core/settings.js)
 const PREFS = {
-  uiLang: {title: 'set.uilang.title', note: 'set.uilang.note', opts: () => UI_LANGS},
-  lang: {title: 'set.lang.title', note: 'set.lang.note', opts: () => [['he', tr('set.lang.he')], ['en', tr('set.lang.en')]]},
-  start: {title: 'set.start.title', note: 'set.start.note', opts: () => [['vod', tr('set.start.home')], ['movies', tr('nav.movies')],
+  uiLang: {title: 'set.uilang.title', opts: () => UI_LANGS},
+  lang: {title: 'set.lang.title', opts: () => [['he', tr('set.lang.he')], ['en', tr('set.lang.en')]]},
+  start: {title: 'set.start.title', opts: () => [['vod', tr('set.start.home')], ['movies', tr('nav.movies')],
     ['series', tr('nav.series')], ['live', tr('nav.live')], ['lastch', tr('set.start.lastch')]]},
-  quality: {title: 'set.q.title', note: 'set.q.note', opts: () => [['', tr('set.q.auto')], ...QUALITIES.map(q => [q, q])],
+  quality: {title: 'set.q.title', opts: () => [['', tr('set.q.auto')], ...QUALITIES.map(q => [q, q])],
     get: () => prefQ, set: setPrefQ},
-  cap: {title: 'set.cap.title', note: 'set.cap.note', opts: () => [['all', tr('set.cap.all')], ['no4k', tr('set.cap.no4k')], ['nohevc', tr('set.cap.nohevc')]]},
-  preview: {title: 'set.preview.title', note: 'set.preview.note', opts: () => [['on', tr('set.preview.on')], ['quiet', tr('set.preview.quiet')], ['off', tr('set.preview.off')]]},
-  subs: {title: 'set.subs.title', note: 'set.subs.note', opts: () => [['auto', tr('set.subs.auto')], ['off', tr('set.subs.off')]], sw: 'auto'},
+  cap: {title: 'set.cap.title', opts: () => [['all', tr('set.cap.all')], ['no4k', tr('set.cap.no4k')], ['nohevc', tr('set.cap.nohevc')]]},
+  preview: {title: 'set.preview.title', opts: () => [['on', tr('set.preview.on')], ['quiet', tr('set.preview.quiet')], ['off', tr('set.preview.off')]]},
+  subs: {title: 'set.subs.title', opts: () => [['auto', tr('set.subs.auto')], ['off', tr('set.subs.off')]], sw: 'auto'},
   // the player steps the size in tenths: the line says the size it really is, the list marks the nearest
-  subsize: {title: 'set.subsize.title', note: 'set.subsize.note', opts: () => SUB_SIZES,
+  subsize: {title: 'set.subsize.title', opts: () => SUB_SIZES,
     get: () => SUB_SIZES.reduce((a, b) => Math.abs(b[0] - subScale()) < Math.abs(a[0] - subScale()) ? b : a)[0],
     say: () => Math.round(subScale() * 100) + '%', exact: v => Math.abs(subScale() - v) < .01, set: setSubScale},
-  nosrc: {title: 'set.nosrc.title', note: 'set.nosrc.note', opts: () => [['grey', tr('set.nosrc.grey')], ['hide', tr('set.nosrc.hide')]]},
-  kidsAge: {title: 'kids.age.title', note: 'kids.age.note', opts: () => Object.keys(KID_AGES).map(k => [k, tr('kids.age.' + k)])},
+  nosrc: {title: 'set.nosrc.title', opts: () => [['grey', tr('set.nosrc.grey')], ['hide', tr('set.nosrc.hide')]]},
+  kidsAge: {title: 'kids.age.title', opts: () => Object.keys(KID_AGES).map(k => [k, tr('kids.age.' + k)])},
 };
 const prefNow = k => PREFS[k].get ? PREFS[k].get() : settings[k];
 function prefPut(k, v){
@@ -114,7 +114,7 @@ function prefPut(k, v){
 function pref(k){
   const p = PREFS[k], opts = p.opts(), now = prefNow(k);
   const cur = opts.find(([v]) => v === now) || opts[0];
-  return line({fid: 'p:' + k, label: tr(p.title), note: tr(p.note), value: p.say ? p.say() : cur[1], sw: p.sw ? now === p.sw : undefined, attrs: `data-p="${k}"`});
+  return line({fid: 'p:' + k, label: tr(p.title), value: p.say ? p.say() : cur[1], sw: p.sw ? now === p.sw : undefined, attrs: `data-p="${k}"`});
 }
 /** Pressing a choice: the other one of two, or the list of more. */
 async function choose(k){
@@ -172,7 +172,7 @@ const orderedCats = () => [...(settings.cats || []), ...CATEGORIES.map(c => c.id
   .map(id => CATEGORIES.find(c => c.id === id)).filter(Boolean);
 const themeCard = o => `<button class="theme${settings.skin === o.id ? ' on' : ''}" data-fid="skin:${o.id}" data-skin="${o.id}" aria-pressed="${settings.skin === o.id}">
   <span class="swatch" style="background:${o.c[0]}" aria-hidden="true"><i style="background:${o.c[1]}"></i><i style="background:${o.c[2]}"></i><b style="color:${o.c[3]}">Aa</b></span>
-  <span class="tn"><b>${tr(`skin.${o.id}.name`)}</b><small>${tr(`skin.${o.id}.note`)}</small></span></button>`;
+  <span class="tn"><b>${tr(`skin.${o.id}.name`)}</b></span></button>`;
 const hostOf = u => { try{ return new URL(u).host; }catch(e){ return u; } };
 /** What the update check found, said on its line (in whatever language is on then); none until it is pressed. */
 let updKey = '';
@@ -183,37 +183,36 @@ const PANES = {
   profiles: () => profilesPane(),
   watch: () => section(tr('set.sec.play'), lines(pref('quality') + pref('cap') + pref('preview')))
     + section(tr('set.sec.subs'), lines(pref('subs') + (window.BoothAndroid?.setSubScale ? pref('subsize') : '')))
-    + section(tr('set.sec.sources'), lines(line({fid: 'addons', href: '#/addons', label: tr('set.addons.title'), note: tr('set.addons.note'),
+    + section(tr('set.sec.sources'), lines(line({fid: 'addons', href: '#/addons', label: tr('set.addons.title'),
       value: tr('set.addons.count', {n: addons.length})}))),
-  services: () => section(tr('set.svc.main'), svcGrid(PROVIDERS_MAIN) + '<p class="snote" id="svcsay" aria-live="polite"></p>', tr('set.svc.note'))
-    + section(tr('set.svc.more'), svcGrid(PROVIDERS_MORE), tr('set.svc.moreNote')),
-  home: () => section(tr('set.home.title'), `<div class="catorder">${categories()}</div>`, tr('set.home.note'))
+  services: () => section(tr('set.svc.main'), svcGrid(PROVIDERS_MAIN) + '<p class="snote" id="svcsay" aria-live="polite"></p>')
+    + section(tr('set.svc.more'), svcGrid(PROVIDERS_MORE)),
+  home: () => section(tr('set.home.title'), `<div class="catorder">${categories()}</div>`)
     + section('', lines(pref('nosrc'))),
   look: () => section(tr('set.skin.title'), `<div class="themes">${SKINS.map(themeCard).join('')}</div>`),
   live: () => {
     const rtv = store.get('rtvKey', '');
     return section('RaspberryTV', lines(rtv
-        ? line({fid: 'rtv', href: '#/live', label: tr('set.rtv.on'), note: tr('set.rtv.onNote'), value: `${rtv.slice(0, 2)}••••••`})
+        ? line({fid: 'rtv', href: '#/live', label: tr('set.rtv.on'), value: `${rtv.slice(0, 2)}••••••`})
           + line({fid: 'rtvClear', label: tr('set.rtv.clear'), value: tr('set.rtv.clearBtn'), danger: true, attrs: 'data-act="rtvClear"'})
-        : line({fid: 'rtvSet', label: tr('set.rtv.enter'), note: tr('set.rtv.help'), attrs: 'data-act="rtvSet"'})))
+        : line({fid: 'rtvSet', label: tr('set.rtv.enter'), attrs: 'data-act="rtvSet"'})))
       + section(tr('set.pl.title'), (playlists.length ? lines(playlists.map(p => line({fid: 'pl:' + p.url, label: esc(p.name),
           note: `<bdi dir="ltr">${esc(hostOf(p.url))}</bdi>`, value: tr('common.remove'), danger: true, attrs: `data-plrm="${esc(p.url)}"`})).join('')) : '')
         + `<form class="addpl" id="plf"><input class="field" id="pln" placeholder="${esc(tr('set.pl.name'))}" aria-label="${esc(tr('set.pl.nameAria'))}">
           <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="${esc(tr('set.pl.urlAria'))}" dir="ltr">
-          <button class="btn primary" data-fid="pladd">${tr('common.add')}</button></form><p class="snote" id="plmsg" role="status"></p>`, tr('set.pl.hint'));
+          <button class="btn primary" data-fid="pladd">${tr('common.add')}</button></form><p class="snote" id="plmsg" role="status"></p>`);
   },
   kids: () => kidsOn()
-    ? section(tr('kids.title'), lines(line({fid: 'kidsOff', label: tr('kids.turnOff'), note: tr('kids.turnOffNote'), attrs: 'data-act="kidsOff"'})
+    ? section(tr('kids.title'), lines(line({fid: 'kidsOff', label: tr('kids.turnOff'), attrs: 'data-act="kidsOff"'})
         // the age, like leaving, is the parents' to change: behind the code
-        + line({fid: 'kidsAge', label: tr('kids.age.title'), note: tr('kids.age.lockedNote'), value: tr('kids.age.' + settings.kidsAge), attrs: 'data-act="kidsAge"'})
-        + line({fid: 'kidsPin', label: tr('kids.change'), note: tr('kids.changeNote'), attrs: 'data-act="kidsPin"'})), tr('kids.onNote'))
-    : section(tr('kids.title'), `<ul class="kidlist">${['what1', 'what2', 'what3'].map(k => `<li>${tr('kids.' + k)}</li>`).join('')}</ul>`
-        + lines(pref('kidsAge') + line({fid: 'kidsOn', label: tr('kids.turnOn'), note: tr('kids.turnOnNote'), attrs: 'data-act="kidsOn"'}))),
+        + line({fid: 'kidsAge', label: tr('kids.age.title'), value: tr('kids.age.' + settings.kidsAge), attrs: 'data-act="kidsAge"'})
+        + line({fid: 'kidsPin', label: tr('kids.change'), attrs: 'data-act="kidsPin"'})))
+    : section(tr('kids.title'), lines(pref('kidsAge') + line({fid: 'kidsOn', label: tr('kids.turnOn'), attrs: 'data-act="kidsOn"'}))),
   about: () => section(tr('set.about.title'), lines(info('VEO', APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'))
-      + line({fid: 'upd', label: tr('set.about.check'), note: tr('set.about.checkNote'), value: updKey ? tr(updKey) : '', attrs: 'data-act="upd"'})
-      + line({fid: 'report', label: tr('rep.title'), note: tr('rep.lineNote'), href: '#/report'})))
-    + section(tr('set.sec.data'), lines(line({fid: 'hist', label: tr('set.hist.title'), note: tr('set.hist.note'), value: tr('set.hist.btn'), danger: true, attrs: 'data-act="hist"'})
-      + line({fid: 'reset', label: tr('set.reset.title'), note: tr('set.reset.note'), value: tr('set.reset.btn'), danger: true, attrs: 'data-act="reset"'}))),
+      + line({fid: 'upd', label: tr('set.about.check'), value: updKey ? tr(updKey) : '', attrs: 'data-act="upd"'})
+      + line({fid: 'report', label: tr('rep.title'), href: '#/report'})))
+    + section(tr('set.sec.data'), lines(line({fid: 'hist', label: tr('set.hist.title'), value: tr('set.hist.btn'), danger: true, attrs: 'data-act="hist"'})
+      + line({fid: 'reset', label: tr('set.reset.title'), value: tr('set.reset.btn'), danger: true, attrs: 'data-act="reset"'}))),
 };
 
 /**

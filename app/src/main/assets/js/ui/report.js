@@ -47,12 +47,8 @@ const file = (title, body) => new Promise((res, rej) => {
 });
 
 export function viewReport(){
-  const d = device();
   $('#app').innerHTML = `<div class="page setpage reportpage"><h1>${tr('rep.title')}</h1>
-    <p class="snote">${tr('rep.intro')}</p>
     <div class="profhead"><input class="field" id="rtext" maxlength="500" dir="auto" placeholder="${esc(tr('rep.ph'))}" aria-label="${esc(tr('rep.ph'))}"></div>
-    <section class="sset"><h2>${tr('rep.with')}</h2><p class="snote">${esc([APP_VERSION && 'VEO ' + APP_VERSION, d.name || d.model, profileName(currentProfile())].filter(Boolean).join(' · '))}
-      · ${tr('rep.withMore')}</p></section>
     <div class="profacts"><button class="btn primary" id="rsend">${tr('rep.send')}</button><a class="btn ghost" href="#/settings/about">${tr('common.cancel')}</a></div>
     <p class="snote" id="rsay" aria-live="polite"></p><div class="repqr" id="rqr"></div></div>`;
   $('#rsend').onclick = send;

@@ -8,7 +8,7 @@ import {askCode} from './sheets.js';
 const lockedSays = () => { const m = Math.ceil(pinLockedFor() / 60e3); return m ? tr('kids.pin.locked', {m}) : ''; };
 /** A new code, typed twice. */
 export async function choosePin(){
-  const a = await askCode({title: tr('kids.pin.new'), note: tr('kids.pin.newNote'), mask: true, ok: tr('common.ok')});
+  const a = await askCode({title: tr('kids.pin.new'), mask: true, ok: tr('common.ok')});
   if(!a) return false;
   const b = await askCode({title: tr('kids.pin.again'), mask: true, ok: tr('common.ok'), check: p => p === a || tr('kids.pin.mismatch')});
   if(!b) return false;

@@ -76,11 +76,11 @@ export function profilesPane(){
   const list = profiles();
   const rows = list.map(p => line({fid: 'prof:' + p.id, label: `${avatar(p)}<span dir="auto">${esc(profileName(p))}</span>`,
     note: esc(kindOf(p) + (p.id === profileId ? ' · ' + tr('prof.current') : '')), value: p.lock ? tr('prof.locked') : '', href: '#/profile/' + p.id})).join('');
-  const add = list.length < MAX_PROFILES ? line({fid: 'profadd', label: tr('prof.add'), note: tr('prof.addNote'), href: '#/profile/new'}) : '';
+  const add = list.length < MAX_PROFILES ? line({fid: 'profadd', label: tr('prof.add'), href: '#/profile/new'}) : '';
   // a child can pick any profile on a picker the app starts in a grown-up's profile: those are kept from them by locking them
   const open = list.some(isKids) && list.some(p => !isKids(p) && !p.lock);
-  return section(tr('prof.title'), lines(rows + add), tr('prof.note'))
-    + (open ? section(tr('prof.safety'), lines(line({fid: 'lockall', label: tr('prof.lockAll'), note: tr('prof.lockAllNote'), attrs: 'data-act="lockAll"'}))) : '')
+  return section(tr('prof.title'), lines(rows + add))
+    + (open ? section('', lines(line({fid: 'lockall', label: tr('prof.lockAll'), attrs: 'data-act="lockAll"'}))) : '')
     + section('', lines(line({fid: 'switch', label: tr('prof.switch'), href: '#/who'})));
 }
 /** Lock every grown-up's profile that is not locked yet (the code is set first if there is none). */
@@ -99,7 +99,7 @@ export function viewProfile(id){
   if(id !== 'new' && !p){ location.hash = '#/settings/profiles'; return; }
   const s = p ? settingsOf(p) : {};
   // arriving from anywhere else starts from the profile as it is; drawing the same page again keeps what is being changed
-  if(draft?.id !== id || !$('.profpage')) draft = {id, name: p?.name || '', icon: p ? p.icon || 0 : profiles().length % AVATARS.length,
+  if(draft?.id !== id || !$('.profpage')) draft = {id, name: p?.name || '', icon: p ? p.icon || 0 : 0,
     kind: s.kids === 'on' ? s.kidsAge || 'kids' : '', lock: !!p?.lock};
   paintProfile(p);
 }
@@ -107,17 +107,23 @@ function paintProfile(p, keep){
   const d = draft;
   const removable = p && p.id !== profileId && profiles().length > 1;
   $('#app').innerHTML = `<div class="page setpage profpage"><h1>${p ? tr('prof.edit') : tr('prof.new')}</h1>
-    <div class="profhead">${avatar({icon: d.icon}, 'big')}
-      <input class="field" id="pname" maxlength="20" dir="auto" value="${esc(d.name)}" placeholder="${esc(tr('prof.namePh'))}" aria-label="${esc(tr('prof.name'))}"></div>
-    ${section(tr('prof.icon'), `<div class="avgrid">${AVATARS.map((_, i) => `<button class="av${i === d.icon ? ' on' : ''}" data-fid="av:${i}" data-icon="${i}" aria-pressed="${i === d.icon}">${avatar({icon: i})}</button>`).join('')}</div>`)}
-    ${section('', lines(line({fid: 'kind', label: tr('prof.kind'), note: tr('prof.kindNote'), value: KINDS().find(([k]) => k === d.kind)[1], attrs: 'data-do="kind"'})
-      + line({fid: 'lock', label: tr('prof.lock'), note: tr('prof.lockNote'), sw: d.lock, attrs: 'data-do="lock"'})
-      + (removable ? line({fid: 'del', label: tr('prof.delete'), note: tr('prof.deleteNote'), danger: true, attrs: 'data-do="del"'}) : '')))}
+    <div class="profhead"><button class="avbtn" data-fid="pic" data-do="pic" aria-label="${esc(tr('prof.icon'))}">${avatar({icon: d.icon, name: d.name}, 'big')}</button>
+      <input class="field" id="pname" data-fid="name" maxlength="20" dir="auto" value="${esc(d.name)}" placeholder="${esc(tr('prof.namePh'))}" aria-label="${esc(tr('prof.name'))}"></div>
+    ${section('', lines(line({fid: 'kind', label: tr('prof.kind'), value: KINDS().find(([k]) => k === d.kind)[1], attrs: 'data-do="kind"'})
+      + line({fid: 'lock', label: tr('prof.lock'), sw: d.lock, attrs: 'data-do="lock"'})
+      + (removable ? line({fid: 'del', label: tr('prof.delete'), danger: true, attrs: 'data-do="del"'}) : '')))}
     <div class="profacts"><button class="btn primary" id="psave" data-fid="save">${tr('common.save')}</button>
       <a class="btn ghost" href="#/settings/profiles" data-fid="cancel">${tr('common.cancel')}</a></div></div>`;
   const name = $('#pname');
-  name.oninput = () => { d.name = name.value; };
-  $('#app').querySelectorAll('[data-icon]').forEach(b => b.onclick = () => { d.icon = +b.dataset.icon; paintProfile(p, 'av:' + d.icon); });
+  name.oninput = () => {
+    d.name = name.value;
+    if(!AVATARS[d.icon][0]) $('.avbtn').innerHTML = avatar({icon: d.icon, name: d.name}, 'big');   // the initial follows the name
+  };
+  $('[data-do="pic"]').onclick = async () => {
+    const v = await pickAvatar(d.icon, d.name);
+    if(v != null) d.icon = v;
+    paintProfile(p, 'pic');
+  };
   $('[data-do="kind"]').onclick = async () => {
     const v = await pickFrom(tr('prof.kind'), KINDS(), d.kind);
     if(v != null) d.kind = v;
@@ -126,8 +132,25 @@ function paintProfile(p, keep){
   $('[data-do="lock"]')?.addEventListener('click', () => { d.lock = !d.lock; paintProfile(p, 'lock'); });
   $('[data-do="del"]')?.addEventListener('click', e => remove(p, e.currentTarget));
   $('#psave').onclick = () => save(p);
+  // the page opens on the name: it is what is most often changed, and the rest is a step or two below it
   const at = keep && $(`[data-fid="${CSS.escape(keep)}"]`);
-  (at || (p ? $('#psave') : name))?.focus();
+  (at || name).focus();
+}
+/** The pictures to choose from, in a card over the page: [cur] marked; the one chosen, or null. */
+function pickAvatar(cur, name){
+  return new Promise(resolve => {
+    document.querySelector('.sheet')?.remove();
+    const sheet = document.createElement('div');
+    sheet.className = 'sheet avsheet';
+    sheet.innerHTML = `<div role="dialog" aria-label="${esc(tr('prof.icon'))}"><header><b>${esc(tr('prof.icon'))}</b><button data-back aria-label="${esc(tr('common.close'))}">✕</button></header>
+      <div class="body"><div class="avgrid">${AVATARS.map((_, i) => `<button class="av${i === cur ? ' on' : ''}" data-icon="${i}" aria-pressed="${i === cur}">${avatar({icon: i, name})}</button>`).join('')}</div></div></div>`;
+    document.body.appendChild(sheet);
+    const done = v => { sheet.remove(); resolve(v); };
+    sheet.onclick = e => { if(e.target === sheet) done(null); };
+    sheet.querySelector('[data-back]').onclick = () => done(null);
+    sheet.querySelectorAll('[data-icon]').forEach(b => b.onclick = () => done(+b.dataset.icon));
+    (sheet.querySelector('.av.on') || sheet.querySelector('.av')).focus();
+  });
 }
 /** Is the change from [before] (a profile's settings) to the draft a loosening - out of the kids profile, or
     to an older age? That is a grown-up's to make. */

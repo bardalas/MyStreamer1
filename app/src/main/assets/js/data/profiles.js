@@ -8,12 +8,23 @@
    again in it - every module reads its own copy of what the profile keeps as the page opens. */
 import {profileId, store} from '../core/store.js';
 import {settings} from '../core/settings.js';
+import {esc} from '../core/dom.js';
 import {tr} from '../i18n.js';
 
-/** The avatars there are: pictures every television draws, with no file to fetch. */
-export const AVATARS = ['🦊', '🐼', '🦁', '🐯', '🐨', '🐸', '🐙', '🦄', '🐶', '🐱', '🐰', '🐵', '🐧', '🦖', '🐳', '🦉',
-  '🚀', '⚽', '🎮', '🎨', '🎸', '🌟', '🌈', '👑'];
-const COLORS = ['#e8505b', '#f29c38', '#e8c547', '#4cc27a', '#2bb3c0', '#3d7bf7', '#8a5cf6', '#e35ba5'];
+/* The avatars there are: pictures every television draws, with no file to fetch, each on a deep colour of
+   its own - the first is the profile's initial. Film and television, music, sport, the world outside,
+   animals, things people are, and a few for the youngest. [picture, colour] */
+const SHADES = ['#0f2027,#2c5364', '#1e3c72,#2a5298', '#42275a,#734b6d', '#93291e,#d8342a', '#232526,#4a4d52', '#134e5e,#3f8f6a',
+  '#b8430b,#e8912d', '#000428,#004e92', '#4b134f,#b3414a', '#0b6e63,#1ea672', '#373b44,#3f6fc6', '#3a1c71,#a8566a'];
+export const AVATARS = [
+  ['', 7],
+  ['🎬', 4], ['🍿', 3], ['🎞️', 8], ['📺', 1],
+  ['🎧', 2], ['🎸', 8], ['🎹', 4], ['🎷', 10], ['🥁', 5],
+  ['⚽', 9], ['🏀', 6], ['🎾', 5], ['🏎️', 3], ['🏄', 0], ['🚴', 10], ['🥊', 8],
+  ['🌊', 1], ['🏔️', 0], ['🌙', 7], ['🔥', 4], ['⚡', 11], ['🌍', 9], ['🚀', 10], ['🌵', 5],
+  ['🦁', 6], ['🐺', 4], ['🦅', 0], ['🦈', 7], ['🐉', 9], ['🦉', 8], ['🐯', 3], ['🦊', 11],
+  ['🕶️', 2], ['👑', 3], ['💎', 1], ['🎯', 11], ['♟️', 4], ['🧠', 2], ['📚', 5], ['☕', 6], ['🎨', 0], ['🎮', 7],
+  ['🦄', 11], ['🐼', 5], ['🐙', 3], ['🧸', 6]];
 /** The most profiles a device keeps - a household, and the picker still one row on a television. */
 export const MAX_PROFILES = 6;
 const NAME_MAX = 20;
@@ -24,10 +35,14 @@ export const profiles = () => store.get(LIST, []);
 export const currentProfile = () => profiles().find(p => p.id === profileId) || profiles()[0] || {id: profileId, name: '', icon: 0};
 export const profileById = id => profiles().find(p => p.id === id);
 export const profileName = p => p?.name || tr('prof.me');
-const avatarChar = p => AVATARS[(p?.icon || 0) % AVATARS.length];
-/** A profile's avatar, on its colour. */
-export const avatar = (p, cls = '') =>
-  `<span class="avatar${cls ? ' ' + cls : ''}" style="--av:${COLORS[(p?.icon || 0) % COLORS.length]}" aria-hidden="true">${avatarChar(p)}</span>`;
+/** A profile's avatar, on its colour - the first of them is the initial of its name. */
+export function avatar(p, cls = ''){
+  const [pic, own] = AVATARS[(p?.icon || 0) % AVATARS.length];
+  const letter = (profileName(p).trim()[0] || '?').toUpperCase();
+  const face = pic || esc(letter);
+  const shade = pic ? own : letter.charCodeAt(0) % SHADES.length;   // an initial takes its colour from the name
+  return `<span class="avatar${pic ? '' : ' initial'}${cls ? ' ' + cls : ''}" style="--av:linear-gradient(135deg,${SHADES[shade]})" aria-hidden="true">${face}</span>`;
+}
 /** A profile's own settings, read without entering it (the one the page is in: the live ones). */
 export const settingsOf = p => p.id === profileId ? settings : store.getFor(p.id, 'settings', {});
 export const isKids = p => settingsOf(p).kids === 'on';

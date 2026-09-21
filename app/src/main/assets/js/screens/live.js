@@ -36,7 +36,7 @@ export async function viewLive(){
     <div id="chs"><p class="note">${tr('live.loading')}</p></div>
     <p class="snote livehint" id="lhint" hidden></p>
     ${hasRtv ? '' : `<div class="slines liveadd"><button class="sline" id="rtvOpen">
-      <span class="st"><b>${tr('live.rtv.title')}</b><small>${tr('live.rtv.note')}</small></span><span class="sv"><span></span></span></button></div>`}</div>`;
+      <span class="st"><b>${tr('live.rtv.title')}</b></span><span class="sv"><span></span></span></button></div>`}</div>`;
   if($('#rtvOpen')) $('#rtvOpen').onclick = () => openRtvKey(viewLive);
   app.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => {
     if(b.classList.contains('on')) return;

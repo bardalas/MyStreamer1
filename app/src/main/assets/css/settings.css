@@ -43,6 +43,8 @@
 /* a line that leads somewhere says so with an arrow, pointing the way the page reads */
 .sline .sv>span:empty::before{content:"";display:block;width:9px;height:9px;margin:0 6px;border:solid var(--muted);border-width:0 2px 2px 0;
   transform:rotate(calc(45deg + 90deg * var(--flip)))}
+/* ...but a switch is a switch: it leads nowhere */
+.sline[role="switch"] .sv>span:empty::before{display:none}
 .sline.info{cursor:default}
 .sline.warn .sv{color:var(--err)}
 .sline.arm .sv{color:var(--light)}
@@ -81,7 +83,6 @@
 .swatch i{width:13px;height:13px;border-radius:50%}
 .swatch b{margin-inline-start:auto;font-family:var(--display);font-size:18px;line-height:1}
 /* the kids profile: what it does, before it is turned on */
-.kidlist{margin:0 0 14px;padding-inline-start:22px;color:var(--light);font-size:15px;line-height:1.7}
 .sset .addpl{max-width:none;margin:10px 0 6px}
 @media(max-width:760px){.sgrid{grid-template-columns:1fr}.stabs{flex-direction:row;overflow-x:auto;position:static;scrollbar-width:none}
   .stabs::-webkit-scrollbar{height:0}.stabs button{white-space:nowrap;box-shadow:none}.stabs button.on{box-shadow:inset 0 -3px var(--tungsten)}
