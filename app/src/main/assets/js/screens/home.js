@@ -1,10 +1,11 @@
 /* The home screen, and a category of it. */
 import {esc} from '../core/dom.js';
-import {isTvLayout, settings} from '../core/settings.js';
+import {isTvLayout} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {addons} from '../data/addons.js';
 import {BOOTH_ID, CATEGORIES, CINEMETA_ID, SC_ID, catName, mergedRow, rowsFor, userCategories} from '../data/catalogs.js';
 import {catalogName, genreName} from '../data/names.js';
+import {KID_GENRES, kidsOn, kidsOwn} from '../data/kids.js';
 import {GENRES, gridFrom, pageFilters, sortActive, sortBar, wireSortBar} from '../data/sort.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
@@ -37,6 +38,14 @@ export function typeRows(type){
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
   const cmCat = id => (cm?.manifest.catalogs || []).find(c => c.id === id && c.type === type);
   const top = cmCat('top'), best = cmCat('imdbRating');
+  // the kids profile: what is popular and best for children, and the genres they watch - every row filtered (data/kids.js)
+  // (a series is let in by the family genre, so what is popular among series is asked of the family ones)
+  if(kidsOn()){
+    if(top) rows.push({a: cm, c: top, extra: type === 'series' ? 'genre=Family' : undefined, title: tr('row.popular'), notype: true});
+    if(best) rows.push({a: cm, c: best, extra: 'genre=Family', title: tr('row.best'), notype: true});
+    if(top) for(const g of type === 'series' ? ['Animation'] : KID_GENRES) rows.push({a: cm, c: top, extra: `genre=${encodeURIComponent(g)}`, title: genreName(g), notype: true});
+    return rows;
+  }
   if(top) rows.push({a: cm, c: top, title: tr('row.popular'), notype: true});
   if(best) rows.push({a: cm, c: best, title: tr('row.best'), notype: true});
   const local = addons.find(a => a.manifest.id === BOOTH_ID);
@@ -45,13 +54,27 @@ export function typeRows(type){
   if(top) for(const g of GENRE_ROWS[type] || []) rows.push({a: cm, c: top, extra: `genre=${encodeURIComponent(g)}`, title: genreName(g), notype: true});
   return rows;
 }
-/** What was left in the middle, of one type (or of every type). */
-const unfinished = type => Object.entries(progress).filter(([, x]) => !x.done && (!type || x.type === type))
+/** What was left in the middle, of one type (or of every type) - in the kids profile, only what a child started. */
+const unfinished = type => Object.entries(progress).filter(([, x]) => !x.done && (!type || x.type === type) && (!kidsOn() || kidsOwn(x.metaId)))
   .sort(([, x], [, y]) => y.at - x.at).map(([videoId, x]) => ({videoId, ...x})).slice(0, 12);
 
+/** The kids profile's home: cartoons and family films and series, what children watch on each service, and
+    what they left in the middle. Every row is filtered for children on its way in (data/kids.js). */
+function kidsHome(){
+  const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
+  const cat = (type, id) => (cm?.manifest.catalogs || []).find(c => c.id === id && c.type === type);
+  const rows = [
+    [cat('movie', 'top'), 'genre=Animation', 'kids.row.animated'], [cat('movie', 'top'), 'genre=Family', 'kids.row.family'],
+    [cat('series', 'top'), 'genre=Family', 'kids.row.series'], [cat('movie', 'imdbRating'), 'genre=Family', 'kids.row.best'],
+    [cat('series', 'top'), 'genre=Animation', 'kids.row.cartoons'],
+  ].filter(([c]) => c).map(([c, extra, t]) => ({a: cm, c, extra, title: tr(t), notype: true}));
+  if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', tr('kids.row.streamMovies')), mergedRow('series', tr('kids.row.streamSeries')));
+  renderRows(rows, {cont: unfinished()});
+}
+
 export async function viewHome(){
+  if(kidsOn()) return kidsHome();
   // Cinemeta's popular rows, then the first row of every category.
-  if(settings.kids === 'on') return renderRows(rowsFor(CATEGORIES.find(c => c.id === 'kids')));
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
   const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: tr(c.type === 'movie' ? 'row.popularMovies' : 'row.popularSeries'), notype: true})) : [];
   if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', tr('row.streamingMovies')), mergedRow('series', tr('row.streamingSeries')));
@@ -103,7 +126,8 @@ export function viewType(type){
   const top = `<div class="page pagehead typehead"><h1>${esc(tr(type === 'movie' ? 'cats.movies' : 'cats.series'))}</h1>
     <div class="srctabs" role="tablist">${tabs.join('')}<a class="libgo" href="#/all/${type}">${tr('lib.enter')}</a></div></div>`;
   // the wheel the tabs turn, then the type's rows - what is popular, what is best, the collections, the genres
-  const rows = [{origins: idsOf(tab), type, tabbed: true, badge: true, title: ''}, ...typeRows(type)];
+  // (no source at all - the kids profile without the streaming catalogues - is no wheel)
+  const rows = [...(origins.length ? [{origins: idsOf(tab), type, tabbed: true, badge: true, title: ''}] : []), ...typeRows(type)];
   renderRows(isTvLayout() ? rows.slice(0, TV_ROWS) : rows, {top, cont: unfinished(type), contAt: 1});
   let settle = 0;
   const pick = b => {

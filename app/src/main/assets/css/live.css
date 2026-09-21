@@ -86,9 +86,6 @@
 [data-layout="tv"] .chinfo small{font-size:14px}
 [data-layout="tv"] .chlogo{width:60px;height:60px}
 [data-layout="tv"] .chlogo img{max-width:50px;max-height:50px}
-.plrow{display:flex;align-items:center;gap:10px;max-width:760px;padding:8px 0;border-bottom:1px solid var(--line)}
-.plrow b{flex:1;font-weight:500}
-.plrow code{color:var(--muted);font-size:12px;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* wide (16:9) cards for TV-channel shows and episodes */
 .poster.wide{flex-basis:calc(var(--poster-w) * 1.55)}

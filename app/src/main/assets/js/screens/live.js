@@ -2,7 +2,8 @@
 import {$, esc, showErr} from '../core/dom.js';
 import {store} from '../core/store.js';
 import {liveChannels, liveSources, nowPlaying, watchChannel} from '../providers/live.js';
-import {ARCH_KEY, hhmm, openChannel, openRtvKey, rtvArchiveProbe} from '../providers/rtv.js';
+import {ARCH_KEY, hhmm, openChannel, rtvArchiveProbe} from '../providers/rtv.js';
+import {openRtvKey} from '../ui/sheets.js';
 
 export async function viewLive(){
   const app = $('#app');

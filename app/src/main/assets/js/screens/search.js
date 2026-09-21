@@ -1,7 +1,8 @@
 /* Search results. */
 import {$, esc, getJSON, showErr} from '../core/dom.js';
-import {addons} from '../data/addons.js';
+import {addons, fetchMeta} from '../data/addons.js';
 import {hasHebrew, hebrewSearch} from '../data/hebrew.js';
+import {isKidSafe, kidsOn} from '../data/kids.js';
 import {typeName} from '../data/names.js';
 import {kanBox, kanCard} from '../providers/kan.js';
 import {makoCard, makoPrograms} from '../providers/mako.js';
@@ -39,26 +40,35 @@ async function searchChannels(q, host){
   host.innerHTML = rows.map(r => `<div class="row"><h2>${esc(r.name)}</h2><div class="strip">${r.html}</div></div>`).join('');
 }
 
+/** What a search finds carries no genres: in the kids profile each title is judged by its own page. */
+async function kidsOnly(ms){
+  const full = await Promise.all(ms.slice(0, 12).map(m => /^tt\d+$/.test(m.id) ? fetchMeta(m.type, m.id).catch(() => null) : null));
+  return ms.slice(0, 12).filter((m, i) => full[i] && isKidSafe({type: m.type, ...full[i]}));
+}
+
 export async function viewSearch(q){
   $('#q').value = q;
   const app = $('#app');
   const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => (c.extra||[]).some(e => e.name === 'search') || (c.extraSupported||[]).includes('search')).map(c => ({a, c})));
-  app.innerHTML = `<div class="page"><h1>${esc(tr('search.results', {q}))}</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(typeName(x.c.type))} <small>${esc(x.a.manifest.name)}</small></h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || `<p class="note">${esc(tr('search.noAddons'))}</p>`}</div>`;
+  app.innerHTML = `<div class="page"><h1>${esc(tr('search.results', {q}))}</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(typeName(x.c.type))} ${esc(x.a.manifest.name)}</h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || `<p class="note">${esc(tr('search.noAddons'))}</p>`}</div>`;
   // the broadcasters answer from lists already in hand, so their row comes up first
   app.querySelector('.page h1').insertAdjacentHTML('afterend', '<div id="sChan"></div>');
-  searchChannels(q, $('#sChan'));
+  // the kids profile searches only what can be judged: the broadcasters' programmes carry no genres
+  if(!kidsOn()) searchChannels(q, $('#sChan'));
   if(hasHebrew(q)){
-    app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>${esc(tr('search.hebrew'))} <small>Wikidata</small></h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
+    app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>${esc(tr('search.hebrew'))} </h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
     // the strip this query built: a later query builds its own, and an answer to this one must not
     // be written into it
     const heStrip = $('#sHe');
-    hebrewSearch(q).then(ms => { if(heStrip.isConnected) heStrip.innerHTML = ms.map(card).join('') || `<p class="note">${esc(tr('search.none'))}</p>`; })
+    hebrewSearch(q).then(ms => kidsOn() ? kidsOnly(ms) : ms)
+      .then(ms => { if(heStrip.isConnected) heStrip.innerHTML = ms.map(card).join('') || `<p class="note">${esc(tr('search.none'))}</p>`; })
       .catch(e => { if(heStrip.isConnected) showErr(heStrip, tr('search.heFailed'), e, () => viewSearch(q)); });
   }
   cats.forEach(async (x, i) => {
     const strip = $('#s' + i);                       // held now: by the time the answer comes it may be gone
     try{
-      const d = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}/search=${encodeURIComponent(q)}.json`);
+      const got = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}/search=${encodeURIComponent(q)}.json`);
+      const d = kidsOn() ? {metas: await kidsOnly((got.metas || []).map(m => ({type: x.c.type, ...m})))} : got;
       if(strip.isConnected) strip.innerHTML = (d.metas||[]).map(card).join('') || `<p class="note">${esc(tr('search.none'))}</p>`;
     }catch(e){ if(strip.isConnected) showErr(strip, tr('search.failed'), e, () => viewSearch(q)); }
   });

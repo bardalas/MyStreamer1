@@ -93,6 +93,8 @@ class PlayerActivity : AppCompatActivity() {
     private var captions: Captions? = null
     /** How large they are drawn, as a multiple of the player's own size; kept between films. */
     private var subScale = 1.25f
+    /** Whether the translation found is put on by itself (Settings → Playback), or waits to be picked. */
+    private var subsAuto = true
     /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
     private val skin by lazy { Skin(getSharedPreferences("veo", MODE_PRIVATE)) }
 
@@ -121,7 +123,12 @@ class PlayerActivity : AppCompatActivity() {
         applySkin()
 
         val view = findViewById<PlayerView>(R.id.playerView)
-        subScale = getSharedPreferences("veo", MODE_PRIVATE).getFloat("subScale", 1.25f)
+        val prefs = getSharedPreferences("veo", MODE_PRIVATE)
+        subScale = prefs.getFloat("subScale", 1.25f)
+        // Settings → Playback: subtitles only when the viewer picks them - the film starts without, and
+        // with the track inside the file turned off too (applyTextTracks)
+        subsAuto = prefs.getString("subs", "auto") != "off"
+        if (!subsAuto) subPick = -1
         view.setShowSubtitleButton(!live)
         view.subtitleView?.apply {
             setStyle(CaptionStyleCompat(Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT,
@@ -154,7 +161,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 subs = found
                 subsPending = false
-                if (found.isNotEmpty()) useCaptions(0, first)
+                if (found.isNotEmpty() && subsAuto) useCaptions(0, first)
             }
         }.start()
     }
@@ -194,7 +201,9 @@ class PlayerActivity : AppCompatActivity() {
             now.preferredTextLanguages.firstOrNull() == lang
         // and turning the player's subtitles off when it is not showing any changes nothing on screen
         val nothingShown = p.currentTracks.groups.none { it.type == C.TRACK_TYPE_TEXT && it.isSelected }
-        if (already || (off && nothingShown)) return
+        // (before the tracks are known nothing is shown yet either - but off must be said then, or the
+        // file's own subtitles come on by themselves once it starts)
+        if (already || (off && nothingShown && !p.currentTracks.isEmpty)) return
         p.trackSelectionParameters = now.buildUpon()
             .setPreferredTextLanguage(lang)
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, off)

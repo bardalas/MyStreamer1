@@ -24,33 +24,55 @@ export const LAYOUT = 'tv';
 /* Posters are one size. Three sizes meant three layouts to keep working, and the middle one is the
    size every screen was designed around. */
 export const POSTER_SIZE = 'm';
-export const isTv = () => !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
+/** Every choice and what it is until the viewer makes it - the one list of them (booth.html reads the
+    few it paints before the page is up from the stored settings, falling back to the same values). */
+export const DEFAULTS = {skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod', kids: 'off',
+  preview: 'on', subs: 'auto', cap: 'all'};
 /* One door for every set of settings there will ever be. The two that the whole stylesheet depends
    on are pinned here rather than written by each caller: a reset that forgot them once put
    data-layout="undefined" on the page, and every rule written for the layout stopped matching. */
-const pinned = s => Object.assign({skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'grey', start: 'vod',
-  kids: 'off', preview: 'on'}, s, {layout: LAYOUT, poster: POSTER_SIZE});
+const pinned = s => Object.assign({}, DEFAULTS, s, {layout: LAYOUT, poster: POSTER_SIZE});
 export let settings = pinned(store.get('settings', {}));
-/** The player draws its own banner and channel list in native views: hand it this skin and direction. */
+/**
+ * The player draws its own banner and channel list in native views: hand it this skin and direction -
+ * and the choices it acts on itself: whether subtitles come on by themselves, and whether the kids
+ * profile is on (it then opens nothing outside the app: YouTube, a web page, another app).
+ */
 export function syncNativeTheme(){
   const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();
   try{
     window.BoothAndroid?.setTheme?.(JSON.stringify({dir: document.documentElement.dir,
       night: v('--night'), raise: v('--raise'), line: v('--line'),
-      light: v('--light'), muted: v('--muted'), accent: v('--tungsten'), onAccent: v('--on-accent')}));
+      light: v('--light'), muted: v('--muted'), accent: v('--tungsten'), onAccent: v('--on-accent'),
+      subs: settings.subs, kids: settings.kids}));
   }catch(e){}
 }
 export function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
+  r.dataset.kids = settings.kids;
   setUiLang(settings.uiLang);                       // the strings' own module decides what is a language
   syncNativeTheme();
 }
 applySettings();
 
-/** Replace every setting at once (the reset in Settings); the page is repainted by the caller. */
+/** Replace every setting at once; the page is repainted by the caller. */
 export function setSettings(next){
   settings = pinned(next);
   store.set('settings', settings);
   applySettings();
+}
+/** Change one choice: kept, and applied to the page at once. */
+export function setSetting(key, value){
+  settings[key] = value;
+  store.set('settings', settings);
+  applySettings();
+}
+/**
+ * Every choice back to what it was on the first day - except the ones a reset must never take away:
+ * the language (a reset must not strand anyone in one they cannot read) and the kids profile (a child
+ * must not be able to leave it by resetting). Titles and summaries follow the interface language.
+ */
+export function resetSettings(){
+  setSettings({uiLang: settings.uiLang, lang: settings.uiLang === 'he' ? 'he' : 'en', kids: settings.kids});
 }

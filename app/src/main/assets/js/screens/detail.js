@@ -5,6 +5,7 @@ import {isTvLayout} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
 import {heCache, heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
+import {kidsMayOpen, kidsOn, noteKidsTitle} from '../data/kids.js';
 import {genreName} from '../data/names.js';
 import {imdbTag, svcFacts} from '../data/services.js';
 import {library, progress} from '../data/watch.js';
@@ -54,6 +55,11 @@ export async function viewDetail(type, id){
   const meta = await fetchMeta(type, id);
   if(!inView()) return;                              // the viewer has moved on; this page is nobody's
   if(!meta){ app.innerHTML = `<div class="page"><h1>${tr('detail.notFound')}</h1><p class="note">${tr('detail.notFoundNote')}</p></div>`; return; }
+  // the kids profile opens a title only when it is for children, from wherever the address came
+  if(kidsOn()){
+    if(!kidsMayOpen({type, ...meta})){ app.innerHTML = `<div class="page kidsno"><h1>${tr('kids.blocked')}</h1><p class="note">${tr('kids.blockedNote')}</p><a class="btn primary" href="#/">${tr('kids.home')}</a></div>`; return; }
+    noteKidsTitle(meta.id);
+  }
   const saved = !!library[meta.id];
   if(hebrewOn() && /^tt\d+$/.test(meta.id)) hebrewPlot(meta.id).then(plot => {
     const el = $('#desc');

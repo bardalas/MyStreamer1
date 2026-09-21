@@ -2,6 +2,7 @@
 import {fetchText} from '../core/bridge.js';
 import {$, esc, showErr} from '../core/dom.js';
 import {store} from '../core/store.js';
+import {kidsOn} from '../data/kids.js';
 import {skeletons} from '../ui/cards.js';
 
 /* ---------- Keshet 12 (mako.co.il): catalogue from the site's public pages; episodes play on
@@ -27,6 +28,7 @@ export async function makoPrograms(filter){
 }
 export const makoPic = v => Array.isArray(v) ? v[0]?.picUrl : (String(v || '').match(/picUrl['"]?\s*:\s*['"]([^'"]+)/) || [])[1] || '';
 export function openSite(url){
+  if(kidsOn()) return;                                   // the kids profile never leaves the app for a web page
   if(window.BoothAndroid && BoothAndroid.openSite) BoothAndroid.openSite(url);
   else window.open(url, '_blank', 'noopener');
 }

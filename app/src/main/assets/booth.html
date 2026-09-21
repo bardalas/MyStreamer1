@@ -17,7 +17,7 @@ try{
   const s = JSON.parse(localStorage.getItem('booth:settings') || '{}'), r = document.documentElement;
   r.lang = s.uiLang || 'he'; r.dir = dirOf(r.lang);
   const tv = !!(window.BoothAndroid && BoothAndroid.isTv && BoothAndroid.isTv());
-  r.dataset.skin = s.skin || 'veo'; r.dataset.layout = 'tv'; r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
+  r.dataset.skin = s.skin || 'veo'; r.dataset.layout = 'tv'; r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey'; r.dataset.kids = s.kids || 'off';
 }catch(e){}
 </script>
 
@@ -46,7 +46,7 @@ try{
 <div class="scrim" id="scrim" hidden></div>
 
 <aside class="rail" id="rail" data-i18n-aria="nav.aria">
-  <div class="logo" role="img" data-i18n-aria="nav.homeAria"><img src="veo-mark.png" width="26" height="26" alt="" aria-hidden="true"><span class="lbl">VEO</span></div>
+  <div class="logo" role="img" data-i18n-aria="nav.homeAria"><img src="veo-mark.png" width="26" height="26" alt="" aria-hidden="true"><span class="lbl">VEO</span><span class="kidsbadge" data-i18n="kids.badge"></span></div>
 
   <form class="search" id="sf">
     <button class="ic" type="submit" data-i18n-aria="search.aria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>

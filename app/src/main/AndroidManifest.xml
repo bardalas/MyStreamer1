@@ -6,7 +6,11 @@
     <uses-feature android:name="android.software.leanback" android:required="false"/>
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
     <application android:theme="@style/Theme.Veo" android:label="VEO" android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round" android:banner="@drawable/tv_banner" android:supportsRtl="true" android:usesCleartextTraffic="true">
+        android:roundIcon="@mipmap/ic_launcher_round" android:banner="@drawable/tv_banner" android:supportsRtl="true" android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="false">
+        <!-- Back belongs to the app: the page walks its own ladder (MainActivity.onBackPressed -> boothBack)
+             and the player reads the Back key itself. Android 16 stops calling either for an app that
+             targets it unless this says so - and Back then left the app from anywhere. -->
         <provider android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"
             android:exported="false" android:grantUriPermissions="true">

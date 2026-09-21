@@ -22,3 +22,9 @@ export function pruneProgress(){
   for(const id of ids.sort((a, b) => (progress[b].at || 0) - (progress[a].at || 0)).slice(400)) delete progress[id];
 }
 indexProgress();
+/** Forget everything watched (Settings): "continue watching" and the marks on posters start from nothing. */
+export function clearProgress(){
+  for(const id of Object.keys(progress)) delete progress[id];
+  store.set('progress', progress);
+  indexProgress();
+}

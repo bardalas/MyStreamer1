@@ -101,6 +101,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Whether the kids profile is on: the page says so with its theme (setTheme), and a door out of the
+        app - YouTube, a web page, another app - stays shut then, whatever the page asks. */
+    private fun kidsProfile() = getSharedPreferences("veo", MODE_PRIVATE).getString("kids", "off") == "on"
+
     inner class Bridge {
         /** True on Android TV; the page then defaults to its TV (10-foot) layout. */
         @JavascriptInterface fun isTv(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
@@ -148,6 +152,7 @@ class MainActivity : AppCompatActivity() {
 
         /** Official broadcaster videos play in the YouTube app (web page as fallback). */
         @JavascriptInterface fun openYouTube(videoId: String) {
+            if (kidsProfile()) return                    // the kids profile never leaves the app
             runOnUiThread {
                 val app = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("vnd.youtube:$videoId"))
                 val web = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.youtube.com/watch?v=$videoId"))
@@ -202,6 +207,7 @@ class MainActivity : AppCompatActivity() {
          *  it to Android's package installer, which asks the user to confirm. The page shows the
          *  progress through the same status card the torrent engine uses. */
         @JavascriptInterface fun updateApp(url: String) {
+            if (kidsProfile()) return                    // installing leads to Android's own settings
             updateCancelled = false
             updateBusy = true
             Thread {
@@ -265,6 +271,7 @@ class MainActivity : AppCompatActivity() {
         /** Hand a link to the system (browser / downloader): used to fetch a new version's APK.
          *  Android's own installer asks the viewer to confirm - the app never installs anything itself. */
         @JavascriptInterface fun openExternal(url: String) {
+            if (kidsProfile()) return
             runOnUiThread {
                 runCatching {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
@@ -275,7 +282,14 @@ class MainActivity : AppCompatActivity() {
 
         /** A broadcaster's own web page (its player plays the video) in an in-app window. */
         @JavascriptInterface fun openSite(url: String) {
+            if (kidsProfile()) return
             runOnUiThread { startActivity(BrowserActivity.intent(this@MainActivity, url)) }
+        }
+
+        /** The subtitles' size, as the player keeps it (Settings shows it and changes it too). */
+        @JavascriptInterface fun getSubScale(): Float = getSharedPreferences("veo", MODE_PRIVATE).getFloat("subScale", 1.25f)
+        @JavascriptInterface fun setSubScale(v: Float) {
+            getSharedPreferences("veo", MODE_PRIVATE).edit().putFloat("subScale", v.coerceIn(0.8f, 2.4f)).apply()
         }
 
         /** Live TV with channel zapping: [channelsJson] = [{name, url, ua, referer}], starting at [index]. */

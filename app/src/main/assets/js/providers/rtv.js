@@ -114,22 +114,18 @@ export async function rtvArchiveProbe(c, start, end){
   const shapes = archiveShapes(c, file, start);
   const known = store.get(ARCH_KEY, '');
   const order = [...shapes.filter(([n]) => n === known), ...shapes.filter(([n]) => n !== known)];
-  const tried = [];
-  const hide = u => u.replace(/[A-Za-z0-9_-]{8,}/g, m => m.slice(0, 3) + '…');
   /* Ten addresses tried one after another, each waiting on a service that may simply not answer, is
      a wait with no end for a viewer looking at a picture that has not changed. The whole search gets
-     one deadline; what was asked and what came back is kept either way, for the settings page. */
+     one deadline. */
   const until = Date.now() + ARCHIVE_DEADLINE;
   for(const [name, u] of order){
-    if(Date.now() > until){ tried.push('— נגמר הזמן —'); break; }
+    if(Date.now() > until) break;
     try{
-      if(!await playsAt(u, start)){ tried.push(`${name}: ${hide(u)} → the live broadcast, not the programme`); continue; }
+      if(!await playsAt(u, start)) continue;                  // it answered with the live broadcast, not the programme
       store.set(ARCH_KEY, name);                             // the spelling that really plays the past
-      store.set('archTried', []);
       return u;
-    }catch(e){ tried.push(`${name}: ${hide(u)} → ${(e.message || 'no answer').slice(0, 40)}`); }
+    }catch(e){}
   }
-  store.set('archTried', tried);
   return order[0][1];
 }
 /** The same addresses, with the times left for the player to fill in: it walks the guide by itself. */
@@ -140,53 +136,6 @@ export function rtvArchiveTemplate(c){
 export const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 export const hhmm = t => new Date(t * 1000).toLocaleTimeString('he-IL', {hour: '2-digit', minute: '2-digit'});
 export const dayKey = t => new Date(t * 1000).toDateString();
-
-/** RaspberryTV's access key, typed on screen: eight characters, remote-friendly, no keyboard popup. */
-export function openRtvKey(after){
-  document.querySelector('.sheet')?.remove();
-  let code = '';
-  const sheet = document.createElement('div');
-  sheet.className = 'sheet';
-  const chars = [...'0123456789abcdefghijklmnopqrstuvwxyz'];
-  sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="קוד גישה ל־RaspberryTV">
-    <header><b>קוד הגישה של RaspberryTV</b><button aria-label="סגור">✕</button></header>
-    <div class="body">
-      <p class="note" style="margin:0">הקוד בן 8 תווים, מהחשבון שלך באתר RaspberryTV תחת "Access key for applications". הוא נשמר רק במכשיר הזה.</p>
-      <div class="keyboxes" id="kbox">${'<span></span>'.repeat(8)}</div>
-      <div class="keypad" id="kpad">
-        ${chars.map(c => `<button data-k="${c}">${c}</button>`).join('')}
-        <button class="wide" data-del="1">⌫ מחק</button>
-        <button class="wide" data-ok="1">שמור</button>
-      </div>
-    </div></div>`;
-  document.body.appendChild(sheet);
-  const close = () => sheet.remove();
-  sheet.querySelector('header button').onclick = close;
-  sheet.onclick = e => { if(e.target === sheet) close(); };
-  const paint = () => sheet.querySelectorAll('#kbox span').forEach((b, i) => {
-    b.textContent = code[i] || '';
-    b.classList.toggle('set', !!code[i]);
-  });
-  const save = () => {
-    if(code.length !== 8) return;
-    store.set('rtvKey', code); forgetRtv(); store.set('livePl', 'rtv');
-    close();
-    after ? after() : (location.hash = '#/live');
-  };
-  sheet.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
-    if(code.length < 8){ code += b.dataset.k; paint(); }
-    if(code.length === 8) sheet.querySelector('[data-ok]').focus();
-  });
-  sheet.querySelector('[data-del]').onclick = () => { code = code.slice(0, -1); paint(); };
-  sheet.querySelector('[data-ok]').onclick = save;
-  // a real keyboard (phone, or a USB one on the TV) types straight into it
-  sheet.addEventListener('keydown', e => {
-    if(/^[0-9a-zA-Z]$/.test(e.key) && code.length < 8){ code += e.key.toLowerCase(); paint(); e.preventDefault(); }
-    else if(e.key === 'Backspace'){ code = code.slice(0, -1); paint(); e.preventDefault(); }
-    else if(e.key === 'Enter' && code.length === 8){ save(); e.preventDefault(); }
-  });
-  sheet.querySelector('[data-k]').focus();
-}
 
 /** Channel sheet: watch live, or pick a past programme from the guide (catch-up). */
 export async function openChannel(c){
@@ -250,7 +199,12 @@ export async function openChannel(c){
   };
   draw();
 }
-addEventListener('keydown', e => { if(e.key === 'Escape') document.querySelector('.sheet')?.remove(); });
+// Escape closes a sheet the way its own ✕ does, so that whoever opened it hears that it closed
+addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  const s = document.querySelector('.sheet'), x = s?.querySelector('[data-back]');
+  x ? x.click() : s?.remove();
+});
 
 /** The key changed, or was removed: the channels are read again next time they are asked for. */
 export function forgetRtv(){ rtvCache = null; }

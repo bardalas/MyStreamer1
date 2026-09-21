@@ -1,10 +1,11 @@
 /* Where a title can be watched from, and what happens when one is chosen. */
 import {$, esc} from '../core/dom.js';
 import {guardView, withDeadline} from '../core/requests.js';
-import {isTvLayout} from '../core/settings.js';
+import {isTvLayout, settings} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {addons, fetchStreams, supports} from '../data/addons.js';
 import {setAvail} from '../data/availability.js';
+import {kidsOn} from '../data/kids.js';
 import {remindButton, wireRemind} from '../data/reminders.js';
 import {svcDress, svcIcon} from '../data/services.js';
 import {progress} from '../data/watch.js';
@@ -18,6 +19,8 @@ import {endTaste} from './taste.js';
 
 /** Which quality the viewer asked for, if any: kept between titles, because a taste for 1080p is a taste. */
 export let prefQ = store.get('quality', '');
+/** Ask for a quality from now on ('' is automatic): the quality button on a title, and Settings. */
+export function setPrefQ(q){ prefQ = q; store.set('quality', q); }
 export const QUALITIES = ['4K', '1080p', '720p', 'SD'];
 /** The source to play: the best one of the chosen quality, or simply the best. */
 export const pickQ = list => (prefQ && list.find(x => x.q === prefQ)) || list[0];
@@ -71,12 +74,18 @@ export function rank(x){
   // seeder is all there is for that title, so it is still offered rather than hidden.
   if(seeds < 1) return -1;
   const quality = {'1080p': 1, '720p': .92, '4K': .6, 'SD': .45, 'Other': .35}[x.q] ?? .3;
+  // A device that cannot play 4K, or HEVC, has it kept last (Settings → Playback): still offered - the
+  // viewer may know better - but never started by itself while anything else is there.
+  if(beyondDevice(x)) return .001 * quality;
   // A stream starts when the first piece has arrived, and pieces grow with the file: a small file starts
   // sooner (and huge remuxes stall), so size counts against a source as well as seeders for it.
   const gb = x.size ? x.size / GB : 0;
   const size = !gb || gb <= 3 ? 1 : gb <= 6 ? .85 : gb <= 12 ? .6 : .35;
   return Math.log10(seeds + 1) * quality * size;
 }
+
+/** Whether [x] is a format the viewer said this device does not play. */
+const beyondDevice = x => settings.cap !== 'all' && (x.q === '4K' || (settings.cap === 'nohevc' && x.tags.some(t => t === 'HEVC' || t === 'DV')));
 
 export function playStream(s, label, ctx){
   endTaste();                    // the trailer's work is done the moment the title itself is asked for
@@ -138,14 +147,15 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
     // it will play - its size, and whether anything is still answering - is said beside it.
     const byQuality = QUALITIES.filter(q => playable.some(x => x.q === q));
     const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
-    // One row for the quality, not one per quality: pressing it takes the next one there is.
-    const next = byQuality[(byQuality.indexOf(best.q) + 1) % byQuality.length];
+    // One row for the quality, not one per quality: pressing it takes the next one there is - and after
+    // the last, automatic again ('').
+    const cycle = [...byQuality, ''];
+    const next = cycle[(cycle.indexOf(prefQ && byQuality.includes(prefQ) ? prefQ : best.q) + 1) % cycle.length];
     box.innerHTML = `${byQuality.length > 1 ? `<button class="qbtn" id="qnext" data-q="${next}">${best.q}${best.size ? ` · ${fmtSize(best.size)}` : ''}</button>` : ''}
       ${links}${more}${failure}${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
     box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
       if(!isCurrent()) return;
-      prefQ = b.dataset.q === prefQ ? '' : b.dataset.q;         // pressing the one in use returns to automatic
-      store.set('quality', prefQ);
+      setPrefQ(b.dataset.q);
       lastStreams?.();
       // the row is drawn again the moment it is pressed, and the viewer is still standing on it
       const stay = () => document.getElementById('qnext')?.focus();
@@ -192,7 +202,7 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
   const name = clean(meta?.name || label);
   const match = itn => !!itn && (itn === name || (name.length > 3 && (itn.includes(name) || name.includes(itn))));
   // Each built-in is independent of installed stream add-ons. These are navigation links, not media.
-  const broadcasters = name ? [
+  const broadcasters = name && !kidsOn() ? [                    // a broadcaster's site is no place for the kids profile
     {name: 'כאן 11', load: () => kanBox(), find: secs => {
       for(const sec of secs) for(const it of sec.items) if(match(clean(it.name)))
         return `#/kan/${encodeURIComponent(it.url.replace('https://www.kan.org.il', ''))}/${encodeURIComponent(it.name)}`;

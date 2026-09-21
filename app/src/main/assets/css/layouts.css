@@ -53,8 +53,6 @@
 [data-layout="tv"] .fgo{font-size:19px}
 .fgo:focus,.fgo:hover{border-color:var(--tungsten);outline:none}
 
-/* Settings scrolling fix */
-[data-layout="tv"] .spane{max-height:85vh;overflow-y:auto !important;padding-bottom:10vh}
 
 /* Hero section for Continue Watching */
 .hero-wrap{position:relative;height:50vh;margin:0 -28px 24px;overflow:hidden}

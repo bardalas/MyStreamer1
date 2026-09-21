@@ -11,16 +11,16 @@ export const FOCUSABLE = 'a[href], button:not([disabled]), input:not([type="hidd
    these, or the D-pad cannot reach it; tvRows() keeps only the innermost match, so nesting two
    of them is safe. Grouped by the screen that renders them. */
 export const ROWS_SEL = [
-  '#rail', '.stabs', '.spane', '.sset',                                  // chrome: the side menu, the settings menu
-  '.bctabs', '.srctabs', '.strip', '.grid', '.sopts', '.seg', '.sortbar',  // browsing rows and pickers
+  '#rail', '.stabs', '.spane', '.sset', '.slines', '.themes',             // chrome: the side menu, the settings menu and its lists
+  '.bctabs', '.srctabs', '.strip', '.grid', '.sortbar',                    // browsing rows and pickers
   '.ltabs', '.mkbar', '.oops',                                             // archive/mako tabs, error boxes
   '#desc', '.seasonbar', '.seasons', '.eps', '.eplist',                    // a title: text, episodes
   '.tacts', '#palt', '.src',                                               // a title: what can be done with it
   '.playrow', '.altlist',                                                  // the sources of a title
   '.live-top', '#cont', '#bchead', '.chlist',                              // live TV
-  '.days', '.progs', '.keypad', '.keyform',                                // catch-up guide, key entry
+  '.days', '.progs', '.keypad', '.keyform', '.cextra',                     // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
-  '.catorder', '.addpl', '.add', '.plrow', '.addon',                       // settings lists, add-ons
+  '.catorder', '.addpl', '.add', '.addon',                                 // settings lists, add-ons
 ].join(', ');
 // offsetParent is null for position:fixed elements (per spec) even when they're plainly on
 // screen - the rail, the update card and the torrent-status card are all fixed. A size check
@@ -105,18 +105,26 @@ new MutationObserver(muts => {
 addEventListener('hashchange', forgetRows);
 export const centerX = el => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
 /** Where to land in [row] when arriving from [from]: a season menu's chosen season, else the item nearest across. */
-export const bestIn = (row, from) => {
-  const cand = itemsOf(row), x = from ? centerX(from) : 0;
+export const bestIn = (row, from, dir) => {
+  const cand = itemsOf(row), near = upInto(cand, dir);
+  const x = from ? centerX(from) : 0;
   // a wheel always shows its title in the same place, so arriving on one means the title it holds -
   // the one the viewer was on before, or the row's first - not whatever happens to be across the page
   if(row.classList.contains('reel'))
     return cand.find(el => el.classList.contains('spot')) || cand.find(el => el.dataset.wasSpot) || cand[0];
   // the season being shown, the episode lined up to play, and the source the wheel is showing are
   // where arriving on those rows lands
-  return ((row.classList.contains('seasonbar') || row.classList.contains('srctabs')) && cand.find(el => el.classList.contains('on')))
+  return ((row.classList.contains('seasonbar') || row.classList.contains('srctabs') || row.classList.contains('stabs')) && cand.find(el => el.classList.contains('on')))
     || (row.classList.contains('eps') && cand.find(el => el.classList.contains('on')))
-    || cand.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, cand[0]);
+    || near.reduce((best, el) => Math.abs(centerX(el) - x) < Math.abs(centerX(best) - x) ? el : best, near[0]);
 };
+/** Arriving from below, the line to land on is the row's last one - the one right above - not its first. */
+function upInto(cand, dir){
+  if(dir !== 'up' || cand.length < 2) return cand;
+  const mid = el => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
+  const low = Math.max(...cand.map(mid));
+  return cand.filter(el => mid(el) > low - 6);
+}
 /* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
    under the top bar (so the category is always readable), anything else is just brought into view. */
 /** Travel to [y]: a short way is slid, a long way is jumped - a viewer should not watch the page fly. */
@@ -307,7 +315,7 @@ export function tvMove(dir){
   const ri = flow.indexOf(row);
   const next = flow[ri + (dir === 'down' ? 1 : -1)];
   if(!next) return true;
-  focusItem(bestIn(next, active));
+  focusItem(bestIn(next, active, dir));
   return true;
 }
 export let lastMoveAt = 0;
@@ -368,6 +376,9 @@ window.boothBack = () => {
   }
   const a = document.activeElement;
   if(a && a.tagName === 'INPUT' && !a.readOnly && IS_TV_DEVICE){ a.blur(); return true; }
+  // Back on a settings page steps out to its entry in the settings menu; from the menu it leaves settings
+  const entry = a?.closest?.('#spane') && document.querySelector('.stabs .on');
+  if(entry){ focusItem(entry); return true; }
   const up = parentHash();
   if(up === null) return false;                      // already at the top: the app closes
   goTo(up);
@@ -414,4 +425,3 @@ export function tvFocus(tries = 0){
   else if(tries < 8) setTimeout(() => tvFocus(tries + 1), 700);
 }
 setTimeout(tvFocus, 2500);
-if(!location.hash && settings.start === 'live') history.replaceState(null, '', '#/live');

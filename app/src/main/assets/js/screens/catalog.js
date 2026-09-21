@@ -112,8 +112,11 @@ export async function viewAll(type){
   let out = [], shown = new Set();
   const grid = $('#libgrid'), note = $('#libnote'), end = $('#libmore');
   const by = groups.find(g => g.key === 'by');
+  // a source chosen where this profile has none of it (the grown-ups' library, in the kids profile) is not asked for
+  const offered = new Set(groups.find(g => g.key === 'svc').opts.map(([v]) => v));
+  const st = () => offered.has(f.st.svc) ? f.st : {...f.st, svc: ''};
   const choose = () => {
-    out = ordered(titles.list.filter(it => passes(it, f.st)).map(asFacts), f.st.by).map(x => x.it);
+    out = ordered(titles.list.filter(it => passes(it, st())).map(asFacts), f.st.by).map(x => x.it);
     note.textContent = tr('lib.count', {n: out.length, by: optLabel(by, by.opts.find(([v]) => v === f.st.by) || by.opts[0])});
   };
   /** Draw [n] more posters, in the order chosen, skipping any already drawn. */

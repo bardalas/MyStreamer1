@@ -4,6 +4,7 @@ import {isTvLayout} from '../core/settings.js';
 import {capMap, store} from '../core/store.js';
 import {avail} from './availability.js';
 import {LOCAL_ADDON} from './catalogs.js';
+import {forKids, kidsOn} from './kids.js';
 
 export const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json';
 export const TORRENTIO = 'https://torrentio.strem.fun/manifest.json';
@@ -52,7 +53,13 @@ export async function loadAddons(){
 
 export const catMem = new Map();
 export const CAT_SESSION = 10 * 60e3, CAT_DISK = 6 * 3600e3;
+/** A catalogue's titles. In the kids profile, only the ones for children (data/kids.js) - every row,
+    grid, library and search asks through here, so this one filter is the profile's whole catalogue. */
 export function catalogFetch(a, type, id, extra){
+  const p = catalogRaw(a, type, id, extra);
+  return kidsOn() ? p.then(d => forKids(d, type, extra)) : p;
+}
+function catalogRaw(a, type, id, extra){
   if(a.local) return extra && /skip=/.test(extra) ? Promise.resolve({metas: []}) : a.local(id);
   const url = `${a.base}/catalog/${type}/${id}${extra ? '/' + extra : ''}.json`;
   if(extra && /search=|skip=/.test(extra)) return getJSON(url);

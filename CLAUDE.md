@@ -30,7 +30,7 @@ app/src/main/assets/
       store.js          what is kept on the device
       dom.js            $, esc, getJSON, the lazy-image observer
       bridge.js         the way to the Android app (native fetch, the site reader, the migration)
-      settings.js       the viewer's choices (one door: `pinned()` re-pins the layout and poster size)
+      settings.js       the viewer's choices: `DEFAULTS`, `setSetting`, `resetSettings` (`pinned()` re-pins layout/poster)
       screenmem.js      where the viewer was, so Back puts them back
     data/               what the app knows
       addons.js         manifests, catalogues, details, streams
@@ -42,12 +42,13 @@ app/src/main/assets/
       watch.js          the library, and how far everything was watched
       availability.js   which titles can actually be played
       reminders.js      titles waiting for a source
+      kids.js           the kids profile: what is for children (`isKidSafe`), and the code that leaves it
     providers/          other people's catalogues
       kan.js reshet.js mako.js jfc.js       broadcasters
       live.js rtv.js                        live channels, playlists, RaspberryTV and its archive
     ui/                 pieces of interface, each owning its own DOM
       cards.js rows.js rail.js hero.js quickview.js sources.js
-      player.js update.js torrent.js tvnav.js
+      player.js update.js torrent.js tvnav.js sheets.js (a code typed on screen, a choice from a list)
     screens/            one file per screen, each exporting its view function
       home.js detail.js search.js library.js live.js broadcasters.js settings.js addons.js
 ```
@@ -192,6 +193,26 @@ sorted and from which sources; a genre also pulls Cinemeta's popular/top-rated t
   tabs is a one-colour glyph: `svc/g/<id>.png`, made from the logos by `tools/svc_glyphs.py` and drawn as a
   CSS mask filled with `currentColor` (so it follows the skin and the focus); their width/height ratios
   live in `GLYPH_RATIO` in `data/services.js` - re-run the script and update them when a logo changes.
+
+### Settings and the kids profile (`js/screens/settings.js`, `js/data/kids.js`)
+Settings is a menu of pages (general, playback, home, look, live, kids, about) written into the hash
+(`#/settings/<tab>`). Every setting is one `.sline`: name, a few words, and its value; a choice of two
+toggles, a longer one opens `pickFrom` (`ui/sheets.js`). The choices are one table, `PREFS` - most live in
+`settings` (`setSetting`); the quality is `ui/sources.js`'s own (`setPrefQ`), the subtitles' size is the
+player's (`BoothAndroid.get/setSubScale`). Every control carries a `data-fid`, and `paintSettings(fid)`
+puts the remote back on it after any repaint; Back inside a page goes to its menu entry first
+(`boothBack`). What cannot be undone asks for a second press (`.sline.warn`).
+The **kids profile** (`settings.kids`) is enforced in a few places, not per screen: every catalogue answer
+passes `forKids` inside `catalogFetch` (a film: family, or animation beside a child's genre; a series:
+family or the `SERIES` list; never the `DENY` genres or the `BLOCK` list); the sources are the streaming
+services only (`originsFor`); `route()` keeps it to `KIDS_ROUTES`; a title page checks `kidsMayOpen`; search
+judges each result by its own meta. Live TV, the broadcasters, YouTube, web pages and updates are out of
+reach (JS, and natively: `MainActivity.kidsProfile()` reads the `kids` pref `syncNativeTheme` writes).
+Leaving it needs the four-digit code (salted hash, five tries then a five-minute lock) or a grown-up's
+sum; a reset keeps the profile on. The genres are the only age signal the catalogues give - when an
+adult title slips through, add its IMDb id to `BLOCK`.
+The app opts out of Android 16's predictive Back (`enableOnBackInvokedCallback="false"`): the page walks
+its own Back ladder and the player reads the Back key, and neither is called otherwise.
 
 ### Title page and the TV screen
 On the TV a series page never scrolls the page (`body.titlefit`): the header keeps its size and the

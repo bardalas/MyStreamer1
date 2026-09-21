@@ -32,16 +32,18 @@ export function checkUpdate(force){
   return inflight;
 }
 
+/** What the check found: 'found' (a card is up), 'latest', 'offline', or 'unsupported' (a browser). */
 async function runCheck(force){
-  if(!APP_VERSION || !window.BoothAndroid?.openExternal) return;        // only inside the app
-  if(document.querySelector('.update')) return;                         // one card at a time
+  if(!APP_VERSION || !window.BoothAndroid?.openExternal) return 'unsupported';   // only inside the app
+  const up = document.querySelector('.update');                         // one card at a time - and a reminder's
+  if(up) return up.querySelector('#updGo') ? 'found' : 'busy';          // card is not an update
   // a cold start always checks; returning to the foreground re-checks at most twice an hour
-  if(!force && Date.now() - (store.get('updCheck', 0) || 0) < 30 * 60e3) return;
+  if(!force && Date.now() - (store.get('updCheck', 0) || 0) < 30 * 60e3) return 'latest';
   let rel;
-  try{ rel = await getJSON(RELEASES, 8000); }catch(e){ return; }
+  try{ rel = await getJSON(RELEASES, 8000); }catch(e){ return 'offline'; }
   store.set('updCheck', Date.now());
   const tag = (rel.tag_name || '').replace(/^v/, '');
-  if(!tag || !isNewer(tag, APP_VERSION) || store.get('updSkip', '') === tag) return;
+  if(!tag || !isNewer(tag, APP_VERSION) || store.get('updSkip', '') === tag) return 'latest';
   const card = document.createElement('div');
   card.className = 'update';
   card.innerHTML = `<span><b>${tr('update.available', {tag: esc(tag)})}</b></span>
@@ -54,4 +56,5 @@ async function runCheck(force){
   };
   $('#updLater').onclick = () => { store.set('updSkip', tag); card.remove(); };
   if(isTvLayout()) $('#updGo').focus();
+  return 'found';
 }

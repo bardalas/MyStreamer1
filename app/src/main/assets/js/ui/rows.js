@@ -2,6 +2,7 @@
 import {$, esc, showErr} from '../core/dom.js';
 import {rowMax} from '../core/settings.js';
 import {catalogFetch} from '../data/addons.js';
+import {kidsOn} from '../data/kids.js';
 import {srcName, typeName} from '../data/names.js';
 import {tr} from '../i18n.js';
 import {kanBox, kanCard} from '../providers/kan.js';
@@ -81,7 +82,7 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       const lists = origins.map(() => null), failed = [];
       let drawn = false, settled = 0, pool = [], seen = new Set();
       // each service's pages, counted as they come - a service that answers late is paged like the rest
-      const paged = origins.filter(o => o.svc).map(o => ({o, fetched: 0, done: false}));
+      const paged = origins.filter(o => o.svc).map(o => ({o, fetched: 0, done: false, dry: 0}));
       const draw = items => {
         // only what is drawn is claimed: the rest may still be shown by a row below
         const free = x.tabbed ? items : items.filter(it => !(claimed.get(it.id) < i));
@@ -99,7 +100,7 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
           const st = endless.get(el);                    // a row that had given all it had has more again
           if(st && fresh.length && el.querySelectorAll('.poster').length < ENDLESS_MAX) st.done = false;
         }
-        else if(fresh.length){ pool.push(...draw(fresh)); autoSpot(el); }   // the row had nothing yet: this is its first
+        else if(fresh.length){ pool.push(...draw(fresh)); autoSpot(el); showRow(el); }   // the row had nothing yet: this is its first
         // every source has answered, nothing came, and some could not be reached: say so, with a retry
         else if(settled === origins.length && failed.some(Boolean)) showErr(el, tr('row.failed'), failed.find(Boolean), again);
       };
@@ -107,11 +108,11 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
         .then(list => {
           settled++;
           const p = paged.find(p => p.o === o);
-          if(p){ p.fetched = list.length; p.done = !!failed[k]; }
+          if(p){ p.fetched = list.raw ?? list.length; p.done = !!failed[k]; }
           if(drawn) late(list); else lists[k] = list;
         }));
       await (origins.length > 1 ? Promise.race([Promise.all(loads), new Promise(r => setTimeout(r, FIRST_PAINT_MS))]) : Promise.all(loads));
-      if(lists.every(l => l === null)) await Promise.race(loads);   // nothing in time: the first to answer
+      if(loads.length && lists.every(l => l === null)) await Promise.race(loads);   // nothing in time: the first to answer
       if(!live()) return;
       drawn = true;
       if(origins.length && failed.filter(Boolean).length === origins.length){
@@ -123,12 +124,16 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       merged.forEach(it => seen.add(it.id));
       pool = draw(merged);
       endless.set(el, {i, dedupe: x.tabbed ? (_, l) => l : dedupe, card: it => it.html, next: async () => {
-        if(!pool.length){
+        // pages are asked for until one brings something new or every source is spent - in the kids
+        // profile a page can hold nothing for children and still not be the last
+        while(!pool.length && paged.some(p => !p.done)){
           const pages = await Promise.all(paged.filter(p => !p.done).map(async p => {
             const page = await moreOfOrigin(p.o, x.type, p.fetched, badge);
-            p.fetched += page.length;
+            p.fetched += page.raw ?? page.length;
             const fresh = page.filter(it => !seen.has(it.id));
-            if(!fresh.length) p.done = true;             // nothing new: this source has no more to give
+            // Nothing new: this source has no more to give. In the kids profile a page can hold no title
+            // for children and still not be the last, so it gets a few pages before it counts as spent.
+            if(!fresh.length && (!page.raw || page.raw === page.length || ++p.dry >= 3)) p.done = true;
             fresh.forEach(it => seen.add(it.id));
             return fresh;
           }));
@@ -146,9 +151,14 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
   };
   // the first row to answer offers the first title to the middle; whoever is already there keeps it
   current = {rows, fillRow};
-  rows.forEach((x, i) => fillRow(x, i).then(() => autoSpot($('#app .strip'))));
+  rows.forEach((x, i) => fillRow(x, i).then(() => { autoSpot($('#app .strip')); showRow($('#row' + i)); }));
 }
 
+/** The kids profile filters every row: a row left with nothing for children is not shown - until something comes. */
+function showRow(el){
+  const row = el?.closest('.row');
+  if(row) row.hidden = kidsOn() && !el.querySelector('.poster, .skel, .oops');
+}
 /** How long a row of several sources waits for the slow ones before it is drawn from the rest. */
 const FIRST_PAINT_MS = 2500;
 /** What a row of one source says when that source cannot be reached. */
@@ -166,7 +176,7 @@ export function retune(i, origins){
   endless.delete(el);                                  // and so is how it grew: a page still coming belongs to the old source
   el.innerHTML = skeletons(8);
   el.style.transform = '';
-  current.fillRow(x, i).then(() => autoSpot(el));
+  current.fillRow(x, i).then(() => { autoSpot(el); showRow(el); });
 }
 
 /* ---------- a row that does not end ----------

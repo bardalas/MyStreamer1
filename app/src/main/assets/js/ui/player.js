@@ -25,7 +25,7 @@ export function openPlayer(s, title, ctx){
     // A trailer plays inside VEO. Only if YouTube refuses to embed this one is there a way out, and it
     // is a button the viewer presses - never something the app does to them.
     body.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(s.ytId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-    if(window.BoothAndroid?.openYouTube){
+    if(window.BoothAndroid?.openYouTube && document.documentElement.dataset.kids !== 'on'){   // the kids profile does not leave for YouTube
       head.insertAdjacentHTML('beforeend', `<button class="btn ghost" id="ytout">${tr('player.openYt')}</button>`);
       $('#ytout').onclick = () => { closePlayer(); BoothAndroid.openYouTube(s.ytId); };
     }

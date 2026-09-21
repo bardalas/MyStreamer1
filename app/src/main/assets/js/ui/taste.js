@@ -24,6 +24,7 @@ const CONTROLS_FADE_MS = 4500;
 export function startTaste(hostSel, yt, delay = 1500, quiet = false){
   endTaste();
   if(!yt || settings.preview === 'off' || !isTvLayout()) return;
+  if(settings.preview === 'quiet') quiet = true;     // the viewer asked for trailers without sound, everywhere
   tasteTimer = setTimeout(() => {
     const host = $(hostSel);
     if(!host || host.querySelector('.taste') || document.visibilityState !== 'visible') return;
@@ -53,8 +54,6 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
       cmd('setPlaybackQuality', ['medium']);        // a full-screen frame otherwise asks for HD, and stalls
       // No subtitles: loading them brought the player's bar up over the picture, and a taste is to be
       // looked at, not read.
-      // while browsing it stays quiet: a row of trailers shouting at the viewer is not a taste, it is
-      // a takeover. The sound belongs to the title they chose to open.
       // while browsing it stays quiet: a row of trailers shouting at the viewer is not a taste, it is
       // a takeover. The sound belongs to the title they chose to open.
       if(!quiet){ cmd('unMute'); cmd('setVolume', [60]); }

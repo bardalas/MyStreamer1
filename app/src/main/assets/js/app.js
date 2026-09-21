@@ -2,10 +2,12 @@ import {migrateStore} from './core/bridge.js';
 import {$, bgObserver, lazyBg} from './core/dom.js';
 import {invalidateView} from './core/requests.js';
 import {rememberScreen, restoreScreen} from './core/screenmem.js';
+import {settings} from './core/settings.js';
 import {store} from './core/store.js';
 import {loadAddons} from './data/addons.js';
 import {availObserver, resetAvailBudget} from './data/availability.js';
 import {armHeAndAvail, heObserver} from './data/hebrew.js';
+import {kidsOn} from './data/kids.js';
 import {checkReminders} from './data/reminders.js';
 import {loadServices} from './data/services.js';
 import {indexProgress, progress, pruneProgress} from './data/watch.js';
@@ -56,7 +58,13 @@ export function resetObservers(){
    back where you were instead of at the top of the page. */
 export let listHash = '#/';                                 // the list a title was opened from
 export let lastPaint = 0;                                   // when this screen was drawn, so a stale one is redrawn
+/** The screens of the kids profile: its home, Movies and Series, the library, a title, search, favourites
+    and settings (which shows only the way out). Live TV and the broadcasters' own pages are not among them. */
+const KIDS_ROUTES = ['', 'detail', 'library', 'settings', 'search', 'all'];
+const kidsMay = (r, a) => r === 'cat' ? ['movies', 'series'].includes(a) : KIDS_ROUTES.includes(r);
 export async function route(){
+  const [, r0 = '', a0] = location.hash.split('/').map(decodeURIComponent);
+  if(kidsOn() && !kidsMay(r0, a0)) history.replaceState(null, '', '#/');   // anywhere else is the profile's home
   invalidateView();                                 // cancel work from the previous view before rendering
   rememberScreen();
   resetObservers();
@@ -66,7 +74,7 @@ export async function route(){
   canvas.classList.remove('fresh'); void canvas.offsetWidth; canvas.classList.add('fresh');
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   // the menu lights the place you are in; a title or a search keeps the one it was opened from
-  markNav(r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : r === 'all' ? (a === 'movie' ? 'movies' : 'series')
+  markNav(r === '' ? 'home' : r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : r === 'all' ? (a === 'movie' ? 'movies' : 'series')
     : ['live', 'library', 'settings'].includes(r) ? r : '');
   if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
   if(r === 'genres') viewGenres();
@@ -87,17 +95,21 @@ export async function route(){
   restoreScreen();
   lastPaint = Date.now();
 }
-/** The projector logo: back to the last live channel (or home, if nothing was watched yet). */
-document.querySelector('.logo').addEventListener('click', async e => {
+/** The last live channel watched, playing (or Live TV, when it cannot be found). */
+async function tuneLastChannel(){
   const last = store.get('lastChannel', null);
-  if(!last){ location.hash = '#/'; return; }           // no channel yet: the logo is just "home"
-  e.preventDefault();
   try{
     const chans = await liveChannels(last.src);
     const i = chans.findIndex(c => c.name === last.name);
     if(i >= 0) return watchChannel(chans, i, last.src);
   }catch(err){}
   location.hash = '#/live';
+}
+/** The projector logo: back to the last live channel (or home, if nothing was watched yet - and always, in the kids profile). */
+document.querySelector('.logo').addEventListener('click', e => {
+  if(kidsOn() || !store.get('lastChannel', null)){ location.hash = '#/'; return; }
+  e.preventDefault();
+  tuneLastChannel();
 });
 /** The player reports how far the viewer got; it feeds "המשך צפייה" and resuming. */
 window.boothProgress = json => {
@@ -118,6 +130,7 @@ window.boothProgress = json => {
 
 /** The player asks for a channel's catch-up (long press OK while watching). */
 window.boothCatchup = async name => {
+  if(kidsOn()) return;
   const last = store.get('lastChannel', null);
   try{
     const chans = await liveChannels(last?.src || 'il');
@@ -136,7 +149,11 @@ export const paintNet = () => offbar.classList.toggle('on', !navigator.onLine);
 addEventListener('offline', paintNet);
 addEventListener('online', () => { paintNet(); route(); });
 paintNet();
-/* ---------- boot ---------- */
+/* ---------- boot ----------
+   VEO opens on the screen chosen in Settings → General; the kids profile always opens on its home. */
+const START = {live: '#/live', movies: '#/cat/movies', series: '#/cat/series'};
+const bare = !location.hash;
+if(bare && !kidsOn() && START[settings.start]) history.replaceState(null, '', START[settings.start]);
 export async function boot(){
   if(await migrateStore()) return;                     // what was kept before is being brought over
   const ready = loadAddons();
@@ -146,15 +163,16 @@ export async function boot(){
     await ready;                                       // and when the add-ons finally arrive,
     if(['', '#/', '#'].includes(location.hash)) route();   // fill the home screen they left empty
   }
+  if(bare && !kidsOn() && settings.start === 'lastch' && store.get('lastChannel', null)) tuneLastChannel();
   setTimeout(loadServices, 3000);
+  if(kidsOn()) return;                                 // no offers to install, no reminders of grown-up titles
   setTimeout(() => checkUpdate(true), 2500);
   setTimeout(checkReminders, 9000);
 }
 boot();
 addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible'){ endTaste(); return; }
-  checkUpdate();
-  checkReminders();
+  if(!kidsOn()){ checkUpdate(); checkReminders(); }
   // a screen left open for a while is old news: draw it again, with fresh titles and another featured one
   if(Date.now() - lastPaint > 15 * 60e3) route();
 });
