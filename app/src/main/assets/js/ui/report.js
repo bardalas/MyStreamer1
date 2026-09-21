@@ -74,9 +74,14 @@ async function send(){
     elsewhere(title, body);
   }
 }
-/** GitHub's own page for a new issue, filled in: a code to scan with a phone on a television, a link on a phone. */
+/** GitHub's own page for a new issue: a code to scan with a phone on a television, a link on a phone. The code
+    holds a short address - the version and device as its title - since a long one is too dense for a phone
+    to read off a screen; the words are typed on the phone, where typing is easy. */
 async function elsewhere(title, body){
-  const url = `${REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body.slice(0, 600))}`;
+  const d = device();
+  const short = [APP_VERSION && 'VEO ' + APP_VERSION, d.name || d.model].filter(Boolean).join(' · ') || 'VEO';
+  const url = device().tv ? `${REPO}/issues/new?title=${encodeURIComponent(short)}`
+    : `${REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body.slice(0, 1500))}`;
   const box = $('#rqr');
   if(!box) return;
   if(!device().tv){
@@ -87,10 +92,10 @@ async function elsewhere(title, body){
   }
   const qr = await loadQr();
   if(!qr || !box.isConnected){ box.innerHTML = `<p class="snote">${esc(REPO)}/issues</p>`; return; }
-  const code = qr(0, 'L');
+  const code = qr(0, 'M');
   code.addData(url);
   code.make();
-  box.innerHTML = `<p class="snote">${tr('rep.scan')}</p>${code.createSvgTag({cellSize: 4, margin: 3})}`;
+  box.innerHTML = `<p class="snote">${tr('rep.scan')}</p>${code.createSvgTag({cellSize: 6, margin: 4})}`;
 }
 let qrLib = null;
 const loadQr = () => qrLib ||= new Promise(res => {

@@ -50,7 +50,7 @@ body.who main{margin-inline-start:0}
 .av:focus .avatar,.av:hover .avatar{transform:scale(1.1);box-shadow:0 0 0 4px var(--light)}
 .profacts{display:flex;gap:12px;margin-top:8px}
 /* a problem report (js/ui/report.js): GitHub's page as a code to scan, on a light square so a phone reads it */
-.repqr svg{display:block;width:190px;height:190px;margin-top:8px;background:#fff;border-radius:10px}
+.repqr svg{display:block;width:230px;height:230px;margin-top:8px;background:#fff;border-radius:10px}
 .reportpage .profhead .field{max-width:640px}
 /* a profile on a settings line: its avatar beside its name */
 .sline .st b .avatar{margin-inline-end:10px;vertical-align:middle}
