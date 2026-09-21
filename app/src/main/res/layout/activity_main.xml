@@ -1,3 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WebView xmlns:android="http://schemas.android.com/apk/res/android"
- android:id="@+id/web" android:layout_width="match_parent" android:layout_height="match_parent"/>
+<!-- The page sits inside a frame that keeps it clear of the system bars (MainActivity): a WebView draws its
+     page over its own padding, so the room for the bars is the frame's. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent">
+ <WebView android:id="@+id/web" android:layout_width="match_parent" android:layout_height="match_parent"/>
+</FrameLayout>

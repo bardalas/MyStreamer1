@@ -5,6 +5,7 @@
    Back closes), its bar and times, and the captions the app translated, drawn by the page. The picture
    never takes the remote: the page keeps it, and tells the embedded player what to do. */
 import {esc} from '../core/dom.js';
+import {settings} from '../core/settings.js';
 import {tr} from '../i18n.js';
 
 const OSD_MS = 3500;                   // how long the bar stays after a key, while the video plays
@@ -59,6 +60,7 @@ export async function openYt(body, id, title, out){
     <div class="ytcue" aria-live="off"><span id="ytcue"></span></div>
     <p class="ytsay" id="ytsay" hidden></p></div>`;
   root = body.querySelector('#ytp');
+  root.style.setProperty('--subscale', +settings.subScale || 1.25);   // the subtitles' size the viewer chose
   root.focus();
   const YT = await loadApi();
   if(now !== id) return;                                // closed meanwhile

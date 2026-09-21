@@ -24,7 +24,9 @@
 .ytstate{width:0;height:0;border-style:solid;border-width:9px 0 9px 15px;border-color:transparent transparent transparent #fff}
 .ytstate:not(.paused){width:14px;height:18px;border:0;border-inline:5px solid #fff}
 .ytcue{position:absolute;inset-inline:0;bottom:9%;display:flex;justify-content:center;pointer-events:none;padding:0 8%}
-.ytcue span{max-width:100%;color:#fff;font:600 32px/1.35 var(--body);text-align:center;white-space:pre-line;
+/* sized for the screen - a television's, a phone's either way up - and times the viewer's subtitle size
+   (Settings → Playback, --subscale: js/ui/ytplayer.js) */
+.ytcue span{max-width:100%;color:#fff;font:600 calc(min(4.6vh,3.4vw) * var(--subscale,1.25))/1.35 var(--body);text-align:center;white-space:pre-line;
   text-shadow:0 0 4px #000,0 2px 3px #000,0 0 1px #000}
 .ytcue span:empty{display:none}
 .ytosd.on ~ .ytcue{bottom:17%}

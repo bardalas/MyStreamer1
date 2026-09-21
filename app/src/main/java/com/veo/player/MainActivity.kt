@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     /** Where the page lives now, and where it lived before 0.37 (its storage is moved over once). */
     private val PAGE = "https://appassets.androidplatform.net/assets/booth.html"
     private lateinit var web: WebView
+    private lateinit var root: android.view.View
     private val REQ_LIVE = 1
     private val REQ_INSTALL = 2
     @Volatile private var updateCancelled = false
@@ -39,18 +40,21 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         web = findViewById(R.id.web)
-        // Android 15+ lays app content edge-to-edge. Keep the WebView itself inside the visible
-        // system-bar area so the status/navigation bars never float over VEO's artwork or controls.
-        // A view paints its own background across its padding, and a WebView's is white by default -
-        // so the strips are given the page's own night colour, or they read as two white bands.
-        // The sides count too: held sideways, a phone puts its navigation bar on one of them.
-        web.setBackgroundColor(Skin(getSharedPreferences("veo", MODE_PRIVATE)).night)
-        ViewCompat.setOnApplyWindowInsetsListener(web) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        // Android 15+ lays app content edge-to-edge. The page is kept inside the visible area, under the
+        // status bar (clock, battery) and clear of the navigation bar, so neither floats over VEO. A
+        // WebView draws its page over its own padding - padding it did nothing - so the room is made by
+        // the frame around it, whose strips wear the page's own night colour. The sides count too: held
+        // sideways, a phone puts its navigation bar on one of them. A television has no bars: no room.
+        root = findViewById(R.id.root)
+        val night = Skin(getSharedPreferences("veo", MODE_PRIVATE)).night
+        web.setBackgroundColor(night)
+        root.setBackgroundColor(night)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
+            WindowInsetsCompat.CONSUMED
         }
-        ViewCompat.requestApplyInsets(web)
+        ViewCompat.requestApplyInsets(root)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.settings.mediaPlaybackRequiresUserGesture = false
@@ -210,7 +214,7 @@ class MainActivity : AppCompatActivity() {
                 for (k in o.keys()) putString(k, o.optString(k))
             }.apply()
             // the strips behind the system bars are painted by the WebView, so they follow the skin too
-            runOnUiThread { web.setBackgroundColor(Skin(prefs).night) }
+            runOnUiThread { Skin(prefs).night.let { web.setBackgroundColor(it); root.setBackgroundColor(it) } }
         }
 
         /** This build's version name, so the page can tell whether a newer one was released. */
