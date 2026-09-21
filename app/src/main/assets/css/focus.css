@@ -1,36 +1,39 @@
 /* ---------- what "here" looks like ----------
-   Nothing is drawn around the thing you are on - moving onto it is what marks it. A control fills
-   with the accent, a row lights up with a line along the edge you came from, and a title grows a
-   little and brightens. The browser's own ring is taken off once the page is running (body.motion),
-   so a page without its scripts still shows focus the ordinary way. */
-body.motion :focus-visible{outline:none}
+   Where you are is white; what is chosen wears the accent. Two different questions, two answers -
+   and never the same colour, or "here" and "on" would be impossible to tell apart.
 
-/* Where you are is white; what is chosen wears the accent. Two different questions, two answers -
-   and never the same colour, or "here" and "on" would be impossible to tell apart. */
-.btn:focus-visible,.qbtn:focus-visible,.altbtn:focus-visible,.chip:focus-visible,.sortpill:focus-visible,
-.sopt:focus-visible,.nav a:focus-visible,.search .ic:focus-visible,.railbtn:focus-visible,.bctabs a:focus-visible,
-.stabs button:focus-visible,.seasonbar button:focus-visible,.days button:focus-visible,
-.keypad button:focus-visible,.playbtn:focus-visible,.livebtn:focus-visible,.readmore:focus-visible,
-.update button:focus-visible,.tstat button:focus-visible,.oops button:focus-visible,
-.catorder button:focus-visible,.danger:focus-visible,.tact:focus-visible,.seg button:focus-visible{
+   Every rule answers to :focus as well as :focus-visible. The page moves the focus itself, with
+   element.focus(), and a browser does not always count that as "visible" - which left a viewer with
+   a remote in their hand looking at a screen that marked nothing at all. The browser's own ring is
+   still taken off once the page is running (body.motion), because the page draws its own. */
+body.motion :focus,body.motion :focus-visible{outline:none}
+
+.btn:focus,.qbtn:focus,.altbtn:focus,.chip:focus,.sortpill:focus,
+.sopt:focus,.nav a:focus,.search .ic:focus,.railbtn:focus,.bctabs a:focus,
+.stabs button:focus,.seasonbar button:focus,.days button:focus,
+.keypad button:focus,.playbtn:focus,.livebtn:focus,.readmore:focus,
+.update button:focus,.tstat button:focus,.oops button:focus,
+.catorder button:focus,.danger:focus,.tact:focus,.seg button:focus{
   background:var(--light);color:var(--night);border-color:transparent;box-shadow:none}
-.tact:focus-visible .sub,.seg button:focus-visible .sub{color:#0009}
-.sortpill:focus-visible b,.playbtn:focus-visible small,.btn:focus-visible .rate{color:inherit;opacity:.85}
-.nav a:focus-visible .ic{color:var(--on-accent)}
+.tact:focus .sub,.seg button:focus .sub{color:#0009}
+.tact.ic:focus svg{color:var(--night)}
+.sortpill:focus b,.playbtn:focus small,.btn:focus .rate{color:inherit;opacity:.85}
+.nav a:focus .ic{color:var(--on-accent)}
 
 /* rows and cards: they light up, with a mark down the side you arrived from */
-.ep:focus-visible,.eprow:focus-visible,.srow:focus-visible,.prog:focus-visible,.chan:focus-visible,
-.epcard:focus-visible .art,
-.continue:focus-visible,.chmain:focus-visible,.plrow:focus-visible,.setopt:focus-visible,
+.ep:focus,.eprow:focus,.srow:focus,.prog:focus,.chan:focus,
+.epcard:focus .art,
+.continue:focus,.chmain:focus,.plrow:focus,.setopt:focus,
 .addon:focus-within{
   background:var(--raise);box-shadow:inset calc(3px * var(--flip)) 0 0 var(--tungsten)}
-.setopt:focus-visible{border-color:var(--tungsten)}
+.setopt:focus{border-color:var(--tungsten)}
 
-/* a title: it comes forward, and says its name in the accent */
-.poster:focus-visible .art{transform:translateY(-3px) scale(1.03);filter:brightness(1.08);
-  box-shadow:0 14px 34px -14px #000c}
-.poster:focus-visible .t{color:var(--tungsten)}
-[data-layout="tv"] .poster:focus .t,[data-layout="tv"] .poster:focus-visible .t{color:var(--tungsten)}
+/* a title: it comes forward, wears a ring and says its name in the accent. The ring is the one mark
+   a picture can carry - a picture has no background to fill - and an outline neither reflows the row
+   nor asks a television to paint a blur. */
+.poster:focus .art{transform:translateY(-3px) scale(1.03);
+  outline:3px solid var(--light);outline-offset:3px}
+.poster:focus .t{color:var(--tungsten)}
 
 /* the search box is a field: it keeps a field's outline */
 body.motion .search input:focus{border-color:var(--tungsten);box-shadow:0 0 0 2px var(--tungsten)}

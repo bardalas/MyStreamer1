@@ -29,6 +29,12 @@ main{position:relative}
 .tact.ic{width:42px;height:42px;padding:0;border-radius:50%}
 .tact.ic svg{width:21px;height:21px}
 .tact.saved{background:var(--velvet);color:#fff}
+/* Saved has to read as a shape, not only as a fill: standing on the heart paints it white (focus.css),
+   which would take the only sign that it had been pressed away at the very moment of pressing it. */
+.tact.saved svg{fill:currentColor}
+/* a mark that is not there is not laid out - .tact's own display would otherwise beat [hidden], and
+   the D-pad would stop on a button nobody can see */
+.tact[hidden]{display:none}
 [data-layout="tv"] .tact{font-size:16px}
 [data-layout="tv"] .tact.ic{width:52px;height:52px}
 [data-layout="tv"] .tact.ic svg{width:26px;height:26px}

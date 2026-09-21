@@ -24,7 +24,8 @@ export async function fetchTimed(url, ms, opts){
 }
 export async function getJSON(url, ms = 9000){
   const r = await fetchTimed(url, ms);
-  if(!r.ok) throw new Error(r.status + ' from ' + new URL(url).host);
+  // the status travels with the error: an answer of "no" is worth repeating to nobody
+  if(!r.ok){ const e = new Error(r.status + ' from ' + new URL(url).host); e.status = r.status; throw e; }
   return r.json();
 }
 

@@ -70,6 +70,7 @@ export async function viewDetail(type, id){
       <div class="tacts">
         <button class="tact ic ${saved?'saved':''}" id="lib" aria-label="${esc(libLabel(saved))}" title="${esc(libLabel(saved))}">${IC.heart}</button>
         ${meta.trailers?.[0]?.source ? `<button class="tact ic" id="trailer" aria-label="${esc(tr('detail.trailer'))}" title="${esc(tr('detail.trailer'))}">${IC.trailer}</button>` : ''}
+        <button class="tact" id="restart" hidden>${tr('detail.fromStart')}</button>
         <span id="streams" class="psrc"></span>
       </div>
       <div id="palt"></div>
@@ -106,7 +107,20 @@ export async function viewDetail(type, id){
   };
   // The first button plays whatever the list has chosen; the list is one press below it.
   let chosen = null;                                   // {id, label}
-  const play = () => { if(chosen) loadStreams(ctx, chosen.id, chosen.label, true); };
+  const play = (fromStart = false) => { if(chosen) loadStreams(ctx, chosen.id, chosen.label, true, fromStart); };
+  /** Where the viewer stopped, as a clock reads it. */
+  const clock = s => {
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = Math.floor(s % 60);
+    return h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
+  };
+  /** The line that starts it says which of the two it will do; "from the beginning" is offered beside it. */
+  const sayWhere = id => {
+    const w = progress[id], part = w && w.d && w.t < w.d - 60 ? w.t : 0;
+    const line = $('#eps')?.querySelector('.epcard.solo b');
+    if(line) line.textContent = part ? tr('detail.resumeAt', {t: clock(part)}) : tr('detail.startFilm');
+    const again = $('#restart');
+    if(again) again.hidden = !part;
+  };
   if(seasons.length){
     const renderEps = s => {
       const eps = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0));
@@ -117,6 +131,12 @@ export async function viewDetail(type, id){
         const label = `${meta.name} S${v.season}E${v.episode ?? v.number}`;
         chosen = {id: v.id, label};
         showProgress(v.id);
+        const w = progress[v.id];
+        const again = $('#restart');
+        if(again){
+          again.hidden = !(w && w.d && w.t < w.d - 60);
+          again.onclick = () => play(true);
+        }
         loadStreams(ctx, v.id, label, watch);
       };
       // choosing an episode is asking to watch it; arriving on the page only lines the first one up
@@ -155,6 +175,8 @@ export async function viewDetail(type, id){
     showProgress(vid);
     row.onclick = () => { row.classList.add('on'); play(); };
     row.classList.add('on');
+    sayWhere(vid);                                   // "continue from 41:20", or "start playing"
+    if($('#restart')) $('#restart').onclick = () => play(true);
     loadStreams(ctx, vid, meta.name);                    // the sources are looked for straight away
   }
 }

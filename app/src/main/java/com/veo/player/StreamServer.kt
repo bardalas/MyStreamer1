@@ -92,6 +92,7 @@ class StreamServer(
                     append("Connection: close\r\n\r\n")
                 }
                 out.write(header.toByteArray(Charsets.ISO_8859_1))
+                out.flush()                      // the player learns the file's shape now, not after 64 KB
                 if (requestLine.startsWith("HEAD")) { out.flush(); return }
 
                 val buf = ByteArray(64 * 1024)
@@ -145,18 +146,29 @@ class StreamServer(
             handle.setPieceDeadline(p, i * 200)
         }
         val began = System.currentTimeMillis()
-        var told = false
-        while (!handle.havePiece(piece)) {
-            if (closed) throw IOException("stream stopped")
-            // a wait long enough to be noticed says so, and says how the pieces are coming in
-            if (System.currentTimeMillis() - began > 700) {
-                told = true
-                val st = handle.status()
-                onStatus("""{"p":"seek","kbs":${st.downloadRate() / 1024},"peers":${st.numPeers()}}""")
+        var told = 0L
+        try {
+            while (!handle.havePiece(piece)) {
+                if (closed) throw IOException("stream stopped")
+                /* A wait long enough to be noticed says so, and says how the pieces are coming in -
+                   once a second, and only from the read that is still wanted. Ten times a second kept
+                   re-arming the page's own delay (js/ui/torrent.js holds a message back for 900ms), so
+                   the card never appeared while the wait was on; and an abandoned read went on talking
+                   over the one that replaced it. */
+                val now = System.currentTimeMillis()
+                if (now - began > 700 && now - told > 1000 && piece == atPiece) {
+                    told = now
+                    val st = handle.status()
+                    onStatus("""{"p":"seek","kbs":${st.downloadRate() / 1024},"peers":${st.numPeers()}}""")
+                }
+                Thread.sleep(100)
             }
-            Thread.sleep(100)
+        } finally {
+            // However the wait ends - the piece arrives, the viewer leaves, the socket closes - what was
+            // said about it goes away with it. The clear used to sit after the throw, so leaving a film
+            // in the middle left "fetching this part…" on the page behind it.
+            if (told > 0L) onStatus("")
         }
-        if (told) onStatus("")
     }
 
     private fun mimeType(name: String) = when (name.substringAfterLast('.').lowercase()) {

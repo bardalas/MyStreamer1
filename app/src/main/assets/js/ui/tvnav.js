@@ -50,7 +50,10 @@ export const tvScope = () => openCard() || document;
  */
 let rowCache = null;
 const itemCache = new WeakMap();
-export function forgetRows(){ rowCache = null; }
+let gen = 0;                                       // a change of the screen is a new generation of answers
+// A button that was only hidden is still connected, so the isConnected check in itemsOf() cannot see
+// it go - nor a source button arriving beside it. The generation is what makes both noticed.
+export function forgetRows(){ rowCache = null; gen++; }
 
 export const tvRows = () => {
   const scope = tvScope();
@@ -66,10 +69,10 @@ export const tvRows = () => {
 };
 export const itemsOf = row => {
   const kept = itemCache.get(row);
-  if(kept && kept.length && kept.every(el => el.isConnected)) return kept;
+  if(kept && kept.gen === gen && kept.items.length && kept.items.every(el => el.isConnected)) return kept.items;
   // the buttons of the title in the middle of a wheel are a step below the row, not part of it
   const items = [...row.querySelectorAll(FOCUSABLE)].filter(el => visible(el) && !el.closest('.spotact'));
-  itemCache.set(row, items);
+  itemCache.set(row, {gen, items});
   return items;
 };
 /* A screen that is drawn again is a different screen: anything added, removed or hidden forgets what
@@ -83,13 +86,22 @@ const lookAgain = () => {
   const held = !!openCard();
   if(document.body.classList.contains('sheeted') !== held) document.body.classList.toggle('sheeted', held);
 };
+/* A wheel turning is not a new screen. Stepping along a row takes the panel under the middle title
+   off and puts it back, writes its position and the row's turn as inline styles (js/ui/reel.js), and a
+   poster's picture arrives as an inline style too (js/core/dom.js) - none of which changes what the
+   arrows can reach. Treating all of that as a new screen threw the cache above away on every single
+   press, which is the cost it exists to avoid. Only the status card hides itself with an inline
+   style; everything else that comes and goes does so as an element, or with `hidden`. */
+const cosmetic = n => n.nodeType !== 1 || n.classList.contains('spotact')
+  || n.classList.contains('spotinfo') || n.classList.contains('taste');
+const inTrim = el => el?.nodeType === 1 && !!el.closest?.('.spotact, .art');
 new MutationObserver(muts => {
   if(pendingLook) return;
   for(const m of muts){
-    if(m.type !== 'childList' || m.addedNodes.length || m.removedNodes.length){
-      pendingLook = requestAnimationFrame(lookAgain);
-      return;
-    }
+    const changed = m.type === 'childList'
+      ? !inTrim(m.target) && [...m.addedNodes, ...m.removedNodes].some(n => !cosmetic(n))
+      : m.attributeName === 'hidden' || m.target.id === 'tstatus';
+    if(changed){ pendingLook = requestAnimationFrame(lookAgain); return; }
   }
 }).observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'style']});
 addEventListener('hashchange', forgetRows);

@@ -1,5 +1,32 @@
 # VEO Android changelog
 
+## 0.42.0 — 2026-09-21
+- **A film continues where it stopped.** The position was written as the player shut down — after the
+  page underneath had already been asked for it — so every film resumed one watching behind: what was
+  saved last night was offered tonight. It is now written as the viewer leaves, and the page is not
+  told to forget it until it has actually taken it (on a cold start it used to be cleared before
+  anything was listening, and lost for good).
+- **נגן מהתחלה** sits beside the film, and the line that plays it says which of the two it will do —
+  “המשך מ־41:20” or “התחל לנגן”. It is the size of its own words, not the width of the screen.
+- **Playback starts sooner.** The picture waited for every add-on to answer, however slow the slowest
+  was; now the first playable source starts it, with a moment's grace for a better one. An add-on
+  that answers “no” is no longer asked again twelve seconds later, and the player holds a second of
+  media before the first frame instead of two and a half.
+- **Pressing pause is unmistakable**: the picture dims and two bars stand in the middle of it.
+- **“מביא את הקטע הזה…” no longer follows you out of the film.** The clear sat after the throw, so a
+  stream stopped mid-seek left its last words on the page behind it — where they also held the remote.
+- **The heart shows that it was pressed.** Standing on it paints it white, which took away the very
+  colour that said it was saved; saved is now the shape of the heart, which survives it.
+- **Where you are is marked again.** Every focus rule answers to a focus the page moved itself — a
+  browser does not always count that as “visible”, which left a remote marking nothing at all — and a
+  picture you are on wears a white ring.
+- **The remote is quick again.** The list of what the arrows can reach was being thrown away on every
+  single press (a wheel turning writes inline styles, and that was read as a new screen), the side
+  menu pushed the whole page aside over a third of a second of full relayouts, and a button that was
+  hidden still took a stop because it was still laid out.
+- A jump into a torrent gets five minutes rather than two before it is called a failure, and the
+  player's own spinner now says it is fetching rather than showing black.
+
 ## 0.41.2 — 2026-09-21
 - **A film's line says what pressing it does** — “התחל לנגן” — instead of repeating the name already
   at the top of the page, and being the only line there is, it no longer wears a band of colour

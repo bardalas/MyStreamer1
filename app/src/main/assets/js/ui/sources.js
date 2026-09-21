@@ -108,8 +108,10 @@ export function playStream(s, label, ctx){
   const vid = ctx.videoId || '';
   // what is playing (for "continue watching") and where to resume from
   const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || ''});
+  // Where to start: where the viewer stopped, unless they asked for the beginning - or unless they
+  // were within a minute of the end, which is a film that is over rather than one to go back into.
   const done = progress[vid];
-  const pos = done && done.d && done.t < done.d - 60 ? Math.floor(done.t * 1000) : 0;
+  const pos = ctx.fromStart || !(done && done.d && done.t < done.d - 60) ? 0 : Math.floor(done.t * 1000);
   if(s.externalUrl && s.externalUrl.startsWith('#')){ location.hash = s.externalUrl; return; }
   if(s.url && window.BoothAndroid) BoothAndroid.playUrl(s.url, label, vid, release, meta, pos);
   else if(s.url || s.ytId) openPlayer(s, label, ctx);
@@ -180,7 +182,7 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
    check all share the same answer for ten minutes. */
 
 
-export async function loadStreams({type, meta}, videoId, label, autoplay = false){
+export async function loadStreams({type, meta}, videoId, label, autoplay = false, fromStart = false){
   if(autoplay) endTaste();                          // they are watching this, not sampling it
   const token = ++streamsToken;                     // invalidate the previous request before any exit
   lastStreams = null;
@@ -191,7 +193,7 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
   const takeFocus = isTvLayout() && (!document.activeElement || document.activeElement === document.body
     || document.activeElement.closest('.eps'));
   const src = addons.filter(a => supports(a.manifest, 'stream', type, videoId));
-  const ctx = {videoId, type, meta};
+  const ctx = {videoId, type, meta, fromStart};
   const all = [], errors = [];
   const clean = t => typeof t === 'string' ? t.trim().toLowerCase() : '';
   const name = clean(meta?.name || label);
@@ -215,6 +217,16 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
   ] : [];
   let pendingAddons = src.length, pendingBroadcasters = broadcasters.length;
   let focused = false, played = false;
+  /* A source in hand beats a source that might be better. Waiting for every add-on meant the slowest
+     one decided when the film began - twenty-odd seconds, for a list whose first answer was already
+     playable. Once one of them has answered, the stragglers get a moment and then the picture starts.
+     The moment is counted from that first answer, not from opening the page, so it cannot start on
+     whatever a weak add-on happened to return before the good one spoke. */
+  let impatient = false, graceTimer = 0;
+  const grace = () => {
+    if(!autoplay || played || graceTimer) return;
+    graceTimer = setTimeout(() => { impatient = true; render(); }, 1500);
+  };
   const retry = () => { if(current()) return loadStreams({type, meta}, videoId, label); };
   const render = () => {
     if(!current()) return;
@@ -223,8 +235,9 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
     // Broadcaster pages must not delay a playable source from an add-on.
     if(autoplay && !played){
       const ready = pickQ(all.filter(x => !x.external && x.q !== 'CAM' && rank(x) > 0).sort((a, b) => rank(b) - rank(a)));
-      if(ready && (!pendingAddons || ready.direct || ready.q === prefQ)){
+      if(ready && (!pendingAddons || impatient || ready.direct || ready.q === prefQ)){
         played = true;
+        clearTimeout(graceTimer);
         playStream(ready.s, label, ctx);
         return;
       }
@@ -252,7 +265,7 @@ export async function loadStreams({type, meta}, videoId, label, autoplay = false
       for(const s of streams) all.push(parseStream(s, a.manifest.name, all.length));
     }catch(e){
       if(current()) errors.push(`${a.manifest.name}: ${e?.message || tr('net.noResponse')}`);
-    }finally{ pendingAddons--; render(); }
+    }finally{ pendingAddons--; grace(); render(); }   // one has answered: the rest get a moment, not the wait
   }));
   await Promise.all([addonWork, broadcasterWork]);
   if(current() && type === 'movie' && meta?.id && src.length){

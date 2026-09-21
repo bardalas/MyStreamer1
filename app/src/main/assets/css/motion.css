@@ -50,6 +50,7 @@
    the animation. Only the movement is animated - movement is the one thing a screen does for free. */
 [data-layout="tv"] .poster .art{transition:transform var(--quick) var(--ease)}
 [data-layout="tv"] .poster:focus .art,[data-layout="tv"] .poster:focus-visible .art{
-  filter:none;box-shadow:0 10px 22px -12px #000c}
+  filter:none;box-shadow:0 10px 22px -12px #000c;
+  outline:3px solid var(--light);outline-offset:3px}      /* an outline neither reflows nor blurs */
 [data-layout="tv"] .strip{scroll-snap-type:none}
 [data-layout="tv"] input[readonly]{caret-color:transparent;cursor:pointer}

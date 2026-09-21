@@ -26,6 +26,9 @@ class MainActivity : AppCompatActivity() {
     private val REQ_LIVE = 1
     private val REQ_INSTALL = 2
     @Volatile private var updateCancelled = false
+    // True while a version is being downloaded: the one thing on the status card that must survive a
+    // trip out of the app and back (see onResume, which otherwise clears whatever is left on it).
+    @Volatile private var updateBusy = false
     // An update that was downloaded but could not be installed yet (the device has still to be told
     // to allow it). Kept so that coming back from that setting finishes the job by itself, instead
     // of asking the viewer to find the update card again.
@@ -200,6 +203,7 @@ class MainActivity : AppCompatActivity() {
          *  progress through the same status card the torrent engine uses. */
         @JavascriptInterface fun updateApp(url: String) {
             updateCancelled = false
+            updateBusy = true
             Thread {
                 val status = { msg: String, err: Boolean -> runOnUiThread {
                     web.evaluateJavascript("window.boothTorrentStatus && boothTorrentStatus(${JSONObject.quote(msg)}, $err)", null)
@@ -252,6 +256,8 @@ class MainActivity : AppCompatActivity() {
                     // otherwise reported as "failed ()", which tells nobody anything
                     val why = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
                     status("הורדת העדכון נכשלה ($why)", true)
+                } finally {
+                    updateBusy = false
                 }
             }.start()
         }
@@ -371,6 +377,12 @@ class MainActivity : AppCompatActivity() {
     // Back: let the page close an open panel/keyboard first, then go back, then leave the app.
     override fun onResume() {
         super.onResume()
+        /* Whatever the torrent was saying belongs to the film that was playing, not to this page. The
+           engine keeps reporting while the player is in front - "fetching this part…" as it seeks - and
+           the last thing it said was being left on the page when the viewer came back, over the titles,
+           holding the remote inside it (a visible status card is a card the D-pad stays in). The one
+           message that outlives the player is a version being downloaded. */
+        if (!updateBusy) showStatus("")
         // back from the device's settings: if it will take an update now, install the one already here
         pendingUpdate?.let { file ->
             if (file.exists() && (android.os.Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())) {
@@ -379,12 +391,42 @@ class MainActivity : AppCompatActivity() {
             }
         }
         // Progress written by the player while watching -> "continue watching" in the page.
+        pushProgress()
+    }
+
+    /**
+     * Hand the player's saved positions to the page, and forget them only once it has taken them.
+     *
+     * This runs on every resume, including the one immediately after onCreate - before booth.html has
+     * loaded, when there is no `boothProgress` to call. The old code removed the positions first and
+     * called afterwards, so a page that was not up yet lost them for good: back out of a film on a box
+     * that had dropped this activity from memory, and where you got to was gone. Now nothing is
+     * removed until the page answers that it has them, and what is removed is only what was handed
+     * over, unchanged - a film that was still playing when this ran writes its own entry in the
+     * meantime, and that entry must survive.
+     */
+    private fun pushProgress(tries: Int = 20) {
         val prefs = getSharedPreferences("watch", MODE_PRIVATE)
-        val progress = prefs.getString("progress", null)
-        if (!progress.isNullOrBlank() && progress != "{}") {
-            prefs.edit().remove("progress").apply()
-            web.evaluateJavascript("window.boothProgress && boothProgress(${JSONObject.quote(progress)})", null)
+        val sent = prefs.getString("progress", null)
+        if (sent.isNullOrBlank() || sent == "{}") return
+        web.evaluateJavascript(
+            "(window.boothProgress && (boothProgress(${JSONObject.quote(sent)}), true)) || false"
+        ) { taken ->
+            if (taken == "true") forgetDelivered(sent)
+            else if (tries > 0) web.postDelayed({ pushProgress(tries - 1) }, 400)   // the page is still loading
         }
+    }
+
+    /** Drop exactly the entries the page took, and only if the player has not written them again. */
+    private fun forgetDelivered(sent: String) {
+        val prefs = getSharedPreferences("watch", MODE_PRIVATE)
+        val delivered = runCatching { JSONObject(sent) }.getOrNull() ?: return
+        val now = runCatching { JSONObject(prefs.getString("progress", "{}") ?: "{}") }.getOrNull() ?: return
+        for (id in delivered.keys()) {
+            val was = delivered.optJSONObject(id)?.optLong("at") ?: continue
+            if (now.optJSONObject(id)?.optLong("at") == was) now.remove(id)
+        }
+        prefs.edit().putString("progress", now.toString()).apply()
     }
 
     /**

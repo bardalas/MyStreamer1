@@ -98,7 +98,10 @@ export function fetchStreams(a, type, videoId){
   const hit = streamCache.get(key);
   if(hit && Date.now() - hit.at < STREAM_TTL) return hit.p;
   const url = `${a.base}/stream/${type}/${encodeURIComponent(videoId)}.json`;
-  const p = getJSON(url, 12000).catch(() => new Promise(r => setTimeout(r, 700)).then(() => getJSON(url, 12000)))   // one quiet retry
+  // One quiet retry - but only for a silence. An add-on that answered "not found" or "go away" will
+  // answer the same thing again, and asking it twice held the film back by another twelve seconds.
+  const p = getJSON(url, 12000)
+    .catch(e => { if(e?.status) throw e; return new Promise(r => setTimeout(r, 700)).then(() => getJSON(url, 12000)); })
     .then(d => d.streams || []);
   p.catch(() => streamCache.delete(key));                    // a failure is never remembered
   streamCache.set(key, {at: Date.now(), p});

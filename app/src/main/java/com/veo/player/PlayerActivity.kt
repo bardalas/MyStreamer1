@@ -364,7 +364,10 @@ class PlayerActivity : AppCompatActivity() {
         // automatic retry can rebuild, instead of hanging two minutes looking frozen.
         val http = DefaultHttpDataSource.Factory()
             .setConnectTimeoutMs(if (live) 8_000 else 30_000)
-            .setReadTimeoutMs(if (live) 10_000 else 120_000)
+            // A jump into the middle of a torrent has to find those pieces in the swarm; five minutes
+            // of rope, against the two the rest of the world gets, is the difference between resuming a
+            // film and being told it failed.
+            .setReadTimeoutMs(if (live) 10_000 else if (intent.getBooleanExtra("torrent", false)) 300_000 else 120_000)
             .setAllowCrossProtocolRedirects(true)
         // Per-channel headers from IPTV playlists, and user:pass@host logins (e.g. TVHeadend).
         // Live channels that name no agent get a browser one - some IPTV panels throttle
@@ -376,8 +379,16 @@ class PlayerActivity : AppCompatActivity() {
             basicAuth(url)?.let { put("Authorization", it) }
         }
         if (headers.isNotEmpty()) http.setDefaultRequestProperties(headers)
+        /* How much has to be in hand before the picture starts.
+         *
+         * The fourth number is the one a viewer feels: it is the media the player insists on holding
+         * before it will show anything, and two and a half seconds of it is two and a half seconds of
+         * black screen on every film and after every jump - on top of the fetching itself. A second is
+         * enough to start smoothly, and the rest keeps filling behind the picture. Time is what a
+         * viewer is waiting for, so the player is told to weigh it above the size of what it holds. */
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(if (live) 8_000 else 30_000, 120_000, if (live) 1_200 else 2_500, 4_000)
+            .setBufferDurationsMs(if (live) 8_000 else 15_000, 90_000, if (live) 1_000 else 900, 2_000)
+            .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
         // The files that were found are drawn by the app (see [useCaptions]); only tracks inside the
@@ -412,6 +423,7 @@ class PlayerActivity : AppCompatActivity() {
                     .build()
                 it.addListener(object : Player.Listener {
                     override fun onPlayerError(error: PlaybackException) = onError(error)
+                    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = showPaused(!playWhenReady)
                     override fun onPlaybackStateChanged(state: Int) {
                         if (state != Player.STATE_READY) return
                         hideErrorPanel()
@@ -421,7 +433,11 @@ class PlayerActivity : AppCompatActivity() {
                 // a jump lands on the nearest picture the file starts from: far less to fetch, and it is
                 // a second either way in a film
                 if (!live) it.setSeekParameters(SeekParameters.PREVIOUS_SYNC)
-                findViewById<PlayerView>(R.id.playerView).apply { player = it; if (!live) hideController() }
+                findViewById<PlayerView>(R.id.playerView).apply {
+                    player = it
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)   // fetching looks like work, not like nothing
+                    if (!live) hideController()
+                }
                 it.setMediaItem(item)
                 if (!live) it.seekTo(resumePosition)
                 it.prepare()
@@ -889,6 +905,17 @@ class PlayerActivity : AppCompatActivity() {
         showErrorPanel("לא ניתן לנגן את ${sources[index].name.ifBlank { "התוכן" }}", reason)
     }
 
+    /**
+     * Paused, and unmistakably so: the picture dims and two bars stand in the middle of it.
+     *
+     * A still frame looks exactly like a film that has stopped to fetch something, and a viewer who
+     * cannot tell the difference presses the same key again and starts it playing when they meant to
+     * hold it. So the state is drawn, not inferred.
+     */
+    private fun showPaused(paused: Boolean) {
+        findViewById<View>(R.id.pausebox).visibility = if (paused && !live) View.VISIBLE else View.GONE
+    }
+
     /** The panel over the video: why it stopped, and the buttons that get the viewer moving again. */
     private fun showErrorPanel(title: String, why: String) {
         handler.removeCallbacks(hideOsd)
@@ -1045,6 +1072,21 @@ class PlayerActivity : AppCompatActivity() {
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         swipe.onTouchEvent(ev)
         return super.dispatchTouchEvent(ev)
+    }
+
+    /**
+     * Where the viewer got to, written as they leave rather than after they have left.
+     *
+     * Android resumes the screen underneath before it stops the one being left: onPause here, then
+     * MainActivity.onResume - which is what reads the position back - and only then onStop. Written in
+     * onStop, the position arrived after the page had already been asked for it, so every film resumed
+     * one watching behind: what was saved last night was offered tonight, and tonight's was offered
+     * tomorrow. saveProgress ignores anything under ten seconds, so an onPause that lands before the
+     * film has even seeked cannot overwrite a good position with a nought.
+     */
+    override fun onPause() {
+        super.onPause()
+        player?.let { saveProgress(it.currentPosition, it.duration) }
     }
 
     override fun onStop() {

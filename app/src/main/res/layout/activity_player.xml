@@ -19,6 +19,19 @@
         android:shadowColor="#000000" android:shadowRadius="6" android:shadowDx="0" android:shadowDy="2"
         android:visibility="gone" />
 
+    <!-- Paused: the picture is dimmed and two bars stand in the middle of it, so that a stopped film
+         cannot be mistaken for one that is simply not moving. -->
+    <LinearLayout
+        android:id="@+id/pausebox"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="horizontal" android:gravity="center"
+        android:background="#66000000" android:visibility="gone">
+        <View android:layout_width="16dp" android:layout_height="72dp"
+            android:background="#FFFFFF" android:layout_marginEnd="18dp" />
+        <View android:layout_width="16dp" android:layout_height="72dp"
+            android:background="#FFFFFF" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/osd"
         android:layout_width="wrap_content" android:layout_height="wrap_content"
