@@ -88,6 +88,8 @@ jobs:
         env:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          # lets the app file problem reports as issues here (optional: without it the app links to GitHub)
+          VEO_ISSUES_TOKEN: ${{ secrets.VEO_ISSUES_TOKEN }}
         run: |
           gradle --no-daemon :app:assembleRelease --stacktrace
           cp app/build/outputs/apk/release/app-release.apk "VEO-v$VERSION.apk"

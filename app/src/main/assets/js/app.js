@@ -33,6 +33,7 @@ import {viewSettings} from './screens/settings.js';
 import {viewWebShow} from './screens/web.js';
 import {endTaste} from './ui/taste.js';
 import {markNav} from './ui/rail.js';
+import {viewReport} from './ui/report.js';
 import {checkUpdate} from './ui/update.js';
 import './ui/tvnav.js';
 import './ui/torrent.js';
@@ -87,7 +88,7 @@ export async function route(){
   // the menu lights the place you are in; a title or a search keeps the one it was opened from
   markNav(r === '' ? 'home' : r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : r === 'all' ? (a === 'movie' ? 'movies' : 'series')
     : r === 'shows' || r === 'web' ? 'shows' : r === 'tv' ? (a === 'jfc' ? 'movies' : 'shows') : ['live', 'library', 'settings', 'who'].includes(r) ? r
-    : r === 'profile' ? 'settings' : '');
+    : r === 'profile' || r === 'report' ? 'settings' : '');
   if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library', 'shows', 'tv'].includes(r)) listHash = location.hash || '#/';
   if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
@@ -107,6 +108,7 @@ export async function route(){
   else if(r === 'settings') viewSettings(a);
   else if(r === 'who') viewWho();
   else if(r === 'profile') viewProfile(a);
+  else if(r === 'report') viewReport();
   else viewHome();
   restoreScreen();
   lastPaint = Date.now();

@@ -54,7 +54,10 @@ window.boothTorrentStatus = (raw, isError) => {
   const {msg, sub = '', frac} = torrentText(raw, isError);
   clearTimeout(tstatTimer);
   if(!msg){ bar.classList.remove('busy'); bar.style.display = 'none'; delete bar.dataset.held; return; }
-  if(isError) bar.classList.remove('busy');           // a failure is said as a note, with the way to close it
+  if(isError){
+    bar.classList.remove('busy');                     // a failure is said as a note, with the way to close it
+    dispatchEvent(new CustomEvent('veo:error', {detail: `source: ${raw}`}));   // and kept for a problem report
+  }
   const paint = () => {
     document.getElementById('tstatusMsg').textContent = msg;
     document.getElementById('tstatusSub').textContent = sub;

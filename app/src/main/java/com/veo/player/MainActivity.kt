@@ -382,6 +382,45 @@ class MainActivity : AppCompatActivity() {
             }.start()
         }
 
+        /* ---------- problem reports ----------
+           Filed as an issue in the app's repository, from the page's report screen (ui/report.js): whoever
+           reports needs no account. The key is the build's (BuildConfig.ISSUES_TOKEN, from CI). */
+        @JavascriptInterface fun canReport(): Boolean = BuildConfig.ISSUES_TOKEN.isNotEmpty()
+
+        @JavascriptInterface fun reportIssue(title: String, body: String, callbackId: String) {
+            Thread {
+                val (ok, text) = try {
+                    val conn = URL("https://api.github.com/repos/bardalas/VEO/issues").openConnection() as HttpURLConnection
+                    conn.connectTimeout = 10_000
+                    conn.readTimeout = 20_000
+                    conn.requestMethod = "POST"
+                    conn.doOutput = true
+                    conn.setRequestProperty("Authorization", "Bearer ${BuildConfig.ISSUES_TOKEN}")
+                    conn.setRequestProperty("Accept", "application/vnd.github+json")
+                    conn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("User-Agent", "VEO/${BuildConfig.VERSION_NAME}")
+                    val issue = JSONObject().put("title", title).put("body", body).put("labels", JSONArray().put("from-app"))
+                    conn.outputStream.use { it.write(issue.toString().toByteArray()) }
+                    if (conn.responseCode >= 300) throw IllegalStateException("HTTP ${conn.responseCode}")
+                    true to JSONObject(conn.inputStream.use { String(it.readBytes()) }).optInt("number").toString()
+                } catch (t: Throwable) {
+                    false to (t.message ?: t.javaClass.simpleName)
+                }
+                runOnUiThread {
+                    web.evaluateJavascript("window.boothFetchDone && boothFetchDone(${JSONObject.quote(callbackId)}, $ok, ${JSONObject.quote(text)})", null)
+                }
+            }.start()
+        }
+
+        /** What a report says the device is: its make and model, its Android, and the name its owner gave it. */
+        @JavascriptInterface fun deviceInfo(): String = JSONObject()
+            .put("model", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            .put("android", android.os.Build.VERSION.RELEASE)
+            .put("name", runCatching { android.provider.Settings.Global.getString(contentResolver, "device_name") }.getOrNull().orEmpty())
+            .put("tv", packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK))
+            .toString()
+
         @JavascriptInterface fun cancelTorrent() {
             updateCancelled = true
             TorrentEngine.cancelPending()

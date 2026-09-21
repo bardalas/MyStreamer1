@@ -13,7 +13,12 @@ android {
         targetSdk = 36
         versionCode = 4500
         versionName = "0.45.0"
+        // Problem reports are filed as issues in the app's own repository (MainActivity.reportIssue). The key
+        // that allows it is CI's secret VEO_ISSUES_TOKEN - a token that can only open issues there - put
+        // into the build, never into the source. A build without it offers GitHub's own issue page instead.
+        buildConfigField("String", "ISSUES_TOKEN", "\"${System.getenv("VEO_ISSUES_TOKEN").orEmpty()}\"")
     }
+    buildFeatures { buildConfig = true }
     signingConfigs {
         create("release") {
             if (signingKeystore != null) {

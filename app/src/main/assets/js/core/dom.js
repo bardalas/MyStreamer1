@@ -7,6 +7,7 @@ export const $ = s => document.querySelector(s);
 export function showErr(el, what, e, retry){
   if(!el) return;
   const why = !navigator.onLine ? tr('net.offline') : (e?.message || '');
+  dispatchEvent(new CustomEvent('veo:error', {detail: `${what}${why ? ' · ' + why : ''}`}));   // for a problem report
   el.innerHTML = `<div class="oops"><span>${esc(what)}${why ? ` · ${esc(why)}` : ''}</span>${retry ? `<button>${tr('common.retry')}</button>` : ''}</div>`;
   const b = el.querySelector('button');
   if(b) b.onclick = () => { el.innerHTML = `<p class="note">${tr('common.loading')}</p>`; retry(); };

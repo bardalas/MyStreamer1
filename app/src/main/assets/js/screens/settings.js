@@ -210,7 +210,8 @@ const PANES = {
     : section(tr('kids.title'), `<ul class="kidlist">${['what1', 'what2', 'what3'].map(k => `<li>${tr('kids.' + k)}</li>`).join('')}</ul>`
         + lines(pref('kidsAge') + line({fid: 'kidsOn', label: tr('kids.turnOn'), note: tr('kids.turnOnNote'), attrs: 'data-act="kidsOn"'}))),
   about: () => section(tr('set.about.title'), lines(info('VEO', APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'))
-      + line({fid: 'upd', label: tr('set.about.check'), note: tr('set.about.checkNote'), value: updKey ? tr(updKey) : '', attrs: 'data-act="upd"'})))
+      + line({fid: 'upd', label: tr('set.about.check'), note: tr('set.about.checkNote'), value: updKey ? tr(updKey) : '', attrs: 'data-act="upd"'})
+      + line({fid: 'report', label: tr('rep.title'), note: tr('rep.lineNote'), href: '#/report'})))
     + section(tr('set.sec.data'), lines(line({fid: 'hist', label: tr('set.hist.title'), note: tr('set.hist.note'), value: tr('set.hist.btn'), danger: true, attrs: 'data-act="hist"'})
       + line({fid: 'reset', label: tr('set.reset.title'), note: tr('set.reset.note'), value: tr('set.reset.btn'), danger: true, attrs: 'data-act="reset"'}))),
 };
