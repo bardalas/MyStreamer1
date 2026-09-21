@@ -5,9 +5,10 @@ import {store} from '../core/store.js';
 import {JFC_LOBBIES, jfcCard, jfcLobby} from '../providers/jfc.js';
 import {KAN, kanBox} from '../providers/kan.js';
 import {IL_CHANNELS, watchChannel} from '../providers/live.js';
-import {viewMakoTab} from '../providers/mako.js';
+import {MAKO_GENRES} from '../providers/mako.js';
 import {r13, r13channels} from '../providers/reshet.js';
 import {tr} from '../i18n.js';
+import {originMark} from '../ui/origins.js';
 import {renderRows} from '../ui/rows.js';
 
 /* ---------- Shows: the broadcasters' programmes ----------
@@ -25,6 +26,23 @@ export const BC_TABS = [
 const bcName = b => b.id === 'all' ? tr('src.all') : tr('origin.' + b.origin);
 /** How long the remote rests on a tab before the page turns to it. */
 const TAB_SETTLE_MS = 450;
+/** The genres Reshet files its programmes under, in the order they are shown (a genre with fewer than
+    three programmes is left out by the rows themselves). */
+const R13_GENRES = ['תכניות אירוח', 'ריאליטי', 'תכניות אקטואליה', 'בידור', 'קומדיה', 'דרמה', 'דוקו ותחקירים',
+  'דוקו-ריאליטי', 'תוכניות אוכל', 'לייפסטייל', 'שעשועונים'];
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * One broadcaster's page, laid out like every other: the wheel of all its programmes, what it aired last
+ * when it says, then a row for each of its genres - Kan's own sections, Keshet's and Reshet's genres.
+ */
+async function bcRows(bc){
+  const wheel = {origins: [bc.origin], type: 'series', tabbed: true, title: tr('shows.allOf', {bc: bcName(bc)})};
+  if(bc.id === 'reshet') return [wheel, {r13: 'recent', title: tr('shows.recent')},
+    ...R13_GENRES.map(genre => ({r13: 'series', genre, title: genre, sparse: true}))];
+  if(bc.id === 'keshet') return [wheel, ...MAKO_GENRES.filter(([, f]) => f).map(([title, mako]) => ({mako, title, sparse: true}))];
+  const secs = await kanBox();
+  return [wheel, ...secs.map(sec => ({kan: new RegExp('^' + escRe(sec.title) + '$'), title: sec.title, sparse: true}))];
+}
 
 let showsView = 0;                                     // which drawing of Shows is the current one
 export async function viewShows(which){
@@ -34,7 +52,8 @@ export async function viewShows(which){
   const tabs = `<div class="page pagehead typehead"><h1>${tr('nav.shows')}</h1>
     <div class="srctabs showtabs" role="tablist">${BC_TABS.map(b =>
       `<button class="srctab${b.id === bc.id ? ' on' : ''}" role="tab" aria-selected="${b.id === bc.id}" data-bc="${b.id}">${esc(bcName(b))}</button>`).join('')}</div>
-    <div class="bchead" style="--bc:${bc.color || 'var(--tungsten)'}" id="bchead"></div></div>`;
+    <div class="bchead" style="--bc:${bc.color || 'var(--tungsten)'}" id="bchead"></div></div>
+    ${bc.origin ? `<div class="srcmark" aria-hidden="true">${originMark({id: bc.origin})}</div>` : ''}`;
   const wire = () => {
     let settle = 0;
     const pick = b => {
@@ -51,7 +70,7 @@ export async function viewShows(which){
   };
   let rows = [], note = '', kanSite = false;
   if(bc.id === 'all'){
-    rows = [{origins: ['kan', 'mako', 'r13'], type: 'series', tabbed: true, badge: true, title: ''},
+    rows = [{origins: ['kan', 'mako', 'r13'], type: 'series', tabbed: true, badge: true, title: tr('row.featured')},
       {r13: 'recent', title: tr('shows.recent')},
       {origins: ['kan'], type: 'series', title: tr('row.fromKan'), more: '#/shows/kan'},
       {origins: ['mako'], type: 'series', title: tr('row.fromKeshet'), more: '#/shows/keshet'},
@@ -59,25 +78,13 @@ export async function viewShows(which){
     renderRows(rows, {top: tabs});
     return wire();
   }
-  if(bc.id === 'reshet'){
-    rows = [{r13: 'recent', title: 'שודר לאחרונה'}, {r13: 'series', title: 'כל התוכניות'}];
-  }else if(bc.id === 'keshet'){
-    viewMakoTab(tabs + `<div class="page" style="padding-top:0"><p class="note" style="margin:0 0 12px">הפרקים מתנגנים בנגן של mako, בתוך האפליקציה.</p></div>`);
-    return wire();
-  }else{
-    // Kan's catalogue can take a while: the tab is shown at once, and the page it asked for comes after
-    $('#app').innerHTML = tabs + `<div class="page"><p class="note">${tr('common.loading')}</p></div>`;
-    wire();
-    try{
-      const secs = await kanBox();
-      if(me !== showsView) return;                       // another tab was chosen meanwhile
-      rows = secs.map(sec => ({kan: new RegExp('^' + sec.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), title: sec.title}));
-    }catch(e){
-      // Kan's site sometimes turns the app's requests away (403): offer Kan BOX itself in the in-app window.
-      rows = [];
-      note = `לא ניתן לטעון את הקטלוג של כאן לתוך האפליקציה (${e.message}).`;
-      kanSite = true;
-    }
+  // Kan's catalogue can take a while: the tab is shown at once, and the page it asked for comes after
+  if(bc.id === 'kan'){ $('#app').innerHTML = tabs + `<div class="page"><p class="note">${tr('common.loading')}</p></div>`; wire(); }
+  try{ rows = await bcRows(bc); }
+  catch(e){
+    // Kan's site sometimes turns the app's requests away (403): offer Kan BOX itself in the in-app window.
+    note = `לא ניתן לטעון את הקטלוג של כאן לתוך האפליקציה (${e.message}).`;
+    kanSite = true;
   }
   if(me !== showsView) return;
   const onTab = document.activeElement?.dataset?.bc;    // the remote on a tab stays on it when the page is drawn

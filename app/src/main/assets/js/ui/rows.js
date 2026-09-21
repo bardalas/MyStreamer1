@@ -6,6 +6,7 @@ import {kidsOn} from '../data/kids.js';
 import {srcName, typeName} from '../data/names.js';
 import {tr} from '../i18n.js';
 import {kanBox, kanCard} from '../providers/kan.js';
+import {makoCard, makoPrograms} from '../providers/mako.js';
 import {r13card, r13row} from '../providers/reshet.js';
 import {card, skeletons} from './cards.js';
 import {ORIGINS, interleave, loadOrigin, moreOfOrigin} from './origins.js';
@@ -64,8 +65,15 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
       return;
     }
     if(x.r13){
-      try{ el.innerHTML = (await r13row(x.r13)).slice(0, rowMax()).map(r13card).join('') || `<p class="note">${tr('row.none')}</p>`; }
+      // [x.genre]: only the programmes Reshet files under that genre
+      const ofGenre = o => !x.genre || (o.tags?.Genre?.objects || []).some(t => t.value === x.genre);
+      try{ el.innerHTML = (await r13row(x.r13)).filter(ofGenre).slice(0, rowMax()).map(r13card).join('') || `<p class="note">${tr('row.none')}</p>`; }
       catch(e){ showErr(el, tr('row.failedR13'), e, again); }
+      return;
+    }
+    if(x.mako != null){                                 // one of Keshet's genres ('' is all of its programmes)
+      try{ el.innerHTML = (await makoPrograms(x.mako)).slice(0, rowMax()).map(makoCard).join('') || `<p class="note">${tr('row.none')}</p>`; }
+      catch(e){ showErr(el, tr('row.failedMako'), e, again); }
       return;
     }
     if(x.origins){
@@ -165,7 +173,7 @@ function showRow(el, x){
   const row = el?.closest('.row');
   if(!row || el.querySelector('.skel, .oops')) return;
   const n = el.querySelectorAll('.poster').length;
-  row.hidden = (kidsOn() && !n) || (!!(x?.pick || x?.keep) && n < 3);
+  row.hidden = (kidsOn() && !n) || (!!(x?.pick || x?.keep || x?.sparse) && n < 3);
 }
 /** How long a row of several sources waits for the slow ones before it is drawn from the rest. */
 const FIRST_PAINT_MS = 2500;
