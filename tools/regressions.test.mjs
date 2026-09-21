@@ -97,6 +97,8 @@ async function fixture(opts = {}){
       fetchStreams: (...a) => { calls.streams.push(a); return (opts.fetchStreams || (async () => []))(...a); },
       supports: (...a) => opts.supports ? opts.supports(...a) : true},
     'data/availability.js': {setAvail: (...a) => calls.availability.push(a)},
+    // the kids profile is off in these tests: nothing is filtered, no broadcaster link is held back
+    'data/kids.js': {kidsOn: () => false},
     'data/reminders.js': {remindButton: () => '<button id="remind">remind</button>', wireRemind: () => {}},
     'data/watch.js': {progress: opts.progress || {}},
     'data/catalogs.js': {SC_ID: 'sc'},

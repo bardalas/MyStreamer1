@@ -64,9 +64,9 @@ export let lastPaint = 0;                                   // when this screen 
 const KIDS_ROUTES = ['', 'detail', 'library', 'settings', 'search', 'all'];
 const kidsMay = (r, a) => r === 'cat' ? ['movies', 'series'].includes(a) : KIDS_ROUTES.includes(r);
 export async function route(){
+  invalidateView();                                 // cancel work from the previous view before rendering
   const [, r0 = '', a0] = location.hash.split('/').map(decodeURIComponent);
   if(kidsOn() && !kidsMay(r0, a0)) history.replaceState(null, '', '#/');   // anywhere else is the profile's home
-  invalidateView();                                 // cancel work from the previous view before rendering
   rememberScreen();
   resetObservers();
   document.body.classList.remove('titlefit');
