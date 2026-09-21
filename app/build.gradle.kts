@@ -11,8 +11,8 @@ android {
         applicationId = "com.veo.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4306
-        versionName = "0.43.6"
+        versionCode = 4400
+        versionName = "0.44.0"
     }
     signingConfigs {
         create("release") {

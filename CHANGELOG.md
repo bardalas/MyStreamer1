@@ -1,5 +1,28 @@
 # VEO Android changelog
 
+## 0.44.0 — 2026-09-21
+- **Movies and Series by source, and a library of everything.** Movies and Series open on a strip of
+  source tabs (All, each streaming service, Kan, Keshet, Reshet, the film archive, the Israeli
+  catalogues) that turns the wheel under it. "Browse all" opens the library of the type: one grid of
+  every title from every source under its own filters, with the focused title beside it - picture,
+  facts, description and, after a moment, its trailer. Service marks are one-colour glyphs on the
+  cover only. In a grid, the back direction at the end of a line goes to the side menu.
+- **Settings, regrouped and redrawn.** Seven pages (General, Playback, Home screen, Appearance, Live
+  TV, Kids profile, About & reset); each setting is one line - its name, a few words, its value. New:
+  preferred quality (with Automatic again), device compatibility (4K / HEVC offered last), trailers
+  with sound / silent / off, Hebrew subtitles automatic or not, subtitle size, clear watch history.
+- **A real kids profile.** Every screen, the library and search show only titles for children -
+  by genre and by **age rating** (up to 6, 9 or 12, from the ratings Wikidata keeps: MPA, FSK, BBFC,
+  ACB, ClassInd). No live TV, broadcaster sites, YouTube or updates; its own continue-watching and
+  favourites; leaving it takes a four-digit code. Title pages show the age a film is rated for.
+- **Live channels, redrawn.** The sources are tabs; each channel is a tile with its logo, its Hebrew
+  name, what is on now and how far into it, and a mark when its past week can be played back. The
+  channel watched last is where the remote starts; the catch-up guide speaks the interface's language.
+- **Back works on Android 16.** It left the app from anywhere; the page's own Back ladder and the
+  player's Back key work again.
+- **A decoder that fails halfway hands over to the next one** instead of stopping the film, and the
+  message says the device cannot play the format when none can.
+
 ## 0.43.6 — 2026-09-21
 - **RaspberryTV catch-up plays the programme, not the live broadcast.** Measured on the service: it
   answers every spelling of an archive address with a valid playlist, but eight of the nine are its
