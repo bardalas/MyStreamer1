@@ -118,8 +118,10 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
   // documentary one seeder is all there is - but never behind a button that says "play", and never
   // counted as "this title can be watched".
   const playable = list.filter(x => rank(x) > 0);
-  // a link to a service is dressed as that service - its icon, its colour - like its label above
-  const links = all.filter(x => x.external).map(x => {
+  /* Only what plays inside the app is offered here. A page on a streaming service ("watch on
+     Netflix") leaves the app, and the label above already says the title is there; a broadcaster's
+     programme (#/kan/…, #/mako/…) is a screen of this app, and stays. */
+  const links = all.filter(x => x.external && x.s.externalUrl?.startsWith('#')).map(x => {
     const svc = x.name || x.addon;
     return `<button class="qbtn svclink" data-i="${x.i}" style="${svcDress(svc)}">${svcIcon(svc)}${esc(tr('src.watchOn', {svc}))}</button>`;
   }).join('');
@@ -138,7 +140,7 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
     const detail = x => [x.q === 'Other' ? '' : x.q, x.size && fmtSize(x.size)].filter(Boolean).join(' · ');
     // One row for the quality, not one per quality: pressing it takes the next one there is.
     const next = byQuality[(byQuality.indexOf(best.q) + 1) % byQuality.length];
-    box.innerHTML = `${byQuality.length > 1 ? `<button class="qbtn" id="qnext" data-q="${next}">${tr('src.quality')} · ${best.q}${best.size ? ` · ${fmtSize(best.size)}` : ''}</button>` : ''}
+    box.innerHTML = `${byQuality.length > 1 ? `<button class="qbtn" id="qnext" data-q="${next}">${best.q}${best.size ? ` · ${fmtSize(best.size)}` : ''}</button>` : ''}
       ${links}${more}${failure}${pending ? `<span class="srcstat">${tr('src.searchingMore')}</span>` : ''}`;
     box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
       if(!isCurrent()) return;

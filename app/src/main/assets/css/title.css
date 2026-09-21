@@ -8,8 +8,14 @@
 .detail h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,48px);line-height:1.05;letter-spacing:-.02em;margin:0 0 12px}
 .facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 /* under the synopsis, the facts are labels rather than a headline of their own */
-.dinfo .facts{margin:10px 0 16px;font-size:12.5px;gap:6px}
-.dinfo .facts span{padding:3px 8px;font-size:12.5px}
+/* Under the synopsis the facts are one line of words, not a row of little boxes: no fill behind
+   them, a thin bar between them. The brands keep their own marks - IMDb its yellow, a service its
+   icon - which is what the eye looks for; everything else is just text. */
+.dinfo .facts{margin:10px 0 16px;font-size:12.5px;gap:0;align-items:center;flex-wrap:nowrap;overflow:hidden;white-space:nowrap}
+.dinfo .facts > span{background:none !important;border:0 !important;border-radius:0;padding:0 10px;font-size:13px;color:var(--text2)}
+.dinfo .facts > span:first-child{padding-inline-start:0}
+.dinfo .facts > span + span{border-inline-start:1px solid var(--line) !important}
+[data-layout="tv"] .dinfo .facts > span{font-size:15px;padding:0 12px}
 .facts span{background:var(--raise);border-radius:4px;padding:3px 9px;font-size:13px;color:var(--text2)}
 /* IMDb is a mark people know by sight: its own yellow, its own wordmark, and the rating beside it
    in the page's own colour - a number on a yellow field would read as a warning. */

@@ -26,8 +26,9 @@ main{position:relative}
 .tacts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:16px 0 0}
 .tact{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 14px;border-radius:999px;
   border:0;background:var(--ghost);color:var(--light);font:600 14px var(--body);cursor:pointer}
-.tact.ic{width:42px;height:42px;padding:0;border-radius:50%}
-.tact.ic svg{width:21px;height:21px}
+/* the heart and the trailer are secondary: small enough not to compete with the ways to watch */
+.tact.ic{width:34px;height:34px;padding:0;border-radius:50%}
+.tact.ic svg{width:17px;height:17px}
 .tact.saved{background:var(--velvet);color:#fff}
 /* Saved has to read as a shape, not only as a fill: standing on the heart paints it white (focus.css),
    which would take the only sign that it had been pressed away at the very moment of pressing it. */
@@ -36,8 +37,8 @@ main{position:relative}
    the D-pad would stop on a button nobody can see */
 .tact[hidden]{display:none}
 [data-layout="tv"] .tact{font-size:16px}
-[data-layout="tv"] .tact.ic{width:52px;height:52px}
-[data-layout="tv"] .tact.ic svg{width:26px;height:26px}
+[data-layout="tv"] .tact.ic{width:40px;height:40px}
+[data-layout="tv"] .tact.ic svg{width:20px;height:20px}
 
 /* the episodes: a row you run along, under the picture */
 .epanel{margin-top:26px}

@@ -1,5 +1,19 @@
 # VEO Android changelog
 
+## 0.43.2 — 2026-09-21
+- **“התחל לנגן” can be reached with the remote.** A film's two ways in sit in the same element as a
+  series' episodes, which the remote treats as a column — so Left and Right could not move between
+  them, and pressing towards “from the start” went to the side menu instead.
+- **No more “watch on Netflix” buttons.** A link that leaves the app for a streaming service is not
+  offered among the ways to play; the label above already says where the title is. A broadcaster's
+  programme, which is a screen of this app, is still offered.
+- **The quality is its value** — “1080p · 1.5 GB” — without the word “איכות”.
+- **The facts under the synopsis are one line of words** with bars between them, not a row of little
+  boxes; the brands keep their marks (IMDb's yellow, the service's icon). Two genres at most, so the
+  line never breaks.
+- **Smaller favourite and trailer buttons**, and the trailer is a strip of film rather than a play
+  triangle, which read as “watch the film”.
+
 ## 0.43.1 — 2026-09-21
 - **A film page as it was drawn.** The two ways into a film sit side by side under its actions —
   “התחל לנגן”, and once it has been started “המשך בצפייה מ־1:02:02” — as words, with the one the remote

@@ -247,7 +247,10 @@ export function tvMove(dir){
     // ArrowLeft goes forward through a right-to-left row, ArrowRight through a left-to-right one
     const ltr = row.classList.contains('keypad') || getComputedStyle(row).direction === 'ltr';
     const fwd = ltr ? 'right' : FWD();
-    const isCol = (row.classList.contains('eps') || row.classList.contains('seasonbar')) && isTvLayout();
+    // Episodes are a column; a film's two ways in are one line, and Left/Right must move between them
+    // - as a column they could not, and the far one was out of reach of the remote altogether.
+    const isCol = ((row.classList.contains('eps') && !row.classList.contains('filmgo'))
+      || row.classList.contains('seasonbar')) && isTvLayout();
     if(!isCol){
       const step = dir === fwd ? 1 : -1;
       const next = items[i + step];
