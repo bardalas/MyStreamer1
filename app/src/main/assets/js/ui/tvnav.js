@@ -330,7 +330,7 @@ addEventListener('keydown', e => {
   // the arrows belong to the remote - and to a wheel, wherever it is turning
   if((!isTvLayout() && !document.activeElement?.closest?.('.strip.reel, .spotact')) || e.altKey || e.ctrlKey || e.metaKey) return;
   const dir = {ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'}[e.key];
-  if(!dir) return;
+  if(!dir || document.getElementById('ytp')) return;   // a video playing in the page takes the arrows (ui/ytplayer.js)
   const a = document.activeElement;
   if(a && (a.tagName === 'INPUT' && !a.readOnly || a.tagName === 'SELECT')) return;   // typing / picking
   e.preventDefault();
@@ -373,6 +373,9 @@ window.boothBack = () => {
      that button means - the update stays skipped, the download is cancelled, the reminder is put away
      - and there is one list of what counts as a card (openCard) rather than two that drift apart.
      The update card was missing from the old list, so Back left the app while it held the remote. */
+  // the page's own player is closed by its own button - Back never walks the page under the picture
+  const playing = document.querySelector('#player.open #close');
+  if(playing){ playing.click(); tvFocus(); return true; }
   const card = openCard();
   if(card){
     const shut = card.querySelector('[data-back]');

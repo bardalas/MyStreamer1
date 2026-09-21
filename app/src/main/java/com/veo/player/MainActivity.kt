@@ -151,24 +151,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         /**
-         * A YouTube video - a magazine episode, a trailer - in the app's own player: its streams are asked of
-         * YouTube here (YouTube.kt), with captions in [lang] when it is spoken in another language. When they
-         * cannot be had the page is told, and plays it in YouTube's own player instead.
+         * A YouTube video's captions in [lang], for the page's player (ui/ytplayer.js), which plays the video
+         * itself: found and translated here (YouTube.kt), and handed to the page as an .srt file's text.
          */
-        @JavascriptInterface fun playYouTube(videoId: String, title: String, lang: String) {
-            showStatus("טוען…")
+        @JavascriptInterface fun ytCaptions(videoId: String, lang: String) {
             Thread {
-                val s = YouTube.resolve(videoId, lang)
-                runOnUiThread {
-                    showStatus("")
-                    if (s == null) {
-                        web.evaluateJavascript("window.boothYtFailed && boothYtFailed(${JSONObject.quote(videoId)})", null)
-                        return@runOnUiThread
-                    }
-                    val label = if (lang == "he") "עברית" + if (s.translateTo.isNotEmpty()) " · תרגום אוטומטי" else "" else "Captions"
-                    Subtitles.prefetchFrom(applicationContext, label) { YouTube.captionsText(s) }
-                    startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
-                        .putExtra("url", s.video).putExtra("audio", s.audio).putExtra("ua", s.ua).putExtra("title", title))
+                val srt = runCatching { YouTube.captions(videoId, lang) }.getOrDefault("")
+                if (srt.isNotEmpty()) runOnUiThread {
+                    web.evaluateJavascript("window.boothYtCaptions && boothYtCaptions(${JSONObject.quote(videoId)}, ${JSONObject.quote(srt)})", null)
                 }
             }.start()
         }

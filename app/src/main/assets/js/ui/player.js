@@ -3,6 +3,7 @@ import {$} from '../core/dom.js';
 import {store} from '../core/store.js';
 import {indexProgress, progress} from '../data/watch.js';
 import {UI, tr} from '../i18n.js';
+import {closeYt, openYt} from './ytplayer.js';
 
 /* ---------- player ---------- */
 export let hls = null;
@@ -16,28 +17,21 @@ export const loadHls = () => window.Hls ? Promise.resolve(window.Hls) : (hlsLoad
   document.head.appendChild(tag);
 }));
 
-/* A YouTube video plays in the app's own player, with its controls and nothing of YouTube's (YouTube.kt);
-   when its streams cannot be had, it plays here, in YouTube's player, as it always did. */
-const ytTitles = {};
-window.boothYtFailed = id => openPlayer({ytId: id, embed: true}, ytTitles[id] || '');
+/* A YouTube video plays here, in YouTube's embedded player dressed as the app's own (ui/ytplayer.js),
+   with captions in the viewer's language that the app finds and translates (YouTube.kt). */
 export function openPlayer(s, title, ctx){
-  if(s.ytId && !s.embed && window.BoothAndroid?.playYouTube){
-    ytTitles[s.ytId] = title;
-    BoothAndroid.playYouTube(s.ytId, title, UI);
-    return;
-  }
   $('#ptitle').textContent = title;
   const body = $('#pbody');
   const head = $('#player header');
   head.querySelector('#ytout')?.remove();
+  $('#player').classList.toggle('yt', !!s.ytId);
   if(s.ytId){
-    // A trailer plays inside VEO. Only if YouTube refuses to embed this one is there a way out, and it
-    // is a button the viewer presses - never something the app does to them.
-    body.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(s.ytId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-    if(window.BoothAndroid?.openYouTube && document.documentElement.dataset.kids !== 'on'){   // the kids profile does not leave for YouTube
-      head.insertAdjacentHTML('beforeend', `<button class="btn ghost" id="ytout">${tr('player.openYt')}</button>`);
-      $('#ytout').onclick = () => { closePlayer(); BoothAndroid.openYouTube(s.ytId); };
-    }
+    // Only if YouTube refuses to play this one here is there a way out, and it is a button the viewer
+    // presses - never something the app does to them. The kids profile does not leave for YouTube.
+    const out = window.BoothAndroid?.openYouTube && document.documentElement.dataset.kids !== 'on'
+      ? () => { closePlayer(); BoothAndroid.openYouTube(s.ytId); } : null;
+    openYt(body, s.ytId, title, out);
+    try{ window.BoothAndroid?.ytCaptions?.(s.ytId, UI); }catch(e){}
   } else {
     body.innerHTML = `<video id="vid" controls autoplay playsinline></video>`;
     const v = $('#vid');
@@ -63,6 +57,7 @@ export function openPlayer(s, title, ctx){
 }
 export function closePlayer(){
   if(hls){ hls.destroy(); hls = null; }
+  closeYt();
   $('#pbody').innerHTML = ''; $('#player').classList.remove('open');
 }
 $('#close').onclick = closePlayer;
