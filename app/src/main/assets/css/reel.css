@@ -22,9 +22,16 @@
 .poster.spot .art.framed{background-size:0 0}
 .poster.spot .art.framed::before,.poster.spot .art.framed::after{content:"";position:absolute;inset:0;pointer-events:none;
   background-image:inherit;background-repeat:no-repeat;background-position:center}
-.poster.spot .art.framed::before{background-size:cover;filter:blur(24px) brightness(.5) saturate(1.2);transform:scale(1.15)}
+/* the blurred copy is drawn at a quarter of the size and scaled up: the same softness, at a sixteenth of
+   the work - a television's graphics chip pays for a blur by the pixel */
+.poster.spot .art.framed::before{inset:auto;left:37.5%;top:37.5%;width:25%;height:25%;background-size:cover;
+  filter:blur(3px) brightness(.5) saturate(1.2);transform:scale(4.6)}
 .poster.spot .art.framed::after{background-size:contain}
 .poster.spot .art.framed>*{z-index:1}
+/* the title's wide picture, fading in over the poster (js/ui/reel.js widen) */
+.poster.spot .art .landpic{position:absolute;inset:0;z-index:1;background:center/cover no-repeat;opacity:0;
+  transition:opacity .45s ease;pointer-events:none}
+.poster.spot .art .landpic.in{opacity:1}
 /* the name stays where every other title's name is: under its picture */
 /* how far into it the viewer got stays visible over the taste and over the words */
 .poster.spot .track{z-index:3;height:6px}

@@ -130,10 +130,25 @@ function upInto(cand, dir){
 /* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
    under the top bar (so the category is always readable), anything else is just brought into view. */
 /** Travel to [y]: a short way is slid, a long way is jumped - a viewer should not watch the page fly. */
+/* A television's page moves the way the viewer moved: down a row, and the rows are seen going up. The
+   browser's own smooth scroll could not be used for it - under a held arrow it arrives after the next
+   press, which is what made moving through a list feel heavy - so the glide is the page's own: a quarter
+   of a second, easing out, and a press made during it takes over from wherever the page then is. */
+const GLIDE_MS = 240;
+let gliding = 0;
 export function glide(y){
   const to = Math.max(0, Math.round(y));
   const far = Math.abs(scrollY - to) > innerHeight * 1.6;
-  scrollTo({top: to, behavior: isTvLayout() || far ? 'auto' : 'smooth'});
+  if(!isTvLayout()) return scrollTo({top: to, behavior: far ? 'auto' : 'smooth'});
+  cancelAnimationFrame(gliding);
+  if(far || matchMedia('(prefers-reduced-motion: reduce)').matches) return scrollTo(0, to);
+  const from = scrollY, start = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - start) / GLIDE_MS);
+    scrollTo(0, Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3))));
+    if(t < 1) gliding = requestAnimationFrame(step);
+  };
+  gliding = requestAnimationFrame(step);
 }
 export function focusItem(el){
   if(!el) return;

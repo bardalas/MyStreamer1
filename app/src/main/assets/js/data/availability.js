@@ -46,7 +46,7 @@ export async function hasSources(key){
    belongs to the drawing of a screen, not to the address bar: the page redraws itself without
    changing the hash - coming back online, the watch progress arriving, the quarter-hour refresh - and
    after such a redraw nothing was ever asked again. */
-const AVAIL_BUDGET = 48;
+const AVAIL_BUDGET = 32;
 export let availScreen = 0;
 export function resetAvailBudget(){ availPending.clear(); availScreen = 0; }
 export function queueAvail(keys){
@@ -59,10 +59,10 @@ export function queueAvail(keys){
 export async function availFlush(){
   availBusy = true;
   while(availPending.size){
-    const batch = [...availPending].slice(0, 3);          // gentle on the stream add-on
+    const batch = [...availPending].slice(0, 2);          // gentle on the stream add-on, and on the device
     batch.forEach(k => availPending.delete(k));
     await Promise.all(batch.map(async k => { const ok = await hasSources(k); if(ok !== null) setAvail(k, ok); }));
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 300));
   }
   availBusy = false;
 }

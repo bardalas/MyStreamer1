@@ -33,6 +33,7 @@ let act = null;               // its buttons, under the picture
 /** Let the middle go: the picture narrows back into a poster and the taste stops. */
 export function clearSpot(){
   clearTimeout(settling);
+  clearTimeout(widening);
   endTaste();
   if(spot?.isConnected){
     spot.classList.remove('spot');
@@ -42,8 +43,7 @@ export function clearSpot(){
       art.querySelector('.taste')?.remove();
       art.querySelector('.spotinfo')?.remove();
       art.classList.remove('taste-on', 'framed');
-      // a poster again: its own picture back in place of the wide one
-      if(art.dataset.land){ delete art.dataset.land; if(art.dataset.bg) art.style.backgroundImage = `url("${art.dataset.bg.replace(/"/g, '%22')}")`; }
+      art.querySelector('.landpic')?.remove();          // a poster again: the wide picture goes with the middle
     }
     // the row stays where the viewer left it - the title they were on, now a poster, keeps the middle
     const strip = spot.closest('.strip');
@@ -63,8 +63,15 @@ export function spotlight(el){
   strip.querySelectorAll('[data-was-spot]').forEach(x => delete x.dataset.wasSpot);
   el.classList.add('spot');
   delete el.dataset.wasSpot;
-  // a poster made wide shows whole, in its own blurred copy, until the title's wide picture comes (paint)
-  if(!el.classList.contains('wide')) el.querySelector('.art')?.classList.add('framed');
+  // a poster made wide shows whole, in its own blurred copy, until the title's wide picture comes (widen) -
+  // asked for once the viewer has paused on it for a moment, not at every step of a run along the row
+  const art = el.querySelector('.art');
+  if(!el.classList.contains('wide') && art){
+    art.classList.add('framed');
+    clearTimeout(widening);
+    if(wideSeen.get(el.dataset.id)) widen(el, art);
+    else widening = setTimeout(() => { if(spot === el) widen(el, art); }, WIDEN_MS);
+  }
   const full = (el.getAttribute('href') || '').startsWith('#/detail/');
   act = document.createElement('div');
   act.className = 'spotact';
@@ -120,18 +127,33 @@ addEventListener('resize', place);
    where there is none - a broadcaster's programme, the Israeli catalogues - the whole poster stands in
    the middle of a blurred, darker copy of itself (css/reel.css .framed). */
 const wideOf = id => /^tt\d+$/.test(id || '') ? `https://images.metahub.space/background/medium/${id}/img` : '';
+/** How long the middle must rest on a title before its wide picture is asked for. */
+const WIDEN_MS = 250;
+let widening = 0;
+/** Titles already looked for: the wide picture that came, or '' for none - the second time, no waiting. */
+const wideSeen = new Map();
+/* The wide picture does not replace the poster - a picture changing under the eye reads as a jump - it
+   fades in over it (.landpic), and it is there at once for a title whose picture came before. */
 function widen(el, art){
-  const src = !el.classList.contains('wide') && wideOf(el.dataset.id);
-  if(!src) return;
+  const id = el.dataset.id, src = wideOf(id);
+  if(!src || wideSeen.get(id) === '') return;
+  const show = instant => {
+    if(spot !== el || !art.isConnected || art.querySelector('.landpic')) return;
+    const pic = document.createElement('i');
+    pic.className = 'landpic' + (instant ? ' in' : '');
+    pic.style.backgroundImage = `url("${src}")`;
+    art.prepend(pic);
+    if(!instant) requestAnimationFrame(() => requestAnimationFrame(() => pic.classList.add('in')));
+  };
+  if(wideSeen.get(id) === src) return show(true);
   const img = new Image();
   img.decoding = 'async';
   img.src = src;
   (img.decode ? img.decode() : new Promise((res, rej) => { img.onload = res; img.onerror = rej; })).then(() => {
-    if(spot !== el || !art.isConnected || img.naturalWidth <= img.naturalHeight) return;
-    art.style.backgroundImage = `url("${src}")`;
-    art.dataset.land = '1';
-    art.classList.remove('framed');
-  }, () => {});
+    const wide = img.naturalWidth > img.naturalHeight;
+    wideSeen.set(id, wide ? src : '');
+    if(wide) show(false);
+  }, () => wideSeen.set(id, ''));
 }
 /** The same poster, sharp enough for the middle of the wheel: fetched first, put in place when ready. */
 function sharpen(art){
@@ -142,7 +164,7 @@ function sharpen(art){
   img.decoding = 'async';
   img.src = big;
   const put = () => {
-    if(art.isConnected && !art.dataset.land && art.closest('.poster')?.classList.contains('spot'))
+    if(art.isConnected && art.closest('.poster')?.classList.contains('spot'))
       art.style.backgroundImage = `url("${big.replace(/"/g, '%22')}")`;
   };
   (img.decode ? img.decode() : Promise.resolve()).then(put, () => {});
@@ -156,7 +178,6 @@ async function paint(el, full){
      says what this one is, and it is added below it rather than in front of the artwork. */
   act.innerHTML = `<div class="spotinfo"><div class="facts"></div><p dir="auto"></p></div>`;
   sharpen(art);
-  widen(el, art);
   if(!full) return;                                  // a broadcaster's programme: its picture and its name
   const [, , type, idEnc] = el.getAttribute('href').split('/');
   const id = decodeURIComponent(idEnc);
