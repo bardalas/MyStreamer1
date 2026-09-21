@@ -34,6 +34,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.SubtitleView
@@ -463,8 +464,11 @@ class PlayerActivity : AppCompatActivity() {
                 val all = MediaCodecUtil.getDecoderInfos(mime, secure, tunneling)
                 all.filter { it.name !in badDecoders }.ifEmpty { all }
             })
+        val media = DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http))
+        // a YouTube video comes as its picture and its sound apart (YouTube.kt): the player takes them as one
+        val audio = if (sources.size == 1) intent.getStringExtra("audio").orEmpty() else ""
         player = ExoPlayer.Builder(this, renderers)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
+            .setMediaSourceFactory(media)
             .setLoadControl(loadControl)
             .build().also {
                 // Hebrew subtitles on by default (also picks embedded Hebrew tracks in MKVs) - unless the
@@ -488,7 +492,8 @@ class PlayerActivity : AppCompatActivity() {
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)   // fetching looks like work, not like nothing
                     if (!live) hideController()
                 }
-                it.setMediaItem(item)
+                if (audio.isEmpty()) it.setMediaItem(item)
+                else it.setMediaSource(MergingMediaSource(media.createMediaSource(item), media.createMediaSource(MediaItem.fromUri(audio))))
                 // the tick died with the player that was released; it lives again with this one
                 if (captions != null) { handler.removeCallbacks(tickCaptions); handler.post(tickCaptions) }
                 if (!live) it.seekTo(resumePosition)

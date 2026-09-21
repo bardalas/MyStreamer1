@@ -43,6 +43,19 @@ object Subtitles {
         }
     }
 
+    /** Captions that come with the video itself (a YouTube video's, translated - YouTube.kt): the one file. */
+    fun prefetchFrom(context: Context, label: String, read: () -> String) {
+        pending?.cancel(true)
+        pending = executor.submit<List<Sub>> {
+            runCatching {
+                val text = read()
+                if (!text.contains("-->")) return@runCatching emptyList<Sub>()
+                val dir = File(context.cacheDir, "subs").apply { deleteRecursively(); mkdirs() }
+                listOf(Sub(File(dir, "yt.srt").apply { writeText(text) }, label))
+            }.getOrDefault(emptyList())
+        }
+    }
+
     fun await(timeoutMs: Long): List<Sub> =
         runCatching { pending?.get(timeoutMs, TimeUnit.MILLISECONDS) }.getOrNull() ?: emptyList()
 

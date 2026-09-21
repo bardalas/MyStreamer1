@@ -150,6 +150,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /**
+         * A YouTube video - a magazine episode, a trailer - in the app's own player: its streams are asked of
+         * YouTube here (YouTube.kt), with captions in [lang] when it is spoken in another language. When they
+         * cannot be had the page is told, and plays it in YouTube's own player instead.
+         */
+        @JavascriptInterface fun playYouTube(videoId: String, title: String, lang: String) {
+            showStatus("טוען…")
+            Thread {
+                val s = YouTube.resolve(videoId, lang)
+                runOnUiThread {
+                    showStatus("")
+                    if (s == null) {
+                        web.evaluateJavascript("window.boothYtFailed && boothYtFailed(${JSONObject.quote(videoId)})", null)
+                        return@runOnUiThread
+                    }
+                    val label = if (lang == "he") "עברית" + if (s.translateTo.isNotEmpty()) " · תרגום אוטומטי" else "" else "Captions"
+                    Subtitles.prefetchFrom(applicationContext, label) { YouTube.captionsText(s) }
+                    startActivity(Intent(this@MainActivity, PlayerActivity::class.java)
+                        .putExtra("url", s.video).putExtra("audio", s.audio).putExtra("ua", s.ua).putExtra("title", title))
+                }
+            }.start()
+        }
+
         /** Official broadcaster videos play in the YouTube app (web page as fallback). */
         @JavascriptInterface fun openYouTube(videoId: String) {
             if (kidsProfile()) return                    // the kids profile never leaves the app

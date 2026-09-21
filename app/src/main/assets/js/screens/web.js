@@ -1,7 +1,7 @@
 /* A magazine programme's own page: its episodes, newest first; OK plays one (providers/web.js). */
 import {$, esc, showErr} from '../core/dom.js';
 import {tr} from '../i18n.js';
-import {webEpisodes, webGenreName, webShow, webWhen} from '../providers/web.js';
+import {webEpisodes, webGenreName, webLocal, webShow, webWhen} from '../providers/web.js';
 import {openPlayer} from '../ui/player.js';
 
 export async function viewWebShow(id){
@@ -11,11 +11,11 @@ export async function viewWebShow(id){
     <div class="eplist" id="eps"><p class="note">${tr('common.loading')}</p></div></div>`;
   const box = $('#eps');
   try{
-    const eps = await webEpisodes(id);
+    const eps = await webLocal(await webEpisodes(id), true);   // in the viewer's language
     if(!box.isConnected) return;
     box.innerHTML = eps.map(ep => `<button class="eprow" data-yt="${esc(ep.id)}" data-title="${esc(show.name + ' · ' + ep.title)}">
         <img src="${esc(ep.pic)}" alt="" loading="lazy"><span><b dir="auto">${esc(ep.title)}</b>
-        <small dir="auto">${esc([webWhen(ep.at), ep.desc.split('\n')[0].slice(0, 180)].filter(Boolean).join(' · '))}</small></span></button>`).join('')
+        <small dir="auto">${esc([webWhen(ep.at), ep.blurb].filter(Boolean).join(' · '))}</small></span></button>`).join('')
       || `<p class="note">${tr('web.none')}</p>`;
   }catch(e){ if(box.isConnected) showErr(box, tr('web.failed'), e, () => viewWebShow(id)); }
 }

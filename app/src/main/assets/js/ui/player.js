@@ -2,7 +2,7 @@
 import {$} from '../core/dom.js';
 import {store} from '../core/store.js';
 import {indexProgress, progress} from '../data/watch.js';
-import {tr} from '../i18n.js';
+import {UI, tr} from '../i18n.js';
 
 /* ---------- player ---------- */
 export let hls = null;
@@ -16,7 +16,16 @@ export const loadHls = () => window.Hls ? Promise.resolve(window.Hls) : (hlsLoad
   document.head.appendChild(tag);
 }));
 
+/* A YouTube video plays in the app's own player, with its controls and nothing of YouTube's (YouTube.kt);
+   when its streams cannot be had, it plays here, in YouTube's player, as it always did. */
+const ytTitles = {};
+window.boothYtFailed = id => openPlayer({ytId: id, embed: true}, ytTitles[id] || '');
 export function openPlayer(s, title, ctx){
+  if(s.ytId && !s.embed && window.BoothAndroid?.playYouTube){
+    ytTitles[s.ytId] = title;
+    BoothAndroid.playYouTube(s.ytId, title, UI);
+    return;
+  }
   $('#ptitle').textContent = title;
   const body = $('#pbody');
   const head = $('#player header');

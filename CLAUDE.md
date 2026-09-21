@@ -188,7 +188,17 @@ sorted and from which sources; a genre also pulls Cinemeta's popular/top-rated t
   The **Magazine** tab (`providers/web.js`, `screens/web.js`, `#/web/<channel>`): hand-picked internet programmes by
   genre, each a programme with its latest *full* episodes (the channel's long-form list, `UULF…`, read as a feed -
   never shorts or lives); nothing on screen names the source. Add a programme to `WEB_GENRES` only after checking its
-  feed. `#/tv/jfc` is the film archive's page.
+  feed. Episode titles and first description lines are translated to Hebrew (`webLocal`, Google's gtx endpoint through
+  native `fetchText`, cached in store `webTr`). A YouTube id (episode or trailer) plays in the native player:
+  `openPlayer({ytId})` -> `BoothAndroid.playYouTube` -> `YouTube.kt` (innertube `player` call, ANDROID then IOS client,
+  with a visitor id; avc1 <=1080p + audio merged by `MergingMediaSource`; captions fetched as srv1 and translated by
+  the app itself - YouTube answers its own `tlang` with 429). On failure the page's iframe player is the fallback
+  (`boothYtFailed`). `#/tv/jfc` is the film archive's page.
+- **Streaming services** (Settings -> Streaming services, `screens/settings.js`): a switch per provider the Streaming
+  Catalogs add-on can list (`PROVIDERS` in `data/services.js`, codes from the add-on's configure page). The choice is
+  written into the add-on's own address (base64 of `providers:rpdb:country:timestamp:top10G:top10C:top10CC`,
+  `setScProviders` in `data/addons.js`), the add-ons reload and `svcMap` is rebuilt. `ORIGINS` holds every provider;
+  only those with an installed catalogue show (`originsFor`), and the Service filter lists `scProviders()`.
 - **Movies / Series** (`screens/home.js` `viewType`) are a home for the type: source tabs (All, the streaming
   services, the Israeli catalogues, and for films the archive - `ORIGINS` without the `shows` ones) choose the *whole*
   page. All: the wheel of every source, continue-watching, New (Cinemeta `year`), Trending, Best, Israeli, genres.
