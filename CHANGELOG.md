@@ -1,5 +1,17 @@
 # VEO Android changelog
 
+## 0.43.5 — 2026-09-21
+- **The film no longer stalls when its subtitles arrive.** When the translation came in, a few
+  seconds into the film, the player was told to choose its tracks again — which on a stream is a
+  pause — and the subtitle file was read on the thread that draws the picture. The player is now only
+  told what it is not already doing, the file is read in the background, and nothing is written on
+  screen while the translation is looked for (a line saying “searching” over a film that was still
+  starting read as the reason it was slow). The film never waits for its subtitles.
+- **The taste shows nothing of YouTube's player.** Its subtitles are gone (loading them brought the
+  player's bar up over the picture), the frame is cropped evenly at the top and bottom so its name
+  and its bar fall outside the picture, and it is shown only after the player's own controls have
+  faded.
+
 ## 0.43.4 — 2026-09-21
 - **The taste is only the picture.** YouTube's own player puts its round pause button and the film's
   name over the picture for the first seconds of playing — and again when its sound comes on — and no

@@ -136,20 +136,21 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
 
-        // Play now, look for Hebrew subtitles in the background: side-loaded subtitles have to be part
-        // of the MediaItem, so when they arrive the player is rebuilt at the very same position.
+        /* Play now; the translation is looked for alongside, and drawn by the app when it comes, so the
+           film never waits for it and is never rebuilt for it. Nothing is said on screen while it is
+           looked for - a line saying "searching" over a film that is still starting read as the reason
+           it was slow - and the file is read on this background thread, not on the one that draws the
+           picture, so a long translation arriving mid-scene cannot make the film stutter. */
         subs = emptyList()
         subsPending = true                          // empty and "not looked yet" are different things
-        showMessage("מחפש כתוביות בעברית…", 0)
         Thread {
             val found = Subtitles.await(25_000)
+            val first = found.firstOrNull()?.let { runCatching { Captions.of(it.file) }.getOrNull() }
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 subs = found
                 subsPending = false
-                // which file they came from is not something to read over a film; only their absence is news
-                if (found.isEmpty()) showMessage("לא נמצאו כתוביות בעברית", 3_000) else hideOsd.run()
-                if (found.isNotEmpty()) useCaptions(0)
+                if (found.isNotEmpty()) useCaptions(0, first)
             }
         }.start()
     }
@@ -162,10 +163,10 @@ class PlayerActivity : AppCompatActivity() {
      * left an embedded track on the screen and choosing a file could put two translations on it at
      * once. The player is now told the same thing the panel was told.
      */
-    private fun useCaptions(pick: Int) {
+    private fun useCaptions(pick: Int, parsed: Captions? = null) {
         subPick = pick
         val sub = subs.orEmpty().getOrNull(pick)
-        captions = sub?.let { Captions.of(it.file) }?.also { it.shiftMs = subShift }
+        captions = (parsed ?: sub?.let { Captions.of(it.file) })?.also { it.shiftMs = subShift }
         val drawing = captions?.any == true
         val view = findViewById<TextView>(R.id.cues)
         view.visibility = if (drawing) View.VISIBLE else View.GONE
@@ -179,10 +180,20 @@ class PlayerActivity : AppCompatActivity() {
     /** The player shows its own track only when the app is not drawing one, and never when none is wanted. */
     @OptIn(UnstableApi::class)
     private fun applyTextTracks(p: ExoPlayer) {
-        val mine = captions?.any == true
-        p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
-            .setPreferredTextLanguage(if (mine || subPick < 0) null else "he")
-            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, mine || subPick < 0)
+        val off = captions?.any == true || subPick < 0
+        val lang = if (off) null else "he"
+        val now = p.trackSelectionParameters
+        /* Changing what the player selects makes it choose its tracks again, and on a stream that can
+           mean a pause while it does - which is what the viewer saw when the translation arrived a few
+           seconds into the film. So it is only told when what it is doing differs from what is wanted. */
+        val already = now.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT) == off &&
+            now.preferredTextLanguages.firstOrNull() == lang
+        // and turning the player's subtitles off when it is not showing any changes nothing on screen
+        val nothingShown = p.currentTracks.groups.none { it.type == C.TRACK_TYPE_TEXT && it.isSelected }
+        if (already || (off && nothingShown)) return
+        p.trackSelectionParameters = now.buildUpon()
+            .setPreferredTextLanguage(lang)
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, off)
             .build()
     }
 
@@ -361,16 +372,6 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    /** Hebrew subtitles arrived: rebuild the player around them, without losing the place. */
-    private fun reloadWithSubs() {
-        val p = player ?: return
-        resumePosition = p.currentPosition
-        val wasPlaying = p.playWhenReady
-        p.release()
-        player = null
-        buildPlayer()
-        player?.playWhenReady = wasPlaying
-    }
 
     // Build the player in onStart and release it in onStop, so returning from
     // Home / another app recreates it (at the same position) instead of a black screen.
