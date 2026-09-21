@@ -29,6 +29,10 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
+import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
@@ -441,8 +445,15 @@ class PlayerActivity : AppCompatActivity() {
         // not always one that works: "Decoder failed: c2.android.mp3.decoder" is a device refusing its
         // own software decoder, not a fault in the film. Told to fall back, the player simply asks the
         // next decoder that claims the format, and the film plays.
+        // The same holds for a decoder that starts and then fails halfway ("Decoder failed:
+        // c2.goldfish.hevc.decoder"): the fallback above only covers one that will not start, so a
+        // decoder that failed is left out of the next attempt and the film goes on with the one after it.
         val renderers = androidx.media3.exoplayer.DefaultRenderersFactory(this)
             .setEnableDecoderFallback(true)
+            .setMediaCodecSelector(MediaCodecSelector { mime, secure, tunneling ->
+                val all = MediaCodecUtil.getDecoderInfos(mime, secure, tunneling)
+                all.filter { it.name !in badDecoders }.ifEmpty { all }
+            })
         player = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
             .setLoadControl(loadControl)
@@ -901,6 +912,13 @@ class PlayerActivity : AppCompatActivity() {
         return true
     }
 
+    /** Decoders that failed on this device while this player was open: the next attempt skips them. */
+    private val badDecoders = HashSet<String>()
+    /** The decoder a failure came from, when it was a decoder's. */
+    private fun failedDecoder(error: PlaybackException) = generateSequence<Throwable>(error) { it.cause }.firstNotNullOfOrNull {
+        (it as? MediaCodecDecoderException)?.codecInfo?.name ?: (it as? MediaCodecRenderer.DecoderInitializationException)?.codecInfo?.name
+    }
+
     private fun onError(error: PlaybackException) {
         if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
             player?.release(); player = null
@@ -918,7 +936,19 @@ class PlayerActivity : AppCompatActivity() {
         // not repeat: one more attempt costs a second and usually plays.
         // A decoder that would not start is worth one more attempt on its own: the device may have been
         // holding the codec for whatever played before, and the second attempt usually gets it.
-        val decoderTrouble = error.errorCodeName.contains("DECODER") && status == null
+        // ("DECOD": the codes are DECODER_INIT_FAILED and DECODING_FAILED alike.)
+        val decoderTrouble = error.errorCodeName.contains("DECOD") && status == null
+        // A decoder that broke down gets no second chance; the next one that claims the format does, and
+        // the film goes on from where it stopped.
+        val codec = if (decoderTrouble) failedDecoder(error) else null
+        if (codec != null && badDecoders.add(codec)) {
+            showMessage("מנסה מפענח אחר…", 3_000)
+            player?.let { if (!live) resumePosition = it.currentPosition; it.release() }
+            player = null
+            handler.removeCallbacks(rebuild)
+            handler.postDelayed(rebuild, 500)
+            return
+        }
         val retryable = live || status == 304 || (status != null && status >= 500) || decoderTrouble
         if (retryable && retries < (if (decoderTrouble) 1 else 2)) {
             retries++
@@ -936,7 +966,7 @@ class PlayerActivity : AppCompatActivity() {
             status != null -> "השרת החזיר שגיאה (HTTP $status)."
             error.errorCodeName.contains("TIMEOUT") || error.errorCodeName.contains("NETWORK") ->
                 "אין תשובה מהמקור. בדוק את החיבור לאינטרנט."
-            error.errorCodeName.contains("DECODER") || error.errorCodeName.contains("FORMAT") ->
+            error.errorCodeName.contains("DECOD") || error.errorCodeName.contains("FORMAT") ->
                 "המכשיר לא יודע לפענח את הפורמט הזה. נסה מקור אחר (למשל 1080p במקום 4K)."
             error.errorCodeName.contains("DRM") -> "ההגנה על התוכן לא אושרה במכשיר הזה."
             else -> why?.take(160) ?: "המקור לא נוגן."
