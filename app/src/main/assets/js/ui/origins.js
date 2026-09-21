@@ -17,9 +17,9 @@ import {card} from './cards.js';
 const service = id => ({id, svc: id, types: ['movie', 'series']});
 export const ORIGINS = [
   ...['nfx', 'atp', 'dnp', 'amp', 'hbm', 'pmp', 'cts', 'mgl'].map(service),
-  {id: 'kan', types: ['movie', 'series']},
-  {id: 'mako', types: ['series']},
-  {id: 'r13', types: ['series']},
+  {id: 'kan', types: ['movie', 'series'], shows: true},    // the broadcasters: their own section, Shows
+  {id: 'mako', types: ['series'], shows: true},
+  {id: 'r13', types: ['series'], shows: true},
   {id: 'jfc', types: ['movie']},
   {id: 'il', types: ['movie', 'series']},                 // the Israeli catalogues (data/catalogs.js)
 ];

@@ -37,6 +37,11 @@
 [data-layout="tv"] .srctab{--gh:17px;--gmax:48px}
 [data-layout="tv"] .libgo{font-size:18px;padding:10px 22px}
 /* the library: its name over the filters */
+/* the way back from a grid to the home of its type: "Movies ›" over the grid's name */
+.crumbs{display:flex;align-items:center;gap:10px;margin:0 0 2px;font-size:15px}
+.crumbs a{color:var(--muted);text-decoration:none}
+.crumbs a:hover{color:var(--light)}
+.crumbsep{display:block;width:7px;height:7px;border:solid var(--muted);border-width:0 1.5px 1.5px 0;transform:rotate(calc(45deg + 90deg * var(--flip)))}
 .pagehead.libhead{flex-direction:column;align-items:flex-start}
 /* ...then every title in one grid, and beside it the title the remote is on (screens/catalog.js). The
    panel stays in view while the grid goes by; a narrow screen has no room for it - there a title is

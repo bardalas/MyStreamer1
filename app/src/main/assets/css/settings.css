@@ -98,6 +98,6 @@
 /* under the mark, so that it shows in the narrow menu as well as the wide one */
 :root[data-kids="on"] .kidsbadge{display:block;position:absolute;bottom:0;inset-inline-start:6px;background:var(--tungsten);color:var(--on-accent);
   border-radius:999px;padding:0 7px;font:700 10px/1.6 var(--body);letter-spacing:.02em}
-:root[data-kids="on"] .nav a[data-r="live"]{display:none}
+:root[data-kids="on"] .nav a[data-r="live"],:root[data-kids="on"] .nav a[data-r="shows"]{display:none}
 .kidsno{text-align:center;padding-top:12vh}
 .kidsno .btn{margin-top:18px}

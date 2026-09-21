@@ -181,10 +181,15 @@ and the categories carry the pills (`SORT_GROUPS`: Genre, Service, Year, Rating,
 `pageFilters`); when any pill is on, `gridFrom()` shows one ranked grid and states how many titles, how
 sorted and from which sources; a genre also pulls Cinemeta's popular/top-rated titles of that genre
 (`withGenreRows`). Genres are not a page any more (`viewGenre` just sets the filter, for old links).
-- **Movies / Series** (`screens/home.js` `viewType`) are for browsing: a strip of *source tabs* (`.srctabs`:
-  All + every source in `ORIGINS` - the streaming services, Kan, Keshet, Reshet, the film archive, the
-  Israeli catalogues) turns row 0 (`retune()`), then continue-watching, then `typeRows` (popular, best,
-  Israeli, the broadcasters' rows, genres). A row of sources is `{origins: [ids], type}` (`fillRow`).
+- **The menu**: Home, Movies, Series, **Shows**, Live, Favourites, Settings. **Shows** (`#/shows/<all|kan|keshet|reshet>`,
+  `screens/broadcasters.js` `viewShows`) holds the broadcasters' programmes (Kan, Keshet, Reshet): tabs over the page,
+  All = a wheel of every programme, what aired last and a row per broadcaster. `#/tv/jfc` is the film archive's page.
+- **Movies / Series** (`screens/home.js` `viewType`) are a home for the type: source tabs (All, the streaming
+  services, the Israeli catalogues, and for films the archive - `ORIGINS` without the `shows` ones) choose the *whole*
+  page. All: the wheel of every source, continue-watching, New (Cinemeta `year`), Trending, Best, Israeli, genres.
+  A source: its wheel, then rows picked from its catalogue (`{origins, pick}` in `fillRow`: its newest, its best, its
+  genres; a picked row with fewer than 3 titles is hidden). "All movies" opens the library narrowed to the tab
+  (`libraryFrom`), under a breadcrumb back to the home.
 - **The library** of a type (`#/all/movie|series`, `screens/catalog.js` - *not* `screens/library.js`, which
   is the viewer's favourites) is for finding: every title of the type from every source in one grid, under
   pills of its own (`new Filters('libSort:<type>')`, so they never turn Home into a grid), with a side

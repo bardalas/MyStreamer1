@@ -22,6 +22,8 @@ import {viewHome} from './home.js';
 
 const TYPES = ['movie', 'series'];
 const filters = Object.fromEntries(TYPES.map(t => [t, new Filters('libSort:' + t)]));
+/** Opened from the type's home, the grid shows the source chosen there ('' for All). */
+export const libraryFrom = (type, src) => filters[type]?.set('svc', src || '');
 /** Posters drawn at a time; more are drawn as the remote (or the finger) nears the end of the grid. */
 const PAGE = 60;
 /** How far below the screen the end of the grid may be before more is drawn. */
@@ -99,7 +101,9 @@ export async function viewAll(type){
   const redraw = () => viewAll(type);
   endTaste();
   ahead?.disconnect();
-  $('#app').innerHTML = `<div class="page pagehead libhead"><h1>${esc(tr(type === 'movie' ? 'lib.movies' : 'lib.series'))}</h1>${sortBar(f, groups)}</div>
+  const home = type === 'movie' ? ['#/cat/movies', 'cats.movies'] : ['#/cat/series', 'cats.series'];
+  $('#app').innerHTML = `<div class="page pagehead libhead"><nav class="crumbs" aria-label="${esc(tr('lib.crumbs'))}"><a href="${home[0]}" tabindex="-1">${esc(tr(home[1]))}</a><i class="crumbsep" aria-hidden="true"></i></nav>
+    <h1>${esc(tr(type === 'movie' ? 'lib.movies' : 'lib.series'))}</h1>${sortBar(f, groups)}</div>
     <div class="page libbody"><p class="sortnote" id="libnote"></p>
       <div class="libwrap">
         <div class="libmain"><div class="grid" id="libgrid">${skeletons(18)}</div><div class="libmore" id="libmore"></div></div>

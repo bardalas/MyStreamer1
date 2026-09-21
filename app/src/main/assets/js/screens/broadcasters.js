@@ -7,32 +7,70 @@ import {KAN, kanBox} from '../providers/kan.js';
 import {IL_CHANNELS, watchChannel} from '../providers/live.js';
 import {viewMakoTab} from '../providers/mako.js';
 import {r13, r13channels} from '../providers/reshet.js';
+import {tr} from '../i18n.js';
 import {renderRows} from '../ui/rows.js';
 
-/* ---------- ערוצים: each broadcaster's own content, separate from films & series ---------- */
+/* ---------- Shows: the broadcasters' programmes ----------
+   Kan's, Keshet's and Reshet's programmes - reality, magazines, their own drama and comedy - are not films
+   and series of the streaming kind, so they have a section of their own, the way the mockups lay it out: a
+   tab for each broadcaster over the page (All, or one of them), like the source tabs of Movies and Series.
+   All is a wheel of every programme, what aired last and a row of each broadcaster; a broadcaster's tab is
+   its own catalogue, with its live broadcast a button away. The film archive is a source of Movies. */
 export const BC_TABS = [
-  {id: 'kan', name: 'כאן 11', color: '#1b9ad6'},
-  {id: 'reshet', name: 'רשת 13', color: '#d9262f'},
-  {id: 'keshet', name: 'קשת 12', color: '#f29100'},
-  {id: 'jfc', name: 'ארכיון הסרטים', color: '#9a6bd8'},
+  {id: 'all'},
+  {id: 'kan', origin: 'kan', color: '#1b9ad6'},
+  {id: 'keshet', origin: 'mako', color: '#f29100'},
+  {id: 'reshet', origin: 'r13', color: '#d9262f'},
 ];
+const bcName = b => b.id === 'all' ? tr('src.all') : tr('origin.' + b.origin);
+/** How long the remote rests on a tab before the page turns to it. */
+const TAB_SETTLE_MS = 450;
 
-
-export async function viewTv(which){
+let showsView = 0;                                     // which drawing of Shows is the current one
+export async function viewShows(which){
+  const me = ++showsView;
   const bc = BC_TABS.find(b => b.id === which) || BC_TABS.find(b => b.id === store.get('tvTab', '')) || BC_TABS[0];
   store.set('tvTab', bc.id);
-  const tabs = `<div class="page" style="padding-bottom:0"><h1>ערוצים</h1><nav class="bctabs" aria-label="ערוצי שידור">${BC_TABS.map(b =>
-    `<a href="#/tv/${b.id}" class="${b.id === bc.id ? 'on' : ''}" style="--bc:${b.color}">${esc(b.name)}</a>`).join('')}</nav>
-    <div class="bchead" style="--bc:${bc.color}" id="bchead"></div></div>`;
+  const tabs = `<div class="page pagehead typehead"><h1>${tr('nav.shows')}</h1>
+    <div class="srctabs showtabs" role="tablist">${BC_TABS.map(b =>
+      `<button class="srctab${b.id === bc.id ? ' on' : ''}" role="tab" aria-selected="${b.id === bc.id}" data-bc="${b.id}">${esc(bcName(b))}</button>`).join('')}</div>
+    <div class="bchead" style="--bc:${bc.color || 'var(--tungsten)'}" id="bchead"></div></div>`;
+  const wire = () => {
+    let settle = 0;
+    const pick = b => {
+      clearTimeout(settle);
+      if(b.classList.contains('on')) return;
+      history.replaceState(null, '', '#/shows/' + b.dataset.bc);     // the tab is in the address: Back from a programme finds it
+      viewShows(b.dataset.bc);
+      document.querySelector(`.showtabs [data-bc="${b.dataset.bc}"]`)?.focus();
+    };
+    document.querySelectorAll('.showtabs [data-bc]').forEach(b => {
+      b.onclick = () => pick(b);
+      b.onfocus = () => { clearTimeout(settle); settle = setTimeout(() => b.isConnected && document.activeElement === b && pick(b), TAB_SETTLE_MS); };
+    });
+  };
   let rows = [], note = '', kanSite = false;
-  if(bc.id === 'jfc') return viewJfcTab(tabs);
+  if(bc.id === 'all'){
+    rows = [{origins: ['kan', 'mako', 'r13'], type: 'series', tabbed: true, badge: true, title: ''},
+      {r13: 'recent', title: tr('shows.recent')},
+      {origins: ['kan'], type: 'series', title: tr('row.fromKan'), more: '#/shows/kan'},
+      {origins: ['mako'], type: 'series', title: tr('row.fromKeshet'), more: '#/shows/keshet'},
+      {origins: ['r13'], type: 'series', title: tr('row.fromReshet'), more: '#/shows/reshet'}];
+    renderRows(rows, {top: tabs});
+    return wire();
+  }
   if(bc.id === 'reshet'){
     rows = [{r13: 'recent', title: 'שודר לאחרונה'}, {r13: 'series', title: 'כל התוכניות'}];
   }else if(bc.id === 'keshet'){
-    return viewMakoTab(tabs + `<div class="page" style="padding-top:0"><p class="note" style="margin:0 0 12px">הפרקים מתנגנים בנגן של mako, בתוך האפליקציה.</p></div>`);
+    viewMakoTab(tabs + `<div class="page" style="padding-top:0"><p class="note" style="margin:0 0 12px">הפרקים מתנגנים בנגן של mako, בתוך האפליקציה.</p></div>`);
+    return wire();
   }else{
+    // Kan's catalogue can take a while: the tab is shown at once, and the page it asked for comes after
+    $('#app').innerHTML = tabs + `<div class="page"><p class="note">${tr('common.loading')}</p></div>`;
+    wire();
     try{
       const secs = await kanBox();
+      if(me !== showsView) return;                       // another tab was chosen meanwhile
       rows = secs.map(sec => ({kan: new RegExp('^' + sec.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), title: sec.title}));
     }catch(e){
       // Kan's site sometimes turns the app's requests away (403): offer Kan BOX itself in the in-app window.
@@ -41,16 +79,26 @@ export async function viewTv(which){
       kanSite = true;
     }
   }
+  if(me !== showsView) return;
+  const onTab = document.activeElement?.dataset?.bc;    // the remote on a tab stays on it when the page is drawn
   renderRows(rows, {top: tabs});
+  wire();
+  if(onTab) document.querySelector(`.showtabs [data-bc="${onTab}"]`)?.focus();
   // live button for the broadcaster (Kan 11 and Reshet 13 have official streams)
   const head = $('#bchead');
   head.innerHTML = (note ? `<p class="note">${esc(note)}</p>` : '') +
     (kanSite ? `<button class="btn primary openbtn" data-site="${KAN}/lobby/kan-box/">פתח את כאן BOX בתוך האפליקציה</button>` : '');
   const live = bc.id === 'kan' ? IL_CHANNELS.find(c => c.name === 'Kan 11') : bc.id === 'reshet' ? (await r13channels().catch(() => [])).find(c => c.name === 'רשת 13') : null;
   if(live && head.isConnected){
-    head.insertAdjacentHTML('afterbegin', `<button class="livebtn" id="bclive">▶ שידור חי · ${esc(bc.name)}</button>`);
+    head.insertAdjacentHTML('afterbegin', `<button class="livebtn" id="bclive">▶ ${esc(tr('live.watchLive'))} · ${esc(bcName(bc))}</button>`);
     $('#bclive').onclick = () => watchChannel([live], 0, 'il');
   }
+}
+
+/** The film archive's own page (#/tv/jfc): a source of Movies, with its lobbies. */
+export function viewTv(which){
+  if(which !== 'jfc') return viewShows({kan: 'kan', keshet: 'keshet', reshet: 'reshet'}[which]);   // the broadcasters are in Shows now
+  viewJfcTab(`<div class="page" style="padding-bottom:0"><h1>${esc(tr('origin.jfc'))}</h1></div>`);
 }
 
 /** The archive's tab: pick a lobby, see its rows, open a film on the archive's site. */

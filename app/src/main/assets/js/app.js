@@ -19,7 +19,7 @@ import {viewMakoProgram} from './providers/mako.js';
 import {viewR13Series} from './providers/reshet.js';
 import {openChannel} from './providers/rtv.js';
 import {viewAddons} from './screens/addons.js';
-import {viewTv} from './screens/broadcasters.js';
+import {viewShows, viewTv} from './screens/broadcasters.js';
 import {viewAll} from './screens/catalog.js';
 import {viewDetail} from './screens/detail.js';
 import {viewCategory, viewGenre, viewGenres, viewHome} from './screens/home.js';
@@ -76,13 +76,14 @@ export async function route(){
   const [, r = '', a, b, c] = location.hash.split('/').map(decodeURIComponent);
   // the menu lights the place you are in; a title or a search keeps the one it was opened from
   markNav(r === '' ? 'home' : r === 'cat' ? (['movies', 'series'].includes(a) ? a : '') : r === 'all' ? (a === 'movie' ? 'movies' : 'series')
-    : ['live', 'library', 'settings'].includes(r) ? r : '');
-  if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library'].includes(r)) listHash = location.hash || '#/';
+    : r === 'shows' ? 'shows' : r === 'tv' ? (a === 'jfc' ? 'movies' : 'shows') : ['live', 'library', 'settings'].includes(r) ? r : '');
+  if(['', 'cat', 'all', 'genres', 'genre', 'search', 'library', 'shows', 'tv'].includes(r)) listHash = location.hash || '#/';
   if(r === 'genres') viewGenres();
   else if(r === 'genre') viewGenre(a);
   else if(r === 'r13') viewR13Series(a, b);
   else if(r === 'kan') viewKanProgram(a, b);
   else if(r === 'tv') viewTv(a);
+  else if(r === 'shows') viewShows(a);
   else if(r === 'mako') viewMakoProgram(a, b);
   else if(r === 'cat') viewCategory(a);
   else if(r === 'all') viewAll(a);
