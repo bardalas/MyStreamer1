@@ -161,10 +161,22 @@ export function focusItem(el){
     // source tabs over the first row, the foot of the row before): that goes off the screen whole
     const prev = row.previousElementSibling, above = prev?.getBoundingClientRect();
     const floor = above && above.height ? above.bottom + scrollY : 0;
-    // The first row of a page is shown with the page's head over it - its name and its tabs are what say
-    // what the row is - as long as the title the remote is on still fits under them.
-    const first = prev && !prev.classList.contains('row') && el.getBoundingClientRect().bottom + scrollY <= innerHeight - 16;
-    const want = first ? 0 : Math.max(0, Math.round(Math.max(floor, row.getBoundingClientRect().top + scrollY - 14)));
+    // The first row of a page is shown with as much of the page's head over it as leaves the whole of the
+    // row on the screen - the title the remote is on and, on a wheel, what is said about it (.spotact): the
+    // head's name and tabs say what the row is, and a description cut in half says nothing.
+    const top = row.getBoundingClientRect().top + scrollY;
+    let want = Math.max(0, Math.round(Math.max(floor, top - 14)));
+    if(prev && !prev.classList.contains('row')){
+      const bottom = Math.max(el.getBoundingClientRect().bottom, row.querySelector('.spotact')?.getBoundingClientRect().bottom || 0) + scrollY;
+      want = Math.max(0, Math.round(Math.min(top - 14, bottom - innerHeight + 12)));
+      // and a part of the head goes whole, never cut through (the page's name half off the top of the screen)
+      if(want > 0) for(const part of prev.children){
+        const r = part.getBoundingClientRect();
+        if(r.bottom + scrollY <= want) continue;
+        if(r.top + scrollY < want) want = Math.round(Math.min(r.bottom + scrollY, top - 14));
+        break;
+      }
+    }
     if(Math.abs(scrollY - want) > 4) glide(want);
     return;
   }

@@ -19,7 +19,10 @@
 .row h2 .rowmore:hover{text-decoration:underline}
 /* Movies and Series: the page's name, then a tab for every source over the wheel - "All" in words, the
    rest as small icons, the chosen one underlined - and the way into the library at the far end. */
-.pagehead.typehead{flex-direction:column;align-items:stretch;gap:10px}
+/* Movies and Series: the name and the tabs close together, so the first row - its wheel and what is said of
+   the title in the middle - fits under them on a television's screen */
+.pagehead.typehead{flex-direction:column;align-items:stretch;gap:2px}
+[data-layout="tv"] .page.typehead{padding-top:4px}
 .pagehead.typehead h1{text-align:start}
 .srctabs{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 /* Every tab is the same quiet glyph in the text colour, dimmed until it is the one chosen - the colour

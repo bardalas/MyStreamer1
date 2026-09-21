@@ -128,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             val sources = runCatching {
                 JSONArray(sourcesJson).let { a -> List(a.length()) { a.getString(it) } }
             }.getOrDefault(emptyList())
-            showStatus("מתחיל טורנט…")
+            showStatus("{\"p\":\"start\"}")                   // the page words it, in its language (ui/torrent.js)
             TorrentEngine.stream(
                 applicationContext, infoHash, fileIdx, sources,
                 onStatus = { showStatus(it) },
@@ -137,7 +137,8 @@ class MainActivity : AppCompatActivity() {
                         .putExtra("url", url).putExtra("title", title).putExtra("torrent", true)
                         .putExtra("vid", videoId).putExtra("meta", meta).putExtra("pos", pos))
                 } },
-                onError = { showStatus("שגיאת טורנט: $it", error = true) }
+                // a failure goes as a code the page words ("e:nopeers"); one with no code of its own, as e:other
+                onError = { showStatus(if (Regex("^e:\\w+$").matches(it)) it else "e:other", error = true) }
             )
         }
 
