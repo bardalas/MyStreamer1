@@ -101,16 +101,18 @@ function kidsHome(){
     [cat('series', 'top'), 'genre=Family', 'kids.row.series'], [cat('movie', 'imdbRating'), 'genre=Family', 'kids.row.best'],
     [cat('series', 'top'), 'genre=Animation', 'kids.row.cartoons'],
   ].filter(([c]) => c).map(([c, extra, t]) => ({a: cm, c, extra, title: tr(t), notype: true}));
-  if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', tr('kids.row.streamMovies')), mergedRow('series', tr('kids.row.streamSeries')));
+  if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', tr('kids.row.streamMovies'), svcIds('movie')), mergedRow('series', tr('kids.row.streamSeries'), svcIds('series')));
   renderRows(rows, {cont: unfinished()});
 }
 
+/** The streaming services listed that hold titles of [type]. */
+const svcIds = type => originsFor(type).filter(o => o.svc).map(o => o.id);
 export async function viewHome(){
   if(kidsOn()) return kidsHome();
   // Cinemeta's popular rows, then the first row of every category.
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
   const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: tr(c.type === 'movie' ? 'row.popularMovies' : 'row.popularSeries'), notype: true})) : [];
-  if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', tr('row.streamingMovies')), mergedRow('series', tr('row.streamingSeries')));
+  if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', tr('row.streamingMovies'), svcIds('movie')), mergedRow('series', tr('row.streamingSeries'), svcIds('series')));
   for(const cat of userCategories()){
     const r = rowsFor(cat);
     if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: cat.prefix ? `${catName(cat)} · ${x.title}` : x.title})));

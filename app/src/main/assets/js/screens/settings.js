@@ -4,9 +4,10 @@ import {fetchText} from '../core/bridge.js';
 import {$, esc} from '../core/dom.js';
 import {SKINS, isTvLayout, resetSettings, setSetting, settings} from '../core/settings.js';
 import {store} from '../core/store.js';
-import {addons} from '../data/addons.js';
+import {addons, scProviders, setScProviders} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
 import {KID_AGES, checkPin, failSum, grownUpSum, kidsOn, pinLockedFor, setPin} from '../data/kids.js';
+import {PROVIDERS, PROVIDERS_MAIN, PROVIDERS_MORE, resetServices, svcMark} from '../data/services.js';
 import {clearProgress} from '../data/watch.js';
 import {UI_LANGS, tr} from '../i18n.js';
 import {parseM3U, playlistCache, playlists, setPlaylists} from '../providers/live.js';
@@ -20,13 +21,14 @@ import {APP_VERSION, checkUpdate} from '../ui/update.js';
    of two changes as it is pressed; a longer one opens its list. Nothing is more than two moves away
    with the remote, and after any change the remote is where it was. Actions that cannot be undone ask
    for a second press. In the kids profile the only page is the one that leaves it. */
-export const SETTINGS_TABS = ['general', 'watch', 'home', 'look', 'live', 'kids', 'about'];
+export const SETTINGS_TABS = ['general', 'watch', 'services', 'home', 'look', 'live', 'kids', 'about'];
 /** Addresses written before the pages were regrouped. */
 const RENAMED = {start: 'general', addons: 'watch'};
 const icon = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 const ICONS = {
   general: icon('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.5 5.2 3.5 8.5s-1.1 6.2-3.5 8.5c-2.4-2.3-3.5-5.2-3.5-8.5s1.1-6.2 3.5-8.5z"/>'),
   watch: icon('<rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="M10 9.2v5.6l4.7-2.8z"/>'),
+  services: icon('<rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><path d="M15.6 15.2v3.6l3-1.8z"/>'),
   home: icon('<path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/>'),
   look: icon('<path d="M12 3.5s6 6.2 6 10.5a6 6 0 0 1-12 0c0-4.3 6-10.5 6-10.5z"/>'),
   live: icon('<circle cx="12" cy="12" r="2.2"/><path d="M8.3 8.3a5.3 5.3 0 0 0 0 7.4M15.7 15.7a5.3 5.3 0 0 0 0-7.4M5.4 5.4a9.3 9.3 0 0 0 0 13.2M18.6 18.6a9.3 9.3 0 0 0 0-13.2"/>'),
@@ -120,6 +122,39 @@ async function choose(k){
   paintSettings('p:' + k);
 }
 
+/* ---------- the streaming services ----------
+   A switch for each service the Streaming Catalogs add-on can list: the ones on are the ones Movies and
+   Series show, on their tabs and in their filters. The choice is written into the add-on's own address
+   (data/addons.js) a moment after the last press, so that a run of presses reads the add-on once. */
+let svcPick = null, svcTimer = 0;
+const SVC_SETTLE_MS = 1200;
+const svcChosen = () => svcPick || scProviders();
+function svcGrid(list){
+  const on = svcChosen();
+  return `<div class="svcgrid">${list.map(([code, name]) => line({fid: 'svc:' + code, label: `${svcMark(name)}<span dir="ltr">${esc(name)}</span>`,
+    sw: on.includes(code), attrs: `data-svc="${code}"`})).join('')}</div>`;
+}
+function toggleSvc(code){
+  const now = svcChosen(), say = $('#svcsay');
+  if(now.length === 1 && now[0] === code){ if(say) say.textContent = tr('set.svc.last'); return; }
+  svcPick = PROVIDERS.map(([c]) => c).filter(c => c === code ? !now.includes(c) : now.includes(c));
+  paintSettings('svc:' + code);
+  $('#svcsay').textContent = tr('set.svc.saving');
+  clearTimeout(svcTimer);
+  svcTimer = setTimeout(saveSvc, SVC_SETTLE_MS);
+}
+async function saveSvc(){
+  const pick = svcPick;
+  if(!pick) return;
+  try{ await setScProviders(pick); }catch(e){}
+  if(svcPick !== pick) return;                      // pressed again meanwhile: the next save is on its way
+  svcPick = null;
+  resetServices();
+  const say = $('#svcsay');
+  if(say) say.textContent = tr('set.svc.saved', {n: scProviders().length});
+  else if(!/^#\/settings/.test(location.hash)) route();   // the viewer has moved on: what is on screen is drawn again
+}
+
 /* ---------- the pages ---------- */
 function categories(){
   const hidden = new Set(settings.hiddenCats || []);
@@ -145,6 +180,8 @@ const PANES = {
     + section(tr('set.sec.subs'), lines(pref('subs') + (window.BoothAndroid?.setSubScale ? pref('subsize') : '')))
     + section(tr('set.sec.sources'), lines(line({fid: 'addons', href: '#/addons', label: tr('set.addons.title'), note: tr('set.addons.note'),
       value: tr('set.addons.count', {n: addons.length})}))),
+  services: () => section(tr('set.svc.main'), svcGrid(PROVIDERS_MAIN) + '<p class="snote" id="svcsay" aria-live="polite"></p>', tr('set.svc.note'))
+    + section(tr('set.svc.more'), svcGrid(PROVIDERS_MORE), tr('set.svc.moreNote')),
   home: () => section(tr('set.home.title'), `<div class="catorder">${categories()}</div>`, tr('set.home.note'))
     + section('', lines(pref('nosrc'))),
   look: () => section(tr('set.skin.title'), `<div class="themes">${SKINS.map(themeCard).join('')}</div>`),
@@ -272,6 +309,7 @@ function wire(pane){
     }
     ACTS[b.dataset.act](b);
   });
+  pane.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => toggleSvc(b.dataset.svc));
   pane.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { setSetting('skin', b.dataset.skin); paintSettings(); });
   pane.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => {
     const h = new Set(settings.hiddenCats || []);

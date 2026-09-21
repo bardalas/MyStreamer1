@@ -4,7 +4,7 @@ import {esc} from '../core/dom.js';
 import {addons, catalogFetch} from '../data/addons.js';
 import {BOOTH_ID, SC_ID} from '../data/catalogs.js';
 import {kidsOn} from '../data/kids.js';
-import {SERVICES, noteServices, svcGlyph} from '../data/services.js';
+import {PROVIDERS, SERVICES, noteServices, svcGlyph} from '../data/services.js';
 import {tr} from '../i18n.js';
 import {JFC_LOBBIES, jfcCard, jfcLobby} from '../providers/jfc.js';
 import {kanBox, kanCard} from '../providers/kan.js';
@@ -13,10 +13,11 @@ import {r13card, r13row} from '../providers/reshet.js';
 import {card} from './cards.js';
 
 /* Every source a title can come from, and which types it holds. A list is loaded once and kept for the
-   session; a streaming service is also asked for its next page when the row runs out. */
+   session; a streaming service is also asked for its next page when the row runs out. Every service the
+   add-on can list is here; the ones it is set to list (Settings) are the ones that have a catalogue. */
 const service = id => ({id, svc: id, types: ['movie', 'series']});
 export const ORIGINS = [
-  ...['nfx', 'atp', 'dnp', 'amp', 'hbm', 'pmp', 'cts', 'mgl'].map(service),
+  ...PROVIDERS.map(([code]) => service(code)),
   {id: 'kan', types: ['movie', 'series'], shows: true},    // the broadcasters: their own section, Shows
   {id: 'mako', types: ['series'], shows: true},
   {id: 'r13', types: ['series'], shows: true},

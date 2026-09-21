@@ -53,8 +53,9 @@ export const CATEGORIES = [
 ];
 export const catName = c => tr('cat.' + c.id);
 // Every streaming service's titles of one type, in one row: each poster carries its service's mark (ui/rows.js).
-export const STREAMING = ['nfx', 'atp', 'dnp', 'amp', 'hbm', 'pmp'];
-export const mergedRow = (type, title) => ({origins: STREAMING, type, title});
+// [services]: the ones listed (ui/origins.js) - but the documentary services, which have a category of their own.
+const DOC_SERVICES = ['cts', 'mgl'];
+export const mergedRow = (type, title, services) => ({origins: services.filter(id => !DOC_SERVICES.includes(id)), type, title});
 /** Categories in the user's order, without the hidden ones (Settings → מסך הבית). */
 export function userCategories(){
   const order = settings.cats || CATEGORIES.map(c => c.id);

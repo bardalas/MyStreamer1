@@ -61,6 +61,13 @@
 .catline .sline{flex:1;background:var(--surface);border:0;border-radius:12px}
 .catline .mv{width:48px;height:48px;flex:none;border:0;border-radius:12px;background:var(--surface);color:var(--muted);font-size:14px;cursor:pointer}
 .catline .mv:disabled{opacity:.3;cursor:default}
+/* the streaming services, two across: each its mark, its name and its switch */
+.svcgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.svcgrid .sline{background:var(--surface);border:0;border-radius:12px;min-height:54px;padding:8px 14px}
+.svcgrid .st b{display:flex;align-items:center;gap:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.svcgrid .svcm{flex:none}
+.svcgrid .sv>span{display:none}
+#svcsay{margin:10px 0 0}
 /* themes, two across: each shows its own colours, the chosen one wears the accent and a tick */
 .themes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .theme{display:flex;align-items:center;gap:12px;padding:8px;background:var(--surface);border:2px solid transparent;border-radius:14px;

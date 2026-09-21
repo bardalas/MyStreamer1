@@ -6,7 +6,26 @@ import {SC_ID} from './catalogs.js';
 import {pool} from './hebrew.js';
 
 /* ---------- which streaming service a title is on (from the Streaming Catalogs add-on) ---------- */
-export const SERVICES = {nfx: 'Netflix', atp: 'Apple TV+', dnp: 'Disney+', amp: 'Prime Video', hbm: 'HBO Max', pmp: 'Paramount+', cts: 'Curiosity Stream', mgl: 'MagellanTV'};
+/** Every service the add-on can list: [code, name, initials, colour] - the initials on the colour stand for
+    it where there is no logo of its own. The first ones are the services most watched here; the rest are
+    offered under "more" (Settings -> Streaming services). */
+export const PROVIDERS_MAIN = [
+  ['nfx', 'Netflix', 'N', '#e50914'], ['nfk', 'Netflix Kids', 'NK', '#e50914'], ['dnp', 'Disney+', 'D+', '#1f4bd8'],
+  ['amp', 'Prime Video', 'PV', '#0b8fd0'], ['atp', 'Apple TV+', 'TV', '#4f5157'], ['hbm', 'HBO Max', 'HBO', '#7b2ff2'],
+  ['pmp', 'Paramount+', 'P+', '#1266ff'], ['cru', 'Crunchyroll', 'CR', '#f47521'], ['mbi', 'Mubi', 'MUBI', '#1b1f7a'],
+  ['cts', 'Curiosity Stream', 'CS', '#0f9bb8'], ['mgl', 'MagellanTV', 'MG', '#b5842a']];
+export const PROVIDERS_MORE = [
+  ['hlu', 'Hulu', 'hulu', '#16a864'], ['pcp', 'Peacock', 'P', '#3d3d3d'], ['sst', 'SkyShowtime', 'SST', '#1a2b6b'],
+  ['stz', 'Starz', 'STZ', '#2b2b2b'], ['crc', 'Criterion Channel', 'CC', '#2b2b2b'], ['shd', 'Shudder', 'SHU', '#c8161d'],
+  ['dpe', 'Discovery+', 'DSC', '#1d6ce0'], ['bbc', 'BBC iPlayer', 'BBC', '#d6246e'], ['itv', 'ITVX', 'ITVX', '#15375e'],
+  ['al4', 'Channel 4', '4', '#2b2b2b'], ['bbo', 'BritBox', 'BB', '#b8124e'], ['act', 'Acorn TV', 'ACN', '#1f7a3c'],
+  ['sha', 'Shahid VIP', 'SHA', '#1a9c8c'], ['vik', 'Rakuten Viki', 'VIKI', '#1f8ff0'], ['iqi', 'iQIYI', 'iQ', '#1a9c1a'],
+  ['zee', 'Zee5', 'Z5', '#8230c6'], ['jhs', 'JioHotstar', 'JH', '#16206b'], ['sonyliv', 'Sony Liv', 'SL', '#3d3d3d'],
+  ['hay', 'Hayu', 'HAYU', '#7d2ae8'], ['cpd', 'Canal+', 'C+', '#2b2b2b'], ['mp9', 'Movistar+', 'M+', '#0a86c9'],
+  ['sgo', 'Sky Go', 'SKY', '#0a64b0'], ['nlz', 'NLZIET', 'NLZ', '#e0631a'], ['vil', 'Videoland', 'VL', '#d20a11'],
+  ['clv', 'Clarovideo', 'CV', '#d11f18'], ['gop', 'Globoplay', 'GP', '#e0053a']];
+export const PROVIDERS = [...PROVIDERS_MAIN, ...PROVIDERS_MORE];
+export const SERVICES = Object.fromEntries(PROVIDERS.map(([code, name]) => [code, name]));
 export let svcMap = (() => { const c = store.get('svcMap', null); return c && Date.now() - c.at < 864e5 ? c.map : {}; })();
 export const svcOf = id => svcMap[id] || [];
 export function noteServices(id, name){
@@ -20,9 +39,7 @@ export function noteServices(id, name){
    own falls back to its initials on its colour. */
 export const SVC_LOGO = {'Netflix': 'nfx', 'Apple TV+': 'atp', 'Disney+': 'dnp', 'Prime Video': 'amp',
   'HBO Max': 'hbm', 'Paramount+': 'pmp', 'Curiosity Stream': 'cts'};
-export const SVC_MARK = {'Netflix': ['N', '#e50914'], 'Apple TV+': ['TV', '#4f5157'], 'Disney+': ['D+', '#1f4bd8'],
-  'Prime Video': ['PV', '#0b8fd0'], 'HBO Max': ['HBO', '#7b2ff2'], 'Paramount+': ['P+', '#1266ff'],
-  'Curiosity Stream': ['CS', '#0f9bb8'], 'MagellanTV': ['MG', '#b5842a']};
+export const SVC_MARK = Object.fromEntries(PROVIDERS.map(([, name, txt, bg]) => [name, [txt, bg]]));
 export const svcMark = name => {
   const file = SVC_LOGO[name];
   if(file) return `<span class="svcm logo" title="${esc(name)}"><img src="svc/${file}.png" alt="${esc(name)}" loading="lazy"></span>`;
@@ -71,6 +88,12 @@ export function applyBadges(){
     const svc = svcOf(a.dataset.id)[0];
     if(art && svc && !art.querySelector('.svcbadge')) art.insertAdjacentHTML('beforeend', `<span class="svcbadge">${svcGlyph(svc)}</span>`);
   });
+}
+/** The services listed changed (Settings): which title is on which is collected again. */
+export function resetServices(){
+  svcMap = {};
+  store.set('svcMap', null);
+  return loadServices();
 }
 /** Once a day: collect every streaming service's catalogue into id -> services. */
 export async function loadServices(){

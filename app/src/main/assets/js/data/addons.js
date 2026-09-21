@@ -30,6 +30,28 @@ if(store.get('defaultsRev', 1) < 4){
 }
 export let addons = [];   // {url, base, manifest}
 
+/* ---------- which services the Streaming Catalogs add-on lists ----------
+   The add-on keeps its settings in its address: the part before /manifest.json is, in base64,
+   providers:rpdbKey:country:timestamp:top10Global:top10Country:top10CountryCode - what its own configure
+   page writes. The services are chosen in Settings by writing a new address the same way. */
+const SC_HOST = 'stremio-netflix-catalog-addon';
+const scUrl = () => addonUrls.find(u => u.includes(SC_HOST));
+function scFields(url){
+  try{ return atob(decodeURIComponent(url.split('/').slice(-2)[0])).split(':'); }catch(e){ return null; }
+}
+/** The services the add-on is set to list, by their codes (data/services.js), in its order. */
+export const scProviders = () => (scFields(scUrl() || '')?.[0] || '').split(',').filter(Boolean);
+/** List [codes] instead: the add-on's address is written anew with its other settings as they were, and
+    the add-ons are read again. An add-on that was removed is put back. */
+export async function setScProviders(codes){
+  const was = scUrl(), url = was || STREAMING_CATALOGS, f = scFields(url);
+  if(!f || !codes.length) return;
+  f[0] = codes.join(',');
+  const next = url.replace(/[^/]+\/manifest\.json$/, encodeURIComponent(btoa(f.join(':'))) + '/manifest.json');
+  setAddonUrls(was ? addonUrls.map(u => u === was ? next : u) : [...addonUrls, next]);
+  await loadAddons();
+}
+
 
 export function supports(m, resource, type, id){
   for(const r of m.resources || []){
