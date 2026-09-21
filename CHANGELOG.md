@@ -1,5 +1,30 @@
 # VEO Android changelog
 
+## 0.45.0 — 2026-09-21
+- **Profiles: who is watching.** The app starts on a "Who's watching?" screen when there is more than
+  one profile. Each profile has its own picture and name, and keeps its own settings, continue
+  watching, favourites, reminders and choices; the side menu shows who is in, and changes profile.
+  Profiles are added and edited in Settings → Profiles. Any profile can be locked with the parent
+  code, and from a kids profile a looser one (a grown-up's, or an older child's) always asks for it.
+  Everything already on the device becomes the first profile's.
+- **Kids profiles up to 14, 16 and 18.** Up to 12 stays a child's profile (family and animation only,
+  no Shows or live TV). From 14 a title is judged by its age rating - the stricter of its Israeli and
+  American certificates on IMDb - and the profile gets Shows and the Magazine, and live TV from 16.
+- **Suggestions that learn.** Each profile learns what it likes from what it opens, plays and saves:
+  "Because you watched …" and "Recommended for you" rows on Home and on Movies and Series.
+- **Shows.** Kan, Keshet and Reshet laid out alike, and the **Magazine**: hand-picked internet
+  programmes (science, technology, the world, talk, music, documentaries) with Hebrew titles and
+  descriptions, playing under VEO's own controls with Hebrew captions.
+- **Choose your streaming services** (Settings → Streaming services): 37 services, written into the
+  Streaming Catalogs add-on; Movies and Series, their tabs and the filters follow the choice.
+- **Movies and Series as homes of their own**, a tab for titles on no service, and the chosen
+  service's mark faint behind the page.
+- **Opening a source is visible**: a card with a turning wheel, progress and Cancel holds the remote
+  until the film starts; torrent errors are said in words; the source list follows the quality chosen.
+- **Titles with nowhere to watch are hidden** by default, and found out sooner.
+- **The middle of a row shows the title's wide picture** - or the whole poster over a blurred copy of
+  itself - instead of a portrait poster cut to a band.
+
 ## 0.44.0 — 2026-09-21
 - **Movies and Series by source, and a library of everything.** Movies and Series open on a strip of
   source tabs (All, each streaming service, Kan, Keshet, Reshet, the film archive, the Israeli
