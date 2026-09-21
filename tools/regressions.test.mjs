@@ -59,6 +59,8 @@ class Element {
   getAttribute(k){ return this.attrs[k] ?? null; }
   removeAttribute(k){ delete this.attrs[k]; }
   focus(){ this.doc.activeElement = this; }
+  // the page asks whether the thing the viewer is on is inside a row it is about to redraw
+  contains(el){ return el === this || this.children.includes(el); }
   closest(){ return null; }
 }
 
