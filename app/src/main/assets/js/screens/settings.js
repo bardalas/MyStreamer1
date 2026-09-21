@@ -6,7 +6,8 @@ import {SKINS, isTvLayout, resetSettings, setSetting, settings} from '../core/se
 import {store} from '../core/store.js';
 import {addons, scProviders, setScProviders} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
-import {KID_AGES, kidsOn} from '../data/kids.js';
+import {KID_AGES, hasPin, kidsOn} from '../data/kids.js';
+import {forgetWatched} from '../data/taste.js';
 import {PROVIDERS, PROVIDERS_MAIN, PROVIDERS_MORE, resetServices, svcMark} from '../data/services.js';
 import {clearProgress} from '../data/watch.js';
 import {UI_LANGS, tr} from '../i18n.js';
@@ -254,12 +255,13 @@ const ACTS = {
     updKey = UPD_SAYS[found] ?? 'set.about.latest';
     if(b.isConnected) b.querySelector('.sv span').textContent = updKey ? tr(updKey) : '';
   },
-  hist: b => { clearProgress(); b.querySelector('.sv span').textContent = tr('set.hist.done'); },
+  hist: b => { clearProgress(); forgetWatched(); b.querySelector('.sv span').textContent = tr('set.hist.done'); },
   lockAll: async () => { await lockAll(); paintSettings('switch'); },
   // every choice back - the ones kept outside the settings too: the quality, and the subtitles' size the player keeps
   reset: () => { resetSettings(); setPrefQ(''); setSubScale(1.25); paintSettings('reset'); },
   kidsOn: async () => {
-    if(!await choosePin()) return paintSettings('kidsOn');
+    // the household's code, when there is one, is this profile's way out too: it is not replaced from here
+    if(!hasPin() && !await choosePin()) return paintSettings('kidsOn');
     setSetting('kids', 'on');
     document.querySelectorAll('.update').forEach(c => c.remove());   // nothing on screen offers a way out of it
     location.hash = '#/';                            // the profile starts where a child starts: home

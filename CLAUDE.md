@@ -200,15 +200,20 @@ sorted and from which sources; a genre also pulls Cinemeta's popular/top-rated t
   is the device's (add-ons, caches, live sources, the parent code `kidsPin`, `device` = device-level settings like `cap`).
   The first run moves the old unprefixed keys into the first profile. Switching profile reloads the page
   (`enterProfile`), so module-level snapshots never go stale - never switch without reloading. The picker opens at
-  start once a session (sessionStorage `veo:who`) when there are 2+ profiles or the current one is locked; Back there
-  closes the app. A locked profile needs the parent code (`ui/pin.js`); making a profile looser (kids off, older age)
-  needs it too. Native progress carries `pid` in its meta so `boothProgress` files it under the right profile.
+  start once a session (sessionStorage `veo:who`) when there are 2+ profiles or the current one is locked; it is drawn
+  before the add-ons load, `route()` sends every other address back to it until someone is chosen (except a grown-up's
+  `#/profile/new`), no update/reminder card is shown over it, and Back there closes the app. Any profile can be locked
+  (parent code, `ui/pin.js`); from a kids profile, a looser one (grown-up, or older kids age) needs the code even if
+  unlocked. Making a profile looser needs it too. The grown-up's sum ("forgot the code") is never offered for locks or
+  in teen tiers (`askPin(title, {sum})`). Turning kids on never replaces an existing household code. Native progress
+  carries `pid` in its meta so `boothProgress` files it under the right profile.
   `booth.html`'s pre-paint script and `i18n.js` read the active profile's settings, not `booth:settings`.
 - **Ages** (`core/settings.js` `AGE_LEVELS`, `kidsTier`; `data/kids.js`): 6/9/12 are a child's profile (family genres
   only, no Shows/Live - `kidsChild()`); 14/16/18 are a teenager's (`kidsTeen()`): judged by rating alone, Shows and
-  the Magazine allowed, Live from 16 (`liveAllowed()`). `html[data-kids]` is `off|child|teen|teen16`. Ratings
-  (`data/ratings.js`) come from IMDb's GraphQL (Israeli certificate, then US) through native `postText` - IMDb answers
-  only with `x-imdb-client-name` - and Wikidata for the rest.
+  the Magazine allowed, Live from 16 (`liveAllowed()`, also checked in `watchChannel`); never Keshet/mako or any web
+  page (openSite). `html[data-kids]` is `off|child|teen|teen16`. Ratings (`data/ratings.js`) are the STRICTER of IMDb's
+  Israeli and US certificates (IL is far looser; IL "PG" is ignored), through native `postText` - IMDb answers only with
+  `x-imdb-client-name` - then Wikidata. A failed IMDb ask leaves titles unknown (asked again), never cached as -1.
 - **Taste** (`data/taste.js`): genre/person weights learnt from title opened (1), played (3), favourited (4), fading 2%
   per sign; rows "Because you watched X" then "for you" (`TASTE_ADDON`, a local catalogue, so kids filtering applies).
 - **Streaming services** (Settings -> Streaming services, `screens/settings.js`): a switch per provider the Streaming

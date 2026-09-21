@@ -2,6 +2,7 @@
 import {$, esc, lazyBg, showErr} from '../core/dom.js';
 import {isTvLayout, rowMax} from '../core/settings.js';
 import {store} from '../core/store.js';
+import {kidsOn, liveAllowed} from '../data/kids.js';
 import {JFC_LOBBIES, jfcCard, jfcLobby} from '../providers/jfc.js';
 import {KAN, kanBox} from '../providers/kan.js';
 import {IL_CHANNELS, watchChannel} from '../providers/live.js';
@@ -51,10 +52,12 @@ async function bcRows(bc){
 let showsView = 0;                                     // which drawing of Shows is the current one
 export async function viewShows(which){
   const me = ++showsView;
-  const bc = BC_TABS.find(b => b.id === which) || BC_TABS.find(b => b.id === store.get('tvTab', '')) || BC_TABS[0];
+  // Keshet's episodes open on its own site, and a kids profile never leaves the app for a web page
+  const bcs = kidsOn() ? BC_TABS.filter(b => b.id !== 'keshet') : BC_TABS;
+  const bc = bcs.find(b => b.id === which) || bcs.find(b => b.id === store.get('tvTab', '')) || bcs[0];
   store.set('tvTab', bc.id);
   const tabs = `<div class="page pagehead typehead"><h1>${tr('nav.shows')}</h1>
-    <div class="srctabs showtabs" role="tablist">${BC_TABS.map(b =>
+    <div class="srctabs showtabs" role="tablist">${bcs.map(b =>
       `<button class="srctab${b.id === bc.id ? ' on' : ''}" role="tab" aria-selected="${b.id === bc.id}" data-bc="${b.id}">${esc(bcName(b))}</button>`).join('')}</div>
     <div class="bchead" style="--bc:${bc.color || 'var(--tungsten)'}" id="bchead"></div></div>
     ${bc.origin ? `<div class="srcmark" aria-hidden="true">${originMark({id: bc.origin})}</div>` : ''}`;
@@ -74,10 +77,11 @@ export async function viewShows(which){
   };
   let rows = [], note = '', kanSite = false;
   if(bc.id === 'all'){
-    rows = [{origins: ['kan', 'mako', 'r13'], type: 'series', tabbed: true, badge: true, title: tr('row.featured')},
+    const kids = kidsOn();
+    rows = [{origins: kids ? ['kan', 'r13'] : ['kan', 'mako', 'r13'], type: 'series', tabbed: true, badge: true, title: tr('row.featured')},
       {r13: 'recent', title: tr('shows.recent')},
       {origins: ['kan'], type: 'series', title: tr('row.fromKan'), more: '#/shows/kan'},
-      {origins: ['mako'], type: 'series', title: tr('row.fromKeshet'), more: '#/shows/keshet'},
+      ...(kids ? [] : [{origins: ['mako'], type: 'series', title: tr('row.fromKeshet'), more: '#/shows/keshet'}]),
       {origins: ['r13'], type: 'series', title: tr('row.fromReshet'), more: '#/shows/reshet'},
       {web: 'latest', title: tr('web.latestAll'), more: '#/shows/web'}];
     renderRows(rows, {top: tabs});
@@ -99,8 +103,10 @@ export async function viewShows(which){
   // live button for the broadcaster (Kan 11 and Reshet 13 have official streams)
   const head = $('#bchead');
   head.innerHTML = (note ? `<p class="note">${esc(note)}</p>` : '') +
-    (kanSite ? `<button class="btn primary openbtn" data-site="${KAN}/lobby/kan-box/">פתח את כאן BOX בתוך האפליקציה</button>` : '');
-  const live = bc.id === 'kan' ? IL_CHANNELS.find(c => c.name === 'Kan 11') : bc.id === 'reshet' ? (await r13channels().catch(() => [])).find(c => c.name === 'רשת 13') : null;
+    (kanSite && !kidsOn() ? `<button class="btn primary openbtn" data-site="${KAN}/lobby/kan-box/">פתח את כאן BOX בתוך האפליקציה</button>` : '');
+  // the broadcaster's channel, live - where the profile has live TV at all (a kids profile only from 16)
+  const live = !liveAllowed() ? null : bc.id === 'kan' ? IL_CHANNELS.find(c => c.name === 'Kan 11')
+    : bc.id === 'reshet' ? (await r13channels().catch(() => [])).find(c => c.name === 'רשת 13') : null;
   if(live && head.isConnected){
     head.insertAdjacentHTML('afterbegin', `<button class="livebtn" id="bclive">▶ ${esc(tr('live.watchLive'))} · ${esc(bcName(bc))}</button>`);
     $('#bclive').onclick = () => watchChannel([live], 0, 'il');

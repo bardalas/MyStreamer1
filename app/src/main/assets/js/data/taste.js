@@ -10,6 +10,7 @@
 import {store} from '../core/store.js';
 import {addons, catalogAll, fetchMeta} from './addons.js';
 import {CINEMETA_ID} from './catalogs.js';
+import {kidsOn, kidsOwn} from './kids.js';
 import {library, progress} from './watch.js';
 
 /** How much a sign says. */
@@ -37,16 +38,24 @@ export function noteTaste(meta, weight){
 }
 /** Whether anything has been learnt yet: with nothing, there is nothing to suggest from. */
 export const hasTaste = () => Object.keys(taste.g).length > 0;
-/** The titles a "Because you watched" row can be about: the latest played or saved, newest first. */
-export const becauseTitles = type => taste.last.filter(x => !type || x.type === type);
+/** The titles a "Because you watched" row can be about: the latest played or saved, newest first - in a kids
+    profile only its own (a profile made a kids one keeps what it learnt before, but does not name it). */
+export const becauseTitles = type => taste.last.filter(x => (!type || x.type === type) && (!kidsOn() || kidsOwn(x.id)));
+/** The history was cleared: what was watched is forgotten here too (what the profile likes is not). */
+export function forgetWatched(){
+  taste.last = [];
+  taste.seen = {};
+  store.set('taste', taste);
+}
 
 /* A profile made before there was any learning has its history to learn from: what it watched and saved
    is read once, a few titles at a time, when the page is quiet. */
 export async function learnFromHistory(){
   if(hasTaste() || store.get('tasteSeeded', false)) return;
   store.set('tasteSeeded', true);
-  const had = [...Object.values(progress).sort((a, b) => b.at - a.at).map(x => [x.type, x.metaId, PLAYED]),
-    ...Object.values(library).map(x => [x.type, x.id, FAVOURED])];
+  const mine = id => !kidsOn() || kidsOwn(id);          // a kids profile: only what was watched in it
+  const had = [...Object.values(progress).filter(x => mine(x.metaId)).sort((a, b) => b.at - a.at).map(x => [x.type, x.metaId, PLAYED]),
+    ...Object.values(library).filter(x => mine(x.id)).map(x => [x.type, x.id, FAVOURED])];
   const seen = new Set();
   for(const [type, id, weight] of had.slice(0, 24)){
     if(!/^tt\d+$/.test(id || '') || seen.has(id)) continue;

@@ -6,11 +6,16 @@
    to the device: the add-ons, the caches, the live sources, the parent code. A caller asks for a key by
    its name alone and gets the copy of the profile the page was opened in. Switching profile opens the
    page again (data/profiles.js), so no module goes on holding the previous profile's copy. */
-export const PROFILE_KEYS = new Set(['settings', 'progress', 'library', 'kidsIds', 'remind', 'remindAt', 'quality', 'taste', 'tasteSeeded',
+export const PROFILE_KEYS = new Set(['settings', 'progress', 'library', 'kidsIds', 'kidsTeenIds', 'remind', 'remindAt', 'quality', 'taste', 'tasteSeeded',
   'sort', 'libSort:movie', 'libSort:series', 'srcTab', 'tvTab', 'jfcLobby', 'mkGenre', 'livePl', 'liveGroup', 'lastChannel']);
 const LIST_KEY = 'booth:profiles', ACTIVE_KEY = 'booth:profile';
 export const profileKey = (pid, k) => `booth:p/${pid}/${k}`;
 const read = k => { try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : undefined; }catch(e){ return undefined; } };
+/** The caches that can be fetched again, dropped when storage is full. */
+function pruneCaches(){
+  for(const k of ['heMeta', 'avail', 'svcMap']) try{ localStorage.removeItem('booth:' + k); }catch(e){}
+  try{ for(const k of Object.keys(localStorage)) if(k.startsWith('booth:catx:')) localStorage.removeItem(k); }catch(e){}
+}
 const write = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 
 /**
@@ -19,24 +24,35 @@ const write = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catc
  * address (core/bridge.js) - becomes its own: nothing anyone had is lost by the change.
  * [freshProfiles]: this is the app's first run on this device - there was nothing to become anyone's.
  */
-export const {profileId, freshProfiles} = (() => {
+export const {profileId, freshProfiles, firstId} = (() => {
   let list = read(LIST_KEY), fresh = false;
   if(!Array.isArray(list) || !list.length){ list = [{id: 'p1', name: '', icon: 0}]; write(LIST_KEY, list); fresh = true; }
   let id = read(ACTIVE_KEY);
   if(!list.some(p => p.id === id)){ id = list[0].id; write(ACTIVE_KEY, id); }
+  // moved, not copied - a full storage has no room for two of the history - and put back if it will not go
   for(const k of PROFILE_KEYS){
     let v = null;
     try{ v = localStorage.getItem('booth:' + k); }catch(e){}
     if(v == null) continue;
     fresh = false;
+    const to = profileKey(list[0].id, k);
     try{
-      if(localStorage.getItem(profileKey(list[0].id, k)) == null) localStorage.setItem(profileKey(list[0].id, k), v);
+      const had = localStorage.getItem(to) != null;
       localStorage.removeItem('booth:' + k);
+      if(had) continue;
+      try{ localStorage.setItem(to, v); }
+      catch(e){ pruneCaches(); try{ localStorage.setItem(to, v); }catch(e2){ localStorage.setItem('booth:' + k, v); } }
     }catch(e){}
   }
-  return {profileId: id, freshProfiles: fresh};
+  return {profileId: id, freshProfiles: fresh, firstId: list[0].id};
 })();
-const keyOf = k => PROFILE_KEYS.has(k) ? profileKey(profileId, k) : 'booth:' + k;
+/** A profile's key - or, for the first profile while its own copy could not be written yet, the old one. */
+const keyOf = k => {
+  if(!PROFILE_KEYS.has(k)) return 'booth:' + k;
+  const key = profileKey(profileId, k);
+  try{ if(profileId === firstId && localStorage.getItem(key) == null && localStorage.getItem('booth:' + k) != null) return 'booth:' + k; }catch(e){}
+  return key;
+};
 
 export const store = {
   get(k, d){ const v = read(keyOf(k)); return v === undefined ? d : v; },
@@ -58,10 +74,7 @@ export const store = {
   lazy(k, v){ store.dirty[k] = v; clearTimeout(store.timer); store.timer = setTimeout(store.flush, 1000); },
   flush(){ const d = store.dirty; store.dirty = {}; for(const k in d) store.set(k, d[k]); },
   /** Storage is full: drop the rebuildable caches, never the library/progress/settings. */
-  prune(){
-    for(const k of ['heMeta', 'avail', 'svcMap']) try{ localStorage.removeItem('booth:' + k); }catch(e){}
-    for(const k of Object.keys(localStorage)) if(k.startsWith('booth:catx:')) try{ localStorage.removeItem(k); }catch(e){}
-  },
+  prune: pruneCaches,
 };
 addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') store.flush(); });
 addEventListener('pagehide', () => store.flush());

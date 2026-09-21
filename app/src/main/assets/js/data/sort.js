@@ -123,7 +123,7 @@ export async function gridFrom(rows, heading, redraw){
   grid.innerHTML = out.length ? out.slice(0, 200).map(card).join('') : `<p class="note">${tr('sort.none')}</p>`;
   const by = SORT_GROUPS.find(g => g.key === 'by');
   $('#gnote').textContent = tr('sort.summary', {n: Math.min(out.length, 200), by: optLabel(by, by.opts.find(([v]) => v === pageFilters.st.by)),
-    from: [...new Set(all.filter(x => x.a).map(x => srcName(x.a)))].join(', ')});
+    from: [...new Set(all.filter(x => x.a).map(x => srcName(x.a)).filter(Boolean))].join(', ')});
   lazyBg(grid);
 }
 /** A row as the catalogues behind it: a row of sources (ui/origins.js) is its services' catalogues -

@@ -9,7 +9,7 @@ import {availObserver, resetAvailBudget} from './data/availability.js';
 import {armHeAndAvail, heObserver} from './data/hebrew.js';
 import {kidsOn, kidsTeen, liveAllowed} from './data/kids.js';
 import {channelName} from './data/names.js';
-import {needsPicker} from './data/profiles.js';
+import {enterProfile, needsPicker} from './data/profiles.js';
 import {checkReminders} from './data/reminders.js';
 import {loadServices} from './data/services.js';
 import {learnFromHistory} from './data/taste.js';
@@ -67,13 +67,15 @@ export let lastPaint = 0;                                   // when this screen 
     settings (which shows only the way out) and the profile picker. A child's has neither live TV nor the
     broadcasters' own pages; a teenager's has the programmes and the magazine, and from 16 live TV. */
 const KIDS_ROUTES = ['', 'detail', 'library', 'settings', 'search', 'all', 'who'];
-const TEEN_ROUTES = ['cat', 'genres', 'genre', 'shows', 'web', 'kan', 'mako', 'r13', 'tv'];
+const TEEN_ROUTES = ['cat', 'genres', 'genre', 'shows', 'web', 'kan', 'r13', 'tv'];   // not Keshet: its episodes are its own site's
 const kidsMay = (r, a) => KIDS_ROUTES.includes(r) || (r === 'cat' && ['movies', 'series'].includes(a))
   || (kidsTeen() && TEEN_ROUTES.includes(r)) || (r === 'live' && liveAllowed());
 export async function route(){
   invalidateView();                                 // cancel work from the previous view before rendering
   const [, r0 = '', a0] = location.hash.split('/').map(decodeURIComponent);
-  if(kidsOn() && !kidsMay(r0, a0)) history.replaceState(null, '', '#/');   // anywhere else is the profile's home
+  // until someone is chosen, the picker is the only screen there is (a grown-up may make a new profile from it)
+  if(needsPicker() && r0 !== 'who' && !(r0 === 'profile' && a0 === 'new' && !kidsOn())) history.replaceState(null, '', '#/who');
+  else if(kidsOn() && !kidsMay(r0, a0)) history.replaceState(null, '', '#/');   // anywhere else is the profile's home
   rememberScreen();
   resetObservers();
   document.body.classList.remove('titlefit');
@@ -110,7 +112,7 @@ export async function route(){
   lastPaint = Date.now();
 }
 /** The last live channel watched, playing (or Live TV, when it cannot be found). */
-async function tuneLastChannel(){
+export async function tuneLastChannel(){
   const last = store.get('lastChannel', null);
   try{
     const chans = await liveChannels(last.src);
@@ -179,14 +181,19 @@ paintNet();
 export const START = {live: '#/live', movies: '#/cat/movies', series: '#/cat/series'};
 const bare = !location.hash;
 const picking = needsPicker();
-if(picking) history.replaceState(null, '', '#/who');
-else if(bare && !kidsOn() && START[settings.start]) history.replaceState(null, '', START[settings.start]);
+// the picker holds the screen from the first frame: nothing else can be reached before it is drawn
+if(picking){ history.replaceState(null, '', '#/who'); document.body.classList.add('who'); }
+else{
+  enterProfile(profileId);                          // nothing to choose: the profile the app is in is who is watching
+  if(bare && !kidsOn() && START[settings.start]) history.replaceState(null, '', START[settings.start]);
+}
 paintRailProfile();
 export async function boot(){
+  if(picking) route();                                 // the picker needs no add-ons: it is up at once
   if(await migrateStore()) return;                     // what was kept before is being brought over
   const ready = loadAddons();
   const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
-  route();                                             // render now, with whatever has answered
+  if(!picking || location.hash !== '#/who') route();   // render now, with whatever has answered (the picker is up already)
   if(first === 'slow'){
     await ready;                                       // and when the add-ons finally arrive,
     if(['', '#/', '#'].includes(location.hash)) route();   // fill the home screen they left empty
@@ -195,13 +202,14 @@ export async function boot(){
   setTimeout(loadServices, 3000);
   setTimeout(learnFromHistory, 12000);                 // a profile from before the app learnt tastes: from its history
   if(kidsOn()) return;                                 // no offers to install, no reminders of grown-up titles
-  setTimeout(() => checkUpdate(true), 2500);
-  setTimeout(checkReminders, 9000);
+  // nothing is offered over the picker: not an update, and not a reminder of a profile not yet chosen
+  setTimeout(() => needsPicker() || checkUpdate(true), 2500);
+  setTimeout(() => needsPicker() || checkReminders(), 9000);
 }
 boot();
 addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible'){ endTaste(); return; }
-  if(!kidsOn()){ checkUpdate(); checkReminders(); }
+  if(!kidsOn() && !needsPicker()){ checkUpdate(); checkReminders(); }
   // a screen left open for a while is old news: draw it again, with fresh titles and another featured one
   if(Date.now() - lastPaint > 15 * 60e3) route();
 });

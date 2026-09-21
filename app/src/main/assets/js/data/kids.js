@@ -4,7 +4,7 @@
    (data/addons.js), which keeps only the titles that pass isKidSafe. What cannot be judged - live
    channels, the broadcasters' own sites, the Israeli catalogues, which carry no genres - is not offered
    at all (app.js keeps those screens out of reach), and a title opened from anywhere else is checked
-   again on its own page. Leaving the profile asks for a four-digit code chosen when it was turned on.
+   again on its own page. Leaving or loosening the profile asks for the household's parent code (below).
 
    The catalogues say nothing about age, only up to three genres. So: a film is for children when it is
    animation or a family film and none of its genres is one children are kept from; a series needs the
@@ -34,9 +34,10 @@ const ageOk = id => { const a = ageFor(id); return a == null || a <= kidsAge(); 
 const TEEN_DENY = ['Horror'];
 /** Whether the teenager's profile shows [m]: its rating, when known, is not above the profile's age. */
 function teenOk(m){
-  if(!m?.id || BLOCK.has(m.id)) return false;
+  if(!m?.id) return false;
   if(ageFor(m.id) != null) return ageOk(m.id);
-  return kidsAge() >= 16 || !(m.genres || m.genre || []).some(g => TEEN_DENY.includes(g));
+  // no rating known: the grown-ups' animation stays out, and at 14 horror too
+  return !BLOCK.has(m.id) && (kidsAge() >= 16 || !(m.genres || m.genre || []).some(g => TEEN_DENY.includes(g)));
 }
 /** The ratings of [ids], waited for a moment at most: a slow answer leaves the genres to decide for now -
     and when it comes, whatever it rules out is taken off the screen (app.js hears 'veo:kidsout'). */
@@ -95,16 +96,16 @@ export async function forKids(d, type, extra){
   const all = d?.metas || [];
   const teen = kidsTeen();
   const vouched = type === 'movie' && KID_ASK.test(extra || '');
-  const safe = teen ? all.filter(m => m?.id && !BLOCK.has(m.id)) : all.filter(m => isKidSafe({type, ...m}, vouched));
+  const safe = teen ? all.filter(m => m?.id) : all.filter(m => isKidSafe({type, ...m}, vouched));
   await rated(safe.map(m => m.id));
   const metas = safe.filter(m => teen ? teenOk(m) : ageOk(m.id));
-  metas.forEach(m => shown.add(m.id));
+  if(!teen) metas.forEach(m => shown.add(m.id));       // only a child's screens vouch for a child's titles
   return {...d, metas, raw: all.length};
 }
 /** Which of [metas] (with their genres) the profile shows - for lists that do not come through a catalogue. */
 export async function kidsPick(metas){
   const teen = kidsTeen();
-  const safe = metas.filter(m => teen ? m?.id && !BLOCK.has(m.id) : isKidSafe(m));
+  const safe = metas.filter(m => teen ? m?.id : isKidSafe(m));
   await rated(safe.map(m => m.id));
   return safe.filter(m => teen ? teenOk(m) : ageOk(m.id));
 }
@@ -112,23 +113,24 @@ export async function kidsPick(metas){
     (the rows that vouched for it may have moved on since), or one that passes on its own genres - and
     in every case, not rated for a child older than this one. */
 export async function kidsMayOpen(meta){
-  if(BLOCK.has(meta.id)) return false;
   const teen = kidsTeen();
-  if(!teen && !(shown.has(meta.id) || ids.has(meta.id) || isKidSafe(meta))) return false;
+  if(!teen && (BLOCK.has(meta.id) || !(shown.has(meta.id) || ids.has(meta.id) || isKidSafe(meta)))) return false;
   // one title, asked for on its own: worth a longer wait than a row's
   await Promise.race([ratingsFor([meta.id]), new Promise(r => setTimeout(r, 10000))]);
   return teen ? teenOk(meta) : ageOk(meta.id);
 }
 
 /* What a child watched and saved stays theirs: the profile's continue-watching and favourites show only
-   titles opened in it, and the grown-ups' do not show up on the child's screen. */
-const KIDS_IDS = 'kidsIds';
-let ids = new Set(store.get(KIDS_IDS, []));
-export const kidsOwn = id => ids.has(id);
+   titles opened in it, and the grown-ups' do not show up on the child's screen. A teenager's titles are
+   kept apart from a child's: made younger, the profile must not find them vouched for. */
+const KIDS_IDS = 'kidsIds', TEEN_IDS = 'kidsTeenIds';
+let ids = new Set(store.get(KIDS_IDS, [])), teenIds = new Set(store.get(TEEN_IDS, []));
+export const kidsOwn = id => ids.has(id) || (kidsTeen() && teenIds.has(id));
 export function noteKidsTitle(id){
-  if(ids.has(id)) return;
-  ids.add(id);
-  store.set(KIDS_IDS, [...ids].slice(-500));
+  const [set, key] = kidsTeen() ? [teenIds, TEEN_IDS] : [ids, KIDS_IDS];
+  if(set.has(id)) return;
+  set.add(id);
+  store.set(key, [...set].slice(-500));
 }
 
 /* ---------- the parent code ----------

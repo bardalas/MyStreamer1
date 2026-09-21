@@ -59,10 +59,17 @@ export const kidsTier = () => settings.kids !== 'on' ? 'off' : kidsAge() >= 16 ?
    is the viewer's choice: each profile keeps its own, hands it to the player when the page opens in it,
    and takes back what the player changed whenever the page is shown again. */
 const nativeScale = () => { try{ const v = +window.BoothAndroid?.getSubScale?.(); return v > 0 ? v : null; }catch(e){ return null; } };
-if(settings.subScale == null && nativeScale()) settings.subScale = nativeScale();
+const near = (a, b) => Math.abs(a - b) < .01;       // a Java float comes back not quite what was sent
+/** The player's size is this profile's: kept, and remembered as the last one handed to it (for the device). */
+const adoptScale = n => { settings.subScale = n; store.set('settings', settings); store.set('subSent', n); };
+{
+  // the player's size moved from the last one the page handed it: it was changed there, while the page was away
+  const n = nativeScale(), sent = store.get('subSent', null);
+  if(n && (settings.subScale == null || (sent != null && !near(n, sent)))) adoptScale(n);
+}
 addEventListener('visibilitychange', () => {
   const n = document.visibilityState === 'visible' && nativeScale();
-  if(n && n !== settings.subScale){ settings.subScale = n; store.set('settings', settings); }
+  if(n && !near(n, +(settings.subScale ?? 0))) adoptScale(n);
 });
 /**
  * The player draws its own banner and channel list in native views: hand it this skin and direction -
@@ -76,7 +83,7 @@ export function syncNativeTheme(){
       night: v('--night'), raise: v('--raise'), line: v('--line'),
       light: v('--light'), muted: v('--muted'), accent: v('--tungsten'), onAccent: v('--on-accent'),
       subs: settings.subs, kids: settings.kids}));
-    if(settings.subScale) window.BoothAndroid?.setSubScale?.(+settings.subScale);
+    if(settings.subScale && window.BoothAndroid?.setSubScale){ BoothAndroid.setSubScale(+settings.subScale); store.set('subSent', +settings.subScale); }
   }catch(e){}
 }
 export function applySettings(){

@@ -48,14 +48,17 @@ export function fetchText(url){
  * boot(), not from here: what it uses is declared further down the script.
  */
 export async function migrateStore(){
-  if(!window.BoothAndroid?.siteExtract || store.get('moved', 0) || !freshProfiles) return;
+  // a first run - or one whose try did not get an answer from the old page
+  if(!window.BoothAndroid?.siteExtract || store.get('moved', 0) || !(freshProfiles || store.get('moveRetry', 0))) return;
+  store.set('moveRetry', 1);
   try{
     const old = await sitePull('file:///android_asset/export.html', 'return JSON.stringify(localStorage)');
     let moved = 0;
     for(const [k, v] of Object.entries(old || {})) if(k.startsWith('booth:') && !localStorage.getItem(k)){
       try{ localStorage.setItem(k, v); moved++; }catch(e){}
     }
-    if(moved){ store.set('moved', 1); location.reload(); return true; }
+    store.set('moved', 1); store.set('moveRetry', 0);    // the old page answered: done, whatever it held
+    if(moved){ location.reload(); return true; }
   }catch(e){}                                          // the old page was busy: try again next time
   return false;
 }

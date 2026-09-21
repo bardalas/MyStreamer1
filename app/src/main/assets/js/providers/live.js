@@ -3,6 +3,7 @@ import {fetchText} from '../core/bridge.js';
 import {store} from '../core/store.js';
 import {r13channels} from './reshet.js';
 import {RTV_EPG, loadRtv, rtvArchiveTemplate} from './rtv.js';
+import {liveAllowed} from '../data/kids.js';
 import {channelName} from '../data/names.js';
 import {tr} from '../i18n.js';
 import {openPlayer} from '../ui/player.js';
@@ -90,6 +91,7 @@ export async function liveChannels(key){
 
 /** Play a channel full screen, with the rest of the list available for zapping. */
 export function watchChannel(list, i, sourceKey){
+  if(!liveAllowed()) return;                          // every way to a channel goes through here: a kids profile only from 16
   store.set('lastChannel', {src: sourceKey, name: list[i].name});
   const shown = list.map(c => channelName(c.name)), twice = new Set(shown.filter((n, k) => shown.indexOf(n) !== k));
   if(window.BoothAndroid && BoothAndroid.playChannels)
