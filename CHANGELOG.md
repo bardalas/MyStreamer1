@@ -1,5 +1,16 @@
 # VEO Android changelog
 
+## 0.43.4 — 2026-09-21
+- **The taste is only the picture.** YouTube's own player puts its round pause button and the film's
+  name over the picture for the first seconds of playing — and again when its sound comes on — and no
+  setting stops it on a television. The taste now appears only once those have faded, so nothing of
+  the player is ever seen. It is cropped at the top, where the player writes its words, rather than
+  at the bottom, where the subtitles are.
+- **Subtitles in the taste**, when the trailer has them: Hebrew where there is a Hebrew track,
+  otherwise the trailer's own.
+- **Thirty seconds, counted from when it can be seen**, and back to the artwork at once if the
+  trailer runs out first (the listener that heard it end used to be removed as soon as it started).
+
 ## 0.43.3 — 2026-09-21
 - **A series page in the same hand as a film's.** The seasons are a line of words above the episodes
   instead of a column beside them — the one shown is underlined, the one the remote is on is framed,
