@@ -164,6 +164,10 @@
 i.glyph{display:block;flex:none;height:var(--gh);width:calc(var(--gh) * var(--r, 1));max-width:var(--gmax);background:currentColor;
   -webkit-mask-position:center;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;mask-position:center;mask-size:contain;mask-repeat:no-repeat}
 svg.glyph{display:block;flex:none;width:calc(var(--gh) * 1.12);height:calc(var(--gh) * 1.12)}
+/* the source a page is all of, large and faint behind it (screens/home.js) */
+/* in the empty corner across from the page's name, where it says whose page this is without covering anything */
+.srcmark{position:fixed;top:2vh;inset-inline-end:5vw;z-index:0;pointer-events:none;color:var(--light);--gh:11vh;--gmax:26vw}
+.srcmark > *{opacity:.1}                               /* on the mark itself: the page's own entrance animates the box's opacity */
 .glyph.txt{display:block;font:800 calc(var(--gh) * .95)/1 var(--body)}
 /* the archive's "paid" label, in the corner a poster's source mark does not take */
 .art .svc{position:absolute;bottom:6px;inset-inline-start:6px;z-index:2;padding:2px 6px;border-radius:5px;

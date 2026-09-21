@@ -149,7 +149,7 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
     }
     try{
       const d = await catalogFetch(x.a, x.c.type, x.c.id, x.extra);
-      const metas = d.metas || [];
+      const metas = x.keep ? (d.metas || []).filter(x.keep) : d.metas || [];     // [x.keep]: only some of the catalogue
       if(el) el.innerHTML = dedupe(i, metas).slice(0, rowMax()).map(card).join('') || `<p class="note">${tr('row.empty')}</p>`;
     }catch(e){ showErr(el, tr('row.failedCat'), e, again); }
   };
@@ -165,7 +165,7 @@ function showRow(el, x){
   const row = el?.closest('.row');
   if(!row || el.querySelector('.skel, .oops')) return;
   const n = el.querySelectorAll('.poster').length;
-  row.hidden = (kidsOn() && !n) || (!!x?.pick && n < 3);
+  row.hidden = (kidsOn() && !n) || (!!(x?.pick || x?.keep) && n < 3);
 }
 /** How long a row of several sources waits for the slow ones before it is drawn from the rest. */
 const FIRST_PAINT_MS = 2500;

@@ -7,6 +7,7 @@ import {BOOTH_ID, CATEGORIES, CINEMETA_ID, SC_ID, catName, mergedRow, rowsFor, u
 import {catalogName, genreName} from '../data/names.js';
 import {KID_GENRES, kidsOn, kidsOwn} from '../data/kids.js';
 import {GENRES, gridFrom, pageFilters, rateOf, sortActive, sortBar, wireSortBar, yearOfMeta} from '../data/sort.js';
+import {svcOf} from '../data/services.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {originMark, originName, originsFor} from '../ui/origins.js';
@@ -61,10 +62,21 @@ export function typeRows(type){
   if(top) for(const g of GENRE_ROWS[type] || []) rows.push({a: cm, c: top, extra: `genre=${encodeURIComponent(g)}`, title: genreName(g), notype: true});
   return rows;
 }
+/** The type's rows of titles on none of the streaming services - what is popular, new and best of them, and
+    their genres: without it, a film no service carries would be nowhere but in All. */
+const offService = m => !svcOf(m.id).length;
+function noServiceRows(type){
+  const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
+  const cmCat = id => (cm?.manifest.catalogs || []).find(c => c.id === id && c.type === type);
+  const top = cmCat('top'), best = cmCat('imdbRating'), year = cmCat('year');
+  const row = (c, extra, title) => c && {a: cm, c, extra, keep: offService, title, notype: true};
+  return [row(top, undefined, tr('row.popularNone')), row(year, `genre=${THIS_YEAR}`, tr('row.new')), row(best, undefined, tr('row.best')),
+    ...(GENRE_ROWS[type] || []).map(g => row(top, `genre=${encodeURIComponent(g)}`, genreName(g)))].filter(Boolean);
+}
 /** The rows of one source: a streaming service's newest, best and genres; the Israeli catalogues one by one. */
 function sourceRows(type, o){
   if(o.svc){
-    const name = originName(o), one = (pick, title) => ({origins: [o.id], type, pick, title});
+    const name = originName(o), one = (pick, title) => ({origins: [o.id], type, pick, title, badge: 'none'});
     return [one(PICKS.newest, tr('row.newOn', {svc: name})), one(PICKS.best, tr('row.bestOn', {svc: name})),
       ...(GENRE_ROWS[type] || []).map(g => one(PICKS.genre(g), genreName(g)))];
   }
@@ -135,22 +147,27 @@ const TAB_KEY = 'srcTab';
 const TV_ROWS = 18;
 /** How long the remote rests on a tab before the page turns to it - passing over one loads nothing. */
 const TAB_SETTLE_MS = 450;
-const ALL = 'all';
+const ALL = 'all', NONE = 'none';
 /** The sources of the type's home: all but the broadcasters, whose programmes are in Shows. */
 const homeOrigins = type => originsFor(type).filter(o => !o.shows);
 export function viewType(type){
   const origins = homeOrigins(type);
   const chosen = store.get(TAB_KEY, {})[type];
-  const tab = origins.some(o => o.id === chosen) ? chosen : ALL;
+  const none = !kidsOn() && chosen === NONE;          // titles on no streaming service (none of them are for the kids profile)
+  const tab = none || origins.some(o => o.id === chosen) ? chosen : ALL;
   const src = origins.find(o => o.id === tab);
   const tabs = [`<button class="srctab all${tab === ALL ? ' on' : ''}" data-src="${ALL}">${tr('src.all')}</button>`,
-    ...origins.map(o => `<button class="srctab${tab === o.id ? ' on' : ''}" data-src="${o.id}" title="${esc(originName(o))}" aria-label="${esc(originName(o))}">${originMark(o)}</button>`)];
-  const top = `<div class="page pagehead typehead"><h1>${esc(tr(type === 'movie' ? 'cats.movies' : 'cats.series'))}</h1>
+    ...origins.map(o => `<button class="srctab${tab === o.id ? ' on' : ''}" data-src="${o.id}" title="${esc(originName(o))}" aria-label="${esc(originName(o))}">${originMark(o)}</button>`),
+    ...(kidsOn() ? [] : [`<button class="srctab all${none ? ' on' : ''}" data-src="${NONE}" title="${esc(tr('src.noneNote'))}">${tr('src.none')}</button>`])];
+  // the service chosen stands large and faint behind the page: the covers need not each say it
+  const mark = src ? `<div class="srcmark" aria-hidden="true">${originMark(src)}</div>` : '';
+  const top = `${mark}<div class="page pagehead typehead"><h1>${esc(tr(type === 'movie' ? 'cats.movies' : 'cats.series'))}</h1>
     <div class="srctabs" role="tablist">${tabs.join('')}<a class="libgo" href="#/all/${type}">${tr(type === 'movie' ? 'lib.movies' : 'lib.series')}</a></div></div>`;
-  // the wheel of the source chosen (of all of them, on All), then its rows
-  const wheel = {origins: src ? [src.id] : origins.map(o => o.id), type, tabbed: true, badge: !src, title: ''};
-  const rows = [...(origins.length ? [wheel] : []), ...(src ? sourceRows(type, src) : typeRows(type))];
-  renderRows(isTvLayout() ? rows.slice(0, TV_ROWS) : rows, {top, cont: src ? [] : unfinished(type), contAt: 1});
+  // the wheel of the source chosen (of all of them, on All), named for what it is; then its rows
+  const title = src ? (src.svc ? tr('row.popularOn', {svc: originName(src)}) : originName(src)) : tr('row.featured');
+  const wheel = {origins: src ? [src.id] : origins.map(o => o.id), type, tabbed: true, badge: src ? 'none' : true, title};
+  const rows = none ? noServiceRows(type) : [...(origins.length ? [wheel] : []), ...(src ? sourceRows(type, src) : typeRows(type))];
+  renderRows(isTvLayout() ? rows.slice(0, TV_ROWS) : rows, {top, cont: src || none ? [] : unfinished(type), contAt: 1});
   let settle = 0;
   const pick = b => {
     clearTimeout(settle);
@@ -159,7 +176,7 @@ export function viewType(type){
     viewType(type);                                    // the whole page is the source's now
     document.querySelector(`.srctab[data-src="${b.dataset.src}"]`)?.focus();   // and the remote stays on its tab
   };
-  document.querySelector('.libgo').onclick = () => libraryFrom(type, src?.id);
+  document.querySelector('.libgo').onclick = () => libraryFrom(type, none ? NONE : src?.id);
   document.querySelectorAll('.srctab').forEach(b => {
     b.onclick = () => pick(b);
     b.onfocus = () => { clearTimeout(settle); settle = setTimeout(() => b.isConnected && document.activeElement === b && pick(b), TAB_SETTLE_MS); };

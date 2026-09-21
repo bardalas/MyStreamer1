@@ -157,9 +157,12 @@ export function focusItem(el){
   if(row){
     // a little room above the row for its heading - but never a sliver of whatever stands above it (the
     // source tabs over the first row, the foot of the row before): that goes off the screen whole
-    const above = row.previousElementSibling?.getBoundingClientRect();
+    const prev = row.previousElementSibling, above = prev?.getBoundingClientRect();
     const floor = above && above.height ? above.bottom + scrollY : 0;
-    const want = Math.max(0, Math.round(Math.max(floor, row.getBoundingClientRect().top + scrollY - 14)));
+    // The first row of a page is shown with the page's head over it - its name and its tabs are what say
+    // what the row is - as long as the title the remote is on still fits under them.
+    const first = prev && !prev.classList.contains('row') && el.getBoundingClientRect().bottom + scrollY <= innerHeight - 16;
+    const want = first ? 0 : Math.max(0, Math.round(Math.max(floor, row.getBoundingClientRect().top + scrollY - 14)));
     if(Math.abs(scrollY - want) > 4) glide(want);
     return;
   }

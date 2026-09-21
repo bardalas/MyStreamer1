@@ -45,8 +45,22 @@ export function supports(m, resource, type, id){
 }
 export const yearOf = m => m.releaseInfo || (m.year ?? '') || (m.released ? m.released.slice(0,4) : '');
 
+/**
+ * The add-ons, from their manifests. Each manifest is kept on the device: one whose host does not answer
+ * as the app starts (a television is often up before its network, and some hosts are slow to wake) is
+ * taken from the last time it did, rather than left out until the next start - which left Movies and
+ * Series without a single catalogue.
+ */
 export async function loadAddons(){
-  const res = await Promise.allSettled(addonUrls.map(async url => ({url, base: baseOf(url), manifest: await getJSON(normUrl(url))})));
+  const kept = store.get('manifests', {}), keep = {};
+  const res = await Promise.allSettled(addonUrls.map(async url => {
+    let manifest;
+    try{ manifest = await getJSON(normUrl(url)); }
+    catch(e){ manifest = kept[url]; if(!manifest) throw e; }
+    keep[url] = manifest;
+    return {url, base: baseOf(url), manifest};
+  }));
+  store.lazy('manifests', keep);
   addons = res.filter(r => r.status === 'fulfilled').map(r => r.value).concat(LOCAL_ADDON);
 }
 

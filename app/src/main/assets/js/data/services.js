@@ -65,6 +65,7 @@ export const imdbTag = rating => `<span class="imdb"><i>IMDb</i>${esc(rating)}</
 /** The catalogues answer after the cards are drawn, so the marks are added to what is already on screen:
     in the corner of each picture that does not carry one yet (ui/cards.js). */
 export function applyBadges(){
+  if(document.querySelector('#app .srcmark')) return;   // a page all of one service says so once, behind it (screens/home.js)
   document.querySelectorAll('a.poster[data-id]').forEach(a => {
     const art = a.querySelector('.art');
     const svc = svcOf(a.dataset.id)[0];

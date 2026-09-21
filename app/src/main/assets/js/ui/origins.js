@@ -95,11 +95,11 @@ export async function moreOfOrigin(o, type, skip, badge = false){
 
 /* [badge]: the corner of each picture says which source it came from - rather than the service a
    title is otherwise marked with (ui/cards.js), which in a row of one source's titles could be another. */
-const markOf = (o, badge) => badge ? {mark: originMark(o)} : {};
+const markOf = (o, badge) => badge === 'none' ? {mark: ''} : badge ? {mark: originMark(o)} : {};   // 'none': a page all of one service
 /** A programme a broadcaster drew itself: its mark goes into the corner of its picture, and it carries its
     id like every other poster, so that coming back from it finds it again (core/screenmem.js). */
 const dresser = (o, badge) => (html, id) => {
-  const marked = badge ? html.replace(/(<div class="art[" ][^>]*>)/, `$1<span class="svcbadge">${originMark(o)}</span>`) : html;
+  const marked = badge && badge !== 'none' ? html.replace(/(<div class="art[" ][^>]*>)/, `$1<span class="svcbadge">${originMark(o)}</span>`) : html;
   return marked.replace('class="poster', `data-id="${esc(id)}" class="poster`);
 };
 /** A service's page of titles: each one noted as being on it, for the mark on its cover. [raw] is how many

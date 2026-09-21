@@ -37,7 +37,10 @@ const TASTE_AFTER_MS = 2000;
 
 /** The pills of a library: its "service" is every source the type has - the broadcasters and the archive too. */
 const groupsFor = type => SORT_GROUPS.map(g => g.key !== 'svc' ? g
-  : {...g, opts: [g.opts[0], ...originsFor(type).map(o => [o.id, o.svc ? '' : 'origin.' + o.id])]});
+  : {...g, opts: [g.opts[0], ...originsFor(type).map(o => [o.id, o.svc ? '' : 'origin.' + o.id]), [NONE, 'src.none']]});
+/** The choice of titles on none of the streaming services. */
+const NONE = 'none';
+const onService = it => [...it.from].some(o => SERVICES[o]) || svcOf(it.id).length > 0;
 
 /**
  * Every source of [type], as promises of lists of items ({id, html, meta?, name, origin}), in the order
@@ -84,7 +87,8 @@ const facts = m => !!(m && (m.imdbRating || m.genres?.length || m.genre?.length)
 /** Whether [it] passes the library's choices [st]. A programme without facts passes only while no fact is asked for. */
 function passes(it, st){
   const src = st.svc;
-  if(src && !it.from.has(src) && !(SERVICES[src] && svcOf(it.id).includes(SERVICES[src]))) return false;
+  if(src === NONE){ if(onService(it)) return false; }
+  else if(src && !it.from.has(src) && !(SERVICES[src] && svcOf(it.id).includes(SERVICES[src]))) return false;
   return it.meta ? factsMatch(it.meta, st) : !(st.genre || st.year || st.rate);
 }
 const asFacts = it => ({id: it.id, name: it.meta?.name || it.name || '', imdbRating: it.meta?.imdbRating,
