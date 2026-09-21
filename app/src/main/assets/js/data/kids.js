@@ -9,17 +9,35 @@
    The catalogues say nothing about age, only up to three genres. So: a film is for children when it is
    animation or a family film and none of its genres is one children are kept from; a series needs the
    family genre, or a place on the list below - animation alone is anime and satire as often as it is
-   cartoons. The block list holds the animation made for grown-ups that the rules would let through. */
-import {settings} from '../core/settings.js';
+   cartoons. The block list holds the animation made for grown-ups that the rules would let through.
+
+   A teenager's profile (14, 16, 18 - core/settings.js AGE_LEVELS) is not a child's: nothing is kept from
+   it for its genres. A title is judged by its rating (data/ratings.js: the certificate it was given here,
+   or abroad) against the profile's age; one with no rating known passes - but at 14 not a horror film. */
+import {AGE_LEVELS, TEEN_AGE, kidsAge, settings} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {ageFor, ratingsFor} from './ratings.js';
 
 export const kidsOn = () => settings.kids === 'on';
+/** The profile is a teenager's: judged by ratings, not kept to the children's genres. */
+export const kidsTeen = () => kidsOn() && kidsAge() >= TEEN_AGE;
+/** The profile is a child's (up to 12): the family genres only, and none of what cannot be judged. */
+export const kidsChild = () => kidsOn() && !kidsTeen();
+/** Live TV has no ratings to judge by: a kids profile has it only from 16. */
+export const liveAllowed = () => !kidsOn() || kidsAge() >= 16;
 
-/* How old the child is (Settings → Kids profile): a title rated for anyone older is not shown. A title with
-   no rating known (most series, small productions) is judged by its genres alone. */
-export const KID_AGES = {young: 6, kids: 9, older: 12};
-const ageOk = id => { const a = ageFor(id); return a == null || a <= (KID_AGES[settings.kidsAge] ?? 9); };
+/* How old the child is (Settings → Kids profile): a title rated for anyone older is not shown. A child's
+   title with no rating known (most series, small productions) is judged by its genres alone. */
+export const KID_AGES = AGE_LEVELS;
+const ageOk = id => { const a = ageFor(id); return a == null || a <= kidsAge(); };
+/** Genres a 14-year-old's profile keeps out when the title's rating is not known. */
+const TEEN_DENY = ['Horror'];
+/** Whether the teenager's profile shows [m]: its rating, when known, is not above the profile's age. */
+function teenOk(m){
+  if(!m?.id || BLOCK.has(m.id)) return false;
+  if(ageFor(m.id) != null) return ageOk(m.id);
+  return kidsAge() >= 16 || !(m.genres || m.genre || []).some(g => TEEN_DENY.includes(g));
+}
 /** The ratings of [ids], waited for a moment at most: a slow answer leaves the genres to decide for now -
     and when it comes, whatever it rules out is taken off the screen (app.js hears 'veo:kidsout'). */
 const RATINGS_WAIT_MS = 2500;
@@ -75,27 +93,31 @@ const shown = new Set();
     counting the catalogue's titles. */
 export async function forKids(d, type, extra){
   const all = d?.metas || [];
+  const teen = kidsTeen();
   const vouched = type === 'movie' && KID_ASK.test(extra || '');
-  const safe = all.filter(m => isKidSafe({type, ...m}, vouched));
+  const safe = teen ? all.filter(m => m?.id && !BLOCK.has(m.id)) : all.filter(m => isKidSafe({type, ...m}, vouched));
   await rated(safe.map(m => m.id));
-  const metas = safe.filter(m => ageOk(m.id));
+  const metas = safe.filter(m => teen ? teenOk(m) : ageOk(m.id));
   metas.forEach(m => shown.add(m.id));
   return {...d, metas, raw: all.length};
 }
 /** Which of [metas] (with their genres) the profile shows - for lists that do not come through a catalogue. */
 export async function kidsPick(metas){
-  const safe = metas.filter(m => isKidSafe(m));
+  const teen = kidsTeen();
+  const safe = metas.filter(m => teen ? m?.id && !BLOCK.has(m.id) : isKidSafe(m));
   await rated(safe.map(m => m.id));
-  return safe.filter(m => ageOk(m.id));
+  return safe.filter(m => teen ? teenOk(m) : ageOk(m.id));
 }
 /** Whether a title's own page may open in the profile: one it showed, one a child already opened in it
     (the rows that vouched for it may have moved on since), or one that passes on its own genres - and
     in every case, not rated for a child older than this one. */
 export async function kidsMayOpen(meta){
-  if(BLOCK.has(meta.id) || !(shown.has(meta.id) || ids.has(meta.id) || isKidSafe(meta))) return false;
+  if(BLOCK.has(meta.id)) return false;
+  const teen = kidsTeen();
+  if(!teen && !(shown.has(meta.id) || ids.has(meta.id) || isKidSafe(meta))) return false;
   // one title, asked for on its own: worth a longer wait than a row's
   await Promise.race([ratingsFor([meta.id]), new Promise(r => setTimeout(r, 10000))]);
-  return ageOk(meta.id);
+  return teen ? teenOk(meta) : ageOk(meta.id);
 }
 
 /* What a child watched and saved stays theirs: the profile's continue-watching and favourites show only
@@ -109,8 +131,9 @@ export function noteKidsTitle(id){
   store.set(KIDS_IDS, [...ids].slice(-500));
 }
 
-/* ---------- the code that leaves the profile ----------
-   Four digits, kept as a salted hash. A four-digit code is guarded by how few tries it allows, not by its
+/* ---------- the parent code ----------
+   What leaves or loosens a kids profile, and opens a locked one (data/profiles.js) - one code for the
+   household, kept for the device, not for a profile. Four digits, kept as a salted hash. A four-digit code is guarded by how few tries it allows, not by its
    hash: five wrong ones lock it for five minutes. A parent who forgot it answers a grown-up's sum instead. */
 const PIN = 'kidsPin';
 const TRIES = 5, LOCK_MS = 5 * 60e3;

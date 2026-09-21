@@ -6,13 +6,15 @@ import {SKINS, isTvLayout, resetSettings, setSetting, settings} from '../core/se
 import {store} from '../core/store.js';
 import {addons, scProviders, setScProviders} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
-import {KID_AGES, checkPin, failSum, grownUpSum, kidsOn, pinLockedFor, setPin} from '../data/kids.js';
+import {KID_AGES, kidsOn} from '../data/kids.js';
 import {PROVIDERS, PROVIDERS_MAIN, PROVIDERS_MORE, resetServices, svcMark} from '../data/services.js';
 import {clearProgress} from '../data/watch.js';
 import {UI_LANGS, tr} from '../i18n.js';
 import {parseM3U, playlistCache, playlists, setPlaylists} from '../providers/live.js';
 import {forgetRtv} from '../providers/rtv.js';
-import {askCode, openRtvKey, pickFrom} from '../ui/sheets.js';
+import {askPin, choosePin} from '../ui/pin.js';
+import {lockAll, profilesPane} from './profiles.js';
+import {openRtvKey, pickFrom} from '../ui/sheets.js';
 import {QUALITIES, prefQ, setPrefQ} from '../ui/sources.js';
 import {APP_VERSION, checkUpdate} from '../ui/update.js';
 
@@ -21,11 +23,12 @@ import {APP_VERSION, checkUpdate} from '../ui/update.js';
    of two changes as it is pressed; a longer one opens its list. Nothing is more than two moves away
    with the remote, and after any change the remote is where it was. Actions that cannot be undone ask
    for a second press. In the kids profile the only page is the one that leaves it. */
-export const SETTINGS_TABS = ['general', 'watch', 'services', 'home', 'look', 'live', 'kids', 'about'];
+export const SETTINGS_TABS = ['general', 'profiles', 'watch', 'services', 'home', 'look', 'live', 'kids', 'about'];
 /** Addresses written before the pages were regrouped. */
 const RENAMED = {start: 'general', addons: 'watch'};
 const icon = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 const ICONS = {
+  profiles: icon('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.8" cy="9.5" r="2.5"/><path d="M15.2 14.6c.5-.1 1-.1 1.6-.1 2.2 0 3.9 1.5 4.4 4.3"/>'),
   general: icon('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.5 5.2 3.5 8.5s-1.1 6.2-3.5 8.5c-2.4-2.3-3.5-5.2-3.5-8.5s1.1-6.2 3.5-8.5z"/>'),
   watch: icon('<rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="M10 9.2v5.6l4.7-2.8z"/>'),
   services: icon('<rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><path d="M15.6 15.2v3.6l3-1.8z"/>'),
@@ -66,7 +69,7 @@ export function viewSettings(tab){
 
 /* ---------- the parts of a page ---------- */
 /** One setting on one line: its name and a few words on it at the start, what it is set to at the end. */
-function line({fid, label, note = '', value = '', sw, href, danger, attrs = ''}){
+export function line({fid, label, note = '', value = '', sw, href, danger, attrs = ''}){
   const tag = href ? 'a' : 'button';
   return `<${tag} class="sline${danger ? ' warn' : ''}" data-fid="${esc(fid)}"${href ? ` href="${href}"` : ''}${sw != null ? ` role="switch" aria-checked="${sw}"` : ''} ${attrs}>
     <span class="st"><b>${label}</b>${note ? `<small>${note}</small>` : ''}</span>
@@ -75,15 +78,15 @@ function line({fid, label, note = '', value = '', sw, href, danger, attrs = ''})
 /** A line that only says something: nothing to press. */
 const info = (label, value) => `<div class="sline info"><span class="st"><b>${label}</b></span><span class="sv"><span>${esc(value)}</span></span></div>`;
 /** A part of a page: a quiet heading, an optional word on it, and its lines. */
-const section = (title, body, note = '') => `<section class="sset">${title ? `<h2>${esc(title)}</h2>` : ''}${note ? `<p class="snote">${note}</p>` : ''}${body}</section>`;
-const lines = body => `<div class="slines">${body}</div>`;
+export const section = (title, body, note = '') => `<section class="sset">${title ? `<h2>${esc(title)}</h2>` : ''}${note ? `<p class="snote">${note}</p>` : ''}${body}</section>`;
+export const lines = body => `<div class="slines">${body}</div>`;
 
 /* ---------- the choices ----------
    Each with its values and their words. Most live in the settings; the quality is the title page's own
    choice (ui/sources.js), and the subtitles' size belongs to the player, which keeps it itself. */
 const SUB_SIZES = [['1', '100%'], ['1.25', '125%'], ['1.5', '150%'], ['1.8', '180%']];
-const subScale = () => { try{ return +window.BoothAndroid.getSubScale(); }catch(e){ return 1.25; } };
-const setSubScale = v => { try{ window.BoothAndroid.setSubScale(+v); }catch(e){} };
+const subScale = () => +(settings.subScale ?? 1.25);
+const setSubScale = v => setSetting('subScale', +v);      // the profile's own, handed to the player (core/settings.js)
 const PREFS = {
   uiLang: {title: 'set.uilang.title', note: 'set.uilang.note', opts: () => UI_LANGS},
   lang: {title: 'set.lang.title', note: 'set.lang.note', opts: () => [['he', tr('set.lang.he')], ['en', tr('set.lang.en')]]},
@@ -176,6 +179,7 @@ const UPD_SAYS = {found: 'set.about.found', offline: 'set.about.offline', unsupp
 
 const PANES = {
   general: () => section('', lines(pref('uiLang') + pref('lang') + pref('start'))),
+  profiles: () => profilesPane(),
   watch: () => section(tr('set.sec.play'), lines(pref('quality') + pref('cap') + pref('preview')))
     + section(tr('set.sec.subs'), lines(pref('subs') + (window.BoothAndroid?.setSubScale ? pref('subsize') : '')))
     + section(tr('set.sec.sources'), lines(line({fid: 'addons', href: '#/addons', label: tr('set.addons.title'), note: tr('set.addons.note'),
@@ -240,27 +244,6 @@ function confirmed(b){
   return false;
 }
 
-/* ---------- the kids profile's code ---------- */
-const lockedSays = () => { const m = Math.ceil(pinLockedFor() / 60e3); return m ? tr('kids.pin.locked', {m}) : ''; };
-/** A new code, typed twice. */
-async function choosePin(){
-  const a = await askCode({title: tr('kids.pin.new'), note: tr('kids.pin.newNote'), mask: true, ok: tr('common.ok')});
-  if(!a) return false;
-  const b = await askCode({title: tr('kids.pin.again'), mask: true, ok: tr('common.ok'), check: p => p === a || tr('kids.pin.mismatch')});
-  if(!b) return false;
-  setPin(a);
-  return true;
-}
-/** The code - or, for a parent who forgot it, a grown-up's sum. */
-async function askPin(title){
-  const r = await askCode({title, mask: true, ok: tr('common.ok'), note: lockedSays(), check: p => checkPin(p) || lockedSays() || tr('kids.pin.wrong'),
-    extra: {label: tr('kids.pin.forgot'), value: 'forgot'}});
-  if(r !== 'forgot') return !!r;
-  const {q, a} = grownUpSum();
-  return !!await askCode({title: tr('kids.sum.title'), note: lockedSays() || tr('kids.sum.note', {q: `<bdi dir="ltr">${q}</bdi>`}), len: a.length, ok: tr('common.ok'),
-    check: v => { if(pinLockedFor()) return lockedSays(); if(v === a) return true; failSum(); return lockedSays(); }});
-}
-
 const ACTS = {
   rtvSet: () => openRtvKey(() => paintSettings('rtv')),
   rtvClear: () => { store.set('rtvKey', ''); forgetRtv(); paintSettings('rtvSet'); },
@@ -272,6 +255,7 @@ const ACTS = {
     if(b.isConnected) b.querySelector('.sv span').textContent = updKey ? tr(updKey) : '';
   },
   hist: b => { clearProgress(); b.querySelector('.sv span').textContent = tr('set.hist.done'); },
+  lockAll: async () => { await lockAll(); paintSettings('switch'); },
   // every choice back - the ones kept outside the settings too: the quality, and the subtitles' size the player keeps
   reset: () => { resetSettings(); setPrefQ(''); setSubScale(1.25); paintSettings('reset'); },
   kidsOn: async () => {

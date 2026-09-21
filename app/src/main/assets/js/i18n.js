@@ -5,6 +5,8 @@ import {settings} from './core/settings.js';
    broadcasters send is shown as delivered. Adding a language = one table here + one row in UI_LANGS.
    Values are trusted markup: escape any {vars} that came from outside before passing them to tr().
    This is separate from settings.lang, which only chooses Hebrew vs original titles and summaries. */
+import {store} from './core/store.js';
+
 const UI_LANGS = [['he', 'עברית'], ['en', 'English']];
 const STRINGS = {
 he: {
@@ -26,7 +28,7 @@ he: {
   'skin.netflix.name': 'נטפליקס', 'skin.netflix.note': 'שחור מלא עם האדום המוכר',
   'skin.daylight.name': 'אור יום', 'skin.daylight.note': 'רקע בהיר, הדגשה באדום',
   'set.title': 'הגדרות', 'set.tabsAria': 'נושאי ההגדרות',
-  'set.tab.general': 'כללי', 'set.tab.watch': 'צפייה', 'set.tab.home': 'מסך הבית', 'set.tab.look': 'מראה',
+  'set.tab.general': 'כללי', 'set.tab.profiles': 'פרופילים', 'set.tab.watch': 'צפייה', 'set.tab.home': 'מסך הבית', 'set.tab.look': 'מראה',
   'set.tab.services': 'שירותי סטרימינג', 'set.svc.main': 'השירותים', 'set.svc.more': 'שירותים נוספים',
   'set.svc.note': 'רק השירותים שנבחרו מופיעים בסרטים ובסדרות - בלשוניות, בשורות ובסינון. הרשימה באה מתוסף Streaming Catalogs, והבחירה נשמרת בו.',
   'set.svc.moreNote': 'שירותים של מדינות אחרות: הקטלוגים שלהם, לגילוי.', 'set.svc.last': 'לפחות שירות אחד נשאר מסומן.',
@@ -71,6 +73,19 @@ he: {
   'kids.what1': 'רק סרטים מצוירים, סדרות ילדים ותכנים לכל המשפחה, לפי דירוג הגיל - בכל המסכים ובחיפוש',
   'kids.age.title': 'גיל הילדים', 'kids.age.note': 'כותרים שדירוג הגיל שלהם גבוה יותר לא יוצגו', 'kids.age.lockedNote': 'השינוי דורש את הקוד',
   'kids.age.young': 'עד גיל 6', 'kids.age.kids': 'עד גיל 9', 'kids.age.older': 'עד גיל 12',
+  'kids.age.teen14': 'עד גיל 14', 'kids.age.teen16': 'עד גיל 16', 'kids.age.adult18': 'עד גיל 18',
+  'prof.me': 'ראשי', 'prof.who': 'מי צופה?', 'prof.add': 'הוספת פרופיל', 'prof.manage': 'ניהול פרופילים',
+  'prof.addNote': 'לכל אחד בבית – היסטוריה, מועדפים והמלצות משלו', 'prof.addAsk': 'קוד הורים להוספת פרופיל',
+  'prof.lockedAsk': 'הפרופיל של {name} נעול – קוד הורים', 'prof.kidsTo': 'ילדים · {age}', 'prof.adult': 'מבוגרים',
+  'prof.current': 'הפרופיל הנוכחי', 'prof.locked': 'נעול', 'prof.title': 'פרופילים',
+  'prof.note': 'לכל פרופיל הגדרות, המשך צפייה, מועדפים והמלצות משלו. בכניסה לאפליקציה בוחרים מי צופה.',
+  'prof.safety': 'שמירה על הילדים', 'prof.lockAll': 'נעילת הפרופילים של המבוגרים',
+  'prof.lockAllNote': 'ילדים יכולים לבחור כל פרופיל בכניסה – פרופיל נעול נפתח רק בקוד ההורים',
+  'prof.lockAsk': 'קוד הורים לנעילה', 'prof.unlockAsk': 'קוד הורים לביטול הנעילה', 'prof.switch': 'החלפת פרופיל',
+  'prof.edit': 'עריכת פרופיל', 'prof.new': 'פרופיל חדש', 'prof.name': 'שם', 'prof.namePh': 'שם הפרופיל', 'prof.icon': 'תמונה',
+  'prof.kind': 'סוג הפרופיל', 'prof.kindNote': 'פרופיל ילדים מציג רק מה שמתאים לגיל',
+  'prof.lock': 'נעילה בקוד הורים', 'prof.lockNote': 'הכניסה לפרופיל תדרוש את הקוד',
+  'prof.delete': 'מחיקת הפרופיל', 'prof.deleteNote': 'ההיסטוריה, המועדפים וההגדרות שלו יימחקו', 'prof.deleteAsk': 'קוד הורים למחיקה',
   'age.all': 'לכל גיל', 'age.title': 'דירוג גיל',
   'kids.what2': 'בלי ערוצים חיים, בלי אתרי השידור ובלי יציאה ל־YouTube',
   'kids.what3': 'היציאה מהפרופיל נעולה בקוד בן 4 ספרות',
@@ -133,6 +148,8 @@ he: {
   'web.music': 'מוזיקה חיה', 'web.docs': 'דוקו',
   'row.featured': 'מומלצים', 'row.popularOn': 'פופולרי ב־{svc}', 'row.popularNone': 'פופולרי שלא בשירותים',
   'src.none': 'לא בשירותים', 'src.noneNote': 'כותרים שאף שירות סטרימינג לא מציע',
+  'row.forYou': 'מומלץ בשבילך', 'row.forYouMovies': 'סרטים שמומלצים לך', 'row.forYouSeries': 'סדרות שמומלצות לך',
+  'row.because': 'כי צפית ב־{name}',
   'row.new': 'חדשים', 'row.trending': 'פופולרי עכשיו', 'row.newOn': 'חדש ב־{svc}', 'row.bestOn': 'הכי טובים ב־{svc}',
   'lib.count': '{n} כותרים · מיון: {by}', 'lib.hintCard': 'לחיצה פותחת את כרטיס הכותר', 'lib.hintOpen': 'לחיצה פותחת את התוכנית',
   'origin.kan': 'כאן 11', 'origin.mako': 'קשת 12', 'origin.r13': 'רשת 13', 'origin.jfc': 'ארכיון הסרטים', 'origin.il': 'ישראלי',
@@ -172,7 +189,7 @@ en: {
   'skin.netflix.name': 'Netflix', 'skin.netflix.note': 'Full black with the familiar red',
   'skin.daylight.name': 'Daylight', 'skin.daylight.note': 'Light background, red accent',
   'set.title': 'Settings', 'set.tabsAria': 'Settings sections',
-  'set.tab.general': 'General', 'set.tab.watch': 'Playback', 'set.tab.home': 'Home screen', 'set.tab.look': 'Appearance',
+  'set.tab.general': 'General', 'set.tab.profiles': 'Profiles', 'set.tab.watch': 'Playback', 'set.tab.home': 'Home screen', 'set.tab.look': 'Appearance',
   'set.tab.services': 'Streaming services', 'set.svc.main': 'Services', 'set.svc.more': 'More services',
   'set.svc.note': 'Only the services chosen appear in Movies and Series - on their tabs, in their rows and in the filters. The list comes from the Streaming Catalogs add-on, and the choice is saved in it.',
   'set.svc.moreNote': 'Services of other countries: their catalogues, to discover.', 'set.svc.last': 'At least one service stays on.',
@@ -217,6 +234,19 @@ en: {
   'kids.what1': 'Only animated films, children’s series and family titles, by age rating - on every screen and in search',
   'kids.age.title': 'Child’s age', 'kids.age.note': 'Titles rated for older viewers are not shown', 'kids.age.lockedNote': 'Changing it needs the code',
   'kids.age.young': 'Up to 6', 'kids.age.kids': 'Up to 9', 'kids.age.older': 'Up to 12',
+  'kids.age.teen14': 'Up to 14', 'kids.age.teen16': 'Up to 16', 'kids.age.adult18': 'Up to 18',
+  'prof.me': 'Main', 'prof.who': "Who's watching?", 'prof.add': 'Add profile', 'prof.manage': 'Manage profiles',
+  'prof.addNote': 'Everyone at home gets their own history, favourites and suggestions', 'prof.addAsk': 'Parent code to add a profile',
+  'prof.lockedAsk': "{name}'s profile is locked - parent code", 'prof.kidsTo': 'Kids · {age}', 'prof.adult': 'Grown-up',
+  'prof.current': 'current', 'prof.locked': 'Locked', 'prof.title': 'Profiles',
+  'prof.note': 'Each profile has its own settings, continue watching, favourites and suggestions. The app asks who is watching when it starts.',
+  'prof.safety': 'Keeping children safe', 'prof.lockAll': "Lock the grown-ups' profiles",
+  'prof.lockAllNote': 'Children can pick any profile at the start - a locked one opens only with the parent code',
+  'prof.lockAsk': 'Parent code to lock', 'prof.unlockAsk': 'Parent code to unlock', 'prof.switch': 'Switch profile',
+  'prof.edit': 'Edit profile', 'prof.new': 'New profile', 'prof.name': 'Name', 'prof.namePh': 'Profile name', 'prof.icon': 'Picture',
+  'prof.kind': 'Kind of profile', 'prof.kindNote': 'A kids profile shows only what suits the age',
+  'prof.lock': 'Lock with the parent code', 'prof.lockNote': 'Entering the profile asks for the code',
+  'prof.delete': 'Delete profile', 'prof.deleteNote': 'Its history, favourites and settings are deleted', 'prof.deleteAsk': 'Parent code to delete',
   'age.all': 'All ages', 'age.title': 'Age rating',
   'kids.what2': 'No live channels, no broadcaster sites and no leaving for YouTube',
   'kids.what3': 'Leaving the profile is locked with a 4-digit code',
@@ -279,6 +309,8 @@ en: {
   'web.music': 'Live music', 'web.docs': 'Documentaries',
   'row.featured': 'Featured', 'row.popularOn': 'Popular on {svc}', 'row.popularNone': 'Popular, on no service',
   'src.none': 'Not streaming', 'src.noneNote': 'Titles no streaming service offers',
+  'row.forYou': 'Recommended for you', 'row.forYouMovies': 'Movies for you', 'row.forYouSeries': 'Series for you',
+  'row.because': 'Because you watched {name}',
   'row.new': 'New', 'row.trending': 'Trending now', 'row.newOn': 'New on {svc}', 'row.bestOn': 'Best on {svc}',
   'lib.count': '{n} titles · sort: {by}', 'lib.hintCard': 'Press OK to open its page', 'lib.hintOpen': 'Press OK to open the programme',
   'origin.kan': 'Kan 11', 'origin.mako': 'Keshet 12', 'origin.r13': 'Reshet 13', 'origin.jfc': 'Film Archive', 'origin.il': 'Israeli',
@@ -300,7 +332,8 @@ en: {
   'sort.summary': '{n} titles · sort: {by} · sources: {from}',
 },
 };
-let UI = (() => { try{ const l = JSON.parse(localStorage.getItem('booth:settings') || '{}').uiLang; return STRINGS[l] ? l : 'he'; }catch(e){ return 'he'; } })();
+// the language of the profile this page is opened in (core/store.js)
+let UI = (() => { const l = store.get('settings', {})?.uiLang; return STRINGS[l] ? l : 'he'; })();
 /** A UI string, falling back to Hebrew and then to the key itself. */
 function tr(key, vars){
   const s = STRINGS[UI]?.[key] ?? STRINGS.he[key] ?? key;

@@ -352,6 +352,31 @@ class MainActivity : AppCompatActivity() {
             }.start()
         }
 
+        /** A POST with the page's own headers (IMDb answers only a client that names itself - data/ratings.js). */
+        @JavascriptInterface fun postText(url: String, body: String, headersJson: String, callbackId: String) {
+            Thread {
+                val (ok, text) = try {
+                    val conn = URL(url).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 10_000
+                    conn.readTimeout = 20_000
+                    conn.requestMethod = "POST"
+                    conn.doOutput = true
+                    conn.setRequestProperty("User-Agent",
+                        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36")
+                    runCatching { JSONObject(headersJson) }.getOrNull()?.let { h -> h.keys().forEach { conn.setRequestProperty(it, h.optString(it)) } }
+                    conn.outputStream.use { it.write(body.toByteArray()) }
+                    if (conn.responseCode >= 400) throw IllegalStateException("HTTP ${conn.responseCode}")
+                    true to conn.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+                } catch (t: Throwable) {
+                    false to (t.message ?: t.javaClass.simpleName)
+                }
+                runOnUiThread {
+                    web.evaluateJavascript(
+                        "window.boothFetchDone && boothFetchDone(${JSONObject.quote(callbackId)}, $ok, ${JSONObject.quote(text)})", null)
+                }
+            }.start()
+        }
+
         @JavascriptInterface fun cancelTorrent() {
             updateCancelled = true
             TorrentEngine.cancelPending()

@@ -1,7 +1,7 @@
 /* Which streaming service a title is on, and the mark that says so. */
 import {$, esc} from '../core/dom.js';
 import {store} from '../core/store.js';
-import {addons, catalogFetch} from './addons.js';
+import {addons, catalogAll} from './addons.js';
 import {SC_ID} from './catalogs.js';
 import {pool} from './hebrew.js';
 
@@ -104,7 +104,8 @@ export async function loadServices(){
   const map = {};
   await pool((sc.manifest.catalogs || []).filter(c => SERVICES[c.id]), 3, async c => {
     try{
-      for(const m of (await catalogFetch(sc, c.type, c.id)).metas || []) (map[m.id] ||= []).includes(SERVICES[c.id]) || map[m.id].push(SERVICES[c.id]);
+      // every title (not a kids profile's share of them): the map is the device's, kept for a day
+      for(const m of (await catalogAll(sc, c.type, c.id)).metas || []) (map[m.id] ||= []).includes(SERVICES[c.id]) || map[m.id].push(SERVICES[c.id]);
     }catch(e){}
   });
   svcMap = map;

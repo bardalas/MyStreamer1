@@ -15,7 +15,7 @@ import {autoSpot, clearSpot, reelable} from './reel.js';
 
 export const rowTag = x => {
   const parts = [];
-  if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); parts.push(srcName(x.a)); }
+  if(x.c){ if(!x.notype) parts.push(typeName(x.c.type)); if(srcName(x.a)) parts.push(srcName(x.a)); }
   // a broadcaster's row is a taste of everything they have: its heading leads to the rest
   const more = x.more ? ` <a class="rowmore" href="${esc(x.more)}">${tr('row.all')}</a>` : '';
   return (parts.length ? ` <small>${esc(parts.join(' · '))}</small>` : '') + more;

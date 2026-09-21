@@ -5,9 +5,11 @@ import {store} from '../core/store.js';
 import {addons} from '../data/addons.js';
 import {BOOTH_ID, CATEGORIES, CINEMETA_ID, SC_ID, catName, mergedRow, rowsFor, userCategories} from '../data/catalogs.js';
 import {catalogName, genreName} from '../data/names.js';
-import {KID_GENRES, kidsOn, kidsOwn} from '../data/kids.js';
+import {heTitle} from '../data/hebrew.js';
+import {KID_GENRES, kidsChild, kidsOn, kidsOwn} from '../data/kids.js';
 import {GENRES, gridFrom, pageFilters, rateOf, sortActive, sortBar, wireSortBar, yearOfMeta} from '../data/sort.js';
 import {svcOf} from '../data/services.js';
+import {TASTE_ADDON, becauseTitles, hasTaste} from '../data/taste.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {originMark, originName, originsFor} from '../ui/origins.js';
@@ -48,7 +50,8 @@ export function typeRows(type){
   const top = cmCat('top'), best = cmCat('imdbRating'), year = cmCat('year');
   // the kids profile: what is popular and best for children, and the genres they watch - every row filtered (data/kids.js)
   // (a series is let in by the family genre, so what is popular among series is asked of the family ones)
-  if(kidsOn()){
+  rows.push(...tasteRows(type));
+  if(kidsChild()){
     if(top) rows.push({a: cm, c: top, extra: type === 'series' ? 'genre=Family' : undefined, title: tr('row.popular'), notype: true});
     if(best) rows.push({a: cm, c: best, extra: 'genre=Family', title: tr('row.best'), notype: true});
     if(top) for(const g of type === 'series' ? ['Animation'] : KID_GENRES) rows.push({a: cm, c: top, extra: `genre=${encodeURIComponent(g)}`, title: genreName(g), notype: true});
@@ -91,6 +94,18 @@ function sourceRows(type, o){
 const unfinished = type => Object.entries(progress).filter(([, x]) => !x.done && (!type || x.type === type) && (!kidsOn() || kidsOwn(x.metaId)))
   .sort(([, x], [, y]) => y.at - x.at).map(([videoId, x]) => ({videoId, ...x})).slice(0, 12);
 
+/** What the profile's own taste suggests (data/taste.js): more like the last title it played, then what it
+    may like, of [type] or of both. The row about one title comes first: a title is shown once a page, in
+    the first row that has it, and the broader rows would otherwise have taken all of its titles. Rows of
+    too few titles are left out, and there are none at all until something has been learnt. */
+function tasteRows(type){
+  if(!hasTaste()) return [];
+  const rows = [], last = becauseTitles(type)[0];
+  if(last) rows.push({a: TASTE_ADDON, c: {type: last.type === 'series' ? 'series' : 'movie', id: `because.${last.type}.${last.id}`},
+    title: tr('row.because', {name: heTitle(last.id, last.name)}), notype: true, sparse: true});
+  return [...rows, ...(type ? [type] : ['movie', 'series']).map(t => ({a: TASTE_ADDON, c: {type: t, id: 'foryou.' + t},
+    title: tr(type ? 'row.forYou' : t === 'movie' ? 'row.forYouMovies' : 'row.forYouSeries'), notype: true, sparse: true}))];
+}
 /** The kids profile's home: cartoons and family films and series, what children watch on each service, and
     what they left in the middle. Every row is filtered for children on its way in (data/kids.js). */
 function kidsHome(){
@@ -102,13 +117,13 @@ function kidsHome(){
     [cat('series', 'top'), 'genre=Animation', 'kids.row.cartoons'],
   ].filter(([c]) => c).map(([c, extra, t]) => ({a: cm, c, extra, title: tr(t), notype: true}));
   if(addons.some(a => a.manifest.id === SC_ID)) rows.push(mergedRow('movie', tr('kids.row.streamMovies'), svcIds('movie')), mergedRow('series', tr('kids.row.streamSeries'), svcIds('series')));
-  renderRows(rows, {cont: unfinished()});
+  renderRows([...tasteRows(), ...rows], {cont: unfinished()});
 }
 
 /** The streaming services listed that hold titles of [type]. */
 const svcIds = type => originsFor(type).filter(o => o.svc).map(o => o.id);
 export async function viewHome(){
-  if(kidsOn()) return kidsHome();
+  if(kidsChild()) return kidsHome();                   // a teenager's home is everyone's, filtered by age (data/kids.js)
   // Cinemeta's popular rows, then the first row of every category.
   const cm = addons.find(a => a.manifest.id === CINEMETA_ID);
   const rows = cm ? (cm.manifest.catalogs || []).filter(c => c.id === 'top').map(c => ({a: cm, c, title: tr(c.type === 'movie' ? 'row.popularMovies' : 'row.popularSeries'), notype: true})) : [];
@@ -117,7 +132,8 @@ export async function viewHome(){
     const r = rowsFor(cat);
     if(r.length) rows.push(...r.slice(0, 2).map(x => ({...x, title: cat.prefix ? `${catName(cat)} · ${x.title}` : x.title})));
   }
-  if(!rows.length) for(const a of addons) for(const c of a.manifest.catalogs || []){
+  rows.unshift(...tasteRows());                       // the profile's own suggestions first, under what it left unfinished
+  if(rows.length === tasteRows().length) for(const a of addons) for(const c of a.manifest.catalogs || []){
     if((c.extra||[]).some(e => e.isRequired) || (c.extraRequired||[]).length) continue;
     if(rows.length < 8) rows.push({a, c, title: catalogName(c.name) || c.id});
   }
@@ -155,12 +171,12 @@ const homeOrigins = type => originsFor(type).filter(o => !o.shows);
 export function viewType(type){
   const origins = homeOrigins(type);
   const chosen = store.get(TAB_KEY, {})[type];
-  const none = !kidsOn() && chosen === NONE;          // titles on no streaming service (none of them are for the kids profile)
+  const none = !kidsChild() && chosen === NONE;        // titles on no streaming service (none of them are for a child's profile)
   const tab = none || origins.some(o => o.id === chosen) ? chosen : ALL;
   const src = origins.find(o => o.id === tab);
   const tabs = [`<button class="srctab all${tab === ALL ? ' on' : ''}" data-src="${ALL}">${tr('src.all')}</button>`,
     ...origins.map(o => `<button class="srctab${tab === o.id ? ' on' : ''}" data-src="${o.id}" title="${esc(originName(o))}" aria-label="${esc(originName(o))}">${originMark(o)}</button>`),
-    ...(kidsOn() ? [] : [`<button class="srctab all${none ? ' on' : ''}" data-src="${NONE}" title="${esc(tr('src.noneNote'))}">${tr('src.none')}</button>`])];
+    ...(kidsChild() ? [] : [`<button class="srctab all${none ? ' on' : ''}" data-src="${NONE}" title="${esc(tr('src.noneNote'))}">${tr('src.none')}</button>`])];
   // the service chosen stands large and faint behind the page: the covers need not each say it
   const mark = src ? `<div class="srcmark" aria-hidden="true">${originMark(src)}</div>` : '';
   const top = `${mark}<div class="page pagehead typehead"><h1>${esc(tr(type === 'movie' ? 'cats.movies' : 'cats.series'))}</h1>

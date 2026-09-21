@@ -1,0 +1,42 @@
+/* ---------- who is watching (js/screens/profiles.js) ---------- */
+/* an avatar: a picture on its colour, a rounded square like the app's tiles */
+.avatar{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;border-radius:9px;
+  background:var(--av,var(--raise));font-size:18px;line-height:1;overflow:hidden}
+.avatar.big{width:132px;height:132px;border-radius:26px;font-size:74px}
+.avatar.railav{width:26px;height:26px;border-radius:8px;font-size:16px}
+.addav{background:var(--surface);color:var(--muted);border:2px dashed var(--line);font:300 64px/1 var(--body)}
+
+/* the picker has the screen to itself: no menu beside it */
+body.who .rail,body.who #railbtn,body.who #scrim{display:none}
+body.who main{margin-inline-start:0}
+.whopage{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6vh;text-align:center;padding:4vh 5vw}
+.whopage h1{margin:0;font:700 clamp(30px,4.2vw,52px)/1.1 var(--display);color:var(--light)}
+.whos{display:flex;flex-wrap:wrap;justify-content:center;gap:34px;max-width:1200px}
+.whotile{display:flex;flex-direction:column;align-items:center;gap:12px;width:164px;padding:8px;border:0;border-radius:22px;
+  background:none;color:var(--muted);font:inherit;cursor:pointer}
+.whotile .avatar{transition:transform var(--quick) var(--ease),box-shadow var(--quick) var(--ease)}
+.whotile b{font:600 21px/1.2 var(--body);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whotile small{display:flex;align-items:center;gap:6px;min-height:18px;font-size:14px;color:var(--muted)}
+.whotile .lock{width:16px;height:16px}
+.whotile:focus,.whotile:hover{background:none;outline:0}
+.whotile:focus .avatar,.whotile:hover .avatar{transform:scale(1.08);box-shadow:0 0 0 4px var(--light)}
+.whotile:focus b,.whotile:hover b{color:var(--light)}
+.whoacts .btn{min-width:220px;justify-content:center}
+
+/* the menu's entry: who is watching */
+.nav a.navwho .ic{display:flex;align-items:center;justify-content:center}
+
+/* a profile's own page */
+.profpage{max-width:900px}
+.profhead{display:flex;align-items:center;gap:22px;margin:0 0 26px}
+.profhead .avatar.big{width:96px;height:96px;border-radius:22px;font-size:54px}
+.profhead .field{flex:1;max-width:420px;font:600 22px var(--body);padding:12px 16px}
+.avgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:12px;max-width:760px}
+.av{padding:0;border:0;background:none;border-radius:16px;cursor:pointer;justify-self:center}
+.av .avatar{width:60px;height:60px;border-radius:15px;font-size:34px;transition:transform var(--quick) var(--ease),box-shadow var(--quick) var(--ease)}
+.av.on .avatar{box-shadow:0 0 0 3px var(--tungsten)}
+.av:focus,.av:hover{background:none;outline:0}
+.av:focus .avatar,.av:hover .avatar{transform:scale(1.1);box-shadow:0 0 0 4px var(--light)}
+.profacts{display:flex;gap:12px;margin-top:8px}
+/* a profile on a settings line: its avatar beside its name */
+.sline .st b .avatar{margin-inline-end:10px;vertical-align:middle}

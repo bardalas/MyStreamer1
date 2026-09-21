@@ -95,6 +95,9 @@ export function catalogFetch(a, type, id, extra){
   const p = catalogRaw(a, type, id, extra);
   return kidsOn() ? p.then(d => forKids(d, type, extra)) : p;
 }
+/** A catalogue's titles, all of them, whoever is watching: for what is kept for the device (the services'
+    map) and for pools that are filtered when they are shown (data/taste.js). */
+export const catalogAll = (a, type, id, extra) => catalogRaw(a, type, id, extra);
 function catalogRaw(a, type, id, extra){
   if(a.local) return extra && /skip=/.test(extra) ? Promise.resolve({metas: []}) : a.local(id);
   const url = `${a.base}/catalog/${type}/${id}${extra ? '/' + extra : ''}.json`;

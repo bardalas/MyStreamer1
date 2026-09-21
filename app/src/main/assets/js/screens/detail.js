@@ -8,6 +8,7 @@ import {heCache, heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
 import {kidsMayOpen, kidsOn, noteKidsTitle} from '../data/kids.js';
 import {ageFor, ageLabel, ratingsFor} from '../data/ratings.js';
 import {genreName} from '../data/names.js';
+import {FAVOURED, OPENED, noteTaste} from '../data/taste.js';
 import {imdbTag, svcFacts} from '../data/services.js';
 import {library, progress} from '../data/watch.js';
 import {UI, tr} from '../i18n.js';
@@ -63,6 +64,7 @@ export async function viewDetail(type, id){
     if(!may){ app.innerHTML = `<div class="page kidsno"><h1>${tr('kids.blocked')}</h1><p class="note">${tr('kids.blockedNote')}</p><a class="btn primary" href="#/">${tr('kids.home')}</a></div>`; return; }
     noteKidsTitle(meta.id);
   }
+  noteTaste({type, ...meta}, OPENED);                 // a page opened: a little of what the profile likes (data/taste.js)
   const saved = !!library[meta.id];
   if(hebrewOn() && /^tt\d+$/.test(meta.id)) hebrewPlot(meta.id).then(plot => {
     const el = $('#desc');
@@ -120,7 +122,10 @@ export async function viewDetail(type, id){
   $('#lib').onclick = e => {
     const b = e.currentTarget;
     if(library[meta.id]) delete library[meta.id];
-    else library[meta.id] = {id: meta.id, type, name: meta.name, poster: meta.poster, releaseInfo: yearOf(meta), added: Date.now()};
+    else{
+      library[meta.id] = {id: meta.id, type, name: meta.name, poster: meta.poster, releaseInfo: yearOf(meta), added: Date.now()};
+      noteTaste({type, ...meta}, FAVOURED);
+    }
     store.set('library', library);
     const saved = !!library[meta.id];                        // update the mark in place, no reload
     b.setAttribute('aria-label', libLabel(saved));

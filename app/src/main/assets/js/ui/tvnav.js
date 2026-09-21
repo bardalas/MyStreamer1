@@ -2,6 +2,7 @@
 import {listHash, route} from '../app.js';
 import {$} from '../core/dom.js';
 import {IS_TV_DEVICE, isTvLayout, settings} from '../core/settings.js';
+import {chosen} from '../data/profiles.js';
 import {FWD} from '../i18n.js';
 
 /* Remote control (Android TV): arrows move focus between titles and between rows, and the page
@@ -21,6 +22,7 @@ export const ROWS_SEL = [
   '.days', '.progs', '.keypad', '.keyform', '.cextra',                     // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
   '.catorder', '.addpl', '.add', '.addon',                                 // settings lists, add-ons
+  '.whos', '.whoacts', '.profhead', '.avgrid', '.profacts',                // who is watching, and a profile's page
 ].join(', ');
 // offsetParent is null for position:fixed elements (per spec) even when they're plainly on
 // screen - the rail, the update card and the torrent-status card are all fixed. A size check
@@ -400,6 +402,8 @@ export function parentHash(){
   const r = (location.hash.split('/')[1] || '').split('?')[0];
   if(!r) return null;                                                  // home
   if(['r13', 'kan', 'mako', 'web'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
+  if(r === 'who') return chosen() ? '#/' : null;                    // the picker the app starts on: Back leaves the app
+  if(r === 'profile') return '#/settings/profiles';
   if(r === 'addons') return '#/settings';
   if(r === 'detail') return listHash;
   if(r === 'all') return location.hash.split('/')[2] === 'series' ? '#/cat/series' : '#/cat/movies';   // a library, to its page

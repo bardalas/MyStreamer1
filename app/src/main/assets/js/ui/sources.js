@@ -2,12 +2,13 @@
 import {$, esc} from '../core/dom.js';
 import {guardView, withDeadline} from '../core/requests.js';
 import {isTvLayout, settings} from '../core/settings.js';
-import {store} from '../core/store.js';
+import {profileId, store} from '../core/store.js';
 import {addons, fetchStreams, supports} from '../data/addons.js';
 import {setAvail} from '../data/availability.js';
 import {kidsOn} from '../data/kids.js';
 import {remindButton, wireRemind} from '../data/reminders.js';
 import {svcDress, svcIcon} from '../data/services.js';
+import {PLAYED, noteTaste} from '../data/taste.js';
 import {progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {kanBox} from '../providers/kan.js';
@@ -93,7 +94,9 @@ export function playStream(s, label, ctx){
   const release = s.behaviorHints?.filename || (s.title || s.description || '').split('\n')[0] || '';
   const vid = ctx.videoId || '';
   // what is playing (for "continue watching") and where to resume from
-  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || ''});
+  // (and whose it is: the profile the page is in - app.js boothProgress)
+  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || '', pid: profileId});
+  noteTaste(ctx.meta, PLAYED);                     // what is played says most about what the profile likes (data/taste.js)
   // Where to start: where the viewer stopped, unless they asked for the beginning - or unless they
   // were within a minute of the end, which is a film that is over rather than one to go back into.
   const done = progress[vid];

@@ -28,7 +28,7 @@ export function openPlayer(s, title, ctx){
   if(s.ytId){
     // Only if YouTube refuses to play this one here is there a way out, and it is a button the viewer
     // presses - never something the app does to them. The kids profile does not leave for YouTube.
-    const out = window.BoothAndroid?.openYouTube && document.documentElement.dataset.kids !== 'on'
+    const out = window.BoothAndroid?.openYouTube && document.documentElement.dataset.kids === 'off'
       ? () => { closePlayer(); BoothAndroid.openYouTube(s.ytId); } : null;
     openYt(body, s.ytId, title, out);
     try{ window.BoothAndroid?.ytCaptions?.(s.ytId, UI); }catch(e){}

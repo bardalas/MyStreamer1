@@ -1,0 +1,160 @@
+/* ---------- who is watching: the picker, and a profile's own page ----------
+   The picker comes up as the app starts whenever there is someone to choose (data/profiles.js), with the
+   screen to itself; it is also where the menu's own entry leads, to change profile. A locked profile asks
+   for the parent code (ui/pin.js); the one the page is in simply carries on. New profiles and changes to
+   one are made on the profile's page, reached from Settings → Profiles. What makes a profile a kids
+   profile, or looser, asks for the code; what makes it stricter does not. */
+import {START} from '../app.js';
+import {$, esc} from '../core/dom.js';
+import {AGE_LEVELS, setSetting, settings} from '../core/settings.js';
+import {profileId} from '../core/store.js';
+import {hasPin} from '../data/kids.js';
+import {AVATARS, MAX_PROFILES, addProfile, avatar, currentProfile, enterProfile, isKids, profileById, profileName, profiles,
+  removeProfile, setSettingsOf, settingsOf, updateProfile} from '../data/profiles.js';
+import {tr} from '../i18n.js';
+import {askPin, choosePin, grownUp, pinFor} from '../ui/pin.js';
+import {pickFrom} from '../ui/sheets.js';
+import {line, lines, section} from './settings.js';
+
+const LOCK = '<svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
+const PLUS = '<span class="avatar big addav" aria-hidden="true">+</span>';
+/** What kind of profile [p] is: a grown-up's, or a kids profile and to what age. */
+export const kindOf = p => { const s = settingsOf(p); return s.kids === 'on' ? tr('prof.kidsTo', {age: tr('kids.age.' + (s.kidsAge || 'kids'))}) : tr('prof.adult'); };
+
+/* ---------- the picker ---------- */
+export function viewWho(){
+  const here = currentProfile(), kids = isKids(here);
+  const tile = p => `<button class="whotile" data-pid="${esc(p.id)}" aria-label="${esc(profileName(p))}">${avatar(p, 'big')}
+    <b dir="auto">${esc(profileName(p))}</b><small>${p.lock ? LOCK : ''}${isKids(p) ? esc(kindOf(p)) : ''}</small></button>`;
+  // a child's profile offers no way to add or change profiles from here: that is a grown-up's, in theirs
+  const add = !kids && profiles().length < MAX_PROFILES ? `<button class="whotile add" data-add>${PLUS}<b>${tr('prof.add')}</b><small></small></button>` : '';
+  $('#app').innerHTML = `<div class="page whopage"><h1>${tr('prof.who')}</h1>
+    <div class="whos" role="list">${profiles().map(tile).join('')}${add}</div>
+    ${kids ? '' : `<div class="whoacts"><button class="btn ghost" data-manage>${tr('prof.manage')}</button></div>`}</div>`;
+  $('#app').querySelectorAll('[data-pid]').forEach(b => b.onclick = () => choose(b.dataset.pid));
+  $('[data-add]')?.addEventListener('click', async () => { if(await grownUp(tr('prof.addAsk'))) location.hash = '#/profile/new'; else focusWho(); });
+  // managing happens inside the profile the page is in: a locked one is entered with its code first
+  $('[data-manage]')?.addEventListener('click', async () => {
+    if(here.lock && hasPin() && !await askPin(tr('prof.lockedAsk', {name: profileName(here)}))) return focusWho();
+    enterProfile(here.id);
+    location.hash = '#/settings/profiles';
+  });
+  focusWho();
+}
+const focusWho = () => ($(`[data-pid="${CSS.escape(profileId)}"]`) || $('.whotile'))?.focus();
+/** [id] is who is watching: a locked profile first asks for the code. */
+async function choose(id){
+  const p = profileById(id);
+  if(!p) return;
+  if(p.lock && hasPin() && !await askPin(tr('prof.lockedAsk', {name: profileName(p)}))) return focusWho();
+  if(!enterProfile(id)) location.hash = !isKids(p) && START[settings.start] || '#/';   // this profile: on to where it starts
+}
+
+/** The menu's entry: who is watching - their avatar and name - leading to the picker. */
+export function paintRailProfile(){
+  const a = document.querySelector('.nav a[data-r="who"]'), p = currentProfile();
+  if(!a) return;
+  a.querySelector('.ic').innerHTML = avatar(p, 'railav');
+  a.querySelector('.lbl').textContent = profileName(p);
+}
+
+/* ---------- Settings → Profiles ---------- */
+export function profilesPane(){
+  const list = profiles();
+  const rows = list.map(p => line({fid: 'prof:' + p.id, label: `${avatar(p)}<span dir="auto">${esc(profileName(p))}</span>`,
+    note: esc(kindOf(p) + (p.id === profileId ? ' · ' + tr('prof.current') : '')), value: p.lock ? tr('prof.locked') : '', href: '#/profile/' + p.id})).join('');
+  const add = list.length < MAX_PROFILES ? line({fid: 'profadd', label: tr('prof.add'), note: tr('prof.addNote'), href: '#/profile/new'}) : '';
+  // a child can pick any profile on the picker: the grown-ups' are kept from them by locking them
+  const open = list.some(isKids) && list.some(p => !isKids(p) && !p.lock);
+  return section(tr('prof.title'), lines(rows + add), tr('prof.note'))
+    + (open ? section(tr('prof.safety'), lines(line({fid: 'lockall', label: tr('prof.lockAll'), note: tr('prof.lockAllNote'), attrs: 'data-act="lockAll"'}))) : '')
+    + section('', lines(line({fid: 'switch', label: tr('prof.switch'), href: '#/who'})));
+}
+/** Lock every grown-up's profile that is not locked yet (the code is set first if there is none). */
+export async function lockAll(){
+  if(!await pinFor(tr('prof.lockAsk'))) return false;
+  for(const p of profiles()) if(!isKids(p) && !p.lock) updateProfile(p.id, {lock: true});
+  return true;
+}
+
+/* ---------- a profile's own page ---------- */
+const KINDS = () => [['', tr('prof.adult')], ...Object.keys(AGE_LEVELS).map(k => [k, tr('prof.kidsTo', {age: tr('kids.age.' + k)})])];
+let draft = null;
+/** The page of profile [id] - 'new' for one being made: its name, its avatar, what kind it is, its lock. */
+export function viewProfile(id){
+  const p = id === 'new' ? null : profileById(id);
+  if(id !== 'new' && !p){ location.hash = '#/settings/profiles'; return; }
+  const s = p ? settingsOf(p) : {};
+  if(draft?.id !== id) draft = {id, name: p?.name || '', icon: p ? p.icon || 0 : profiles().length % AVATARS.length,
+    kind: s.kids === 'on' ? s.kidsAge || 'kids' : '', lock: !!p?.lock};
+  paintProfile(p);
+}
+function paintProfile(p, keep){
+  const d = draft, adult = !d.kind;
+  const removable = p && p.id !== profileId && profiles().length > 1;
+  $('#app').innerHTML = `<div class="page setpage profpage"><h1>${p ? tr('prof.edit') : tr('prof.new')}</h1>
+    <div class="profhead">${avatar({icon: d.icon}, 'big')}
+      <input class="field" id="pname" maxlength="20" dir="auto" value="${esc(d.name)}" placeholder="${esc(tr('prof.namePh'))}" aria-label="${esc(tr('prof.name'))}"></div>
+    ${section(tr('prof.icon'), `<div class="avgrid">${AVATARS.map((_, i) => `<button class="av${i === d.icon ? ' on' : ''}" data-fid="av:${i}" data-icon="${i}" aria-pressed="${i === d.icon}">${avatar({icon: i})}</button>`).join('')}</div>`)}
+    ${section('', lines(line({fid: 'kind', label: tr('prof.kind'), note: tr('prof.kindNote'), value: KINDS().find(([k]) => k === d.kind)[1], attrs: 'data-do="kind"'})
+      + (adult ? line({fid: 'lock', label: tr('prof.lock'), note: tr('prof.lockNote'), sw: d.lock, attrs: 'data-do="lock"'}) : '')
+      + (removable ? line({fid: 'del', label: tr('prof.delete'), note: tr('prof.deleteNote'), danger: true, attrs: 'data-do="del"'}) : '')))}
+    <div class="profacts"><button class="btn primary" id="psave" data-fid="save">${tr('common.save')}</button>
+      <a class="btn ghost" href="#/settings/profiles" data-fid="cancel">${tr('common.cancel')}</a></div></div>`;
+  const name = $('#pname');
+  name.oninput = () => { d.name = name.value; };
+  $('#app').querySelectorAll('[data-icon]').forEach(b => b.onclick = () => { d.icon = +b.dataset.icon; paintProfile(p, 'av:' + d.icon); });
+  $('[data-do="kind"]').onclick = async () => {
+    const v = await pickFrom(tr('prof.kind'), KINDS(), d.kind);
+    if(v != null) d.kind = v;
+    paintProfile(p, 'kind');
+  };
+  $('[data-do="lock"]')?.addEventListener('click', () => { d.lock = !d.lock; paintProfile(p, 'lock'); });
+  $('[data-do="del"]')?.addEventListener('click', e => remove(p, e.currentTarget));
+  $('#psave').onclick = () => save(p);
+  const at = keep && $(`[data-fid="${CSS.escape(keep)}"]`);
+  (at || (p ? $('#psave') : name))?.focus();
+}
+/** Is the change from [before] (a profile's settings) to the draft a loosening - out of the kids profile, or
+    to an older age? That is a grown-up's to make. */
+function loosens(before){
+  if(before.kids !== 'on') return false;
+  return !draft.kind || (AGE_LEVELS[draft.kind] ?? 9) > (AGE_LEVELS[before.kidsAge] ?? 9);
+}
+async function save(p){
+  const d = draft, before = p ? settingsOf(p) : {};
+  // a kids profile needs the code that is the only way out of it; loosening one asks for it; locking needs one too
+  if(d.kind && !hasPin() && !await choosePin()) return paintProfile(p, 'save');
+  if(p && loosens(before) && !await askPin(tr('kids.pin.enter'))) return paintProfile(p, 'save');
+  if(!d.kind && d.lock && !(p?.lock) && !await pinFor(tr('prof.lockAsk'))) return paintProfile(p, 'save');
+  if(!d.kind && !d.lock && p?.lock && !await askPin(tr('prof.unlockAsk'))) return paintProfile(p, 'save');
+  const kids = d.kind ? {kids: 'on', kidsAge: d.kind} : {kids: 'off'};
+  if(!p){
+    const made = addProfile({name: d.name, icon: d.icon, kids: !!d.kind, kidsAge: d.kind || 'kids'});
+    if(made && d.lock && !d.kind) updateProfile(made.id, {lock: true});
+  }else{
+    updateProfile(p.id, {name: d.name, icon: d.icon, lock: !d.kind && d.lock});
+    if(p.id === profileId){
+      const changed = (settings.kids === 'on') !== !!d.kind || (d.kind && settings.kidsAge !== d.kind);
+      for(const [k, v] of Object.entries(kids)) setSetting(k, v);
+      paintRailProfile();
+      draft = null;
+      if(changed){ location.hash = '#/'; return; }        // the whole app is another now: it starts over at home
+    }else setSettingsOf(p.id, kids);
+  }
+  draft = null;
+  location.hash = '#/settings/profiles';
+}
+/** Remove [p] - with a second press, and with the code when it is a kids profile or a locked one. */
+async function remove(p, b){
+  if(!b.classList.contains('arm')){
+    b.classList.add('arm');
+    b.querySelector('.sv span').textContent = tr('set.confirm');
+    setTimeout(() => { if(b.isConnected){ b.classList.remove('arm'); b.querySelector('.sv span').textContent = ''; } }, 4000);
+    return;
+  }
+  if((isKids(p) || p.lock) && !await grownUp(tr('prof.deleteAsk'))) return paintProfile(p, 'del');
+  removeProfile(p.id);
+  draft = null;
+  location.hash = '#/settings/profiles';
+}

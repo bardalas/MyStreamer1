@@ -189,11 +189,28 @@ sorted and from which sources; a genre also pulls Cinemeta's popular/top-rated t
   genre, each a programme with its latest *full* episodes (the channel's long-form list, `UULF…`, read as a feed -
   never shorts or lives); nothing on screen names the source. Add a programme to `WEB_GENRES` only after checking its
   feed. Episode titles and first description lines are translated to Hebrew (`webLocal`, Google's gtx endpoint through
-  native `fetchText`, cached in store `webTr`). A YouTube id (episode or trailer) plays in the native player:
+  native `fetchText`, cached in store `webTr`). A YouTube id (episode or trailer) plays in the page:
   `openPlayer({ytId})` -> `BoothAndroid.playYouTube` -> `YouTube.kt` (innertube `player` call, ANDROID then IOS client,
   with a visitor id; avc1 <=1080p + audio merged by `MergingMediaSource`; captions fetched as srv1 and translated by
   the app itself - YouTube answers its own `tlang` with 429). On failure the page's iframe player is the fallback
   (`boothYtFailed`). `#/tv/jfc` is the film archive's page.
+- **Profiles** (`data/profiles.js`, `screens/profiles.js`, `#/who`, `#/profile/<id|new>`, Settings -> Profiles): each
+  household member's own settings, progress, favourites, reminders, tab/filter choices and learnt taste. `core/store.js`
+  keeps the keys in `PROFILE_KEYS` under `booth:p/<id>/<key>` (callers still say `store.get('progress')`); every other key
+  is the device's (add-ons, caches, live sources, the parent code `kidsPin`, `device` = device-level settings like `cap`).
+  The first run moves the old unprefixed keys into the first profile. Switching profile reloads the page
+  (`enterProfile`), so module-level snapshots never go stale - never switch without reloading. The picker opens at
+  start once a session (sessionStorage `veo:who`) when there are 2+ profiles or the current one is locked; Back there
+  closes the app. A locked profile needs the parent code (`ui/pin.js`); making a profile looser (kids off, older age)
+  needs it too. Native progress carries `pid` in its meta so `boothProgress` files it under the right profile.
+  `booth.html`'s pre-paint script and `i18n.js` read the active profile's settings, not `booth:settings`.
+- **Ages** (`core/settings.js` `AGE_LEVELS`, `kidsTier`; `data/kids.js`): 6/9/12 are a child's profile (family genres
+  only, no Shows/Live - `kidsChild()`); 14/16/18 are a teenager's (`kidsTeen()`): judged by rating alone, Shows and
+  the Magazine allowed, Live from 16 (`liveAllowed()`). `html[data-kids]` is `off|child|teen|teen16`. Ratings
+  (`data/ratings.js`) come from IMDb's GraphQL (Israeli certificate, then US) through native `postText` - IMDb answers
+  only with `x-imdb-client-name` - and Wikidata for the rest.
+- **Taste** (`data/taste.js`): genre/person weights learnt from title opened (1), played (3), favourited (4), fading 2%
+  per sign; rows "Because you watched X" then "for you" (`TASTE_ADDON`, a local catalogue, so kids filtering applies).
 - **Streaming services** (Settings -> Streaming services, `screens/settings.js`): a switch per provider the Streaming
   Catalogs add-on can list (`PROVIDERS` in `data/services.js`, codes from the add-on's configure page). The choice is
   written into the add-on's own address (base64 of `providers:rpdb:country:timestamp:top10G:top10C:top10CC`,
