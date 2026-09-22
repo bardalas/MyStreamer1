@@ -134,14 +134,20 @@ function upInto(cand, dir){
    browser's own smooth scroll could not be used for it - under a held arrow it arrives after the next
    press, which is what made moving through a list feel heavy - so the glide is the page's own: a quarter
    of a second, easing out, and a press made during it takes over from wherever the page then is. */
-const GLIDE_MS = 240;
+/* Short: the glide is there so the eye can follow the page, not so the viewer waits for it. A quarter
+   of a second on a television box read as the app thinking about it - and under a run of presses the
+   tween never got to finish anyway, so a run now jumps and only a considered press glides. */
+const GLIDE_MS = 150;
+const GLIDE_RUN_MS = 260;                            // presses closer together than this: no tween
 let gliding = 0;
+/** How long before this move the last one was: a run of presses, or a considered one. */
+export let moveGap = 1e9;
 export function glide(y){
   const to = Math.max(0, Math.round(y));
   const far = Math.abs(scrollY - to) > innerHeight * 1.6;
   if(!isTvLayout()) return scrollTo({top: to, behavior: far ? 'auto' : 'smooth'});
   cancelAnimationFrame(gliding);
-  if(far || matchMedia('(prefers-reduced-motion: reduce)').matches) return scrollTo(0, to);
+  if(far || moveGap < GLIDE_RUN_MS || matchMedia('(prefers-reduced-motion: reduce)').matches) return scrollTo(0, to);
   const from = scrollY, start = performance.now();
   const step = now => {
     const t = Math.min(1, (now - start) / GLIDE_MS);
@@ -365,6 +371,7 @@ addEventListener('keydown', e => {
   e.preventDefault();
   const now = performance.now();                     // a held key repeats fast: keep one move per ~55ms
   if(now - lastMoveAt < 55) return;
+  moveGap = now - lastMoveAt;
   lastMoveAt = now;
   tvMove(dir);
 }, true);

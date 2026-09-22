@@ -13,12 +13,34 @@ import {parseM3U, playLive} from './live.js';
 export const RTV_PLAYLIST = key => `https://play-berry.net/playlist/${encodeURIComponent(key)}.m3u8`;
 export const RTV_EPG = id => `http://protected-api.com/epg/${encodeURIComponent(id)}?date=`;
 export let rtvCache = null;
+/* The service allows ten playlist requests a minute from one home, and answers 429 to the rest of them
+   for the minute. Every way into Live asks for the list, and the "try again" button asked again at
+   every press: ten presses and the box was locked out - the failure the viewer then saw being the
+   lockout rather than whatever went wrong first. So one request is in flight at a time, and a failure
+   is held for a quarter of a minute before the service is troubled again. */
+let rtvPending = null, rtvFail = null, rtvFailAt = 0;
+const RTV_HOLD = 15000;
 
 export async function loadRtv(){
   const key = store.get('rtvKey', '');
   if(!key) return null;
   if(rtvCache) return rtvCache;
-  const chans = parseM3U(await fetchText(RTV_PLAYLIST(key)));
+  if(rtvPending) return rtvPending;
+  if(rtvFail && Date.now() - rtvFailAt < RTV_HOLD) throw rtvFail;
+  return rtvPending = pullRtv(key).finally(() => { rtvPending = null; });
+}
+
+async function pullRtv(key){
+  let text;
+  try{
+    text = await fetchText(RTV_PLAYLIST(key));
+  }catch(e){
+    // 429 is the service saying "not so fast", not a wrong key: say which it is
+    rtvFail = /\b429\b/.test(e?.message || '') ? new Error(tr('live.rtvBusy')) : e;
+    rtvFailAt = Date.now();
+    throw rtvFail;
+  }
+  const chans = parseM3U(text);
   for(const c of chans){
     // Live plays the playlist URL exactly as given. For catch-up, recognise the service's
     // http://server:port/<path>/<token>/<channel>.m3u8 layout (as OTT-Play does).
@@ -26,7 +48,12 @@ export async function loadRtv(){
     if(m){ c.server = m[1]; c.token = m[2]; c.cid = m[3]; }
     c.ua ||= BROWSER_UA;                      // some IPTV servers turn away the player's default agent
   }
-  if(!chans.length) throw new Error(tr('live.rtvEmpty'));
+  if(!chans.length){
+    rtvFail = new Error(tr('live.rtvEmpty'));
+    rtvFailAt = Date.now();
+    throw rtvFail;
+  }
+  rtvFail = null;
   return rtvCache = chans;
 }
 
@@ -212,4 +239,4 @@ addEventListener('keydown', e => {
 });
 
 /** The key changed, or was removed: the channels are read again next time they are asked for. */
-export function forgetRtv(){ rtvCache = null; }
+export function forgetRtv(){ rtvCache = null; rtvFail = null; rtvFailAt = 0; }

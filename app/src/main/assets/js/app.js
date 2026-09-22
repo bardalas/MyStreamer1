@@ -32,7 +32,7 @@ import {viewSearch} from './screens/search.js';
 import {viewSettings} from './screens/settings.js';
 import {viewWebShow} from './screens/web.js';
 import {endTaste} from './ui/taste.js';
-import {markNav} from './ui/rail.js';
+import {markNav, openRail} from './ui/rail.js';
 import {viewReport} from './ui/report.js';
 import {checkUpdate} from './ui/update.js';
 import './ui/tvnav.js';
@@ -50,7 +50,20 @@ import './data/watch.js';
 // cannot be watched, the remote, the status of a torrent, and the listeners each provider registers.
 
 /* ---------- router ---------- */
-$('#sf').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if(q) location.hash = '#/search/' + encodeURIComponent(q); };
+/* The search field lives inside the menu, and the menu stays open for as long as something in it has
+   the remote. Sending a search used to leave the writing point in the field: the results came up behind
+   a menu that would not go away, and the arrows - which a field being written in keeps - did nothing.
+   Letting the field go closes the menu, locks the field again and hands the remote back to the page.
+   The same words searched twice write the same address, which is no change at all: draw it again. */
+$('#sf').onsubmit = e => {
+  e.preventDefault();
+  const q = $('#q').value.trim();
+  if(!q) return;
+  $('#q').blur();
+  openRail(false);
+  const to = '#/search/' + encodeURIComponent(q);
+  if(location.hash === to) route(); else location.hash = to;
+};
 /** Let go of the previous screen's observers; the MutationObserver re-arms whatever the new one renders. */
 export function resetObservers(){
   endTaste();                                        // whatever was about to start playing, is not

@@ -69,8 +69,8 @@ export function spotlight(el){
   if(!el.classList.contains('wide') && art){
     art.classList.add('framed');
     clearTimeout(widening);
-    if(wideSeen.get(el.dataset.id)) widen(el, art);
-    else widening = setTimeout(() => { if(spot === el) widen(el, art); }, WIDEN_MS);
+    widening = setTimeout(() => { if(spot === el) widen(el, art); },
+      wideSeen.get(el.dataset.id) ? WIDE_SEEN_MS : WIDEN_MS);
   }
   const full = (el.getAttribute('href') || '').startsWith('#/detail/');
   act = document.createElement('div');
@@ -127,8 +127,13 @@ addEventListener('resize', place);
    where there is none - a broadcaster's programme, the Israeli catalogues - the whole poster stands in
    the middle of a blurred, darker copy of itself (css/reel.css .framed). */
 const wideOf = id => /^tt\d+$/.test(id || '') ? `https://images.metahub.space/background/medium/${id}/img` : '';
-/** How long the middle must rest on a title before its wide picture is asked for. */
-const WIDEN_MS = 250;
+/* How long the middle must rest on a title before its wide picture is asked for. A quarter of a second
+   was not rest, it was the next press arriving: a television box spent a whole picture - fetch, decode
+   and a full-screen paint - on every step along a row, which is what made moving through the app heavy.
+   Half a second means the picture comes to a viewer who stopped to look, and never to one passing by;
+   a picture already fetched still waits a moment, because painting it is most of the cost. */
+const WIDEN_MS = 500;
+const WIDE_SEEN_MS = 180;
 let widening = 0;
 /** Titles already looked for: the wide picture that came, or '' for none - the second time, no waiting. */
 const wideSeen = new Map();

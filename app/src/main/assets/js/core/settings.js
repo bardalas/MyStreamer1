@@ -15,6 +15,10 @@ export const SKINS = [
   {id: 'forest', c: ['#0f1a15', '#1e3027', '#9be15d', '#e6efe4']},
   {id: 'netflix', c: ['#000000', '#1f1f1f', '#e50914', '#ffffff']},
   {id: 'daylight', c: ['#f4efe6', '#ebe3d5', '#c8412d', '#1d1a16']},
+  {id: 'bubblegum', c: ['#1b0a15', '#361a2b', '#ff4f9a', '#ffe7f2']},
+  {id: 'grape', c: ['#140f26', '#291f45', '#a77bff', '#ece8ff']},
+  {id: 'sunset', c: ['#1b1012', '#341f22', '#ff7a45', '#ffeae0']},
+  {id: 'ice', c: ['#0b1418', '#15242b', '#56d8f5', '#e4f4fa']},
 ];
 /* The app has one layout. It had four, and only one of them ever received the work: the wheel, the
    focus model, the title page, the episode strip and every fix since were built and tried in it,

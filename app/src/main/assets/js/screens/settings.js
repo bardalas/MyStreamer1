@@ -40,8 +40,9 @@ const ICONS = {
   about: icon('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6h.01"/>'),
 };
 export let setTab = 'general';
-/** The pages there are: in the kids profile, only the one that leaves it. */
-const tabsNow = () => kidsOn() ? ['kids'] : SETTINGS_TABS;
+/** The pages there are: in the kids profile, the skins - which are nobody's business but the child's -
+    and the one that leads out of it (behind the code). */
+const tabsNow = () => kidsOn() ? ['look', 'kids'] : SETTINGS_TABS;
 
 export function viewSettings(tab){
   tab = RENAMED[tab] || tab;
