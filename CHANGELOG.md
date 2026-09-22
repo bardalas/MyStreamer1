@@ -1,5 +1,18 @@
 # VEO Android changelog
 
+## 0.45.3 — 2026-09-22
+- **The next episode.** In an episode's last stretch (the credits) a card offers the next one: OK plays
+  it, Back puts the card away. At the very end it counts down ten seconds and goes on by itself. The app
+  finds the next episode's source on its own and plays the best one.
+- **Paused, and where you are.** OK on a film pauses it with the banner up: the title, how far in, the
+  whole length and what is left. OK again plays on and puts it away.
+- **Profiles on a phone.** The profile page fits the screen - it was wider than a phone, and cut off on
+  the right. The picture chooser fits too (its first pictures could not be reached), who is watching
+  shows two to a line (one row with the phone on its side), and six profiles fit on one screen.
+- **Smaller things on a phone.** A finger-sized close button on every sheet; the parent code pad fits a
+  phone on its side; the settings tabs run to the screen's edge; a long profile name no longer makes
+  the menu scroll sideways; the report page's GitHub button can be read.
+
 ## 0.45.2 — 2026-09-21
 - **Smoother.** Moving between rows glides instead of jumping; the middle of a row fades the title's
   wide picture in over its poster instead of swapping it, sooner, and at once for a title seen
