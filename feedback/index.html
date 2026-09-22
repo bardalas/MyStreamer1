@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0c10" />
+  <title>VEO Feedback</title>
+  <style>
+    :root{
+      --bg:#090b0f; --card:#12161d; --card2:#171c24; --line:#2a313d;
+      --text:#f7f8fb; --muted:#9ca6b5; --soft:#c9d0db;
+      --accent:#fff; --accentText:#0a0c10; --success:#8fe0ac; --danger:#ff9e9e;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+    body{min-height:100svh;display:flex;justify-content:center;align-items:flex-start;padding:clamp(14px,3vw,28px)}
+    .shell{width:min(100%,720px)}
+    .brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:4px 2px}
+    .brand-name{font-size:22px;font-weight:800;letter-spacing:.08em}
+    .brand-badge{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:7px 10px;background:#0d1015}
+    .card{background:linear-gradient(180deg,var(--card),#0f1319);border:1px solid var(--line);border-radius:24px;padding:clamp(16px,3vw,26px);box-shadow:0 18px 48px rgba(0,0,0,.28)}
+    h1{margin:0;font-size:clamp(24px,5vw,34px);line-height:1.15}
+    .subtitle{margin:8px 0 20px;color:var(--muted);line-height:1.55;font-size:14px}
+    .switch{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+    .switch input{position:absolute;opacity:0;pointer-events:none}
+    .switch label{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px;border:1px solid var(--line);border-radius:14px;background:#0e1218;color:var(--soft);cursor:pointer;transition:.18s ease;font-weight:700;user-select:none}
+    .switch input:checked + label{background:var(--accent);color:var(--accentText);border-color:var(--accent);transform:translateY(-1px)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .full{grid-column:1/-1}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field label{font-size:13px;font-weight:700;color:#e9edf3}
+    .optional{color:var(--muted);font-weight:500}
+    select,input,textarea{width:100%;border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:14px;padding:14px;font:inherit;outline:none;transition:.16s ease}
+    select{min-height:50px;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#98a3b3 50%),linear-gradient(135deg,#98a3b3 50%,transparent 50%);background-position:left 17px center,left 11px center;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-left:36px}
+    input{min-height:50px}
+    textarea{min-height:130px;resize:vertical;line-height:1.5}
+    select:focus,input:focus,textarea:focus{border-color:#6f7b8c;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+    .hint{color:var(--muted);font-size:12px;line-height:1.45}
+    button{width:100%;min-height:52px;border:0;border-radius:14px;background:var(--accent);color:var(--accentText);font:inherit;font-weight:800;cursor:pointer;margin-top:18px}
+    button:disabled{opacity:.55;cursor:wait}
+    .status{min-height:22px;margin-top:10px;text-align:center;font-size:13px}
+    .success{color:var(--success)} .error{color:var(--danger)}
+    .privacy{margin-top:14px;color:#778293;text-align:center;font-size:11px;line-height:1.5}
+    @media(max-width:640px){
+      body{padding:0;background:#0d1015}.shell{width:100%}.brand{padding:14px 16px 10px;margin:0;background:#0d1015;position:sticky;top:0;z-index:10}
+      .card{border-radius:22px 22px 0 0;border-left:0;border-right:0;border-bottom:0;min-height:calc(100svh - 58px);padding:18px 16px 28px;box-shadow:none}
+      .grid{grid-template-columns:1fr}.full{grid-column:auto}.switch{gap:8px}.switch label{min-height:50px;font-size:14px}
+      select,input,textarea{font-size:16px} textarea{min-height:120px}
+    }
+    @media(max-width:390px){.brand-badge{display:none}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="brand">
+      <div class="brand-name">VEO</div>
+      <div class="brand-badge">Feedback</div>
+    </div>
+
+    <main class="card">
+      <h1>ספר לנו מה קרה</h1>
+      <p class="subtitle">בחר סוג דיווח, כמה פרטים קצרים ושלח.</p>
+
+      <form id="feedbackForm">
+        <div class="switch">
+          <div>
+            <input type="radio" id="bug" name="type" value="bug" checked>
+            <label for="bug">🐞 באג</label>
+          </div>
+          <div>
+            <input type="radio" id="feature" name="type" value="feature">
+            <label for="feature">💡 רעיון</label>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="area">איפה זה קרה?</label>
+            <select id="area" name="area" required>
+              <option value="" selected disabled>בחר אזור</option>
+              <option>מסך הבית</option>
+              <option>סרטים</option>
+              <option>סדרות</option>
+              <option>שידור חי</option>
+              <option>חיפוש</option>
+              <option>נגן וידאו</option>
+              <option>הגדרות</option>
+              <option>ניווט / שלט</option>
+              <option>אחר</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="device">מכשיר</label>
+            <select id="device" name="device" required>
+              <option value="" selected disabled>בחר מכשיר</option>
+              <option>Android TV</option>
+              <option>Google TV</option>
+              <option>טלפון Android</option>
+              <option>iPhone / iPad</option>
+              <option>Windows</option>
+              <option>דפדפן</option>
+              <option>אחר</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label for="summary">מה קרה?</label>
+            <input id="summary" name="summary" maxlength="120" required placeholder="לדוגמה: לחיצה על פרק לא מתחילה ניגון">
+          </div>
+
+          <div class="field full">
+            <label for="details">פרטים נוספים <span class="optional">(אופציונלי)</span></label>
+            <textarea id="details" name="details" maxlength="2500" placeholder="אם יש משהו שיעזור להבין או לשחזר את הבעיה, כתוב כאן."></textarea>
+          </div>
+
+          <div class="field full">
+            <label for="contact">איך לחזור אליך? <span class="optional">(אופציונלי)</span></label>
+            <input id="contact" name="contact" maxlength="150" placeholder="שם / WhatsApp / אימייל">
+            <div class="hint">אפשר להשאיר ריק. אין צורך בחשבון GitHub.</div>
+          </div>
+        </div>
+
+        <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0">
+
+        <button id="submitBtn" type="submit">שלח דיווח</button>
+        <div id="status" class="status" aria-live="polite"></div>
+      </form>
+
+      <div class="privacy">הדיווח נשלח ישירות למערכת המשימות של VEO.</div>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById('feedbackForm');
+    const statusEl = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'שולח...';
+
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      try {
+        const res = await fetch('/.netlify/functions/report', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
+
+        form.reset();
+        document.getElementById('bug').checked = true;
+        statusEl.textContent = 'תודה — הדיווח נשלח.';
+        statusEl.className = 'status success';
+      } catch (err) {
+        statusEl.textContent = 'לא הצלחנו לשלוח. נסה שוב.';
+        statusEl.className = 'status error';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'שלח דיווח';
+      }
+    });
+  </script>
+</body>
+</html>
