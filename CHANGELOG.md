@@ -1,5 +1,17 @@
 # VEO Android changelog
 
+## 0.45.4 — 2026-09-22
+- **Live TV that says what happened.** A request that never came back left the channels screen loading
+  for ever; every request now has a deadline of its own. RaspberryTV asks for its list once at a time
+  and waits before asking again: the service allows ten requests a minute, and "try again" spent them
+  in seconds, after which the app showed that lockout instead of the real reason.
+- **The menu lets go.** A search sent from the menu left the writing point in the field, so the results
+  came up behind a menu that would not close, and the arrows did nothing.
+- **Lighter to move about.** The title's wide picture is asked for only once the viewer has stopped on
+  it, instead of on every step along a row, and the glide is shorter - a run of presses jumps.
+- **Four more skins:** bubblegum, grape, sunset and ice.
+- **A kids profile can choose how the app looks.** Everything else stays behind the parental code.
+
 ## 0.45.3 — 2026-09-22
 - **The next episode.** In an episode's last stretch (the credits) a card offers the next one: OK plays
   it, Back puts the card away. At the very end it counts down ten seconds and goes on by itself. The app
