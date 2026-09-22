@@ -24,7 +24,8 @@
     html{
       width:100%;
       min-width:0;
-      overflow-x:hidden;
+      overflow-x:clip;
+      max-width:100vw;
       -webkit-text-size-adjust:100%;
     }
     body{
@@ -32,7 +33,8 @@
       width:100%;
       min-width:0;
       min-height:100%;
-      overflow-x:hidden;
+      overflow-x:clip;
+      max-width:100vw;
       background:var(--bg);
       color:var(--text);
       font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
@@ -46,7 +48,9 @@
     }
 
     .page{
-      width:min(100%,680px);
+      width:100%;
+      max-width:680px;
+      min-width:0;
       margin:0 auto;
       min-height:100svh;
       padding:18px clamp(16px,4vw,28px) calc(104px + env(safe-area-inset-bottom));
@@ -339,6 +343,83 @@
     .status.success{color:var(--success)}
     .status.error{color:var(--danger)}
 
+    /* Honeypot must not create a huge RTL scrollable canvas. */
+    .hp{
+      position:fixed !important;
+      inset:0 auto auto 0 !important;
+      width:1px !important;
+      height:1px !important;
+      padding:0 !important;
+      margin:0 !important;
+      border:0 !important;
+      overflow:hidden !important;
+      clip-path:inset(50%) !important;
+      white-space:nowrap !important;
+      opacity:0 !important;
+      pointer-events:none !important;
+    }
+
+    .success-modal{
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      width:100dvw;
+      height:100dvh;
+      max-width:100vw;
+      padding:20px;
+      background:rgba(2,6,15,.78);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }
+
+    .success-modal.open{display:flex}
+
+    .success-card{
+      width:min(100%,360px);
+      max-width:calc(100vw - 28px);
+      padding:24px 20px 18px;
+      text-align:center;
+      background:linear-gradient(180deg,var(--surface2),var(--surface));
+      border:1px solid rgba(61,139,255,.34);
+      border-radius:22px;
+      box-shadow:0 24px 70px rgba(0,0,0,.45),0 0 50px rgba(61,139,255,.13);
+    }
+
+    .success-icon{
+      width:58px;
+      height:58px;
+      margin:0 auto 14px;
+      display:grid;
+      place-items:center;
+      border-radius:18px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;
+      font-size:30px;
+      font-weight:900;
+      box-shadow:0 12px 32px rgba(61,139,255,.28);
+    }
+
+    .success-card h2{
+      margin:0 0 8px;
+      font-size:24px;
+      line-height:1.15;
+    }
+
+    .success-card p{
+      margin:0 0 18px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .success-card button{
+      min-height:50px;
+      box-shadow:none;
+    }
+
     @media (min-width:720px){
       .page{padding-top:34px}
       .topbar{margin-bottom:38px}
@@ -626,8 +707,7 @@
         </div>
       </details>
 
-      <input type="text" name="website" tabindex="-1" autocomplete="off"
-        style="position:absolute;left:-9999px;opacity:0">
+      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     </form>
   </main>
 
@@ -638,6 +718,15 @@
     </div>
   </div>
 
+  <div id="successModal" class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successTitle" aria-hidden="true">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h2 id="successTitle">תודה!</h2>
+      <p>הדיווח נשלח בהצלחה.</p>
+      <button id="newReportBtn" type="button">שליחת דיווח נוסף</button>
+    </div>
+  </div>
+
   <script>
     const form = document.getElementById('feedbackForm');
     const statusEl = document.getElementById('status');
@@ -645,6 +734,8 @@
     const summary = document.getElementById('summary');
     const summaryLabel = document.getElementById('summaryLabel');
     const messageTitle = document.getElementById('messageTitle');
+    const successModal = document.getElementById('successModal');
+    const newReportBtn = document.getElementById('newReportBtn');
 
     document.querySelectorAll('input[name="type"]').forEach(el => {
       el.addEventListener('change', () => {
@@ -656,6 +747,44 @@
           : 'לדוגמה: לחיצה על פרק לא מתחילה ניגון';
         submitBtn.textContent = isFeature ? 'שלח רעיון' : 'שלח דיווח';
       });
+    });
+
+    function resetForNextReport(){
+      form.reset();
+      document.getElementById('bug').checked = true;
+      summaryLabel.textContent = 'תאר במשפט אחד';
+      messageTitle.textContent = 'מה קרה?';
+      summary.placeholder = 'לדוגמה: לחיצה על פרק לא מתחילה ניגון';
+      submitBtn.textContent = 'שלח דיווח';
+      const extraDetails = form.querySelector('details');
+      if (extraDetails) extraDetails.open = false;
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+    }
+
+    function showSuccess(){
+      successModal.classList.add('open');
+      successModal.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+      newReportBtn.focus();
+    }
+
+    function closeSuccess(){
+      successModal.classList.remove('open');
+      successModal.setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+      window.scrollTo({top:0,left:0,behavior:'smooth'});
+      setTimeout(() => document.getElementById('area').focus(), 250);
+    }
+
+    newReportBtn.addEventListener('click', closeSuccess);
+
+    successModal.addEventListener('click', (e) => {
+      if (e.target === successModal) closeSuccess();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && successModal.classList.contains('open')) closeSuccess();
     });
 
     form.addEventListener('submit', async (e) => {
@@ -678,26 +807,17 @@
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Failed');
 
-        form.reset();
-        document.getElementById('bug').checked = true;
-        summaryLabel.textContent = 'תאר במשפט אחד';
-        messageTitle.textContent = 'מה קרה?';
-        summary.placeholder = 'לדוגמה: לחיצה על פרק לא מתחילה ניגון';
-
-        statusEl.textContent = 'נשלח ✓';
-        statusEl.className = 'status success';
-
-        setTimeout(() => {
-          statusEl.textContent = '';
-          statusEl.className = 'status';
-        }, 3500);
+        resetForNextReport();
+        showSuccess();
 
       } catch (err) {
         statusEl.textContent = 'השליחה נכשלה — נסה שוב';
         statusEl.className = 'status error';
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'שלח דיווח';
+        if (!successModal.classList.contains('open')) {
+          submitBtn.textContent = document.getElementById('feature').checked ? 'שלח רעיון' : 'שלח דיווח';
+        }
       }
     });
   </script>
