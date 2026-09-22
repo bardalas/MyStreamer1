@@ -7,21 +7,28 @@
   <title>VEO · Feedback</title>
   <style>
     :root{
-      --bg:#0b0f14;
-      --surface:#111720;
-      --surface2:#161e29;
-      --line:#263140;
-      --text:#f4f7fb;
-      --muted:#8f9bae;
-      --accent:#5eead4;
-      --accentText:#07100f;
-      --danger:#ff9a9a;
+      --bg:#050a16;
+      --surface:#0d1524;
+      --surface2:#16203a;
+      --line:#22304f;
+      --text:#e9f0ff;
+      --muted:#8695b5;
+      --accent:#3d8bff;
+      --accent2:#c040f0;
+      --accentText:#04070f;
+      --danger:#ff9d8a;
       --success:#8ee6ad;
     }
 
     *{box-sizing:border-box}
     html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
-    body{min-height:100svh}
+    body{
+      min-height:100svh;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(61,139,255,.18), transparent 34%),
+        radial-gradient(circle at 92% 18%, rgba(192,64,240,.09), transparent 30%),
+        var(--bg);
+    }
 
     .page{
       width:min(100%,680px);
@@ -37,15 +44,38 @@
       margin-bottom:28px;
     }
 
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:11px;
+    }
+
+    .app-logo{
+      width:42px;
+      height:42px;
+      border-radius:12px;
+      display:block;
+      object-fit:contain;
+      filter:drop-shadow(0 8px 20px rgba(61,139,255,.22));
+    }
+
+    .brand-copy{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
     .logo{
       font-weight:900;
       letter-spacing:.12em;
-      font-size:20px;
+      font-size:19px;
+      line-height:1;
     }
 
     .tag{
       font-size:12px;
       color:var(--muted);
+      line-height:1.1;
     }
 
     h1{
@@ -66,7 +96,7 @@
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:8px;
-      background:#0f141c;
+      background:#08101f;
       border:1px solid var(--line);
       padding:6px;
       border-radius:16px;
@@ -94,9 +124,10 @@
     }
 
     .segmented input:checked + label{
-      background:var(--surface2);
+      background:linear-gradient(135deg,rgba(61,139,255,.22),rgba(192,64,240,.12));
       color:var(--text);
-      box-shadow:0 1px 0 rgba(255,255,255,.05) inset;
+      border:1px solid rgba(61,139,255,.35);
+      box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 8px 24px rgba(61,139,255,.10);
     }
 
     .section{
@@ -188,7 +219,7 @@
       margin-top:14px;
       border:1px solid var(--line);
       border-radius:15px;
-      background:#0f141c;
+      background:#08101f;
       overflow:hidden;
     }
 
@@ -267,13 +298,13 @@
       min-height:54px;
       border:0;
       border-radius:15px;
-      background:var(--accent);
-      color:var(--accentText);
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;
       font:inherit;
       font-weight:900;
       font-size:16px;
       cursor:pointer;
-      box-shadow:0 10px 30px rgba(94,234,212,.13);
+      box-shadow:0 14px 34px rgba(61,139,255,.28);
     }
 
     button:disabled{
@@ -306,8 +337,16 @@
 <body>
   <main class="page">
     <div class="topbar">
-      <div class="logo">VEO</div>
-      <div class="tag">Feedback</div>
+      <div class="brand">
+        <img class="app-logo"
+             src="https://raw.githubusercontent.com/bardalas/VEO/main/app/src/main/assets/veo-mark.png"
+             alt="VEO">
+        <div class="brand-copy">
+          <div class="logo">VEO</div>
+          <div class="tag">Feedback</div>
+        </div>
+      </div>
+      <div class="tag">User Report</div>
     </div>
 
     <h1>דיווח מהיר</h1>
