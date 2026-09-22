@@ -27,6 +27,40 @@ body.who main{margin-inline-start:0}
 .whotile:focus .avatar,.whotile:hover .avatar{transform:scale(1.08);box-shadow:0 0 0 4px var(--light)}
 .whotile:focus b,.whotile:hover b{color:var(--light)}
 .whoacts .btn{min-width:220px;justify-content:center}
+/* a phone: two to a line, the pictures smaller, the picker no taller than the screen (and no room kept
+   at the top for the menu button, which the picker does not have) */
+@media(max-width:760px){
+  body.who main{padding-block:0}
+  .whopage{gap:28px;padding:24px 0}
+  .whos{gap:20px 12px}
+  .whotile{width:140px;padding:6px;gap:8px}
+  .whotile .avatar.big{width:112px;height:112px;border-radius:22px;font-size:62px}
+  .whotile .avatar.big.initial{font-size:54px}
+  .whotile b{font-size:18px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow-wrap:anywhere;line-height:1.15}
+}
+/* a shorter phone: a little less of everything, so six profiles and the button under them still fit */
+@media(max-width:760px) and (max-height:820px){
+  .whopage{gap:18px;padding:12px 0}
+  .whos{gap:12px}
+  .whotile{gap:6px}
+  .whotile .avatar.big{width:96px;height:96px;font-size:52px}
+  .whotile .avatar.big.initial{font-size:46px}
+}
+/* a phone on its side: the whole household on one line under the title, as a television shows it - the
+   tiles give way rather than wrap on a narrower one */
+@media(max-height:500px){
+  body.who main{padding-block:0}
+  .whopage{gap:14px;padding:12px 16px}
+  .whopage h1{font-size:26px}
+  .whos{gap:10px;flex-wrap:nowrap;max-width:100%}
+  .whotile{width:116px;flex-shrink:1;min-width:0;padding:4px;gap:6px}
+  .whotile .avatar.big{width:min(96px,100%);height:auto;aspect-ratio:1;border-radius:20px;font-size:52px}
+  .whotile .avatar.big.initial{font-size:46px}
+  .whotile b{font-size:15px;display:block;white-space:nowrap}
+  .whotile small{font-size:12px;white-space:nowrap}
+  .whoacts .btn{padding:8px 18px;min-height:44px}
+}
 
 /* the menu's entry: who is watching */
 .nav a.navwho .ic{display:flex;align-items:center;justify-content:center}
@@ -35,7 +69,11 @@ body.who main{margin-inline-start:0}
 .profpage{max-width:900px}
 .profhead{display:flex;align-items:center;gap:22px;margin:0 0 26px}
 .profhead .avatar.big{width:96px;height:96px;border-radius:22px;font-size:54px}
-.profhead .field{flex:1;max-width:420px;font:600 22px var(--body);padding:12px 16px}
+/* min-width:0 - an input in a row will not grow narrower than its twenty default characters otherwise, and
+   on a phone that pushed the whole page wider than the screen */
+.profhead .field{flex:1;min-width:0;max-width:420px;font:600 22px var(--body);padding:12px 16px}
+/* an empty name on a right-to-left page: the hint on the right, where the name will be written */
+:root[dir="rtl"] .profhead .field:placeholder-shown{direction:rtl}
 /* the picture is a button: it opens the pictures to choose from */
 .avbtn{padding:0;border:0;background:none;border-radius:24px;cursor:pointer}
 .avbtn .avatar{transition:transform var(--quick) var(--ease),box-shadow var(--quick) var(--ease)}
@@ -49,8 +87,29 @@ body.who main{margin-inline-start:0}
 .av:focus,.av:hover{background:none;outline:0}
 .av:focus .avatar,.av:hover .avatar{transform:scale(1.1);box-shadow:0 0 0 4px var(--light)}
 .profacts{display:flex;gap:12px;margin-top:8px}
+/* a phone: as many pictures to a line as fit - eight of them were wider than the screen, and on a
+   right-to-left page the first ones (the initial among them) could not even be scrolled to */
+@media(max-width:760px){.avgrid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}}
+/* a small phone: a picture and a name field in proportion to it */
+@media(max-width:430px){
+  .profhead{gap:14px;margin-bottom:20px}
+  .profhead .avatar.big{width:72px;height:72px;border-radius:18px;font-size:40px}
+  .profhead .avatar.big.initial{font-size:34px}
+  .profhead .field{font-size:19px;padding:11px 14px}
+}
+@media(max-width:360px){
+  .profhead{gap:10px}
+  .profhead .avatar.big{width:64px;height:64px}
+  .profhead .field{font-size:17px;padding:10px 12px}
+}
 /* a problem report (js/ui/report.js): GitHub's page as a code to scan, on a light square so a phone reads it */
 .repqr svg{display:block;width:230px;height:230px;margin-top:8px;background:#fff;border-radius:10px}
+.repqr .btn{margin-top:14px}
 .reportpage .profhead .field{max-width:640px}
+@media(max-width:760px){.reportpage .profhead .field{font:400 17px var(--body)}}
 /* a profile on a settings line: its avatar beside its name */
 .sline .st b .avatar{margin-inline-end:10px;vertical-align:middle}
+/* a profile's line: the picture and the name stay on one line, a long name giving way; the note under the name */
+.sline[data-fid^="prof:"] .st b{display:flex;align-items:center;min-width:0}
+.sline[data-fid^="prof:"] .st b>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sline[data-fid^="prof:"] .st small{padding-inline-start:40px}

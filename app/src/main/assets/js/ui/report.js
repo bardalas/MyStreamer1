@@ -85,7 +85,7 @@ async function elsewhere(title, body){
   const box = $('#rqr');
   if(!box) return;
   if(!device().tv){
-    box.innerHTML = `<button class="btn" id="rgo">${tr('rep.openGithub')}</button>`;
+    box.innerHTML = `<button class="btn ghost" id="rgo">${tr('rep.openGithub')}</button>`;
     $('#rgo').onclick = () => window.BoothAndroid?.openExternal ? BoothAndroid.openExternal(url) : window.open(url, '_blank', 'noopener');
     $('#rgo').focus();
     return;

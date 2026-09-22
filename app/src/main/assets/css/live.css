@@ -45,6 +45,8 @@
 .sheet header img{height:32px;max-width:72px;object-fit:contain}
 .sheet header b{flex:1;font-size:17px}
 .sheet header button{background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+/* a finger needs more than the ✕ itself; the header keeps its height */
+@media(max-width:760px),(max-height:460px){.sheet header button{min-width:44px;min-height:44px;margin-block:-10px;margin-inline-end:-10px}}
 .sheet .body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
 .days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .days button{flex:none;border:1px solid var(--line);background:none;color:var(--muted);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}

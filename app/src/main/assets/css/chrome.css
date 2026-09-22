@@ -57,6 +57,9 @@ main{padding:0 28px 60px}
     overflow-y:auto;border-inline-end:1px solid var(--line);
     transform:translateX(calc(100% * var(--flip)));transition:transform var(--settle) var(--ease)}
   body.railopen .rail{transform:none;box-shadow:0 0 40px #000b}
+  /* a long profile name gives way at the menu's edge instead of making the menu scroll sideways */
+  .rail{overflow-x:hidden}
+  .rail .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis}
   .railbtn{position:fixed;inset-block-start:10px;inset-inline-start:12px;z-index:35;display:grid;place-items:center;
     width:42px;height:42px;border:0;border-radius:12px;background:var(--shade-55);backdrop-filter:blur(6px);
     color:var(--light);cursor:pointer}
