@@ -31,9 +31,12 @@ exports.handler = async function(event) {
       return response(500, { error: "Server configuration error" });
     }
 
-    const prefix = type === "bug" ? "[Bug]" : "[Feature]";
+    const prefix = type === "bug" ? "[User Report] [Bug]" : "[User Report] [Feature]";
 
     const issueBody = [
+      "### Source",
+      "Public feedback form",
+      "",
       "### Type",
       type === "bug" ? "Bug report" : "Feature request",
       "",
