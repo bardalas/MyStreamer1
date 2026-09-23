@@ -150,7 +150,8 @@ window.boothProgress = json => {
     const entries = JSON.parse(json), others = {};
     for(const [videoId, e] of Object.entries(entries)){
       if(!e || !e.d) continue;
-      const w = {t: +e.t || 0, d: +e.d || 0, at: +e.at || Date.now(), metaId: e.metaId || videoId, type: e.type || 'movie', name: e.name || '', poster: e.poster || ''};
+      const w = {t: +e.t || 0, d: +e.d || 0, at: +e.at || Date.now(), metaId: e.metaId || videoId, type: e.type || 'movie', name: e.name || '', poster: e.poster || '',
+        season: Number.isFinite(+e.season) ? +e.season : undefined, episode: Number.isFinite(+e.episode) ? +e.episode : undefined};
       w.done = w.t > w.d - 60;            // watched to the end: a tick on the poster, and out of "continue watching"
       if(e.pid && e.pid !== profileId) (others[e.pid] ||= {})[videoId] = w;
       else progress[videoId] = w;
