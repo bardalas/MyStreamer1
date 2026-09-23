@@ -91,8 +91,17 @@ function sourceRows(type, o){
 }
 
 /** What was left in the middle, of one type (or of every type) - in the kids profile, only what a child started. */
-const unfinished = type => Object.entries(progress).filter(([, x]) => !x.done && (!type || x.type === type) && (!kidsOn() || kidsOwn(x.metaId)))
-  .sort(([, x], [, y]) => y.at - x.at).map(([videoId, x]) => ({videoId, ...x})).slice(0, 12);
+const unfinished = type => {
+  // Progress is stored per video so resume and watched marks remain exact. The home row, however,
+  // represents titles: collapse episodes of the same series to the newest unfinished episode.
+  const latest = new Map();
+  for(const [videoId, x] of Object.entries(progress)){
+    if(x.done || (type && x.type !== type) || (kidsOn() && !kidsOwn(x.metaId))) continue;
+    const key = x.metaId || videoId, prev = latest.get(key);
+    if(!prev || (x.at || 0) > (prev.at || 0)) latest.set(key, {videoId, ...x});
+  }
+  return [...latest.values()].sort((x, y) => (y.at || 0) - (x.at || 0)).slice(0, 12);
+};
 
 /** What the profile's own taste suggests (data/taste.js): more like the last title it played, then what it
     may like, of [type] or of both. The row about one title comes first: a title is shown once a page, in
