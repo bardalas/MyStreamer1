@@ -1,6 +1,6 @@
 /* Search results. */
-import {$, esc, getJSON, showErr} from '../core/dom.js';
-import {addons, fetchMeta} from '../data/addons.js';
+import {$, esc, showErr} from '../core/dom.js';
+import {addons, catalogFetch, fetchMeta} from '../data/addons.js';
 import {hasHebrew, hebrewSearch} from '../data/hebrew.js';
 import {kidsChild, kidsOn, kidsPick} from '../data/kids.js';
 import {typeName} from '../data/names.js';
@@ -68,7 +68,10 @@ export async function viewSearch(q){
   cats.forEach(async (x, i) => {
     const strip = $('#s' + i);                       // held now: by the time the answer comes it may be gone
     try{
-      const got = await getJSON(`${x.a.base}/catalog/${x.c.type}/${x.c.id}/search=${encodeURIComponent(q)}.json`);
+      // Use the add-on catalogue path rather than bypassing it with a raw fetch. Besides keeping
+      // catalogue behaviour in one place, catalogFetch knows the manifest's extra/search contract
+      // and normalises the answer the same way every other catalogue screen does.
+      const got = await catalogFetch(x.a, x.c.type, x.c.id, `search=${encodeURIComponent(q)}`);
       const d = kidsOn() ? {metas: await kidsOnly((got.metas || []).map(m => ({type: x.c.type, ...m})))} : got;
       if(strip.isConnected) strip.innerHTML = (d.metas||[]).map(card).join('') || `<p class="note">${esc(tr('search.none'))}</p>`;
     }catch(e){ if(strip.isConnected) showErr(strip, tr('search.failed'), e, () => viewSearch(q)); }
