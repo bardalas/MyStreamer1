@@ -45,8 +45,10 @@ export function openPlayer(s, title, ctx){
       let last = 0;
       v.addEventListener('timeupdate', () => {
         if(Math.abs(v.currentTime - last) < 5) return; last = v.currentTime;
+        const ep = ctx.type !== 'movie' ? (ctx.meta?.videos || []).find(x => x.id === ctx.videoId) : null;
         progress[ctx.videoId] = {t: v.currentTime, d: v.duration, at: Date.now(), metaId: ctx.meta.id, type: ctx.type,
-          name: ctx.meta.name, poster: ctx.meta.poster, done: v.currentTime > v.duration - 60};
+          name: ctx.meta.name, poster: ctx.meta.poster, season: ep?.season, episode: ep?.episode ?? ep?.number,
+          done: v.currentTime > v.duration - 60};
         store.set('progress', progress);
         indexProgress();
       });
