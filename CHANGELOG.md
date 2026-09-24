@@ -1,5 +1,19 @@
 # VEO Android changelog
 
+## 0.45.12 — 2026-09-25
+- **Time runs the way the layout does.** In Hebrew the bar fills from the right, and forward is the Left
+  key, rewind the Right key (the other way about in a left-to-right language) - in a film, on live TV,
+  in the guide, in the captions panel and in the programmes' player. On live TV the bar is the stretch
+  you can go back over, ending in the live edge: full at the edge, and what you have gone back over
+  is drawn hollow and hatched. (#125)
+- **Colours are seen as they are chosen.** The custom colour is applied to the app while it is being
+  changed; Cancel (and Back) puts the old one back, OK keeps it. (#126)
+- **Home: one kind of card.** A title's card is cut from its landscape picture (a fifth of the size of
+  a poster) and opens like a window when it comes to the middle of the row; the "continue watching" card
+  is the same size as the rest and no longer looks smaller as the focus reaches it. (#127)
+- **Moving between categories is smooth,** down and up (a key held down still jumps, so the remote
+  stays quick). (#128)
+
 ## 0.45.11 — 2026-09-24
 - **Live TV says where you are.** The banner's bar is your position: the lighter part is how far the
   broadcast has got, and the gap is how far behind it you are. A chip reads "live" at the edge and
