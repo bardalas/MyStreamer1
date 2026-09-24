@@ -130,29 +130,32 @@ function upInto(cand, dir){
 /* Move the focus and put the page where a viewer expects it: a title row is shown with its heading
    under the top bar (so the category is always readable), anything else is just brought into view. */
 /** Travel to [y]: a short way is slid, a long way is jumped - a viewer should not watch the page fly. */
-/* A television's page moves the way the viewer moved: down a row, and the rows are seen going up. The
-   browser's own smooth scroll could not be used for it - under a held arrow it arrives after the next
-   press, which is what made moving through a list feel heavy - so the glide is the page's own: a quarter
-   of a second, easing out, and a press made during it takes over from wherever the page then is. */
-/* Short: the glide is there so the eye can follow the page, not so the viewer waits for it. A quarter
-   of a second on a television box read as the app thinking about it - and under a run of presses the
-   tween never got to finish anyway, so a run now jumps and only a considered press glides. */
-const GLIDE_MS = 150;
-const GLIDE_RUN_MS = 260;                            // presses closer together than this: no tween
-let gliding = 0;
+/* The page moves the way the viewer moved: down a row, and the rows are seen travelling up into the place the
+   focus is kept, and back down again on the way up - so that it is felt that a category was left behind and the
+   next one arrived, not merely that its words changed. A tween of the page's own (the browser's smooth scroll
+   arrives after the next press under a held arrow): a quarter to a third of a second, longer for a longer way,
+   easing in and out from rest and only out when it takes over from a move still going (so a run of presses is
+   one long smooth travel, not a series of starts). It costs a scrollTo a frame, which a television box can pay. */
+const GLIDE_MIN_MS = 240, GLIDE_MAX_MS = 400;
+const GLIDE_HELD_MS = 110;                            // a key held down repeats faster than this: that is a run, and a run jumps
+let gliding = 0, glideOn = false;
 /** How long before this move the last one was: a run of presses, or a considered one. */
 export let moveGap = 1e9;
 export function glide(y){
   const to = Math.max(0, Math.round(y));
-  const far = Math.abs(scrollY - to) > innerHeight * 1.6;
+  const far = Math.abs(scrollY - to) > innerHeight * 3;      // only a leap across the whole page is a jump
   if(!isTvLayout()) return scrollTo({top: to, behavior: far ? 'auto' : 'smooth'});
   cancelAnimationFrame(gliding);
-  if(far || moveGap < GLIDE_RUN_MS || matchMedia('(prefers-reduced-motion: reduce)').matches) return scrollTo(0, to);
-  const from = scrollY, start = performance.now();
+  if(far || moveGap < GLIDE_HELD_MS || matchMedia('(prefers-reduced-motion: reduce)').matches){ glideOn = false; return scrollTo(0, to); }
+  const from = scrollY, start = performance.now(), takeOver = glideOn;
+  const ms = Math.min(GLIDE_MAX_MS, GLIDE_MIN_MS + Math.abs(to - from) * .12);
+  const ease = takeOver ? t => 1 - Math.pow(1 - t, 3)                                    // out: carries the movement on
+                        : t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;  // in and out, from rest
+  glideOn = true;
   const step = now => {
-    const t = Math.min(1, (now - start) / GLIDE_MS);
-    scrollTo(0, Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3))));
-    if(t < 1) gliding = requestAnimationFrame(step);
+    const t = Math.min(1, (now - start) / ms);
+    scrollTo(0, Math.round(from + (to - from) * ease(t)));
+    if(t < 1) gliding = requestAnimationFrame(step); else glideOn = false;
   };
   gliding = requestAnimationFrame(step);
 }
