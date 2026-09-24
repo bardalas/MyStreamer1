@@ -200,8 +200,10 @@ const PANES = {
     + section('', lines(pref('nosrc'))),
   look: () => {
     const col = settings.customColors || {bg:'#14161f', accent:'#f0b429', secondary:'#a3384b'};
+    const pick = (key, label) => `<button class="colorpick" data-fid="col:${key}" data-col="${key}" aria-label="${esc(label)}">
+      <span>${esc(label)}</span><i style="--pick:${esc(col[key])}"></i><b>${esc(col[key].toUpperCase())}</b></button>`;
     return section(tr('set.skin.title'), `<div class="themes">${SKINS.map(themeCard).join('')}</div>`)
-      + section(tr('set.skin.custom'), `<div class="colorpickers"><label><span>${tr('set.skin.bg')}</span><input type="color" data-col="bg" value="${esc(col.bg)}"></label><label><span>${tr('set.skin.accent')}</span><input type="color" data-col="accent" value="${esc(col.accent)}"></label><label><span>${tr('set.skin.secondary')}</span><input type="color" data-col="secondary" value="${esc(col.secondary)}"></label></div>`);
+      + section(tr('set.skin.custom'), `<div class="colorpickers">${pick('bg', tr('set.skin.bg'))}${pick('accent', tr('set.skin.accent'))}${pick('secondary', tr('set.skin.secondary'))}</div>`);
   },
   live: () => {
     const rtv = store.get('rtvKey', '');
@@ -300,6 +302,70 @@ const ACTS = {
   },
 };
 
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function hexToHsv(hex){
+  const n = parseInt(String(hex).replace('#',''), 16), r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+  let h = 0;
+  if(d) h = max === r ? 60 * (((g-b)/d) % 6) : max === g ? 60 * ((b-r)/d + 2) : 60 * ((r-g)/d + 4);
+  if(h < 0) h += 360;
+  return {h:Math.round(h), s:Math.round(max ? d/max*100 : 0), v:Math.round(max*100)};
+}
+function hsvToHex(h,s,v){
+  h=((+h%360)+360)%360; s=clamp(+s,0,100)/100; v=clamp(+v,0,100)/100;
+  const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c;
+  let r=0,g=0,b=0;
+  if(h<60)[r,g,b]=[c,x,0]; else if(h<120)[r,g,b]=[x,c,0]; else if(h<180)[r,g,b]=[0,c,x];
+  else if(h<240)[r,g,b]=[0,x,c]; else if(h<300)[r,g,b]=[x,0,c]; else [r,g,b]=[c,0,x];
+  return '#'+[r,g,b].map(n=>Math.round((n+m)*255).toString(16).padStart(2,'0')).join('');
+}
+function openColorPicker(key, opener){
+  document.querySelector('.sheet')?.remove();
+  const current = (settings.customColors || {})[key] || ({bg:'#14161f',accent:'#f0b429',secondary:'#a3384b'})[key];
+  const hsv = hexToHsv(current);
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet colorsheet';
+  const label = key === 'bg' ? tr('set.skin.bg') : key === 'accent' ? tr('set.skin.accent') : tr('set.skin.secondary');
+  sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(label)}">
+    <header><b>${esc(label)}</b><button data-back aria-label="${esc(tr('common.close'))}">✕</button></header>
+    <div class="body">
+      <div class="colorpreview" style="--preview:${current}"><span>${current.toUpperCase()}</span></div>
+      <div class="hsvrow"><label for="hue">${tr('set.skin.hue')}</label><input id="hue" type="range" min="0" max="359" step="1" value="${hsv.h}" data-hsv="h"><output>${hsv.h}°</output></div>
+      <div class="hsvrow"><label for="sat">${tr('set.skin.saturation')}</label><input id="sat" type="range" min="0" max="100" step="1" value="${hsv.s}" data-hsv="s"><output>${hsv.s}%</output></div>
+      <div class="hsvrow"><label for="val">${tr('set.skin.brightness')}</label><input id="val" type="range" min="0" max="100" step="1" value="${hsv.v}" data-hsv="v"><output>${hsv.v}%</output></div>
+      <div class="coloractions"><button class="btn primary" data-done>${tr('common.ok')}</button></div>
+    </div></div>`;
+  document.body.appendChild(sheet);
+  let draft = current;
+  const ranges = [...sheet.querySelectorAll('[data-hsv]')];
+  const redraw = () => {
+    const vals = Object.fromEntries(ranges.map(i => [i.dataset.hsv, +i.value]));
+    draft = hsvToHex(vals.h, vals.s, vals.v);
+    sheet.querySelector('.colorpreview').style.setProperty('--preview', draft);
+    sheet.querySelector('.colorpreview span').textContent = draft.toUpperCase();
+    ranges.forEach(i => i.nextElementSibling.textContent = i.dataset.hsv === 'h' ? i.value + '°' : i.value + '%');
+  };
+  ranges.forEach((input, i) => {
+    input.oninput = redraw;
+    input.addEventListener('keydown', e => {
+      if(e.key === 'ArrowUp' || e.key === 'ArrowDown'){
+        e.preventDefault();
+        ranges[clamp(i + (e.key === 'ArrowDown' ? 1 : -1), 0, ranges.length - 1)].focus();
+      }
+    });
+  });
+  const close = () => { sheet.remove(); opener?.isConnected && opener.focus(); };
+  sheet.querySelector('[data-back]').onclick = close;
+  sheet.querySelector('[data-done]').onclick = () => {
+    setSetting('customColors', {...(settings.customColors || {}), [key]: draft});
+    setSetting('skin', 'custom');
+    close();
+    paintSettings('col:' + key);
+  };
+  sheet.onclick = e => { if(e.target === sheet) close(); };
+  ranges[0].focus();
+}
+
 function wire(pane){
   pane.querySelectorAll('[data-p]').forEach(b => b.onclick = () => choose(b.dataset.p));
   pane.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
@@ -312,7 +378,7 @@ function wire(pane){
   });
   pane.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => toggleSvc(b.dataset.svc));
   pane.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { setSetting('skin', b.dataset.skin); paintSettings('skin:' + b.dataset.skin); });
-  pane.querySelectorAll('[data-col]').forEach(input => input.oninput = () => { setSetting('customColors', {...(settings.customColors || {}), [input.dataset.col]: input.value}); setSetting('skin', 'custom'); pane.querySelectorAll('.theme').forEach(x => x.classList.toggle('on', x.dataset.skin === 'custom')); });
+  pane.querySelectorAll('.colorpick[data-col]').forEach(b => b.onclick = () => openColorPicker(b.dataset.col, b));
   pane.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => {
     const h = new Set(settings.hiddenCats || []);
     h.has(b.dataset.cat) ? h.delete(b.dataset.cat) : h.add(b.dataset.cat);
