@@ -23,6 +23,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -942,6 +943,49 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<ListView>(R.id.chList).adapter = null       // the next opening decides what it lists
     }
 
+    private data class AudioChoice(val label: String, val group: androidx.media3.common.Tracks.Group, val track: Int, val selected: Boolean)
+
+    private fun audioChoices(): List<AudioChoice> {
+        val p = player ?: return emptyList()
+        val out = ArrayList<AudioChoice>()
+        for (g in p.currentTracks.groups) {
+            if (g.type != C.TRACK_TYPE_AUDIO) continue
+            for (i in 0 until g.length) {
+                if (!g.isTrackSupported(i)) continue
+                val f = g.getTrackFormat(i)
+                val lang = f.language?.uppercase()?.takeIf { it.isNotBlank() }
+                val name = f.label?.takeIf { it.isNotBlank() }
+                val channels = f.channelCount.takeIf { it > 0 }?.let { "${it}ch" }
+                out.add(AudioChoice(listOfNotNull(name, lang, channels).joinToString(" · ").ifBlank { "Audio ${out.size + 1}" }, g, i, g.isTrackSelected(i)))
+            }
+        }
+        return out
+    }
+
+    private fun openAudioPanel() {
+        val choices = audioChoices()
+        if (choices.size < 2) {
+            showMessage(if (choices.isEmpty()) "לא נמצאו ערוצי אודיו" else "קיים ערוץ אודיו אחד בלבד", 2_000)
+            return
+        }
+        hideChannelBar()
+        val list = findViewById<ListView>(R.id.chList)
+        list.adapter = MenuAdapter(choices.map { (if (it.selected) "●  " else "") + it.label })
+        list.setOnItemClickListener { _, _, i, _ ->
+            val ch = choices[i]
+            val p = player ?: return@setOnItemClickListener
+            p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
+                .setOverrideForType(TrackSelectionOverride(ch.group.mediaTrackGroup, ch.track))
+                .build()
+            closePanel()
+            showMessage("אודיו: ${ch.label}", 2_000)
+        }
+        list.setOnItemLongClickListener(null)
+        findViewById<View>(R.id.chPanel).visibility = View.VISIBLE
+        list.requestFocus()
+        list.setSelection(choices.indexOfFirst { it.selected }.coerceAtLeast(0))
+    }
+
     /** Catch-up (RaspberryTV and any playlist with an archive): the programme before or after the one playing. */
     private fun canWalk() = sources[index].arch.isNotBlank() && !guides[sources[index].epg].isNullOrEmpty()
 
@@ -1281,6 +1325,7 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
             // a film: the subtitles panel - which translation, and how far it is moved
             KeyEvent.KEYCODE_CAPTIONS -> if (!live) { openSubsPanel(); return true }
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (!live && !controls && audioChoices().size > 1) { openAudioPanel(); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }
