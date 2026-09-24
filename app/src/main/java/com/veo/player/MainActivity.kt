@@ -130,7 +130,6 @@ class MainActivity : AppCompatActivity() {
             infoHash: String, fileIdx: Int, title: String, sourcesJson: String, videoId: String, release: String,
             meta: String, pos: Long
         ) {
-            Subtitles.prefetch(applicationContext, videoId, release)
             val sources = runCatching {
                 JSONArray(sourcesJson).let { a -> List(a.length()) { a.getString(it) } }
             }.getOrDefault(emptyList())
@@ -138,6 +137,11 @@ class MainActivity : AppCompatActivity() {
             TorrentEngine.stream(
                 applicationContext, infoHash, fileIdx, sources,
                 onStatus = { showStatus(it) },
+                onFileSelected = { actualFile ->
+                    // Start subtitle lookup as soon as torrent metadata identifies the actual episode.
+                    // Fall back to the add-on's release label only if a broken torrent reports no path.
+                    Subtitles.prefetch(applicationContext, videoId, actualFile.ifBlank { release })
+                },
                 onReady = { url -> runOnUiThread {
                     startActivityForResult(Intent(this@MainActivity, PlayerActivity::class.java)
                         .putExtra("url", url).putExtra("title", title).putExtra("torrent", true)
