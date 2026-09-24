@@ -39,6 +39,8 @@ function parseSrt(srt){
   }).filter(Boolean);
 }
 
+/** Whether the layout runs from the right: the bar fills from there, and forward is the Left key. */
+const rtl = () => document.documentElement.dir === 'rtl';
 const clock = s => {
   s = Math.max(0, Math.floor(s || 0));
   const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = String(s % 60).padStart(2, '0');
@@ -96,7 +98,8 @@ export async function openYt(body, id, title, out){
     const d = yt?.getDuration?.() || 0;
     if(!d) return;
     const r = bar.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / Math.max(1, r.width)));
+    const across = Math.max(0, Math.min(1, (e.clientX - r.left) / Math.max(1, r.width)));
+    const ratio = rtl() ? 1 - across : across;                  // the bar starts at the right in Hebrew
     yt.seekTo(ratio * d, true);
     show();
   });
@@ -210,8 +213,8 @@ function panelKey(e){
   const k = e.key, rows = ROWS();
   if(k === 'ArrowUp') sel = (sel + rows.length - 1) % rows.length;
   else if(k === 'ArrowDown') sel = (sel + 1) % rows.length;
-  else if(k === 'ArrowRight') rows[sel].step(1);
-  else if(k === 'ArrowLeft') rows[sel].step(-1);
+  else if(k === (rtl() ? 'ArrowLeft' : 'ArrowRight')) rows[sel].step(1);          // more is the way forward is
+  else if(k === (rtl() ? 'ArrowRight' : 'ArrowLeft')) rows[sel].step(-1);
   else if(k === 'Enter' || k === ' ') sel === 0 ? rows[0].step(1) : closePanel();
   else if(k === 'Escape' || k === 'Backspace') closePanel();
   else return false;
@@ -230,8 +233,8 @@ addEventListener('keydown', e => {
   }else if(k === 'MediaPlay') yt.playVideo();
   else if(k === 'MediaPause') yt.pauseVideo();
   else if(k === 'ArrowRight' || k === 'ArrowLeft' || k === 'MediaFastForward' || k === 'MediaRewind'){
-    // a film's timeline runs the way the picture does: right goes forward, in Hebrew as anywhere else
-    const dir = k === 'ArrowRight' || k === 'MediaFastForward' ? 1 : -1;
+    // the timeline runs the way the layout does: in Hebrew the bar fills from the right and forward is Left
+    const dir = k === 'MediaFastForward' || k === (rtl() ? 'ArrowLeft' : 'ArrowRight') ? 1 : -1;
     const d = yt.getDuration() || Infinity;
     yt.seekTo(Math.max(0, Math.min(d - 1, yt.getCurrentTime() + dir * (e.repeat ? HELD_STEP_S : STEP_S))), true);
   }else if(k === 'ArrowUp'){ openPanel();
