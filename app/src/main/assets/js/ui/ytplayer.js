@@ -23,6 +23,7 @@ const loadApi = () => api ||= new Promise(res => {
 });
 
 let yt = null, now = '', cues = [], tick = 0, hideAt = 0, root = null;
+let bufferingSince = 0, recoveryAt = 0;
 const pending = {};                    // captions that came before their video: id -> cues
 
 /** Captions for [id], as the text of an .srt file (MainActivity, once they are translated). */
@@ -71,7 +72,11 @@ export async function openYt(body, id, title, out){
     events: {
       onReady: e => { e.target.getIframe().tabIndex = -1; e.target.playVideo(); root?.focus(); },
       // YouTube's own captions come on by themselves for some videos: the app draws its own
-      onStateChange: e => { if(e.data === 1) noCaptions(e.target); paint(); },
+      onStateChange: e => {
+        if(e.data === 1){ bufferingSince = 0; noCaptions(e.target); }
+        else if(e.data === 3 && !bufferingSince) bufferingSince = performance.now();
+        paint();
+      },
       onError: () => fail(out),
     }});
   tick = setInterval(paint, 250);
@@ -88,13 +93,25 @@ function fail(out){
 export function closeYt(){
   clearInterval(tick);
   try{ yt?.destroy(); }catch(e){}
-  yt = null; now = ''; cues = []; root = null;
+  yt = null; now = ''; cues = []; root = null; bufferingSince = 0; recoveryAt = 0;
 }
 /** The bar, the times and the caption, as the video is now. */
 function paint(){
   if(!yt?.getCurrentTime || !root?.isConnected) return;
   const t = yt.getCurrentTime() || 0, d = yt.getDuration?.() || 0;
-  const playing = yt.getPlayerState?.() === 1;
+  const state = yt.getPlayerState?.();
+  const playing = state === 1;
+  // Some Android TV WebViews leave the YouTube iframe in BUFFERING indefinitely. A single
+  // seek-to-current-position asks YouTube to refill the active segment without rebuilding the player.
+  // Rate-limit recovery so a genuinely slow connection is not hammered in a retry loop.
+  if(state === 3){
+    if(!bufferingSince) bufferingSince = performance.now();
+    const n = performance.now();
+    if(n - bufferingSince > 8000 && n - recoveryAt > 15000){
+      recoveryAt = n; bufferingSince = n;
+      try{ yt.seekTo(t, true); yt.playVideo(); }catch(e){}
+    }
+  }else if(state !== 3) bufferingSince = 0;
   document.getElementById('ytat').textContent = clock(t);
   document.getElementById('ytlen').textContent = d ? clock(d) : '';
   document.getElementById('ytfill').style.width = d ? `${Math.min(100, t / d * 100)}%` : '0';
