@@ -31,11 +31,15 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
+import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
 import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.SubtitleView
@@ -581,8 +585,17 @@ class PlayerActivity : AppCompatActivity() {
                 val all = MediaCodecUtil.getDecoderInfos(mime, secure, tunneling)
                 all.filter { it.name !in badDecoders }.ifEmpty { all }
             })
+        val dataSources = DefaultDataSource.Factory(this, http)
+        /* A picture may begin on a non-IDR I-frame. Broadcast encoders - RaspberryTV's among them - open every
+           segment with SPS, PPS and a "recovery point" I-slice instead of an IDR. The default reader does not
+           call that a keyframe: the decoder is started, is fed, and never shows a frame, so the player waits
+           for a keyframe that will not come - a black screen and a spinner for ever, on a service that plays
+           without a fault in an app that reads such streams (OTT-Play). See issue #95.
+           HLS (the segments) is read by a source of its own below; a stream that is one long transport
+           stream (an IPTV panel's .ts address) goes through the extractors set here. */
+        val nonIdr = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES
         player = ExoPlayer.Builder(this, renderers)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(this, http)))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSources, DefaultExtractorsFactory().setTsExtractorFlags(nonIdr)))
             .setLoadControl(loadControl)
             .build().also {
                 // Hebrew subtitles on by default (also picks embedded Hebrew tracks in MKVs) - unless the
@@ -622,7 +635,12 @@ class PlayerActivity : AppCompatActivity() {
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)   // fetching looks like work, not like nothing
                     if (!live) hideController()
                 }
-                it.setMediaItem(item)
+                // an HLS address is read by a source of our own, told the same thing about keyframes (see nonIdr)
+                if (url.contains(".m3u8")) {
+                    val hls = HlsMediaSource.Factory(dataSources)
+                        .setExtractorFactory(DefaultHlsExtractorFactory(nonIdr, true))
+                    it.setMediaSource(hls.createMediaSource(item))
+                } else it.setMediaItem(item)
                 // the tick died with the player that was released; it lives again with this one
                 if (captions != null) { handler.removeCallbacks(tickCaptions); handler.post(tickCaptions) }
                 if (!live) it.seekTo(resumePosition)
