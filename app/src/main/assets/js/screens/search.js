@@ -51,13 +51,12 @@ export async function viewSearch(q){
   $('#q').value = q;
   const app = $('#app');
   const cats = addons.flatMap(a => (a.manifest.catalogs||[]).filter(c => (c.extra||[]).some(e => e.name === 'search') || (c.extraSupported||[]).includes('search')).map(c => ({a, c})));
-  app.innerHTML = `<div class="page"><h1>${esc(tr('search.results', {q}))}</h1>${cats.map((x,i) => `<div class="row"><h2>${esc(typeName(x.c.type))} ${esc(x.a.manifest.name)}</h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || `<p class="note">${esc(tr('search.noAddons'))}</p>`}</div>`;
+  app.innerHTML = `<div class="page searchpage"><h1>${esc(tr('search.results', {q}))}</h1><div class="searchrows" id="searchRows"><div id="sChan"></div>${cats.map((x,i) => `<div class="row"><h2>${esc(typeName(x.c.type))} ${esc(x.a.manifest.name)}</h2><div class="strip" id="s${i}">${skeletons(6)}</div></div>`).join('') || `<p class="note">${esc(tr('search.noAddons'))}</p>`}</div></div>`;
   // the broadcasters answer from lists already in hand, so their row comes up first
-  app.querySelector('.page h1').insertAdjacentHTML('afterend', '<div id="sChan"></div>');
   // the kids profile searches only what can be judged: the broadcasters' programmes carry no genres
   if(!kidsChild()) searchChannels(q, $('#sChan'));
   if(hasHebrew(q)){
-    app.querySelector('.page h1').insertAdjacentHTML('afterend', `<div class="row"><h2>${esc(tr('search.hebrew'))} </h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
+    $('#searchRows').insertAdjacentHTML('afterbegin', `<div class="row"><h2>${esc(tr('search.hebrew'))} </h2><div class="strip" id="sHe">${skeletons(6)}</div></div>`);
     // the strip this query built: a later query builds its own, and an answer to this one must not
     // be written into it
     const heStrip = $('#sHe');
