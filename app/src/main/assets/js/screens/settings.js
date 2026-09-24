@@ -65,8 +65,10 @@ export function viewSettings(tab){
     paintSettings();
   });
   paintSettings();
-  // arriving with nothing in hand (Back from the add-ons, say): the remote starts on the page's own entry
-  if(isTvLayout() && (!document.activeElement || document.activeElement === document.body)) $('.stabs .on')?.focus();
+  // Arriving from the side rail must hand focus to Settings itself. Otherwise the rail keeps
+  // :focus-within and stays expanded over the settings page until the viewer presses another key.
+  const active = document.activeElement;
+  if(isTvLayout() && (!active || active === document.body || active.closest?.('#rail'))) $('.stabs .on')?.focus();
 }
 
 /* ---------- the parts of a page ---------- */
