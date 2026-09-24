@@ -65,6 +65,20 @@ class PlayerActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     /** Automatic retries for the current channel (IPTV servers may still hold the previous session). */
     private var retries = 0
+    /** Some IPTV connections stay open without producing media, so ExoPlayer never raises an error.
+     * Treat initial BUFFERING that never reaches READY as a failed attempt instead of an endless spinner. */
+    private var liveReady = false
+    private val liveStartTimeout = Runnable {
+        if (!started || !live || liveReady || player?.playbackState != Player.STATE_BUFFERING) return@Runnable
+        if (retries < 2) {
+            retries++
+            showMessage("השידור לא התחיל, מנסה שוב… (" + retries + "/2)", 3_500)
+            player?.release(); player = null
+            handler.postDelayed(rebuild, 500)
+        } else {
+            showErrorPanel("לא ניתן לנגן את הערוץ", "השידור לא התחיל בזמן סביר. נסה שוב או עבור לערוץ אחר.")
+        }
+    }
     /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
     private val watchId get() = intent.getStringExtra("vid") ?: ""
     /** A series: the episode after this one, as the page found it (its id, and how it is called) - blank
@@ -479,6 +493,8 @@ class PlayerActivity : AppCompatActivity() {
     @OptIn(UnstableApi::class)
     private fun buildPlayer() {
         if (player != null) return
+        handler.removeCallbacks(liveStartTimeout)
+        liveReady = false
         val src = sources[index]
         // a past programme is the same channel's archive, asked for by the minute it started
         val url = catchUp?.let { archiveUrl(src, it) } ?: src.url
@@ -553,7 +569,13 @@ class PlayerActivity : AppCompatActivity() {
                     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = showPaused(!playWhenReady)
                     override fun onPlaybackStateChanged(state: Int) {
                         if (state == Player.STATE_ENDED && nextVid.isNotEmpty() && !live) showNext(ended = true)
+                        if (live && state == Player.STATE_BUFFERING && !liveReady) {
+                            handler.removeCallbacks(liveStartTimeout)
+                            handler.postDelayed(liveStartTimeout, 15_000)
+                        }
                         if (state != Player.STATE_READY) return
+                        liveReady = true
+                        handler.removeCallbacks(liveStartTimeout)
                         hideErrorPanel()
                         if (retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
                     }
@@ -1027,6 +1049,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun onError(error: PlaybackException) {
+        handler.removeCallbacks(liveStartTimeout)
         if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
             player?.release(); player = null
             handler.removeCallbacks(rebuild); handler.post(rebuild)   // rejoin the live edge now
