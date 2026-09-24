@@ -1,5 +1,16 @@
 # VEO Android changelog
 
+## 0.45.10 — 2026-09-24
+- **Right is later, Left is earlier - everywhere.** In a film, on live TV and in the guide the arrows now
+  mean the same thing, and the banner's bar fills from the left to match; it used to fill the other way
+  in Hebrew. The subtitle panel's sync and size lines follow the same rule. (#103)
+- **Colours are picked on a plane.** Left and Right along it are the hue, Up and Down the brightness
+  (a held key goes faster), with the saturation as a line under it, a live preview, and OK and Cancel
+  that the remote can reach - it could not get to OK before. (#104 #105)
+- **Kids are set per profile.** The separate "Kids profile" page is gone from Settings; the kind of
+  profile is set on the profile's own page, and the parental code is changed on the Profiles page. A
+  kids profile keeps its one page for getting out of it. (#109)
+
 ## 0.45.9 — 2026-09-24
 - **Down changes channel again on live TV.** The audio-track picker added in 0.45.8 was taking the Down
   key before the channel switch did. (#102)
