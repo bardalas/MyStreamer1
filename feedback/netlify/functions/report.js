@@ -14,7 +14,7 @@ exports.handler = async function(event) {
     const type = data.type === "feature" ? "feature" : "bug";
     const area = clean(data.area, 100);
     const device = clean(data.device, 100);
-    const summary = clean(data.summary, 120);
+    const summary = clean(data.summary, 10000);
     const details = clean(data.details, 2500);
     const contact = clean(data.contact, 150);
 
@@ -75,7 +75,7 @@ exports.handler = async function(event) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          title: `${prefix} [${area}] ${summary}`,
+          title: `${prefix} [${area}] ${issueTitle(summary)}`,
           body: issueBody,
           labels
         })
@@ -113,4 +113,9 @@ function response(statusCode, body) {
     },
     body: JSON.stringify(body)
   };
+}
+
+function issueTitle(value) {
+  const oneLine = String(value || "").replace(/\s+/g, " ").trim();
+  return oneLine.length <= 140 ? oneLine : oneLine.slice(0, 137).trimEnd() + "...";
 }
