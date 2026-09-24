@@ -80,6 +80,16 @@ class PlayerActivity : AppCompatActivity() {
             showErrorPanel("לא ניתן לנגן את הערוץ", "השידור לא התחיל בזמן סביר. נסה שוב או עבור לערוץ אחר.")
         }
     }
+    /** A VOD that already played and then starves should not blink forever between picture and spinner.
+     * Torrents are excluded: waiting for pieces can legitimately take much longer and is handled by the torrent UI. */
+    private val vodStallTimeout = Runnable {
+        if (!started || live || intent.getBooleanExtra("torrent", false) || !liveReady ||
+            player?.playbackState != Player.STATE_BUFFERING) return@Runnable
+        showErrorPanel(
+            "הניגון ממתין לנתונים",
+            "המקור לא מספק וידאו בקצב מספיק. אפשר לנסות שוב או לחזור ולבחור מקור אחר."
+        )
+    }
     /** What is playing, so the app can offer "continue watching" (written to shared preferences). */
     private val watchId get() = intent.getStringExtra("vid") ?: ""
     /** A series: the episode after this one, as the page found it (its id, and how it is called) - blank
@@ -501,6 +511,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun buildPlayer() {
         if (player != null) return
         handler.removeCallbacks(liveStartTimeout)
+        handler.removeCallbacks(vodStallTimeout)
         liveReady = false
         val src = sources[index]
         // a past programme is the same channel's archive, asked for by the minute it started
@@ -533,7 +544,12 @@ class PlayerActivity : AppCompatActivity() {
          * enough to start smoothly, and the rest keeps filling behind the picture. Time is what a
          * viewer is waiting for, so the player is told to weigh it above the size of what it holds. */
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(if (live) 8_000 else 15_000, 90_000, if (live) 1_000 else 900, 2_000)
+            .setBufferDurationsMs(
+                if (live) 8_000 else 15_000,
+                90_000,
+                if (live) 1_000 else 900,
+                if (live) 2_000 else 6_000
+            )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
@@ -580,9 +596,18 @@ class PlayerActivity : AppCompatActivity() {
                             handler.removeCallbacks(liveStartTimeout)
                             handler.postDelayed(liveStartTimeout, 15_000)
                         }
+                        // Once ordinary HTTP/DRM VOD has played successfully, a long rebuffer is a source/network
+                        // problem, not a reason to flicker forever. Give short stalls room to recover, then make the
+                        // state explicit and let the viewer decide whether to retry or choose another source.
+                        if (!live && liveReady && state == Player.STATE_BUFFERING &&
+                            !intent.getBooleanExtra("torrent", false)) {
+                            handler.removeCallbacks(vodStallTimeout)
+                            handler.postDelayed(vodStallTimeout, 25_000)
+                        }
                         if (state != Player.STATE_READY) return
                         liveReady = true
                         handler.removeCallbacks(liveStartTimeout)
+                        handler.removeCallbacks(vodStallTimeout)
                         hideErrorPanel()
                         if (retries > 0) { retries = 0; handler.postDelayed(hideOsd, 1_500) }
                     }
@@ -1057,6 +1082,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun onError(error: PlaybackException) {
         handler.removeCallbacks(liveStartTimeout)
+        handler.removeCallbacks(vodStallTimeout)
         if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
             player?.release(); player = null
             handler.removeCallbacks(rebuild); handler.post(rebuild)   // rejoin the live edge now
@@ -1306,6 +1332,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         started = false
+        handler.removeCallbacks(vodStallTimeout)
         player?.let { resumePosition = it.currentPosition; saveProgress(it.currentPosition, it.duration); it.release() }
         player = null
     }
