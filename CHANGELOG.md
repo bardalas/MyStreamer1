@@ -1,5 +1,16 @@
 # VEO Android changelog
 
+## 0.45.6 — 2026-09-24
+- **RaspberryTV live playback handles IPTV inline headers.** Stream URLs that carry `User-Agent` or
+  `Referer` after a pipe are now split correctly before reaching ExoPlayer, fixing a case where the
+  guide loaded but live video stayed on the spinner.
+- **Profile hierarchy.** The first profile is the owner/admin. Only it can add, edit or remove profiles,
+  and only it can change device-wide Live TV configuration; secondary profiles use the shared setup.
+- **Audio stream selection.** VOD with multiple audio tracks now exposes a native picker from the player,
+  showing the active track and allowing immediate switching.
+- **Custom colour palette.** Appearance now supports independent background, primary accent and secondary
+  accent colours with live colour pickers, saved per profile.
+
 ## 0.45.5 — 2026-09-24
 - **Playback is more resilient.** Live TV no longer spins forever when a stream does not start, YouTube
   recovers from a prolonged buffering state, and ordinary VOD waits for a healthier buffer before
