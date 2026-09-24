@@ -65,8 +65,10 @@ async function send(){
     const n = await file(title, body);
     if(!say.isConnected) return;
     say.textContent = tr('rep.sent', {n});
-    btn.remove();
-    setTimeout(() => { if(/^#\/report/.test(location.hash)) location.hash = '#/settings/about'; }, 3500);
+    $('#rtext').value = '';
+    delete btn.dataset.busy;
+    btn.textContent = tr('rep.send');
+    $('#rtext').focus();
   }catch(e){
     if(!say.isConnected) return;
     delete btn.dataset.busy;
