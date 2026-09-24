@@ -172,7 +172,9 @@ class PlayerActivity : AppCompatActivity() {
         // Live TV and broadcaster VOD (Hebrew already) have no subtitle lookup.
         if (live || intent.getBooleanExtra("nosubs", false)) {
             subs = emptyList()
-            if (live) showBanner() else showOsd()      // the banner introduces the channel
+            // Broadcaster VOD on Android TV has no Media3 controller (the remote uses VEO's banner).
+            // Introduce it with the same title/progress info as every other remote-controlled VOD.
+            if (live || remote) showBanner() else showOsd()
             return
         }
 
