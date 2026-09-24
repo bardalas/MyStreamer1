@@ -65,8 +65,12 @@ async function send(){
     const n = await file(title, body);
     if(!say.isConnected) return;
     say.textContent = tr('rep.sent', {n});
-    btn.remove();
-    setTimeout(() => { if(/^#\/report/.test(location.hash)) location.hash = '#/settings/about'; }, 3500);
+    // A successful report is one submission, not the lifetime of this screen. Keep the form usable so
+    // a second, unrelated problem creates another GitHub issue instead of forcing the viewer out.
+    $('#rtext').value = '';
+    delete btn.dataset.busy;
+    btn.textContent = tr('rep.send');
+    $('#rtext').focus();
   }catch(e){
     if(!say.isConnected) return;
     delete btn.dataset.busy;
