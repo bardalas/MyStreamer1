@@ -75,10 +75,14 @@ body.who main{margin-inline-start:0}
 /* an empty name on a right-to-left page: the hint on the right, where the name will be written */
 :root[dir="rtl"] .profhead .field:placeholder-shown{direction:rtl}
 /* the picture is a button: it opens the pictures to choose from */
-.avbtn{padding:0;border:0;background:none;border-radius:24px;cursor:pointer}
+.avbtn{padding:4px;border:3px solid transparent;background:none;border-radius:28px;cursor:pointer}
 .avbtn .avatar{transition:transform var(--quick) var(--ease),box-shadow var(--quick) var(--ease)}
-.avbtn:focus,.avbtn:hover{background:none;outline:0}
-.avbtn:focus .avatar,.avbtn:hover .avatar{transform:scale(1.06);box-shadow:0 0 0 4px var(--light)}
+.avbtn:focus,.avbtn:hover{background:var(--raise);border-color:var(--light);outline:0;box-shadow:0 0 0 3px var(--night),0 0 0 6px var(--light)}
+.avbtn:focus .avatar,.avbtn:hover .avatar{transform:scale(1.04);box-shadow:none}
+.profhead .field{border:2px solid var(--line);background:var(--surface);border-radius:12px}
+.profhead .field:focus{border-color:var(--light);background:var(--raise);box-shadow:0 0 0 3px var(--night),0 0 0 6px var(--light);outline:0}
+[data-layout="tv"] .profhead .field:focus{caret-color:transparent}
+[data-layout="tv"] .profhead .field:not([readonly]):focus{caret-color:auto}
 .avsheet .body{max-height:70vh;overflow-y:auto}
 .avgrid{display:grid;grid-template-columns:repeat(8,64px);gap:12px;justify-content:center}
 .av{padding:0;border:0;background:none;border-radius:16px;cursor:pointer;justify-self:center}
