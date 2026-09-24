@@ -87,6 +87,7 @@ object TorrentEngine {
         fileIdx: Int,
         sources: List<String>,
         onStatus: (String) -> Unit,
+        onFileSelected: (String) -> Unit,
         onReady: (String) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -116,6 +117,10 @@ object TorrentEngine {
                 val ti = waitForMetadata(handle, ::superseded, onStatus) ?: return@Thread
                 if (ti.numFiles() <= 0) throw IllegalStateException("e:empty")
                 val idx = if (fileIdx in 0 until ti.numFiles()) fileIdx else largestVideoFile(ti)
+                // The add-on's stream label can describe a whole season pack. Subtitle matching needs
+                // the exact episode file the torrent actually selected, and metadata gives us that here
+                // while the opening pieces are still buffering.
+                onFileSelected(ti.files().filePath(idx))
                 val priorities = Priority.array(Priority.IGNORE, ti.numFiles())
                 priorities[idx] = Priority.SEVEN
                 handle.prioritizeFiles(priorities)
