@@ -98,6 +98,12 @@
                 android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                 android:layout_marginStart="14dp" android:maxLines="1" android:ellipsize="end"
                 android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" />
+            <!-- live TV: live, or how far behind it, or a recording -->
+            <TextView
+                android:id="@+id/liveChip"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="14dp" android:paddingHorizontal="14dp" android:paddingVertical="5dp"
+                android:textSize="16sp" android:textStyle="bold" android:visibility="gone" />
             <TextView
                 android:id="@+id/nowClock"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -125,6 +131,14 @@
             android:layout_marginTop="8dp" android:maxLines="1" android:ellipsize="end"
             android:textColor="#AAB0BD" android:textSize="16sp" />
     </LinearLayout>
+
+    <!-- The sign of a seek: which way, and how far in all, while the key is pressed or held. -->
+    <TextView
+        android:id="@+id/seekSign"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="center" android:paddingHorizontal="30dp" android:paddingVertical="14dp"
+        android:textColor="#FFFFFF" android:textSize="34sp" android:textStyle="bold"
+        android:visibility="gone" />
 
     <!-- A series: the episode after this one, offered as this one ends (OK plays it). -->
     <LinearLayout
