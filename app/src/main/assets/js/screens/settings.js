@@ -337,10 +337,23 @@ function openColorPicker(key, opener){
      step a press, and more the longer a key is held) or by a finger; what is under it is the colour
      the preview shows. From the plane's lower edge, Down goes on to the saturation, and from there to OK. */
   let draft = current;
+  /* The colour is put on the app while it is being chosen - the picker's own surroundings change with it - so
+     that what is chosen is seen where it will be. What was there before is kept: Cancel (and Back, the cross,
+     a press outside) put it back, OK leaves the colour as it was left. */
+  const was = {colors: {...(settings.customColors || {})}, skin: settings.skin};
+  let applyAt = 0;
+  const apply = () => {
+    cancelAnimationFrame(applyAt);
+    applyAt = requestAnimationFrame(() => {
+      setSetting('customColors', {...(settings.customColors || {}), [key]: draft});
+      if(settings.skin !== 'custom') setSetting('skin', 'custom');
+    });
+  };
   const spec = sheet.querySelector('.spectrum'), sat = sheet.querySelector('#sat');
   const at = {h: hsv.h, v: hsv.v};
-  const redraw = () => {
+  const redraw = live => {
     draft = hsvToHex(at.h, +sat.value, at.v);
+    if(live !== false) apply();                                    // not when it is only being drawn for the first time
     spec.style.setProperty('--sat', (100 - +sat.value) / 100);          // how much white lies over the plane
     spec.firstElementChild.style.left = (at.h / 359 * 100) + '%';
     spec.firstElementChild.style.top = (100 - at.v) + '%';
@@ -388,15 +401,23 @@ function openColorPicker(key, opener){
     if(e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); sat.focus(); }
   }));
   const close = () => { sheet.remove(); opener?.isConnected && opener.focus(); };
-  sheet.querySelector('[data-back]').onclick = close;
-  sheet.querySelector('[data-cancel]').onclick = close;
+  const cancel = () => {
+    cancelAnimationFrame(applyAt);
+    setSetting('customColors', was.colors);
+    setSetting('skin', was.skin);
+    close();
+    paintSettings('col:' + key);
+  };
+  sheet.querySelector('[data-back]').onclick = cancel;
+  sheet.querySelector('[data-cancel]').onclick = cancel;
   sheet.querySelector('[data-done]').onclick = () => {
+    cancelAnimationFrame(applyAt);
     setSetting('customColors', {...(settings.customColors || {}), [key]: draft});
     setSetting('skin', 'custom');
     close();
     paintSettings('col:' + key);
   };
-  sheet.onclick = e => { if(e.target === sheet) close(); };
+  sheet.onclick = e => { if(e.target === sheet) cancel(); };
   // what the remote does here, in one line that changes with where it is (1 the plane, 2 the saturation, 3 done)
   const cue = sheet.querySelector('[data-cue]');
   const say = () => {
@@ -404,7 +425,7 @@ function openColorPicker(key, opener){
     cue.textContent = a === spec ? tr('set.skin.cue1') : a === sat ? tr('set.skin.cue2') : '';
   };
   sheet.addEventListener('focusin', say);
-  redraw();
+  redraw(false);
   spec.focus();
   say();
 }
