@@ -55,8 +55,8 @@ export async function openYt(body, id, title, out){
     <div class="ytpic"><div id="ytframe"></div></div>
     <div class="ytosd on" id="ytosd">
       <div class="yttop"><b dir="auto">${esc(title)}</b></div>
-      <div class="ytbot"><button class="ytstate" id="ytstate" type="button" tabindex="-1" aria-label="\${esc(tr('player.pause'))}"></button><span id="ytat">0:00</span>
-        <button class="ytbar" id="ytbar" type="button" tabindex="-1" aria-label="\${esc(tr('player.seek'))}"><i id="ytfill"></i></button><span id="ytlen"></span></div>
+      <div class="ytbot"><button class="ytstate" id="ytstate" type="button" tabindex="-1" aria-label="${esc(tr('player.pause'))}"></button><span id="ytat">0:00</span>
+        <button class="ytbar" id="ytbar" type="button" tabindex="-1" aria-label="${esc(tr('player.seek'))}"><i id="ytfill"></i></button><span id="ytlen"></span></div>
     </div>
     <div class="ytcue" aria-live="off"><span id="ytcue"></span></div>
     <p class="ytsay" id="ytsay" hidden></p></div>`;
