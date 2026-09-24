@@ -747,6 +747,11 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<ProgressBar>(R.id.nowBar).apply {
             progressTintList = android.content.res.ColorStateList.valueOf(skin.accent)
             progressBackgroundTintList = android.content.res.ColorStateList.valueOf(skin.line)
+            // live: the lighter part is how far the broadcast has got, the gap to the accent is how far behind it you are
+            secondaryProgressTintList = android.content.res.ColorStateList.valueOf(fade(skin.light, 0x66))
+        }
+        findViewById<TextView>(R.id.seekSign).background = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = dp(18).toFloat(); setColor(fade(skin.night, 0xE0))
         }
         findViewById<TextView>(R.id.osd).apply { setBackgroundColor(fade(skin.night, 0xC8)); setTextColor(skin.light) }
         // The list keeps to the side the layout runs from, so it never covers what the banner says.
@@ -790,13 +795,21 @@ class PlayerActivity : AppCompatActivity() {
         val title = findViewById<TextView>(R.id.nowTitle)
         val bar = findViewById<ProgressBar>(R.id.nowBar)
         val after = findViewById<TextView>(R.id.nextTitle)
+        // how far behind the live edge the picture is: nothing at the edge itself (or when the stream does not say)
+        val behindMs = if (back != null || walking) 0L
+                       else player?.currentLiveOffset?.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L) ?: 0L
+        paintLiveChip(behindMs)
         if (playing != null) {
             title.text = "${hhmm(playing.from)} · ${playing.name}"
             bar.visibility = View.VISIBLE
+            val span = (playing.to - playing.from).coerceAtLeast(1)
+            // where you are: the live edge less how far behind it you are (a seek back moves the bar back)
             val pos = if (walking) 0L
                       else if (back != null) (player?.currentPosition ?: 0L) / 1000
-                      else now - playing.from
-            bar.progress = ((pos * 100) / (playing.to - playing.from).coerceAtLeast(1)).toInt().coerceIn(0, 100)
+                      else (now - playing.from) - behindMs / 1000
+            bar.progress = ((pos * 100) / span).toInt().coerceIn(0, 100)
+            // ...and how far the broadcast has got - the gap between the two is the distance behind it
+            bar.secondaryProgress = if (back == null && !walking) (((now - playing.from) * 100) / span).toInt().coerceIn(0, 100) else 0
             val left = (((playing.to - playing.from) - pos) / 60).coerceAtLeast(0)
             after.text = if (walking) "OK · ${hhmm(playing.from)}–${hhmm(playing.to)}"
                          else if (back != null) "צפייה אחורה · נותרו $left דק׳"
@@ -809,6 +822,43 @@ class PlayerActivity : AppCompatActivity() {
             bar.visibility = View.GONE
             after.text = ""
         }
+    }
+
+    /** The chip on the banner: "live" at the edge, how far behind it otherwise, or that this is a recording. */
+    private fun paintLiveChip(behindMs: Long) {
+        val chip = findViewById<TextView>(R.id.liveChip)
+        if (walking) { chip.visibility = View.GONE; return }
+        val (text, bg, ink) = when {
+            catchUp != null -> Triple("הקלטה", skin.line, skin.light)
+            behindMs >= 5_000 -> Triple("‹ ${fmtBehind(behindMs)} מאחורי השידור החי", skin.accent, skin.onAccent)
+            else -> Triple("● שידור חי", 0xFFD32F2F.toInt(), 0xFFFFFFFF.toInt())
+        }
+        chip.text = text
+        chip.setTextColor(ink)
+        chip.background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = dp(14).toFloat(); setColor(bg) }
+        chip.visibility = View.VISIBLE
+    }
+
+    private fun fmtBehind(ms: Long): String = if (ms < 60_000) "${ms / 1000} שנ׳" else fmtClock(ms)
+
+    /* The sign of a seek. A key pressed once is ten seconds and a key held is thirty a step; the sign keeps the
+       total while the presses go on, so a viewer sees "back 1:10" grow, and it goes a moment after the last. */
+    private var seekTotal = 0L
+    private val hideSeekSign = Runnable {
+        findViewById<TextView>(R.id.seekSign).animate().alpha(0f).setDuration(250).withEndAction {
+            findViewById<TextView>(R.id.seekSign).visibility = View.GONE
+            seekTotal = 0
+        }.start()
+    }
+    private fun showSeekSign(byMs: Long) {
+        seekTotal += byMs
+        val sign = findViewById<TextView>(R.id.seekSign)
+        sign.text = (if (seekTotal < 0) "⏪  " else "⏩  ") + fmtBehind(kotlin.math.abs(seekTotal))
+        sign.animate().cancel()
+        sign.alpha = 1f
+        sign.visibility = View.VISIBLE
+        handler.removeCallbacks(hideSeekSign)
+        handler.postDelayed(hideSeekSign, 1_300)
     }
 
     private fun hhmm(epochSeconds: Long): String =
@@ -885,7 +935,7 @@ class PlayerActivity : AppCompatActivity() {
         paintBanner()
         handler.removeCallbacks(hideBanner)
         handler.removeCallbacks(tickBanner)
-        handler.postDelayed(tickBanner, if (catchUp != null && !walking) 1_000 else 30_000)
+        handler.postDelayed(tickBanner, if (walking) 30_000 else 1_000)
         handler.postDelayed(hideBanner, if (walking) 12_000L else 8_000L)
     }
 
@@ -899,7 +949,7 @@ class PlayerActivity : AppCompatActivity() {
         if (!bannerOpen) return@Runnable
         if (!live) { paintFilm(); handler.postDelayed(tickBanner, if (scrubTo >= 0) 200 else 1_000); return@Runnable }
         paintNow()
-        handler.postDelayed(tickBanner, if (catchUp != null && !walking) 1_000 else 30_000)
+        handler.postDelayed(tickBanner, if (walking) 30_000 else 1_000)
     }
 
     /** The same banner, for a film: its name, where you are in it, and how much of it is left. */
@@ -910,6 +960,7 @@ class PlayerActivity : AppCompatActivity() {
         val pos = (if (aim) scrubTo else p.currentPosition).coerceIn(0, if (dur > 0) dur else Long.MAX_VALUE)
         findViewById<TextView>(R.id.chNum).text = if (p.playWhenReady) "▶" else "❚❚"
         findViewById<TextView>(R.id.chName).text = intent.getStringExtra("title").orEmpty()
+        findViewById<TextView>(R.id.liveChip).visibility = View.GONE
         findViewById<ImageView>(R.id.chLogo).visibility = View.GONE
         findViewById<TextView>(R.id.nowClock).text =
             android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date())
@@ -1159,14 +1210,10 @@ class PlayerActivity : AppCompatActivity() {
         val p = player ?: return
         val step = if (held) 30_000L else 10_000L
         p.seekTo((p.currentPosition + direction * step).coerceAtLeast(0))
+        showSeekSign(direction * step)
         if (!walking) showBanner()                                 // where you are is what you are looking at
         else if (bannerOpen) paintNow()
-        val behind = p.currentLiveOffset
-        if (live) showMessage(
-            if (behind == C.TIME_UNSET) fmtClock(p.currentPosition)
-            else if (behind < 5_000) "בשידור חי" else "${behind / 1000} שנ׳ מאחורי השידור החי",
-            if (p.playWhenReady) 2_500 else 0                   // while paused the note stays: it is also the pause sign
-        )
+        // where you are is on the banner now: the chip, the bar and the sign of the seek - no second note
     }
 
     private fun fmtClock(ms: Long): String {
