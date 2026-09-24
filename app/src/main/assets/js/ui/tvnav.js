@@ -167,7 +167,7 @@ export function focusItem(el){
   // A title's seasons and episodes scroll inside their own panes. Because focus() uses
   // preventScroll, explicitly keep the focused row fully inside that pane; viewport-only checks
   // miss clipping at the pane's top/bottom edge.
-  const pane = el.closest('.eps, .seasonbar, .eplist, .altlist, .spane');
+  const pane = el.closest('.eps, .seasonbar, .eplist, .altlist, .spane, .avsheet .body');
   if(pane){
     const er = el.getBoundingClientRect(), pr = pane.getBoundingClientRect();
     if(er.top < pr.top + 6 || er.bottom > pr.bottom - 6)
