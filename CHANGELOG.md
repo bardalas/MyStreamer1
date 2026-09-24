@@ -3,6 +3,10 @@
 ## 0.45.8 — 2026-09-24
 - **Search works on the first attempt.** Add-on searches now use VEO's normal catalogue request path, including each manifest's search contract, instead of a separate hand-built request.
 - **Continue Watching identifies the episode.** Series collapse to one card for the most recently watched unfinished episode and show its season/episode while retaining exact per-episode resume positions.
+- **RaspberryTV plays again.** Its segments open on a non-IDR I-frame, which the player did not
+  count as a keyframe: the decoder was fed but never showed a picture, so the channel sat on a
+  spinner. The player now reads such streams (HLS and plain .ts addresses), and a channel starts in
+  a second or two. (#95)
 - **Live TV no longer waits forever for a stream that never starts.** A live-only startup watchdog retries stalled playback and then replaces an endless spinner with a clear error.
 
 
