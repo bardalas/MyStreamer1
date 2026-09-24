@@ -230,6 +230,10 @@ class MainActivity : AppCompatActivity() {
             if (kidsProfile()) return                    // installing leads to Android's own settings
             updateCancelled = false
             updateBusy = true
+            // Put the updater in the foreground immediately. boothTorrentStatus intentionally delays
+            // ordinary source messages for 900 ms, which made an update look like a silent background
+            // download after the update card disappeared.
+            showStatus("מוריד את העדכון… 0%")
             Thread {
                 val status = { msg: String, err: Boolean -> runOnUiThread {
                     web.evaluateJavascript("window.boothTorrentStatus && boothTorrentStatus(${JSONObject.quote(msg)}, $err)", null)
