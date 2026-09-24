@@ -44,7 +44,17 @@ export function parseM3U(text){
     } else if(line.startsWith('#EXTGRP:')){
       if(cur) cur.group = line.slice(8).trim();
     } else if(!line.startsWith('#')){
-      out.push(cur ? {...cur, url: line} : {name: line.split('/').pop(), group: 'ערוצים', url: line});
+      // IPTV playlists often append per-stream HTTP headers after a "|" (Kodi/OTT-Play style),
+      // e.g. https://host/live.m3u8|User-Agent=...&Referer=...
+      // Passing that whole string to ExoPlayer makes it an invalid URL while the EPG still works.
+      const [url, rawHeaders = ''] = line.split('|', 2);
+      const headers = new URLSearchParams(rawHeaders);
+      const inlineUa = headers.get('User-Agent') || headers.get('user-agent') || '';
+      const inlineRef = headers.get('Referer') || headers.get('Referrer') || headers.get('referer') || '';
+      const item = cur ? {...cur, url} : {name: url.split('/').pop(), group: 'ערוצים', url};
+      if(inlineUa) item.ua = inlineUa;
+      if(inlineRef) item.referer = inlineRef;
+      out.push(item);
       cur = null;
     }
   }
