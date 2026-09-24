@@ -25,7 +25,10 @@ import {APP_VERSION, checkUpdate} from '../ui/update.js';
    of two changes as it is pressed; a longer one opens its list. Nothing is more than two moves away
    with the remote, and after any change the remote is where it was. Actions that cannot be undone ask
    for a second press. In the kids profile the only page is the one that leaves it. */
-export const SETTINGS_TABS = ['general', 'profiles', 'watch', 'services', 'home', 'look', 'live', 'kids', 'about'];
+/* A kids profile is a property of the profile, so it is set where profiles are: Profiles -> the profile ->
+   "type of profile" (screens/profiles.js), not on a page of its own. The one page about kids that is left
+   belongs to a profile that already is one - it is how a grown-up gets out of it, behind the code (#109). */
+export const SETTINGS_TABS = ['general', 'profiles', 'watch', 'services', 'home', 'look', 'live', 'about'];
 /** Addresses written before the pages were regrouped. */
 const RENAMED = {start: 'general', addons: 'watch'};
 const icon = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
@@ -52,6 +55,7 @@ const tabsNow = () => {
 
 export function viewSettings(tab){
   tab = RENAMED[tab] || tab;
+  if(tab === 'kids' && !kidsOn()) tab = 'profiles';         // kids are set per profile now: an old address lands where they are
   const tabs = tabsNow();
   setTab = tabs.includes(tab) ? tab : tabs.includes(setTab) ? setTab : tabs[0];
   $('#app').innerHTML = `<div class="page setpage"><h1>${tr('set.title')}</h1>
@@ -217,12 +221,10 @@ const PANES = {
           <input class="field" id="plu" placeholder="http://192.168.1.50:9981/playlist/channels.m3u" aria-label="${esc(tr('set.pl.urlAria'))}" dir="ltr">
           <button class="btn primary" data-fid="pladd">${tr('common.add')}</button></form><p class="snote" id="plmsg" role="status"></p>`);
   },
-  kids: () => kidsOn()
-    ? section(tr('kids.title'), lines(line({fid: 'kidsOff', label: tr('kids.turnOff'), attrs: 'data-act="kidsOff"'})
+  kids: () => section(tr('kids.title'), lines(line({fid: 'kidsOff', label: tr('kids.turnOff'), attrs: 'data-act="kidsOff"'})
         // the age, like leaving, is the parents' to change: behind the code
         + line({fid: 'kidsAge', label: tr('kids.age.title'), value: tr('kids.age.' + settings.kidsAge), attrs: 'data-act="kidsAge"'})
-        + line({fid: 'kidsPin', label: tr('kids.change'), attrs: 'data-act="kidsPin"'})))
-    : section(tr('kids.title'), lines(pref('kidsAge') + line({fid: 'kidsOn', label: tr('kids.turnOn'), attrs: 'data-act="kidsOn"'}))),
+        + line({fid: 'kidsPin', label: tr('kids.change'), attrs: 'data-act="kidsPin"'}))),
   about: () => section(tr('set.about.title'), lines(
       line({fid: 'upd', label: 'VEO', note: tr('set.about.check'),
         value: [APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'), updKey ? tr(updKey) : ''].filter(Boolean).join(' · '),
@@ -276,18 +278,10 @@ const ACTS = {
   lockAll: async () => { await lockAll(); paintSettings('switch'); },
   // every choice back - the ones kept outside the settings too: the quality, and the subtitles' size the player keeps
   reset: () => { resetSettings(); setPrefQ(''); setSubScale(1.25); paintSettings('reset'); },
-  kidsOn: async () => {
-    // the household's code, when there is one, is this profile's way out too: it is not replaced from here
-    if(!hasPin() && !await choosePin()) return paintSettings('kidsOn');
-    setSetting('kids', 'on');
-    document.querySelectorAll('.update').forEach(c => c.remove());   // nothing on screen offers a way out of it
-    location.hash = '#/';                            // the profile starts where a child starts: home
-  },
   kidsOff: async () => {
     if(!await askPin(tr('kids.pin.enter'))) return paintSettings('kidsOff');
     setSetting('kids', 'off');
-    viewSettings('kids');
-    $('[data-fid="kidsOn"]')?.focus();
+    location.hash = '#/settings/profiles';           // out of it: the profile's kind is on the profile's page now
   },
   kidsAge: async () => {
     if(!await askPin(tr('kids.pin.enter'))) return paintSettings('kidsAge');
