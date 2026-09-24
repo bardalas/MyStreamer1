@@ -307,3 +307,17 @@ test('profile editor exposes visible focus states for avatar and name', async ()
   assert.match(css, /\.avbtn:focus[^\{]*\{[^\}]*border-color:var\(--light\)/s);
   assert.match(css, /\.profhead \.field:focus[^\{]*\{[^\}]*box-shadow:/s);
 });
+
+
+test('the player names each remote key once: a second branch for a key is never reached (#102)', async () => {
+  const kt = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  const start = kt.indexOf('override fun dispatchKeyEvent');
+  assert.ok(start > 0);
+  const body = kt.slice(start);
+  const seen = new Map();
+  for(const m of body.matchAll(/^\s{12}((?:KeyEvent\.KEYCODE_\w+(?:,\s*)?)+)\s*->/gm))
+    for(const key of m[1].split(',').map(k => k.trim()))
+      seen.set(key, (seen.get(key) || 0) + 1);
+  const twice = [...seen].filter(([, n]) => n > 1).map(([k]) => k);
+  assert.deepEqual(twice, [], `keys handled by more than one branch of dispatchKeyEvent's when: ${twice.join(', ')}`);
+});
