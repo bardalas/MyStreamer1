@@ -494,3 +494,13 @@ test('Shows player: the app\'s banner, and a captions panel for size and positio
   assert.match(nav, /ytclose/);                                                    // Back puts the panel away before the player
   assert.match(css, /bottom:var\(--lift,9%\)/);                                    // the height comes from the setting
 });
+
+
+test('colour picker: the colour is applied while it is chosen, Cancel and Back put the old one back, OK keeps it (#126)', async () => {
+  const settings = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  assert.match(settings, /const was = \{colors: \{\.\.\.\(settings\.customColors \|\| \{\}\)\}, skin: settings\.skin\}/);
+  assert.match(settings, /if\(live !== false\) apply\(\)/);                        // live, but not merely by opening
+  assert.match(settings, /\[data-back\]'\)\.onclick = cancel/); assert.match(settings, /\[data-cancel\]'\)\.onclick = cancel/);
+  assert.match(settings, /if\(e\.target === sheet\) cancel\(\)/);
+  assert.match(settings, /setSetting\('customColors', was\.colors\);\s*setSetting\('skin', was\.skin\)/);
+});
