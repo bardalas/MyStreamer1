@@ -307,7 +307,7 @@ test('the colour picker can be finished with the remote: OK and Cancel are reach
   assert.match(settings, /data-done>/); assert.match(settings, /data-cancel>/);
   // Down from the plane's lower edge goes to the saturation, and from the saturation to OK
   assert.match(settings, /sat\.focus\(\); return; \}/);
-  assert.match(settings, /e\.key === 'ArrowDown'\)\{ e\.preventDefault\(\); sheet\.querySelector\('\[data-done\]'\)\.focus\(\)/);
+  assert.match(settings, /e\.key === 'ArrowDown' \|\| e\.key === 'Enter'\)\{[^}]*\[data-done\]'\)\.focus\(\)/);
 });
 
 
@@ -448,4 +448,12 @@ test('kids are set per profile: no Kids page in Settings for a grown-up, the cod
   assert.match(settings, /tab === 'kids' && !kidsOn\(\)\) tab = 'profiles'/);   // an old address lands on Profiles
   assert.doesNotMatch(settings, /kidsOn: async/);                          // the switch is the profile page's now
   assert.match(profiles, /hasPin\(\) \? section\('', lines\(line\(\{fid: 'kidsPin'/);
+});
+
+
+test('the colour plane: OK goes on to the saturation, and from there to OK - Up/Down are the brightness (#115)', async () => {
+  const settings = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  assert.match(settings, /if\(e\.key === 'Enter'\)\{ e\.preventDefault\(\); e\.stopPropagation\(\); sat\.focus\(\); return; \}/);
+  assert.match(settings, /e\.key === 'ArrowDown' \|\| e\.key === 'Enter'\)\{[^}]*\[data-done\]'\)\.focus\(\)/);
+  assert.match(settings, /data-cue/);                                        // and the screen says what OK does here
 });
