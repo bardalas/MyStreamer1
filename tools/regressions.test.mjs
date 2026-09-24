@@ -457,3 +457,26 @@ test('the colour plane: OK goes on to the saturation, and from there to OK - Up/
   assert.match(settings, /e\.key === 'ArrowDown' \|\| e\.key === 'Enter'\)\{[^}]*\[data-done\]'\)\.focus\(\)/);
   assert.match(settings, /data-cue/);                                        // and the screen says what OK does here
 });
+
+
+test('continue watching: one card per series, the newest episode, with its season and episode (#121)', async () => {
+  const {store} = memStore();
+  const w = await mini('data/watch.js', {'core/store.js': {store}});
+  const now = 1e12;
+  const prog = {
+    'tt1:1:1': {t: 1, d: 9, at: now - 5, metaId: 'tt1:1:1', type: 'series', name: 'A'},                       // kept under the episode's own id
+    'tt1:1:2': {t: 1, d: 9, at: now - 3, metaId: 'tt1', type: 'series', name: 'A'},                           // no season/episode stored
+    'tt1:2:3': {t: 1, d: 9, at: now - 1, metaId: 'tt1', type: 'series', name: 'A', season: 2, episode: 3},
+    'tt2': {t: 1, d: 9, at: now - 9, metaId: 'tt2', type: 'movie', name: 'M'},
+    'tt3:1:1': {t: 1, d: 9, at: now - 20, metaId: 'tt3', type: 'series', name: 'B'},
+    'tt3:1:2': {t: 9, d: 9, at: now - 10, metaId: 'tt3', type: 'series', name: 'B', done: true},               // the newest was finished
+  };
+  const rows = w.latestPerTitle(prog);
+  const byId = Object.fromEntries(rows.map(x => [x.metaId, x]));
+  assert.equal(rows.length, 3);                                        // the series once, the film once, the other series once
+  assert.equal(byId.tt1.videoId, 'tt1:2:3'); assert.equal(byId.tt1.season, 2); assert.equal(byId.tt1.episode, 3);
+  assert.equal(byId.tt3.done, true);                                   // so the caller leaves it out: nothing is in the middle
+  assert.equal(w.latestPerTitle({'tt1:1:2': prog['tt1:1:2']})[0].season, 1);   // read from the episode's address
+  assert.equal(w.latestPerTitle({'tt1:1:2': prog['tt1:1:2']})[0].episode, 2);
+  assert.equal(byId.tt2.season, undefined);                            // a film has none
+});

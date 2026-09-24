@@ -10,7 +10,7 @@ import {KID_GENRES, kidsChild, kidsOn, kidsOwn} from '../data/kids.js';
 import {GENRES, gridFrom, pageFilters, rateOf, sortActive, sortBar, wireSortBar, yearOfMeta} from '../data/sort.js';
 import {svcOf} from '../data/services.js';
 import {TASTE_ADDON, becauseTitles, hasTaste} from '../data/taste.js';
-import {progress} from '../data/watch.js';
+import {latestPerTitle, progress} from '../data/watch.js';
 import {tr} from '../i18n.js';
 import {originMark, originName, originsFor} from '../ui/origins.js';
 import {renderRows} from '../ui/rows.js';
@@ -93,14 +93,11 @@ function sourceRows(type, o){
 /** What was left in the middle, of one type (or of every type) - in the kids profile, only what a child started. */
 const unfinished = type => {
   // Progress is stored per video so resume and watched marks remain exact. The home row, however,
-  // represents titles: collapse episodes of the same series to the newest unfinished episode.
-  const latest = new Map();
-  for(const [videoId, x] of Object.entries(progress)){
-    if(x.done || (type && x.type !== type) || (kidsOn() && !kidsOwn(x.metaId))) continue;
-    const key = x.metaId || videoId, prev = latest.get(key);
-    if(!prev || (x.at || 0) > (prev.at || 0)) latest.set(key, {videoId, ...x});
-  }
-  return [...latest.values()].sort((x, y) => (y.at || 0) - (x.at || 0)).slice(0, 12);
+  // represents titles: one card for a series, whichever of its episodes was played last - and if that one was
+  // watched to the end the series is not in the middle of anything, whatever else was once half-seen.
+  return latestPerTitle()
+    .filter(x => !x.done && (!type || x.type === type) && !(kidsOn() && !kidsOwn(x.metaId)))
+    .sort((x, y) => (y.at || 0) - (x.at || 0)).slice(0, 12);
 };
 
 /** What the profile's own taste suggests (data/taste.js): more like the last title it played, then what it
