@@ -260,7 +260,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun shiftCaptions(byMs: Long) {
         subShift = (subShift + byMs).coerceIn(-60_000, 60_000)
         captions?.shiftMs = subShift
-        showMessage("סנכרון כתוביות %+.1f שנ׳".format(subShift / 1000.0), 1_500)
+        if (!panelOpen) showMessage("סנכרון כתוביות %+.1f שנ׳".format(subShift / 1000.0), 1_500)   // the panel shows it
     }
 
     // explicit type: it schedules itself
@@ -323,7 +323,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         out.add(SubsRow.Pick("ללא כתוביות", { subPick < 0 }, { useCaptions(-1) }))
         out.add(SubsRow.Head("סנכרון"))
-        out.add(SubsRow.Step("הזזת כתוביות", { "%+.1f שנ׳".format(subShift / 1000.0) },
+        out.add(SubsRow.Step("הזזת כתוביות", { "%+.1fs".format(subShift / 1000.0) },
             { step -> shiftCaptions(step * 100L) }))
         out.add(SubsRow.Pick("אפס את הסנכרון", { subShift == 0L }, { shiftCaptions(-subShift) }))
         out.add(SubsRow.Head("גודל"))
@@ -342,7 +342,9 @@ class PlayerActivity : AppCompatActivity() {
         val rows = subsRows()
         val adapter = SubsAdapter(rows)
         val list = findViewById<ListView>(R.id.chList)
+        dressPanel(list)
         list.adapter = adapter
+        list.onItemSelectedListener = redrawOnFocus(adapter)
         list.setOnItemClickListener { _, _, i, _ ->
             (rows[i] as? SubsRow.Pick)?.act?.invoke()
             adapter.notifyDataSetChanged()
@@ -364,7 +366,31 @@ class PlayerActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.chPanel).visibility = View.VISIBLE
         list.requestFocus()
-        if (list.selectedItemPosition < 0) list.setSelection(1)     // past the first heading
+        // on the chosen translation if there is one, else past the first heading
+        val on = rows.indexOfFirst { it is SubsRow.Pick && it.on() }
+        if (list.selectedItemPosition < 0) list.setSelection(if (on > 0) on else 1)
+    }
+
+    /* The panel is dressed like the rest of the TV: a large row, the line the remote is on drawn as a
+       rounded light pill with dark writing (the way a focused line looks on every screen of the app),
+       the chosen one marked in the accent colour with a tick. The list is shared with the channel list, so
+       the pill is put on when a panel of choices opens and taken off again when it closes (closePanel). */
+    private fun dressPanel(list: ListView) {
+        val pill = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = dp(14).toFloat()
+            setColor(skin.light)
+        }
+        list.selector = android.graphics.drawable.InsetDrawable(pill, dp(12), dp(2), dp(12), dp(2))
+        list.dividerHeight = 0
+        list.clipToPadding = false
+        list.setPadding(0, dp(14), 0, dp(14))
+        list.background = android.graphics.drawable.ColorDrawable(fade(skin.night, 0xEE))
+    }
+
+    /** What the panel has to be told when the remote moves: the focused row is drawn in dark on the light pill. */
+    private fun redrawOnFocus(adapter: BaseAdapter) = object : android.widget.AdapterView.OnItemSelectedListener {
+        override fun onItemSelected(p: android.widget.AdapterView<*>?, v: View?, position: Int, id: Long) = adapter.notifyDataSetChanged()
+        override fun onNothingSelected(p: android.widget.AdapterView<*>?) = adapter.notifyDataSetChanged()
     }
 
     /** The panel's lines: a heading, a choice with its mark, or a quantity with its value. */
@@ -376,39 +402,64 @@ class PlayerActivity : AppCompatActivity() {
         override fun isEnabled(position: Int) = rows[position] !is SubsRow.Head
         override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup?): View {
             val row = rows[position]
+            val list = parent as? ListView
+            // the line the remote is on: dark writing on the light pill
+            val focused = list != null && list.hasFocus() && position == list.selectedItemPosition && isEnabled(position)
             val box = (convertView as? LinearLayout) ?: LinearLayout(this@PlayerActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
                 addView(TextView(this@PlayerActivity).apply {
-                    textSize = 18f
+                    maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 })
-                addView(TextView(this@PlayerActivity).apply { textSize = 16f })
+                // a value reads left to right whatever the page's direction: "+0.5s", "155%"
+                addView(TextView(this@PlayerActivity).apply { textDirection = View.TEXT_DIRECTION_LTR })
             }
             val name = box.getChildAt(0) as TextView
             val value = box.getChildAt(1) as TextView
+            val ink = if (focused) skin.night else skin.light
+            val quiet = if (focused) skin.night else skin.muted
+            val mark = if (focused) skin.night else skin.accent
+            box.minimumHeight = 0
+            name.typeface = android.graphics.Typeface.DEFAULT
+            value.typeface = android.graphics.Typeface.DEFAULT
+            value.textSize = 20f
             when (row) {
                 is SubsRow.Head -> {
-                    box.setPadding(dp(22), dp(16), dp(22), dp(4))
+                    // the first heading is the panel's title; the others open a group, with room above them
+                    val title = position == 0
+                    box.setPadding(dp(30), if (title) dp(8) else dp(26), dp(30), dp(8))
+                    box.minimumHeight = 0
                     name.text = row.text
-                    name.textSize = 13f
-                    name.setTextColor(skin.muted)
+                    name.textSize = if (title) 24f else 15f
+                    name.typeface = if (title) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                    name.setTextColor(if (title) skin.light else skin.muted)
                     value.text = ""
                 }
                 is SubsRow.Pick -> {
-                    box.setPadding(dp(22), dp(11), dp(22), dp(11))
+                    val on = row.on()
+                    box.setPadding(dp(30), dp(12), dp(30), dp(12))
+                    box.minimumHeight = dp(58)
                     name.text = row.text
-                    name.textSize = 18f
-                    name.setTextColor(if (row.on()) skin.accent else skin.light)
-                    value.text = if (row.on()) "●" else ""
-                    value.setTextColor(skin.accent)
+                    name.textSize = if (row.text.length > 40) 18f else 20f       // a long release name in a smaller hand
+                    name.setTextColor(if (on && !focused) skin.accent else ink)
+                    name.typeface = if (on) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                    value.text = if (on) "✓" else ""
+                    value.textSize = 24f
+                    value.typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    value.setTextColor(mark)
                 }
                 is SubsRow.Step -> {
-                    box.setPadding(dp(22), dp(11), dp(22), dp(11))
+                    box.setPadding(dp(30), dp(12), dp(30), dp(12))
+                    box.minimumHeight = dp(58)
                     name.text = row.text
-                    name.textSize = 18f
-                    name.setTextColor(skin.light)
-                    value.text = "‹ ${row.value()} ›"
-                    value.setTextColor(skin.accent)
+                    name.textSize = 20f
+                    name.setTextColor(ink)
+                    // the arrows say what the side keys do on this line
+                    value.text = "‹  ${row.value()}  ›"
+                    value.typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    value.setTextColor(if (focused) skin.night else skin.accent)
                 }
             }
             return box
@@ -422,11 +473,15 @@ class PlayerActivity : AppCompatActivity() {
         override fun getItemId(position: Int) = position.toLong()
         override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup?): View {
             val row = (convertView as? TextView) ?: TextView(this@PlayerActivity).apply {
-                textSize = 18f
-                setPadding(dp(22), dp(11), dp(22), dp(11))
-                setTextColor(skin.light)
+                textSize = 20f
+                minimumHeight = dp(58)
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp(30), dp(12), dp(30), dp(12))
             }
+            val list = parent as? ListView
+            val focused = list != null && list.hasFocus() && position == list.selectedItemPosition
             row.text = items[position]
+            row.setTextColor(if (focused) skin.night else skin.light)
             return row
         }
     }
@@ -958,7 +1013,15 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun closePanel() {
         findViewById<View>(R.id.chPanel).visibility = View.GONE
-        findViewById<ListView>(R.id.chList).adapter = null       // the next opening decides what it lists
+        findViewById<ListView>(R.id.chList).apply {
+            adapter = null                                       // the next opening decides what it lists
+            onItemSelectedListener = null
+            // the channel list's own dress, which a panel of choices changed (dressPanel)
+            selector = android.graphics.drawable.ColorDrawable(fade(skin.accent, 0x33))
+            dividerHeight = dp(1)
+            setPadding(0, dp(10), 0, dp(10))
+            setBackgroundColor(fade(skin.night, 0xF5))
+        }
     }
 
     private data class AudioChoice(val label: String, val group: androidx.media3.common.Tracks.Group, val track: Int, val selected: Boolean)
@@ -988,7 +1051,10 @@ class PlayerActivity : AppCompatActivity() {
         }
         hideChannelBar()
         val list = findViewById<ListView>(R.id.chList)
-        list.adapter = MenuAdapter(choices.map { (if (it.selected) "●  " else "") + it.label })
+        dressPanel(list)
+        val menu = MenuAdapter(choices.map { (if (it.selected) "✓  " else "") + it.label })
+        list.adapter = menu
+        list.onItemSelectedListener = redrawOnFocus(menu)
         list.setOnItemClickListener { _, _, i, _ ->
             val ch = choices[i]
             val p = player ?: return@setOnItemClickListener
