@@ -12,6 +12,10 @@
 
 /* rows and posters */
 .row{margin-bottom:1px}                                    /* one screen shows more of what is on it */
+.searchrows,#sChan{display:flex;flex-direction:column;gap:24px}
+.searchrows>.row,.searchrows #sChan>.row{margin-bottom:0}
+#sChan:empty{display:none}
+[data-layout="tv"] .searchrows,[data-layout="tv"] #sChan{gap:30px}
 .row h2,.page h1{font-family:var(--display);font-weight:700;letter-spacing:-.02em;margin:0 0 12px}
 .row h2{font-size:22px}
 .row h2 small{font-family:var(--body);font-weight:500;font-size:13px;color:var(--muted);margin-inline-start:8px}
