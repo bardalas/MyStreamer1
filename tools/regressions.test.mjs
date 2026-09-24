@@ -259,3 +259,12 @@ test('router invalidates asynchronous work before every view, including same-has
   const app = await readFile(path.join(assets, 'js/app.js'), 'utf8');
   assert.match(app, /export async function route\(\)\{\s*invalidateView\(\)/);
 });
+
+
+test('successful in-app report remains usable for another independent issue', async () => {
+  const report = await readFile(path.join(assets, 'js/ui/report.js'), 'utf8');
+  assert.match(report, /delete btn\.dataset\.busy/);
+  assert.match(report, /input\.value = ''/);
+  assert.match(report, /input\.focus\(\)/);
+  assert.doesNotMatch(report, /btn\.remove\(\)[\s\S]{0,120}#\\\/settings\\\/about/);
+});
