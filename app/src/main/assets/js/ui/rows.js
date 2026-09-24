@@ -39,8 +39,8 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
   const blocks = rows.map((x, i) => `<div class="row">${x.title ? `<h2><bdi>${esc(x.title)}</bdi>${rowTag(x)}</h2>` : ''}${reel(skeletons(8), 'row' + i)}</div>`);
   if(items.length) blocks.splice(contAt, 0, `<div class="row"><h2>${tr('row.continue')}</h2>${reel(items.map(x => {
     const ep = x.type === 'series' && Number.isFinite(x.season) && Number.isFinite(x.episode)
-      ? `<span class="cont-ep">S${String(x.season).padStart(2, '0')} · E${String(x.episode).padStart(2, '0')}</span>` : '';
-    return `<div class="cont-card">${card({id:x.metaId,type:x.type,name:x.name,poster:x.poster})}${ep}</div>`;
+      ? `S${String(x.season).padStart(2, '0')} · E${String(x.episode).padStart(2, '0')}` : '';
+    return card({id:x.metaId,type:x.type,name:x.name,poster:x.poster}, {tag: ep});
   }).join(''))}</div>`);
   app.innerHTML = `
     ${heading ? `<div class="page"><h1>${esc(heading)}</h1></div>` : ''}
