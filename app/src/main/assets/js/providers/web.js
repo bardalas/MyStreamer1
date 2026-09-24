@@ -5,6 +5,7 @@
    long-form list: never its shorts, never a live stream), and nothing on screen says where they come
    from - a viewer sees programmes. The episode lists are read natively (no CORS) and kept for an hour. */
 import {fetchText} from '../core/bridge.js';
+import {known, translatable, translateTexts} from '../data/translate.js';
 import {esc} from '../core/dom.js';
 import {store} from '../core/store.js';
 import {UI, tr} from '../i18n.js';
@@ -71,32 +72,12 @@ function parseFeed(xml){
    An episode is named and described in the language it was made in. For a viewer in Hebrew, its name and
    the first line of what it is about are translated (Google's translation, the one a browser offers) -
    many lines to a request, and each kept on the device, so that it is asked for once. */
-const TR_KEY = 'webTr', TR_KEEP = 3000;
-const trMem = store.get(TR_KEY, {});
-const wants = s => UI === 'he' && !!s && !/[\u0590-\u05FF]/.test(s);
-async function translate(texts){
-  const todo = [...new Set(texts.filter(t => wants(t) && !(t in trMem)))];
-  for(let i = 0; i < todo.length;){
-    let n = 0, len = 0;                                // as many lines as one address holds
-    while(i + n < todo.length && (len += encodeURIComponent(todo[i + n]).length + 3) < 5000) n++;
-    const part = todo.slice(i, i += Math.max(n, 1));
-    try{
-      const j = JSON.parse(await fetchText('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=iw&dt=t&q='
-        + encodeURIComponent(part.join('\n'))));
-      const out = (j[0] || []).map(s => s[0]).join('').split('\n');
-      if(out.length === part.length) part.forEach((t, k) => { trMem[t] = out[k].trim() || t; });
-    }catch(e){}                                          // untranslated, then: the words as they were made
-  }
-  if(!todo.length) return;
-  const keys = Object.keys(trMem);
-  keys.slice(0, Math.max(0, keys.length - TR_KEEP)).forEach(k => delete trMem[k]);   // the oldest go first
-  store.lazy(TR_KEY, trMem);
-}
+const wants = s => UI === 'he' && translatable(s);
 const blurbOf = ep => (ep.desc || '').split('\n')[0].slice(0, 180);
 /** [eps] in the viewer's language: their names - and with [blurb], the first line of each one's description. */
 export async function webLocal(eps, blurb = false){
-  await translate(eps.flatMap(ep => blurb ? [ep.title, blurbOf(ep)] : [ep.title]));
-  return eps.map(ep => ({...ep, title: trMem[ep.title] || ep.title, blurb: blurb ? trMem[blurbOf(ep)] || blurbOf(ep) : ''}));
+  await translateTexts(eps.flatMap(ep => blurb ? [ep.title, blurbOf(ep)] : [ep.title]).filter(wants));
+  return eps.map(ep => ({...ep, title: known(ep.title) || ep.title, blurb: blurb ? known(blurbOf(ep)) || blurbOf(ep) : ''}));
 }
 
 /* ---------- cards ---------- */

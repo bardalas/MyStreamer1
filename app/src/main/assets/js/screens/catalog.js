@@ -10,7 +10,7 @@ import {$, esc, showErr} from '../core/dom.js';
 import {screenMem} from '../core/screenmem.js';
 import {addons, catalogFetch, fetchMeta, yearOf} from '../data/addons.js';
 import {CINEMETA_ID} from '../data/catalogs.js';
-import {heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
+import {heTitle, hebrewOn, plotFor} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
 import {Filters, SORT_GROUPS, factsMatch, optLabel, ordered, sortBar, wireSortBar} from '../data/sort.js';
 import {SERVICES, imdbTag, svcOf} from '../data/services.js';
@@ -230,7 +230,7 @@ async function showPane(p, taste){
   plot.textContent = meta.description || '';
   if(taste) startTaste('#libpane .media', trailerId(meta), Math.max(200, TASTE_AFTER_MS - (performance.now() - restAt)), true);
   if(hebrewOn() && /^tt\d+$/.test(id)){
-    const he = await hebrewPlot(id).catch(() => null);
-    if(he && paneFor === p && plot.isConnected){ plot.dir = 'rtl'; plot.textContent = he.text; }
+    const he = await plotFor(id, meta.description).catch(() => null);
+    if(he && paneFor === p && plot.isConnected){ plot.dir = 'rtl'; plot.textContent = he.text; if(he.mt) plot.title = he.original; }
   }
 }

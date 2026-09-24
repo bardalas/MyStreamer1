@@ -4,7 +4,8 @@ import {guardView} from '../core/requests.js';
 import {isTvLayout} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
-import {heCache, heTitle, hebrewOn, hebrewPlot} from '../data/hebrew.js';
+import {heCache, heTitle, hebrewOn, plotFor} from '../data/hebrew.js';
+import {known, translatable, translateTexts} from '../data/translate.js';
 import {kidsMayOpen, kidsOn, noteKidsTitle} from '../data/kids.js';
 import {ageFor, ageLabel, ratingsFor} from '../data/ratings.js';
 import {genreName} from '../data/names.js';
@@ -26,6 +27,28 @@ const epName = (v, n) => {
 };
 /** A date as the viewer's language writes it: "24 בדצמ׳ 2008", not "12/24/2008". */
 const epDate = d => new Date(d).toLocaleDateString(UI === 'he' ? 'he-IL' : 'en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+
+/* The names of the episodes of the season that has just been opened - not before, and not of the others - in
+   Hebrew where there is no Hebrew name: a batch to a request, each kept on the device, so that opening the
+   season again asks for nothing. A name the machine has changed keeps the original as its tooltip. */
+async function localizeEpisodes(eps){
+  if(!hebrewOn()) return;
+  const own = v => (v.name || v.title || '').trim();
+  const names = eps.map(own).filter(translatable);
+  if(!names.length) return;
+  await translateTexts(names);
+  for(const v of eps){
+    const mt = known(own(v));
+    const line = mt && document.querySelector(`#eps .epcard[data-id="${CSS.escape(v.id)}"] .t`);
+    const name = line?.querySelector('b');
+    if(!name) continue;
+    name.textContent = mt; name.title = own(v);
+    // a remote cannot hover: the original stands under the translated name, where a machine's mistake can be seen
+    let sub = line.querySelector('small');
+    if(!sub){ sub = document.createElement('small'); line.appendChild(sub); }
+    sub.innerHTML = `<bdi dir="ltr">${esc(own(v))}</bdi>${sub.innerHTML ? ' · ' + sub.innerHTML : ''}`;
+  }
+}
 
 /** One thing to watch, as a line of the list: its number, its name, when it aired, and how far it got. */
 function epCard(v){
@@ -66,17 +89,28 @@ export async function viewDetail(type, id){
   }
   noteTaste({type, ...meta}, OPENED);                 // a page opened: a little of what the profile likes (data/taste.js)
   const saved = !!library[meta.id];
-  if(hebrewOn() && /^tt\d+$/.test(meta.id)) hebrewPlot(meta.id).then(plot => {
+  if(hebrewOn() && /^tt\d+$/.test(meta.id)) plotFor(meta.id, meta.description).then(plot => {
     const el = $('#desc');
     if(!inView() || !plot || !el) return;             // a summary belongs to the title that asked for it
     const PREVIEW = 650;
     const short = plot.text.length > PREVIEW ? plot.text.slice(0, plot.text.lastIndexOf(' ', PREVIEW)) + '…' : plot.text;
     const link = isTvLayout() ? tr('detail.wikiName')            // a link cannot be followed from a remote
       : `<a href="https://he.wikipedia.org/wiki/${encodeURIComponent(plot.article)}" target="_blank" rel="noopener">${tr('detail.wikiName')}</a>`;
-    if($('#dsrc')) $('#dsrc').innerHTML = tr('detail.wikiFrom', {link});
+    /* A plot Hebrew Wikipedia has not got is the machine's translation, and says so - with the original
+       one press away, because a machine mangles names. */
+    if($('#dsrc')) $('#dsrc').innerHTML = plot.mt
+      ? `${tr('detail.mt')} <button class="readmore" id="mtorig">${tr('detail.showOrig')}</button>`
+      : tr('detail.wikiFrom', {link});
     el.dir = 'rtl';
     el.innerHTML = esc(short).replace(/\n/g, '<br>') + (short !== plot.text ? ` <button class="readmore" id="rm">${tr('detail.readMore')}</button>` : '');
     if($('#rm')) $('#rm').onclick = () => { el.innerHTML = esc(plot.text).replace(/\n/g, '<br>'); };
+    if($('#mtorig')) $('#mtorig').onclick = () => {
+      const orig = $('#mtorig').dataset.on === '1';
+      el.dir = orig ? 'rtl' : 'auto';
+      el.innerHTML = esc(orig ? plot.text : plot.original).replace(/\n/g, '<br>');
+      $('#mtorig').textContent = tr(orig ? 'detail.showOrig' : 'detail.showMt');
+      $('#mtorig').dataset.on = orig ? '0' : '1';
+    };
     const h = app.querySelector('.detail h1');
     if(h && heCache[meta.id]?.t && !h.querySelector('.orig')) h.innerHTML = `${esc(heCache[meta.id].t)}<span class="orig"><bdi>${esc(meta.name)}</bdi></span>`;
   }).catch(() => {});
@@ -156,6 +190,7 @@ export async function viewDetail(type, id){
     const renderEps = s => {
       const eps = videos.filter(v => (v.season ?? 0) == s).sort((a,b) => (a.episode ?? a.number ?? 0) - (b.episode ?? b.number ?? 0));
       $('#eps').innerHTML = eps.map(epCard).join('');
+      localizeEpisodes(eps);
       const pick = (b, watch) => {
         $('#eps').querySelectorAll('.epcard').forEach(x => x.classList.remove('on')); b.classList.add('on');
         const v = videos.find(x => x.id === b.dataset.id);

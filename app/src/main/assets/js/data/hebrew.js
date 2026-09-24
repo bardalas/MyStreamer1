@@ -4,6 +4,7 @@ import {isTvLayout, settings} from '../core/settings.js';
 import {capMap, store} from '../core/store.js';
 import {avail, availKnown, availObserver} from './availability.js';
 import {card} from '../ui/cards.js';
+import {known, oneLine, translatable, translateTexts} from './translate.js';
 
 /* ---------- Hebrew titles, plots & search — fetched live from Wikidata and Hebrew Wikipedia ----------
    Uses the regular Wikidata API (search + wbgetentities). Titles are looked up only for posters that
@@ -16,7 +17,9 @@ export const hebrewOn = () => (typeof settings === 'undefined' || settings.lang 
 export const hasHebrew = s => /[\u0590-\u05FF]/.test(s || '');
 // Wikidata labels sometimes carry a disambiguator: "אובססיה (סרט, 2025)" -> "אובססיה".
 export const heClean = t => (t || '').replace(/\s*\((?:סרט|סדרה|סדרת|מיני-סדרה|מיני סדרה|תוכנית|סרטון)[^)]*\)\s*$/, '').trim();
-export const heTitle = (id, fallback) => (hebrewOn() && heCache[id]?.t) || fallback;
+/* A Hebrew label from Wikidata always wins; where there is none, the machine's translation (.mt - which is also
+   the mark that it is one) stands in, and the original is kept beside it on the page (data-orig, the tooltip). */
+export const heTitle = (id, fallback) => (hebrewOn() && (heCache[id]?.t || heCache[id]?.mt)) || fallback;
 for(const e of Object.values(heCache)) if(e?.t) e.t = heClean(e.t);   // titles cached by 0.9/0.10 weren't cleaned
 // 0.11/0.12 could cache "no Hebrew entry" when Wikidata answered with an error; forget those once,
 // and let negative answers expire after a week.
@@ -24,7 +27,7 @@ if(store.get('heRev', 0) < 1){
   for(const [id, e] of Object.entries(heCache)) if(!e?.t && !e?.w) delete heCache[id];
   store.set('heMeta', heCache); store.set('heRev', 1);
 }
-for(const [id, e] of Object.entries(heCache)) if(!e?.t && !e?.w && (!e.n || Date.now() - e.n > 7 * 864e5)) delete heCache[id];
+for(const [id, e] of Object.entries(heCache)) if(!e?.t && !e?.w && !e?.mt && (!e.n || Date.now() - e.n > 7 * 864e5)) delete heCache[id];
 
 export const claim = (e, p) => e?.claims?.[p]?.[0]?.mainsnak?.datavalue?.value;
 export const claimIds = (e, p) => (e?.claims?.[p] || []).map(c => c.mainsnak?.datavalue?.value?.id).filter(Boolean);
@@ -46,14 +49,14 @@ export async function heLookup(ids){
       const s = await getJSON(`${WDAPI}action=query&list=search&srlimit=1&srprop=&srsearch=haswbstatement:P345=${id}`);
       const q = s.query?.search?.[0]?.title;
       if(q) byItem[q] = id;
-      else if(Array.isArray(s.query?.search)) heCache[id] = {t: '', w: '', n: Date.now()};   // really not on Wikidata
+      else if(Array.isArray(s.query?.search)) heCache[id] = {...heCache[id], t: '', w: '', n: Date.now()};   // really not on Wikidata
       // anything else (rate-limit or error JSON): leave uncached and try again later
     }catch(e){ /* network error: try again next time it is shown */ }
   });
   const qs = Object.keys(byItem);
   for(let i = 0; i < qs.length; i += 50){
     const d = await getJSON(`${WDAPI}action=wbgetentities&props=labels|sitelinks&languages=he&sitefilter=hewiki&ids=${qs.slice(i, i + 50).join('|')}`);
-    for(const [q, e] of Object.entries(d.entities || {})) heCache[byItem[q]] = {t: heClean(e.labels?.he?.value), w: hewiki(e)};
+    for(const [q, e] of Object.entries(d.entities || {})) heCache[byItem[q]] = {...heCache[byItem[q]], t: heClean(e.labels?.he?.value), w: hewiki(e)};
   }
   store.lazy('heMeta', capMap(heCache, 4000));
 }
@@ -71,14 +74,44 @@ export async function heFlush(){
   batch.forEach(id => hePending.delete(id));
   try{ await heLookup(batch); }catch(e){ /* offline or rate-limited */ }
   applyHebrew();
+  try{ await machineTitles(batch); }catch(e){ /* the words stay as they were made */ }
+  applyHebrew();
   heBusy = false;
   if(hePending.size) heTimer = setTimeout(heFlush, 400);
+}
+/** Titles that have no Hebrew label on Wikidata, translated by machine - and only those that are on the
+    page (the name as the page has it is what is translated), lazily, a batch at a time. */
+const mtWait = new Set();
+async function machineTitles(ids){
+  if(!hebrewOn()) return;
+  for(const id of ids) mtWait.add(id);
+  const want = new Map();                                 // id -> the name as the page has it
+  for(const id of mtWait){
+    const e = heCache[id];
+    if(!e) continue;                                      // not looked up yet
+    if(e.t || e.mt){ mtWait.delete(id); continue; }       // a Hebrew label wins; a translation made stays
+    const el = document.querySelector(`[data-heid="${id}"]`);
+    const name = oneLine(el?.dataset.orig || el?.textContent);
+    if(!translatable(name)){ if(el) mtWait.delete(id); continue; }
+    want.set(id, name);
+  }
+  if(mtWait.size > 300) [...mtWait].slice(0, mtWait.size - 300).forEach(id => mtWait.delete(id));
+  if(!want.size) return;
+  await translateTexts([...want.values()]);
+  for(const [id, name] of want){
+    const mt = known(name);
+    if(mt && mt !== name){ heCache[id].mt = mt; mtWait.delete(id); }
+  }
+  store.lazy('heMeta', capMap(heCache, 4000));
 }
 export function applyHebrew(){
   if(!hebrewOn()) return;
   document.querySelectorAll('[data-heid]').forEach(el => {
-    const t = heCache[el.dataset.heid]?.t;
-    if(t && el.textContent !== t){ el.textContent = t; el.dir = 'rtl'; }
+    const e = heCache[el.dataset.heid], t = e?.t || e?.mt;
+    if(t && el.textContent !== t){
+      if(!e.t){ el.dataset.orig ||= el.textContent; el.title = el.dataset.orig; }   // a translation by machine: the original stays a look away
+      el.textContent = t; el.dir = 'rtl';
+    }
   });
 }
 
@@ -110,6 +143,17 @@ new MutationObserver(muts => {
 }).observe(document.body, {childList: true, subtree: true});
 
 export const plotCache = {};
+/** A plot in Hebrew: Hebrew Wikipedia's when it has the title, else the machine's translation of [original]
+    (flagged .mt, with the original kept). Nothing when the plot is in Hebrew already or cannot be had. */
+export async function plotFor(id, original){
+  const he = await hebrewPlot(id).catch(() => null);
+  if(he) return he;                                       // what people wrote comes first
+  const text = oneLine(original).slice(0, 1500);
+  if(!hebrewOn() || !translatable(text)) return null;
+  await translateTexts([text]);
+  const mt = known(text);
+  return mt ? {text: mt, mt: true, original: original.trim()} : null;
+}
 /** Hebrew plot for an IMDb id from Hebrew Wikipedia: the plot section, else the lead. */
 export async function hebrewPlot(id){
   if(id in plotCache) return plotCache[id];
@@ -141,7 +185,7 @@ export async function wdMetas(qids, forceType){
       const series = classes.some(c => SERIES_CLASSES.has(c));
       if(!forceType && !series && !classes.some(c => FILM_CLASSES.has(c))) continue;
       const he = heClean(e.labels?.he?.value);
-      heCache[id] = {t: he, w: hewiki(e)};
+      heCache[id] = {...heCache[id], t: he, w: hewiki(e)};
       out.push({id, type: forceType || (series ? 'series' : 'movie'), name: he || e.labels?.en?.value || e.labels?.ar?.value || id,
                 poster: `https://images.metahub.space/poster/medium/${id}/img`, releaseInfo: claimYear(e) || ''});
     }
