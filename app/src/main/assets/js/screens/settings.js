@@ -301,7 +301,10 @@ function wire(pane){
     ACTS[b.dataset.act](b);
   });
   pane.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => toggleSvc(b.dataset.svc));
-  pane.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { setSetting('skin', b.dataset.skin); paintSettings(); });
+  pane.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => {
+    setSetting('skin', b.dataset.skin);
+    paintSettings('skin:' + b.dataset.skin);
+  });
   pane.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => {
     const h = new Set(settings.hiddenCats || []);
     h.has(b.dataset.cat) ? h.delete(b.dataset.cat) : h.add(b.dataset.cat);
