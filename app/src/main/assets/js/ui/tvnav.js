@@ -409,6 +409,9 @@ window.boothBack = () => {
      that button means - the update stays skipped, the download is cancelled, the reminder is put away
      - and there is one list of what counts as a card (openCard) rather than two that drift apart.
      The update card was missing from the old list, so Back left the app while it held the remote. */
+  // the captions' panel over a Shows video is put away first (ui/ytplayer.js)
+  const capPanel = document.querySelector('.ytpanel');
+  if(capPanel){ capPanel.dispatchEvent(new CustomEvent('ytclose')); return true; }
   // the page's own player is closed by its own button - Back never walks the page under the picture
   const playing = document.querySelector('#player.open #close');
   if(playing){ playing.click(); tvFocus(); return true; }
