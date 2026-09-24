@@ -504,3 +504,12 @@ test('colour picker: the colour is applied while it is chosen, Cancel and Back p
   assert.match(settings, /if\(e\.target === sheet\) cancel\(\)/);
   assert.match(settings, /setSetting\('customColors', was\.colors\);\s*setSetting\('skin', was\.skin\)/);
 });
+
+
+test('moving between rows travels smoothly, both ways, and only a leap across the whole page jumps (#128)', async () => {
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  assert.match(nav, /GLIDE_MIN_MS = 240, GLIDE_MAX_MS = 400/);
+  assert.doesNotMatch(nav, /GLIDE_RUN_MS/);                        // a run of presses is one long travel, not jumps
+  assert.match(nav, /innerHeight \* 3;/);
+  assert.match(nav, /takeOver/);                                    // a move made during another carries it on
+});
