@@ -142,6 +142,7 @@
   box-shadow:0 0 0 2px #000a,inset 0 0 0 2px #000a;pointer-events:none}
 .spectrumhint{display:flex;justify-content:space-between;margin:-6px 4px 0;color:var(--muted);font-size:14px;direction:ltr}
 .spectrumhint span:last-child{text-align:end}
+.stepcue{margin:-8px 4px 0;min-height:1.3em;color:var(--tungsten);font-weight:600;font-size:15px;text-align:center}
 .hsvrow{display:grid;grid-template-columns:130px minmax(180px,1fr) 64px;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;background:var(--surface)}
 .hsvrow label{font-weight:600}.hsvrow output{text-align:end;color:var(--tungsten);font-weight:700;direction:ltr}
 .hsvrow input[type=range]{width:100%;accent-color:var(--tungsten)}

@@ -327,6 +327,7 @@ function openColorPicker(key, opener){
       <div class="spectrum" tabindex="0" role="slider" aria-label="${esc(tr('set.skin.spectrum'))}" aria-valuetext="">
         <i class="mark"></i></div>
       <p class="spectrumhint"><span data-read="h"></span><span data-read="v"></span></p>
+      <p class="stepcue" data-cue></p>
       <div class="hsvrow"><label for="sat">${tr('set.skin.saturation')}</label><input id="sat" type="range" min="0" max="100" step="1" value="${hsv.s}" data-hsv="s"><output>${hsv.s}%</output></div>
       <div class="coloractions"><button class="btn primary" data-done>${tr('common.ok')}</button><button class="btn ghost" data-cancel>${tr('common.cancel')}</button></div>
     </div></div>`;
@@ -352,6 +353,9 @@ function openColorPicker(key, opener){
   };
   let heldSince = 0, heldKey = '';
   spec.addEventListener('keydown', e => {
+    /* Up and Down on the plane are the brightness, so they cannot also be the way out of it: OK is. It says
+       "this is the point" and goes on to the saturation, and from there to OK - the way a wizard goes on. */
+    if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); sat.focus(); return; }
     const move = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1]}[e.key];
     if(!move) return;
     e.preventDefault();
@@ -361,7 +365,7 @@ function openColorPicker(key, opener){
     if(e.key !== heldKey || now - heldSince > 250) heldSince = now;
     heldKey = e.key; const held = e.repeat ? now - heldSince : 0; heldSince = e.repeat ? heldSince : now;
     const n = held > 1500 ? 6 : held > 600 ? 3 : 1;
-    if(move[1] < 0 && at.v === 0 && !e.repeat){ sat.focus(); return; }   // past the lower edge: on to the next line
+    if(move[1] < 0 && at.v === 0){ sat.focus(); return; }                // past the lower edge: on to the next line, too
     at.h = ((at.h + move[0] * n * 3) % 360 + 360) % 360;
     at.v = clamp(at.v + move[1] * n * 2, 0, 100);
     redraw();
@@ -377,7 +381,7 @@ function openColorPicker(key, opener){
   sat.oninput = redraw;
   sat.addEventListener('keydown', e => {
     if(e.key === 'ArrowUp'){ e.preventDefault(); spec.focus(); }
-    else if(e.key === 'ArrowDown'){ e.preventDefault(); sheet.querySelector('[data-done]').focus(); }
+    else if(e.key === 'ArrowDown' || e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); sheet.querySelector('[data-done]').focus(); }
   });
   // OK and Cancel: Up goes back to the saturation, and the two are one line to move along
   sheet.querySelectorAll('.coloractions .btn').forEach(b => b.addEventListener('keydown', e => {
@@ -393,8 +397,16 @@ function openColorPicker(key, opener){
     paintSettings('col:' + key);
   };
   sheet.onclick = e => { if(e.target === sheet) close(); };
+  // what the remote does here, in one line that changes with where it is (1 the plane, 2 the saturation, 3 done)
+  const cue = sheet.querySelector('[data-cue]');
+  const say = () => {
+    const a = document.activeElement;
+    cue.textContent = a === spec ? tr('set.skin.cue1') : a === sat ? tr('set.skin.cue2') : '';
+  };
+  sheet.addEventListener('focusin', say);
   redraw();
   spec.focus();
+  say();
 }
 
 function wire(pane){
