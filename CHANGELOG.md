@@ -1,5 +1,18 @@
 # VEO Android changelog
 
+## 0.45.9 — 2026-09-24
+- **Down changes channel again on live TV.** The audio-track picker added in 0.45.8 was taking the Down
+  key before the channel switch did. (#102)
+- **Hebrew for more of the app.** A title with no Hebrew label on Wikidata, a plot with no Hebrew
+  Wikipedia article, and English episode names are now translated by machine - a batch at a time, kept
+  on the device, and only for what is on screen (the episodes of the season you open). What people
+  wrote always comes first. A machine plot says so and can be switched back to the original; each
+  translated episode shows the original under its name. (#96 #97 #98 #99)
+- **The subtitle panel matches the TV.** A title, large rows in groups (translation, sync, size), the
+  focused row as the same light pill as everywhere else, the chosen translation ticked, the sync value
+  readable ("‹ +0.5s ›"), and each release name shown in full. The audio-track panel has the same look.
+  (#101)
+
 ## 0.45.8 — 2026-09-24
 - **Search works on the first attempt.** Add-on searches now use VEO's normal catalogue request path, including each manifest's search contract, instead of a separate hand-built request.
 - **Continue Watching identifies the episode.** Series collapse to one card for the most recently watched unfinished episode and show its season/episode while retaining exact per-episode resume positions.
