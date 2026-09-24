@@ -321,3 +321,110 @@ test('the player names each remote key once: a second branch for a key is never 
   const twice = [...seen].filter(([, n]) => n > 1).map(([k]) => k);
   assert.deepEqual(twice, [], `keys handled by more than one branch of dispatchKeyEvent's when: ${twice.join(', ')}`);
 });
+
+
+/* ---------- machine translation into Hebrew (#96 #97 #98 #99) ---------- */
+// A small loader for modules with few dependencies: real source for what is under test, stubs for the rest.
+async function mini(entry, stubs, globals = {}){
+  const context = vm.createContext({console, ...globals});
+  const modules = new Map();
+  const get = async rel => {
+    rel = path.posix.normalize(rel);
+    if(modules.has(rel)) return modules.get(rel);
+    const def = stubs[rel];
+    const m = def ? new vm.SyntheticModule(Object.keys(def), function(){ for(const [k, v] of Object.entries(def)) this.setExport(k, v); }, {context, identifier: rel})
+      : new vm.SourceTextModule(await readFile(path.join(assets, 'js', rel), 'utf8'), {context, identifier: rel});
+    modules.set(rel, m); return m;
+  };
+  const m = await get(entry);
+  await m.link((s, ref) => get(path.posix.join(path.posix.dirname(ref.identifier), s)));
+  await m.evaluate();
+  return m.namespace;
+}
+const memStore = () => { const kept = {}; return {kept, store: {get: (k, d) => kept[k] ?? d, set: (k, v) => { kept[k] = v; }, lazy: (k, v) => { kept[k] = v; }, dirty: {}}}; };
+/** A translator that answers like Google's: one segment per line, each [translation, original]. */
+const gtx = (calls, fail) => async url => {
+  calls.push(url);
+  if(fail) throw new Error('429');
+  const q = decodeURIComponent(url.split('&q=')[1]);
+  const ls = q.split('\n');
+  return JSON.stringify([ls.map((l, i) => ['HE:' + l + (i < ls.length - 1 ? '\n' : ''), l])]);   // a line break between segments, none after the last
+};
+const withTranslate = async (fetchText, clock = {t: 0}) => {
+  const {store, kept} = (m => ({store: m.store, kept: m.kept}))(memStore());
+  const mod = await mini('data/translate.js', {'core/bridge.js': {fetchText}, 'core/store.js': {store}},
+    {Date: {now: () => clock.t}, encodeURIComponent});
+  return {mod, kept};
+};
+
+test('machine translation skips Hebrew and known text, and asks once for the rest, a batch to a request', async () => {
+  const calls = []; const {mod} = await withTranslate(gtx(calls));
+  await mod.translateTexts(['The Wire', 'עבודה', 'The Wire', 'Lost']);
+  assert.equal(calls.length, 1);                                   // one address holds both lines
+  assert.equal(mod.known('The Wire'), 'HE:The Wire'); assert.equal(mod.known('Lost'), 'HE:Lost');
+  assert.equal(mod.known('עבודה'), '');                            // Hebrew is not translated
+  await mod.translateTexts(['The Wire', 'Lost']); assert.equal(calls.length, 1);   // reopening asks for nothing
+});
+
+test('a batch that does not come back line for line is not trusted', async () => {
+  const {mod} = await withTranslate(async () => JSON.stringify([[['one line only', 'x']]]));
+  await mod.translateTexts(['A', 'B']);
+  assert.equal(mod.known('A'), ''); assert.equal(mod.known('B'), '');
+});
+
+test('a failed request leaves the words as they were and the service alone for a while', async () => {
+  const calls = [], clock = {t: 1000}; const {mod} = await withTranslate(gtx(calls, true), clock);
+  await mod.translateTexts(['A']); assert.equal(calls.length, 1); assert.equal(mod.known('A'), '');
+  await mod.translateTexts(['B']); assert.equal(calls.length, 1);   // still cooling down
+  clock.t += 91_000; await mod.translateTexts(['B']); assert.equal(calls.length, 2);
+});
+
+test('batches keep to what one address holds, in order', async () => {
+  const {mod} = await withTranslate(gtx([]));
+  const texts = Array.from({length: 40}, (_, i) => `Title number ${i} ${'x'.repeat(100)}`);
+  const parts = mod.batches(texts, 1000);
+  assert.ok(parts.length > 1); assert.equal(JSON.stringify(parts.flat()), JSON.stringify(texts));
+  for(const part of parts) assert.ok(part.reduce((n, t) => n + encodeURIComponent(t).length + 3, 0) < 1000 + 200);
+});
+
+async function hebrewModule(getJSON, calls){
+  const {store, kept} = (m => ({store: {...m.store, lazy: (k, v) => { m.kept[k] = v; }}, kept: m.kept}))(memStore());
+  store.capMap = undefined;
+  const stubs = {
+    'core/dom.js': {getJSON},
+    'core/settings.js': {isTvLayout: () => false, settings: {lang: 'he'}},
+    'core/store.js': {store, capMap: o => o},
+    'data/availability.js': {avail: {}, availKnown: () => true, availObserver: {observe(){}, unobserve(){}, disconnect(){}}},
+    'ui/cards.js': {card: () => ''},
+    'core/bridge.js': {fetchText: gtx(calls)},
+  };
+  class Obs { constructor(){} observe(){} unobserve(){} disconnect(){} }
+  const doc = {body: {}, querySelector: () => null, querySelectorAll: () => []};
+  return mini('data/hebrew.js', stubs, {document: doc, IntersectionObserver: Obs, MutationObserver: Obs, Date: {now: () => 5e12}, encodeURIComponent});
+}
+
+test('a Hebrew label from Wikidata beats the machine translation of a title', async () => {
+  const he = await hebrewModule(async () => ({}), []);
+  he.heCache.tt1 = {t: 'שם מוויקינתונים', w: '', mt: 'שם ממכונה'};
+  he.heCache.tt2 = {t: '', w: '', mt: 'שם ממכונה'};
+  assert.equal(he.heTitle('tt1', 'Original'), 'שם מוויקינתונים');
+  assert.equal(he.heTitle('tt2', 'Original'), 'שם ממכונה');         // no label: the machine stands in
+  assert.equal(he.heTitle('tt3', 'Original'), 'Original');
+});
+
+test('a plot: Hebrew Wikipedia first, then the machine, marked and with the original kept', async () => {
+  const calls = [];
+  const noArticle = async url => url.includes('list=search') ? {query: {search: []}} : {entities: {}};
+  const he = await hebrewModule(noArticle, calls);
+  const plot = await he.plotFor('tt9', 'A man walks into a bar.');
+  assert.equal(plot.mt, true); assert.equal(plot.text, 'HE:A man walks into a bar.'); assert.equal(plot.original, 'A man walks into a bar.');
+  assert.equal(calls.length, 1);
+  assert.equal(await he.plotFor('tt9b', 'כבר בעברית'), null);       // already Hebrew: nothing to translate
+  const withArticle = async url => url.includes('list=search') ? {query: {search: [{title: 'Q1'}]}}
+    : url.includes('wbgetentities') ? {entities: {Q1: {labels: {he: {value: 'שם'}}, sitelinks: {hewiki: {title: 'שם'}}}}}
+    : {query: {pages: {1: {extract: 'עלילה מוויקיפדיה'}}}};
+  const he2 = await hebrewModule(withArticle, calls);
+  const wiki = await he2.plotFor('tt7', 'English plot');
+  assert.equal(wiki.text, 'עלילה מוויקיפדיה'); assert.ok(!wiki.mt);  // what people wrote comes first
+  assert.equal(calls.length, 1);                                    // and no request was spent on the machine
+});

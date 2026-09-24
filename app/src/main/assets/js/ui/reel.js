@@ -8,7 +8,7 @@ import {esc} from '../core/dom.js';
 import {noteOpened} from '../core/screenmem.js';
 import {settings} from '../core/settings.js';
 import {fetchMeta, warmSources, yearOf} from '../data/addons.js';
-import {hebrewOn, hebrewPlot} from '../data/hebrew.js';
+import {hebrewOn, plotFor} from '../data/hebrew.js';
 import {genreName} from '../data/names.js';
 import {imdbTag} from '../data/services.js';
 import {progress} from '../data/watch.js';
@@ -204,8 +204,12 @@ async function paint(el, full){
     startTaste('.poster.spot .art', trailerId(meta), Math.max(200, 2000 - waited), true);
   }
   if(hebrewOn() && /^tt\d+$/.test(id)){
-    const plot = await hebrewPlot(id).catch(() => null);
-    if(plot && spot === el && info.isConnected){ info.querySelector('p').dir = 'rtl'; info.querySelector('p').textContent = plot.text; }
+    const plot = await plotFor(id, meta?.description).catch(() => null);
+    if(plot && spot === el && info.isConnected){
+      const p = info.querySelector('p');
+      p.dir = 'rtl'; p.textContent = plot.text;
+      if(plot.mt) p.title = plot.original;
+    }
   }
 }
 
