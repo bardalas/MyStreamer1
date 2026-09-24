@@ -1,5 +1,18 @@
 # VEO Android changelog
 
+## 0.45.11 — 2026-09-24
+- **Live TV says where you are.** The banner's bar is your position: the lighter part is how far the
+  broadcast has got, and the gap is how far behind it you are. A chip reads "live" at the edge and
+  "35 s behind live" when you are behind (or "recording" for a past programme), and holding a seek key
+  shows a sign - rewind or fast-forward, with the running total. (#116)
+- **The colour picker can be finished with the remote.** OK on the colour plane goes on to the
+  saturation, and OK there goes to the OK button; a line under the plane says what OK does. (#115)
+- **Programmes look like the rest of the app.** A Shows video has the app's own banner, and Up opens a
+  captions panel: on/off, size and position (bottom, higher, high, top), kept and applied at once. (#119 #120)
+- **Continue watching: one card per series,** the last episode played, with its season and episode
+  ("S02 . E03"); a series whose last episode was finished is not shown, and old half-watched episodes
+  no longer come back. (#121)
+
 ## 0.45.10 — 2026-09-24
 - **Right is later, Left is earlier - everywhere.** In a film, on live TV and in the guide the arrows now
   mean the same thing, and the banner's bar fills from the left to match; it used to fill the other way
