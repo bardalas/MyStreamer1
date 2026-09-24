@@ -40,9 +40,11 @@ const ICONS = {
   about: icon('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6h.01"/>'),
 };
 export let setTab = 'general';
-/** The pages there are: in the kids profile, the skins - which are nobody's business but the child's -
-    and the one that leads out of it (behind the code). */
-const tabsNow = () => kidsOn() ? ['look', 'kids'] : SETTINGS_TABS;
+/** Kids may use the harmless viewing/customisation settings too. Parent/admin surfaces stay out:
+    profiles can edit other people and Live can add unrestricted playlists. Content remains filtered
+    centrally by catalogFetch/kids.js regardless of which service or Home category the child enables. */
+const KIDS_SETTINGS_TABS = ['general', 'watch', 'services', 'home', 'look', 'kids', 'about'];
+const tabsNow = () => kidsOn() ? KIDS_SETTINGS_TABS : SETTINGS_TABS;
 
 export function viewSettings(tab){
   tab = RENAMED[tab] || tab;
@@ -182,7 +184,7 @@ let updKey = '';
 const UPD_SAYS = {found: 'set.about.found', offline: 'set.about.offline', unsupported: 'set.about.unsupported', busy: ''};
 
 const PANES = {
-  general: () => section('', lines(pref('uiLang') + pref('lang') + pref('start'))),
+  general: () => section('', lines(pref('uiLang') + pref('lang') + (kidsOn() ? '' : pref('start')))),
   profiles: () => profilesPane(),
   watch: () => section(tr('set.sec.play'), lines(pref('quality') + pref('cap') + pref('preview')))
     + section(tr('set.sec.subs'), lines(pref('subs') + (window.BoothAndroid?.setSubScale ? pref('subsize') : '')))
