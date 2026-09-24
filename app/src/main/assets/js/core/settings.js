@@ -19,6 +19,7 @@ export const SKINS = [
   {id: 'grape', c: ['#140f26', '#291f45', '#a77bff', '#ece8ff']},
   {id: 'sunset', c: ['#1b1012', '#341f22', '#ff7a45', '#ffeae0']},
   {id: 'ice', c: ['#0b1418', '#15242b', '#56d8f5', '#e4f4fa']},
+  {id: 'custom', c: ['#14161f', '#272c3f', '#f0b429', '#efe6cf']},
 ];
 /* The app has one layout. It had four, and only one of them ever received the work: the wheel, the
    focus model, the title page, the episode strip and every fix since were built and tried in it,
@@ -31,7 +32,7 @@ export const POSTER_SIZE = 'm';
 /** Every choice and what it is until the viewer makes it - the one list of them (booth.html reads the
     few it paints before the page is up from the stored settings, falling back to the same values). */
 export const DEFAULTS = {skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'hide', start: 'vod', kids: 'off',
-  preview: 'on', subs: 'auto', cap: 'all', kidsAge: 'kids'};
+  preview: 'on', subs: 'auto', cap: 'all', kidsAge: 'kids', customColors: {bg:'#14161f', accent:'#f0b429', secondary:'#a3384b'}};
 /* One door for every set of settings there will ever be. The two that the whole stylesheet depends
    on are pinned here rather than written by each caller: a reset that forgot them once put
    data-layout="undefined" on the page, and every rule written for the layout stopped matching. */
@@ -93,6 +94,10 @@ export function syncNativeTheme(){
 export function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
+  const custom = settings.skin === 'custom' ? settings.customColors || DEFAULTS.customColors : null;
+  for(const [name, value] of Object.entries(custom ? {'--night':custom.bg, '--tungsten':custom.accent, '--velvet':custom.secondary} : {'--night':'', '--tungsten':'', '--velvet':''})) {
+    value ? r.style.setProperty(name, value) : r.style.removeProperty(name);
+  }
   r.dataset.kids = kidsTier();
   setUiLang(settings.uiLang);                       // the strings' own module decides what is a language
   syncNativeTheme();
