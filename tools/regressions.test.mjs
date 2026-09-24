@@ -287,3 +287,10 @@ test('M3U inline stream headers are stripped from URL and preserved as headers',
   assert.match(live, /headers\.get\('User-Agent'\)/);
   assert.match(live, /headers\.get\('Referer'\)/);
 });
+
+
+test('profile editor exposes visible focus states for avatar and name', async () => {
+  const css = await readFile(path.join(assets, 'css/profiles.css'), 'utf8');
+  assert.match(css, /\.avbtn:focus[^\{]*\{[^\}]*border-color:var\(--light\)/s);
+  assert.match(css, /\.profhead \.field:focus[^\{]*\{[^\}]*box-shadow:/s);
+});
