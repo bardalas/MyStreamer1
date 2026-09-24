@@ -113,7 +113,9 @@ export function playStream(s, label, ctx){
   if(next.next) playingSeries = ctx.meta;
   // what is playing (for "continue watching") and where to resume from
   // (and whose it is: the profile the page is in - app.js boothProgress)
-  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || '', pid: profileId, ...next});
+  const currentEp = eps.find(v => v.id === vid);
+  const episode = currentEp ? {season: currentEp.season, episode: epNum(currentEp)} : {};
+  const meta = JSON.stringify({metaId: ctx.meta?.id || vid, type: ctx.type || 'movie', name: ctx.meta?.name || label, poster: ctx.meta?.poster || '', pid: profileId, ...episode, ...next});
   noteTaste(ctx.meta, PLAYED);                     // what is played says most about what the profile likes (data/taste.js)
   // Where to start: where the viewer stopped, unless they asked for the beginning - or unless they
   // were within a minute of the end, which is a film that is over rather than one to go back into.

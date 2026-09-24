@@ -73,3 +73,11 @@
   .strip .poster.spot,.strip.reel .poster.spot{flex-basis:min(76vw,calc(var(--poster-w) * 2.4))}
   .strip.reel{padding-bottom:70px}
 }
+
+
+/* Continue-watching is still one focusable poster per title; the episode tag is visual metadata only. */
+.cont-card{position:relative;flex:0 0 auto}
+.cont-card>.poster{width:var(--poster-w)}
+.cont-ep{position:absolute;z-index:4;inset-inline-start:7px;bottom:30px;padding:3px 6px;border-radius:5px;
+  background:#050a16d9;color:var(--light);font-size:11px;font-weight:700;line-height:1;pointer-events:none}
+[data-layout="tv"] .cont-ep{font-size:13px;padding:4px 7px}
