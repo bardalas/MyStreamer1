@@ -13,7 +13,7 @@ export const TORRENTIO = 'https://torrentio.strem.fun/manifest.json';
 export const TPB = 'https://thepiratebay-plus.strem.fun/manifest.json';
 export const WATCHHUB = 'https://watchhub.strem.io/manifest.json';
 // Netflix, Apple TV+, Disney+, Prime, HBO Max, Paramount+, Curiosity Stream, MagellanTV (Israel region).
-export const STREAMING_CATALOGS = 'https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/bmZ4LGF0cCxkbnAsYW1wLGhibSxwbXAsY3RzLG1nbDo6SUw6MTc4OTg0MTUwODAwMDoxOjA6/manifest.json';
+export const STREAMING_CATALOGS = 'https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/bmZ4LG5mayxhdHAsZG5wLGFtcCxoYm0scG1wLGN0cyxtZ2w6OklMOjE3ODk4NDE1MDgwMDA6MTowOg==/manifest.json';
 export let addonUrls = store.get('addons', [CINEMETA, TORRENTIO, TPB, WATCHHUB, STREAMING_CATALOGS]);
 if(store.get('defaultsRev', 1) < 2){
   if(!addonUrls.includes(STREAMING_CATALOGS)) addonUrls.push(STREAMING_CATALOGS);
@@ -38,6 +38,24 @@ const SC_HOST = 'stremio-netflix-catalog-addon';
 const scUrl = () => addonUrls.find(u => u.includes(SC_HOST));
 function scFields(url){
   try{ return atob(decodeURIComponent(url.split('/').slice(-2)[0])).split(':'); }catch(e){ return null; }
+}
+if(store.get('defaultsRev', 1) < 5){
+  // Netflix Kids is a distinct catalogue in the streaming add-on. Existing installs predate it, so
+  // add it beside Netflix without discarding the services a household already chose.
+  const was = scUrl(), f = scFields(was || STREAMING_CATALOGS);
+  if(f){
+    const codes = f[0].split(',').filter(Boolean);
+    if(!codes.includes('nfk')){
+      const at = codes.indexOf('nfx');
+      codes.splice(at >= 0 ? at + 1 : 0, 0, 'nfk');
+      f[0] = codes.join(',');
+      const source = was || STREAMING_CATALOGS;
+      const next = source.replace(/[^/]+\/manifest\.json$/, encodeURIComponent(btoa(f.join(':'))) + '/manifest.json');
+      addonUrls = was ? addonUrls.map(u => u === was ? next : u) : [...addonUrls, next];
+      store.set('addons', addonUrls);
+    }
+  }
+  store.set('defaultsRev', 5);
 }
 /** The services the add-on is set to list, by their codes (data/services.js), in its order. */
 export const scProviders = () => (scFields(scUrl() || '')?.[0] || '').split(',').filter(Boolean);
