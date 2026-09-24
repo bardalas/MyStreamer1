@@ -148,10 +148,24 @@ export async function fetchMeta(type, id){
   const key = type + ':' + id;
   if(metaCache[key]) return metaCache[key];
   capMap(metaCache, 30);                                     // metas of long series are big
-  for(const a of addons.filter(a => supports(a.manifest, 'meta', type, id))){
-    try{ const m = (await getJSON(`${a.base}/meta/${type}/${encodeURIComponent(id)}.json`)).meta; if(m) return metaCache[key] = m; }catch(e){}
-  }
-  return null;
+  const providers = addons.filter(a => supports(a.manifest, 'meta', type, id));
+  if(!providers.length) return null;
+
+  // Metadata providers are independent. Walking them one-by-one let every dead provider consume the
+  // full network timeout before the next one was even asked; a series page could therefore look
+  // permanently stuck on its skeleton although another provider already had the answer.
+  return new Promise(resolve => {
+    let left = providers.length, settled = false;
+    const finish = m => {
+      if(settled) return;
+      if(m){ settled = true; metaCache[key] = m; resolve(m); }
+      else if(--left === 0){ settled = true; resolve(null); }
+    };
+    for(const a of providers){
+      getJSON(`${a.base}/meta/${type}/${encodeURIComponent(id)}.json`)
+        .then(d => finish(d?.meta || null), () => finish(null));
+    }
+  });
 }
 /** What to watch next in a series: the episode left in the middle, else the first one never started. */
 
