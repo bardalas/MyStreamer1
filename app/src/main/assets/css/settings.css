@@ -121,3 +121,5 @@
 :root[data-kids="child"] .nav a[data-r="live"],:root[data-kids="child"] .nav a[data-r="shows"],:root[data-kids="teen"] .nav a[data-r="live"]{display:none}
 .kidsno{text-align:center;padding-top:12vh}
 .kidsno .btn{margin-top:18px}
+
+.colorpickers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.colorpickers label{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border-radius:12px;padding:12px 14px;color:var(--light)}.colorpickers input[type=color]{width:48px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.colorpickers span{font-size:14px}@media(max-width:760px){.colorpickers{grid-template-columns:1fr}}
