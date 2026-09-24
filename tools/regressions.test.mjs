@@ -480,3 +480,17 @@ test('continue watching: one card per series, the newest episode, with its seaso
   assert.equal(w.latestPerTitle({'tt1:1:2': prog['tt1:1:2']})[0].episode, 2);
   assert.equal(byId.tt2.season, undefined);                            // a film has none
 });
+
+
+test('Shows player: the app\'s banner, and a captions panel for size and position (#119 #120)', async () => {
+  const yt = await readFile(path.join(assets, 'js/ui/ytplayer.js'), 'utf8');
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  const css = await readFile(path.join(assets, 'css/player.css'), 'utf8');
+  assert.match(yt, /class="ytbanner"/); assert.match(yt, /player\.left/);          // title, elapsed / total, bar, how much is left
+  assert.match(css, /\.ytbar::before\{[^}]*background:var\(--line\)/);            // the app's track colour
+  assert.match(yt, /setSetting\('subScale'/); assert.match(yt, /setSetting\('subLift'/); assert.match(yt, /setSetting\('subs'/);
+  assert.match(yt, /k === 'ArrowUp'\)\{ openPanel\(\)/);                            // Up opens it, as in a film
+  assert.match(yt, /k === 'ArrowRight'\) rows\[sel\]\.step\(1\)/);                 // Right is more (#103)
+  assert.match(nav, /ytclose/);                                                    // Back puts the panel away before the player
+  assert.match(css, /bottom:var\(--lift,9%\)/);                                    // the height comes from the setting
+});

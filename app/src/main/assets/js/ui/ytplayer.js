@@ -5,8 +5,8 @@
    Back closes), its bar and times, and the captions the app translated, drawn by the page. The picture
    never takes the remote: the page keeps it, and tells the embedded player what to do. */
 import {esc} from '../core/dom.js';
-import {settings} from '../core/settings.js';
-import {tr} from '../i18n.js';
+import {setSetting, settings} from '../core/settings.js';
+import {UI, tr} from '../i18n.js';
 
 const OSD_MS = 3500;                   // how long the bar stays after a key, while the video plays
 const STEP_S = 10, HELD_STEP_S = 30;
@@ -54,14 +54,18 @@ export async function openYt(body, id, title, out){
   body.innerHTML = `<div class="ytp" id="ytp" tabindex="-1">
     <div class="ytpic"><div id="ytframe"></div></div>
     <div class="ytosd on" id="ytosd">
-      <div class="yttop"><b dir="auto">${esc(title)}</b></div>
-      <div class="ytbot"><button class="ytstate" id="ytstate" type="button" tabindex="-1" aria-label="${esc(tr('player.pause'))}"></button><span id="ytat">0:00</span>
-        <button class="ytbar" id="ytbar" type="button" tabindex="-1" aria-label="${esc(tr('player.seek'))}"><i id="ytfill"></i></button><span id="ytlen"></span></div>
+      <div class="ytbanner">
+        <div class="ytrow"><button class="ytstate" id="ytstate" type="button" tabindex="-1" aria-label="${esc(tr('player.pause'))}"></button>
+          <b class="yttitle" dir="auto">${esc(title)}</b><span class="ytclock" id="ytclock"></span></div>
+        <div class="ytpos"><span id="ytat">0:00</span> / <span id="ytlen"></span></div>
+        <button class="ytbar" id="ytbar" type="button" tabindex="-1" aria-label="${esc(tr('player.seek'))}"><i id="ytfill"></i></button>
+        <div class="ytfoot"><span id="ytleft"></span><span class="ythint">▲ ${esc(tr('yt.subs'))}</span></div>
+      </div>
     </div>
     <div class="ytcue" aria-live="off"><span id="ytcue"></span></div>
     <p class="ytsay" id="ytsay" hidden></p></div>`;
   root = body.querySelector('#ytp');
-  root.style.setProperty('--subscale', +settings.subScale || 1.25);   // the subtitles' size the viewer chose
+  dressCaptions();
   root.focus();
   const YT = await loadApi();
   if(now !== id) return;                                // closed meanwhile
@@ -109,6 +113,7 @@ function fail(out){
   if(out){ const b = document.getElementById('ytgo'); b.onclick = out; b.focus(); }
 }
 export function closeYt(){
+  closePanel();
   clearInterval(tick);
   try{ yt?.destroy(); }catch(e){}
   yt = null; now = ''; cues = []; root = null; bufferingSince = 0; recoveryAt = 0;
@@ -135,17 +140,89 @@ function paint(){
   document.getElementById('ytfill').style.width = d ? `${Math.min(100, t / d * 100)}%` : '0';
   const stateBtn = document.getElementById('ytstate');
   stateBtn.className = 'ytstate' + (playing ? '' : ' paused');
+  stateBtn.textContent = playing ? '▶' : '❚❚';                // what the app's own banner says
   stateBtn.setAttribute('aria-label', tr(playing ? 'player.pause' : 'player.play'));
+  document.getElementById('ytclock').textContent = new Date().toLocaleTimeString(UI === 'he' ? 'he-IL' : 'en-GB', {hour: '2-digit', minute: '2-digit'});
+  document.getElementById('ytleft').textContent = d ? tr('player.left', {t: clock(d - t)}) : '';
   document.getElementById('ytosd').classList.toggle('on', !playing || performance.now() < hideAt);
   const ms = t * 1000, cue = cues.find(c => c.from <= ms && ms < c.to);
   const line = document.getElementById('ytcue');
-  if(line.textContent !== (cue?.text || '')) line.textContent = cue?.text || '';
+  // the captions are the viewer's to turn off; while their panel is open a sample stands in, to size and place by
+  const words = settings.subs === 'off' ? '' : (cue?.text || '');
+  const shown = panel && !words ? tr('yt.sample') : words;
+  if(line.textContent !== shown) line.textContent = shown;
 }
 const show = () => { hideAt = performance.now() + OSD_MS; paint(); };
+
+/* ---------- the captions: on or off, how large, how high (Up opens them, as in a film) ---------- */
+const LIFTS = [9, 18, 30, 62];                          // the captions' distance from the bottom, in per cent of the picture
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lift = () => clamp(+settings.subLift || 0, 0, LIFTS.length - 1);
+const scale = () => +settings.subScale || 1.25;
+/** The captions as the viewer set them: their size and their height, on the picture. */
+function dressCaptions(){
+  root?.style.setProperty('--subscale', scale());
+  root?.style.setProperty('--lift', LIFTS[lift()] + '%');
+}
+let panel = null, sel = 0;
+const ROWS = () => [
+  {name: tr('yt.subs'), value: () => tr(settings.subs === 'off' ? 'yt.off' : 'yt.on'),
+    step: () => setSetting('subs', settings.subs === 'off' ? 'auto' : 'off')},
+  {name: tr('yt.size'), value: () => Math.round(scale() * 100) + '%',
+    step: d => setSetting('subScale', Math.round(clamp(scale() + d * .1, .8, 2.4) * 100) / 100)},
+  {name: tr('yt.pos'), value: () => tr('yt.pos' + lift()),
+    step: d => setSetting('subLift', clamp(lift() + d, 0, LIFTS.length - 1))},
+];
+function paintPanel(){
+  if(!panel) return;
+  const rows = ROWS();
+  panel.innerHTML = `<h3>${esc(tr('yt.subs'))}</h3>` + rows.map((r, i) =>
+    `<button class="ytprow${i === sel ? ' on' : ''}" data-i="${i}" type="button" tabindex="-1"><span>${esc(r.name)}</span><b>${i ? '\u2039  ' : ''}${esc(r.value())}${i ? '  \u203a' : ''}</b></button>`).join('');
+  dressCaptions();
+  paint();
+}
+function openPanel(){
+  if(panel || !root) return;
+  panel = document.createElement('div');
+  panel.className = 'ytpanel';
+  panel.addEventListener('ytclose', closePanel);
+  panel.addEventListener('click', e => {                 // a finger or a mouse: a press on a row changes it
+    const b = e.target.closest?.('.ytprow');
+    if(!b) return;
+    sel = +b.dataset.i;
+    ROWS()[sel].step(sel === 2 && lift() === LIFTS.length - 1 ? -(LIFTS.length - 1) : 1);
+    paintPanel();
+  });
+  root.appendChild(panel);
+  root.classList.add('capsopen');
+  sel = 1;
+  paintPanel();
+  show();
+}
+function closePanel(){
+  panel?.remove();
+  panel = null;
+  root?.classList.remove('capsopen');
+  paint();
+}
+/** The remote while the panel is open: Up and Down choose a line, Left and Right change it (Right is more). */
+function panelKey(e){
+  const k = e.key, rows = ROWS();
+  if(k === 'ArrowUp') sel = (sel + rows.length - 1) % rows.length;
+  else if(k === 'ArrowDown') sel = (sel + 1) % rows.length;
+  else if(k === 'ArrowRight') rows[sel].step(1);
+  else if(k === 'ArrowLeft') rows[sel].step(-1);
+  else if(k === 'Enter' || k === ' ') sel === 0 ? rows[0].step(1) : closePanel();
+  else if(k === 'Escape' || k === 'Backspace') closePanel();
+  else return false;
+  paintPanel();
+  return true;
+}
 
 /* The remote, while a video plays here: the page's own movement between items is not wanted then. */
 addEventListener('keydown', e => {
   if(!root?.isConnected || !yt?.getPlayerState || document.getElementById('ytgo')) return;
+  if(panel){ if(panelKey(e)){ e.preventDefault(); e.stopImmediatePropagation(); } return; }
   const k = e.key;
   let done = true;
   if(k === 'Enter' || k === ' ' || k === 'MediaPlayPause'){
@@ -157,7 +234,8 @@ addEventListener('keydown', e => {
     const dir = k === 'ArrowRight' || k === 'MediaFastForward' ? 1 : -1;
     const d = yt.getDuration() || Infinity;
     yt.seekTo(Math.max(0, Math.min(d - 1, yt.getCurrentTime() + dir * (e.repeat ? HELD_STEP_S : STEP_S))), true);
-  }else if(k !== 'ArrowUp' && k !== 'ArrowDown') done = false;
+  }else if(k === 'ArrowUp'){ openPanel();
+  }else if(k !== 'ArrowDown') done = false;
   if(!done) return;
   e.preventDefault();
   e.stopImmediatePropagation();
