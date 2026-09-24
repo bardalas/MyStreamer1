@@ -293,12 +293,21 @@ test('custom colours use VEO HSV picker and remain reachable by TV navigation', 
   const settings = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
   const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
   assert.doesNotMatch(settings, /input type="color"/);
-  assert.match(settings, /type="range"[^>]*data-hsv="h"/);
-  assert.match(settings, /data-hsv="s"/);
-  assert.match(settings, /data-hsv="v"/);
+  // a plane to move a point on (hue along, brightness up), and the saturation as a line under it (#105)
+  assert.match(settings, /class="spectrum" tabindex="0"/);
+  assert.match(settings, /type="range"[^>]*data-hsv="s"/);
   assert.match(settings, /paintSettings\('col:' \+ key\)/);
   assert.match(nav, /\.colorpickers/);
   assert.match(nav, /\.hsvrow/);
+  assert.match(nav, /classList\?\.contains\('spectrum'\)/);          // the plane keeps its own arrows
+});
+
+test('the colour picker can be finished with the remote: OK and Cancel are reachable from the plane (#104)', async () => {
+  const settings = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  assert.match(settings, /data-done>/); assert.match(settings, /data-cancel>/);
+  // Down from the plane's lower edge goes to the saturation, and from the saturation to OK
+  assert.match(settings, /sat\.focus\(\); return; \}/);
+  assert.match(settings, /e\.key === 'ArrowDown'\)\{ e\.preventDefault\(\); sheet\.querySelector\('\[data-done\]'\)\.focus\(\)/);
 });
 
 
