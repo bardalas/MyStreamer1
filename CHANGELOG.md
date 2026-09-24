@@ -1,5 +1,16 @@
 # VEO Android changelog
 
+## 0.45.7 — 2026-09-24
+- **Custom colours are fully TV-navigable.** The three custom colour controls are now first-class
+  D-pad targets with unmistakable focus styling.
+- **A proper rich colour picker.** VEO now uses its own full HSV picker instead of the device's native
+  colour input: full hue, continuous saturation and brightness, live preview and HEX readout, with no
+  preset swatches required.
+- **The colour picker works with a remote.** Focus starts inside the picker, Up/Down moves between HSV
+  controls, Left/Right adjusts values, OK saves, and Back returns focus to the colour control that opened it.
+- **Profile editing shows where the remote is.** The profile avatar and name field both have strong,
+  explicit TV focus states while preserving the existing keyboard behaviour.
+
 ## 0.45.6 — 2026-09-24
 - **RaspberryTV live playback handles IPTV inline headers.** Stream URLs that carry `User-Agent` or
   `Referer` after a pipe are now split correctly before reaching ExoPlayer, fixing a case where the
