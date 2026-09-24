@@ -1,5 +1,26 @@
 # VEO Android changelog
 
+## 0.45.5 — 2026-09-24
+- **Playback is more resilient.** Live TV no longer spins forever when a stream does not start, YouTube
+  recovers from a prolonged buffering state, and ordinary VOD waits for a healthier buffer before
+  resuming instead of falling into a play-buffer-play loop.
+- **Watching stays on screen.** Video playback now keeps Android awake, so the device screensaver cannot
+  take over in the middle of a film or programme.
+- **Subtitles are cleaner and better matched.** Their default size and placement are more natural, and
+  torrent episodes search for subtitles using the actual selected episode file rather than a generic
+  season-pack name.
+- **Shows are easier to control.** Embedded programme playback exposes VEO controls, progress and an
+  information bar consistently across TV and touch devices.
+- **Continue Watching is tidier.** Episodes of the same series collapse into one title card while exact
+  per-episode resume positions are preserved.
+- **Settings and feedback are clearer.** Update downloads show progress immediately, version and update
+  check share one compact About row, avatar/theme focus is preserved on TV, and multiple problem reports
+  can be submitted independently without losing the form.
+- **Series loading fails faster and succeeds sooner.** Metadata providers are asked in parallel, so one
+  slow provider no longer leaves a series page stuck behind a skeleton.
+- **Bubblegum stays part of the palette.** Regression coverage now protects the pink theme and its
+  localized name.
+
 ## 0.45.4 — 2026-09-22
 - **Live TV that says what happened.** A request that never came back left the channels screen loading
   for ever; every request now has a deadline of its own. RaspberryTV asks for its list once at a time
