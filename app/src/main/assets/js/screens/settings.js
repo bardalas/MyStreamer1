@@ -198,7 +198,11 @@ const PANES = {
     + section(tr('set.svc.more'), svcGrid(PROVIDERS_MORE)),
   home: () => section(tr('set.home.title'), `<div class="catorder">${categories()}</div>`)
     + section('', lines(pref('nosrc'))),
-  look: () => section(tr('set.skin.title'), `<div class="themes">${SKINS.map(themeCard).join('')}</div>`),
+  look: () => {
+    const col = settings.customColors || {bg:'#14161f', accent:'#f0b429', secondary:'#a3384b'};
+    return section(tr('set.skin.title'), `<div class="themes">${SKINS.map(themeCard).join('')}</div>`)
+      + section(tr('set.skin.custom'), `<div class="colorpickers"><label><span>${tr('set.skin.bg')}</span><input type="color" data-col="bg" value="${esc(col.bg)}"></label><label><span>${tr('set.skin.accent')}</span><input type="color" data-col="accent" value="${esc(col.accent)}"></label><label><span>${tr('set.skin.secondary')}</span><input type="color" data-col="secondary" value="${esc(col.secondary)}"></label></div>`);
+  },
   live: () => {
     const rtv = store.get('rtvKey', '');
     return section('RaspberryTV', lines(rtv
@@ -308,6 +312,7 @@ function wire(pane){
   });
   pane.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => toggleSvc(b.dataset.svc));
   pane.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { setSetting('skin', b.dataset.skin); paintSettings('skin:' + b.dataset.skin); });
+  pane.querySelectorAll('[data-col]').forEach(input => input.oninput = () => { setSetting('customColors', {...(settings.customColors || {}), [input.dataset.col]: input.value}); setSetting('skin', 'custom'); pane.querySelectorAll('.theme').forEach(x => x.classList.toggle('on', x.dataset.skin === 'custom')); });
   pane.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => {
     const h = new Set(settings.hiddenCats || []);
     h.has(b.dataset.cat) ? h.delete(b.dataset.cat) : h.add(b.dataset.cat);
