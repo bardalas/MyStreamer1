@@ -287,3 +287,16 @@ test('M3U inline stream headers are stripped from URL and preserved as headers',
   assert.match(live, /headers\.get\('User-Agent'\)/);
   assert.match(live, /headers\.get\('Referer'\)/);
 });
+
+
+test('custom colours use VEO HSV picker and remain reachable by TV navigation', async () => {
+  const settings = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  assert.doesNotMatch(settings, /input type="color"/);
+  assert.match(settings, /type="range"[^>]*data-hsv="h"/);
+  assert.match(settings, /data-hsv="s"/);
+  assert.match(settings, /data-hsv="v"/);
+  assert.match(settings, /paintSettings\('col:' \+ key\)/);
+  assert.match(nav, /\.colorpickers/);
+  assert.match(nav, /\.hsvrow/);
+});
