@@ -117,7 +117,7 @@ class PlayerActivity : AppCompatActivity() {
     /** The chosen translation, read into memory: moving it in time is a subtraction, not a rebuild. */
     private var captions: Captions? = null
     /** How large they are drawn, as a multiple of the player's own size; kept between films. */
-    private var subScale = 1.25f
+    private var subScale = 1.0f
     /** Whether the translation found is put on by itself (Settings → Playback), or waits to be picked. */
     private var subsAuto = true
     /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
@@ -152,7 +152,7 @@ class PlayerActivity : AppCompatActivity() {
 
         val view = findViewById<PlayerView>(R.id.playerView)
         val prefs = getSharedPreferences("veo", MODE_PRIVATE)
-        subScale = prefs.getFloat("subScale", 1.25f)
+        subScale = prefs.getFloat("subScale", 1.0f)
         // Settings → Playback: subtitles only when the viewer picks them - the film starts without, and
         // with the track inside the file turned off too (applyTextTracks)
         subsAuto = prefs.getString("subs", "auto") != "off"
@@ -162,6 +162,7 @@ class PlayerActivity : AppCompatActivity() {
             setStyle(CaptionStyleCompat(Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT,
                 CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, null))
             setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subScale)
+            setBottomPaddingFraction(0.04f)
         }
 
         val remote = packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
