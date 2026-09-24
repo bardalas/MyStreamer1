@@ -67,7 +67,7 @@ export function spotlight(el){
   // asked for once the viewer has paused on it for a moment, not at every step of a run along the row
   const art = el.querySelector('.art');
   if(!el.classList.contains('wide') && art){
-    art.classList.add('framed');
+    if(!art.classList.contains('land')) art.classList.add('framed');   // a card cut from the wide picture opens to it as it is
     clearTimeout(widening);
     widening = setTimeout(() => { if(spot === el) widen(el, art); },
       wideSeen.get(el.dataset.id) ? WIDE_SEEN_MS : WIDEN_MS);
@@ -182,7 +182,7 @@ async function paint(el, full){
      name is already there, in the same place as every other title's; what is added is the line that
      says what this one is, and it is added below it rather than in front of the artwork. */
   act.innerHTML = `<div class="spotinfo"><div class="facts"></div><p dir="auto"></p></div>`;
-  sharpen(art);
+  if(!art.classList.contains('land')) sharpen(art);
   if(!full) return;                                  // a broadcaster's programme: its picture and its name
   const [, , type, idEnc] = el.getAttribute('href').split('/');
   const id = decodeURIComponent(idEnc);

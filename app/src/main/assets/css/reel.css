@@ -13,8 +13,10 @@
    a width that is still growing is a width nothing can be measured against. */
 
 .strip .poster.spot,.strip.reel .poster.spot{flex:0 0 calc(var(--poster-w) * 3.47)}
-.poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e;animation:spotIn var(--travel) var(--ease) both}
-@keyframes spotIn{from{opacity:.45;transform:scale(.97)}to{opacity:1;transform:none}}
+.poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e;animation:spotOpen var(--travel) var(--ease) both}
+/* the card opens like a window: what showed as a portrait cut from the middle of the picture is the middle of the
+   whole picture, which widens from there (a poster's frame is 0.375 of the wide one: 31% is left off each side) */
+@keyframes spotOpen{from{clip-path:inset(0 31% 0 31% round 6px);transform:scale(.985)}to{clip-path:inset(0 0 0 0 round 6px);transform:none}}
 .poster.spot:hover .art{transform:none}
 /* a portrait poster in the wide frame (js/ui/reel.js widen): the whole of it, in the middle of a blurred,
    darker copy of itself - never cut to a band across its middle. Both layers take the picture the card has
@@ -75,9 +77,8 @@
 }
 
 
-/* Continue-watching is still one focusable poster per title; the episode tag is visual metadata only. */
-.cont-card{position:relative;flex:0 0 auto}
-.cont-card>.poster{width:var(--poster-w)}
-.cont-ep{position:absolute;z-index:4;inset-inline-start:7px;bottom:30px;padding:3px 6px;border-radius:5px;
+/* Continue-watching is a poster like any other - the same size, and the same opening when it is in the middle
+   of the row; the episode tag sits on its picture, above how far it got. */
+.cont-ep{position:absolute;z-index:4;inset-inline-start:7px;bottom:14px;padding:3px 6px;border-radius:5px;
   background:#050a16d9;color:var(--light);font-size:11px;font-weight:700;line-height:1;pointer-events:none}
 [data-layout="tv"] .cont-ep{font-size:13px;padding:4px 7px}

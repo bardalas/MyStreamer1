@@ -35,7 +35,13 @@ export const bgObserver = new IntersectionObserver(entries => {
   for(const en of entries) if(en.isIntersecting){
     const el = en.target;
     bgObserver.unobserve(el);
-    el.style.backgroundImage = `url("${(el.dataset.bg || '').replace(/"/g, '%22')}")`;
+    const url = q => `url("${(q || '').replace(/"/g, '%22')}")`;
+    if(!el.dataset.fb){ el.style.backgroundImage = url(el.dataset.bg); continue; }
+    // a card cut from the title's wide picture: when it does not come, the poster is the card's picture instead
+    const img = new Image();
+    img.onload = () => { el.style.backgroundImage = url(el.dataset.bg); };
+    img.onerror = () => { el.classList.remove('land'); el.style.backgroundImage = url(el.dataset.fb); };
+    img.src = el.dataset.bg;
   }
 }, {rootMargin: '400px 600px'});
 export function lazyBg(root){

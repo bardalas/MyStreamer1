@@ -513,3 +513,18 @@ test('moving between rows travels smoothly, both ways, and only a leap across th
   assert.match(nav, /innerHeight \* 3;/);
   assert.match(nav, /takeOver/);                                    // a move made during another carries it on
 });
+
+
+test('cards are cut from the landscape picture and open on focus; the continue card is a card like the rest (#127)', async () => {
+  const cards = await readFile(path.join(assets, 'js/ui/cards.js'), 'utf8');
+  const rows = await readFile(path.join(assets, 'js/ui/rows.js'), 'utf8');
+  const dom = await readFile(path.join(assets, 'js/core/dom.js'), 'utf8');
+  const css = await readFile(path.join(assets, 'css/reel.css'), 'utf8');
+  assert.match(cards, /background\/\$\{size\}\/\$\{id\}\/img/);                 // the wide picture, small (480x270)
+  assert.match(cards, /class="art land" data-bg=.*data-fb=/s);                   // the poster only as the fallback
+  assert.match(dom, /img\.onerror = \(\) => \{ el\.classList\.remove\('land'\)/);
+  assert.match(css, /@keyframes spotOpen\{from\{clip-path:inset\(0 31% 0 31%/); // the window that opens
+  assert.doesNotMatch(rows, /cont-card/);                                        // no wrapper: it has the size of every card
+  assert.doesNotMatch(css, /\.cont-card/);
+  assert.match(rows, /\{tag: ep\}/);
+});
