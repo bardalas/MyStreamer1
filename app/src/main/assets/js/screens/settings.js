@@ -7,6 +7,7 @@ import {store} from '../core/store.js';
 import {addons, scProviders, setScProviders} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
 import {KID_AGES, hasPin, kidsOn} from '../data/kids.js';
+import {isOwner} from '../data/profiles.js';
 import {forgetWatched} from '../data/taste.js';
 import {PROVIDERS, PROVIDERS_MAIN, PROVIDERS_MORE, resetServices, svcMark} from '../data/services.js';
 import {clearProgress} from '../data/watch.js';
@@ -44,7 +45,10 @@ export let setTab = 'general';
     profiles can edit other people and Live can add unrestricted playlists. Content remains filtered
     centrally by catalogFetch/kids.js regardless of which service or Home category the child enables. */
 const KIDS_SETTINGS_TABS = ['general', 'watch', 'services', 'home', 'look', 'kids', 'about'];
-const tabsNow = () => kidsOn() ? KIDS_SETTINGS_TABS : SETTINGS_TABS;
+const tabsNow = () => {
+  const base = kidsOn() ? KIDS_SETTINGS_TABS : SETTINGS_TABS;
+  return isOwner() ? base : base.filter(t => t !== 'profiles' && t !== 'live');
+};
 
 export function viewSettings(tab){
   tab = RENAMED[tab] || tab;
