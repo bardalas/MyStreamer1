@@ -21,7 +21,7 @@ export const ROWS_SEL = [
   '.livesearch', '.live-groups', '#bchead', '.chlist',                     // live TV
   '.days', '.progs', '.keypad', '.keyform', '.cextra',                     // catch-up guide, key entry
   '.sheet header', '.sheet .body', '.tstat', '.update', '#player header',  // sheets and floating cards
-  '.catorder', '.addpl', '.add', '.addon',                                 // settings lists, add-ons
+  '.catorder', '.colorpickers', '.hsvrow', '.coloractions', '.addpl', '.add', '.addon', // settings lists, colour picker, add-ons
   '.whos', '.whoacts', '.profhead', '.avgrid', '.profacts',                // who is watching, and a profile's page
 ].join(', ');
 // offsetParent is null for position:fixed elements (per spec) even when they're plainly on
