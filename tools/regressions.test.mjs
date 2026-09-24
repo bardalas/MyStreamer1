@@ -490,7 +490,7 @@ test('Shows player: the app\'s banner, and a captions panel for size and positio
   assert.match(css, /\.ytbar::before\{[^}]*background:var\(--line\)/);            // the app's track colour
   assert.match(yt, /setSetting\('subScale'/); assert.match(yt, /setSetting\('subLift'/); assert.match(yt, /setSetting\('subs'/);
   assert.match(yt, /k === 'ArrowUp'\)\{ openPanel\(\)/);                            // Up opens it, as in a film
-  assert.match(yt, /k === 'ArrowRight'\) rows\[sel\]\.step\(1\)/);                 // Right is more (#103)
+  assert.match(yt, /k === \(rtl\(\) \? 'ArrowLeft' : 'ArrowRight'\)\) rows\[sel\]\.step\(1\)/);   // more is the way forward is (#125)
   assert.match(nav, /ytclose/);                                                    // Back puts the panel away before the player
   assert.match(css, /bottom:var\(--lift,9%\)/);                                    // the height comes from the setting
 });
@@ -527,4 +527,16 @@ test('cards are cut from the landscape picture and open on focus; the continue c
   assert.doesNotMatch(rows, /cont-card/);                                        // no wrapper: it has the size of every card
   assert.doesNotMatch(css, /\.cont-card/);
   assert.match(rows, /\{tag: ep\}/);
+});
+
+
+test('seek keys and bars follow the layout direction, and live shows the emptied part (#125)', async () => {
+  const kt = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  const bar = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/SeekBarView.kt'), 'utf8');
+  const yt = await readFile(path.join(assets, 'js/ui/ytplayer.js'), 'utf8');
+  assert.match(kt, /val back = code == \(if \(skin\.rtl\) KeyEvent\.KEYCODE_DPAD_RIGHT else KeyEvent\.KEYCODE_DPAD_LEFT\)/);
+  assert.doesNotMatch(kt, /nowBar\)\.layoutDirection/);                          // the bar is not pinned left-to-right any more
+  assert.match(bar, /layoutDirection == LAYOUT_DIRECTION_RTL/);              // it fills from the side the layout starts from
+  assert.match(bar, /the emptied part/);                                     // and draws what was gone back over hollow
+  assert.match(yt, /rtl\(\) \? 'ArrowLeft' : 'ArrowRight'/);                   // the Shows player moves the same way
 });

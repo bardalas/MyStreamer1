@@ -14,7 +14,6 @@ import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
@@ -353,8 +352,8 @@ class PlayerActivity : AppCompatActivity() {
         // a quantity is changed where it is written, by the arrows, without leaving the line
         list.setOnKeyListener { _, code, ev ->
             val step = when (code) {
-                KeyEvent.KEYCODE_DPAD_RIGHT -> 1              // the value reads "‹ +0.5s ›": › is more
-                KeyEvent.KEYCODE_DPAD_LEFT -> -1
+                KeyEvent.KEYCODE_DPAD_RIGHT -> if (skin.rtl) -1 else 1     // more is the way forward is: Left in Hebrew
+                KeyEvent.KEYCODE_DPAD_LEFT -> if (skin.rtl) 1 else -1
                 else -> 0
             }
             val row = rows.getOrNull(list.selectedItemPosition) as? SubsRow.Step
@@ -724,8 +723,6 @@ class PlayerActivity : AppCompatActivity() {
     private fun applySkin() {
         val dir = if (skin.rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         findViewById<View>(R.id.infobar).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xEB)) }
-        // how far in: a bar fills from the left, the way the arrows move (#103)
-        findViewById<ProgressBar>(R.id.nowBar).layoutDirection = View.LAYOUT_DIRECTION_LTR
         findViewById<View>(R.id.errbox).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xF0)) }
         findViewById<View>(R.id.nextbox).apply {
             layoutDirection = dir
@@ -744,12 +741,9 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.nowClock).setTextColor(skin.muted)
         findViewById<TextView>(R.id.nextTitle).setTextColor(skin.muted)
         findViewById<TextView>(R.id.errWhy).setTextColor(skin.muted)
-        findViewById<ProgressBar>(R.id.nowBar).apply {
-            progressTintList = android.content.res.ColorStateList.valueOf(skin.accent)
-            progressBackgroundTintList = android.content.res.ColorStateList.valueOf(skin.line)
-            // live: the lighter part is how far the broadcast has got, the gap to the accent is how far behind it you are
-            secondaryProgressTintList = android.content.res.ColorStateList.valueOf(fade(skin.light, 0x66))
-        }
+        // the bar fills from the side the layout starts from, in the skin's colours (SeekBarView); on live, what
+        // has been gone back over is hollow, hatched - a bar that was full and has been emptied to where you are
+        findViewById<SeekBarView>(R.id.nowBar).dress(skin.accent, skin.line)
         findViewById<TextView>(R.id.seekSign).background = android.graphics.drawable.GradientDrawable().apply {
             cornerRadius = dp(18).toFloat(); setColor(fade(skin.night, 0xE0))
         }
@@ -793,7 +787,7 @@ class PlayerActivity : AppCompatActivity() {
         val playing = back ?: onNow
         val next = progs?.firstOrNull { it.from >= (playing?.to ?: now) }
         val title = findViewById<TextView>(R.id.nowTitle)
-        val bar = findViewById<ProgressBar>(R.id.nowBar)
+        val bar = findViewById<SeekBarView>(R.id.nowBar)
         val after = findViewById<TextView>(R.id.nextTitle)
         // how far behind the live edge the picture is: nothing at the edge itself (or when the stream does not say)
         val behindMs = if (back != null || walking) 0L
@@ -822,6 +816,25 @@ class PlayerActivity : AppCompatActivity() {
             bar.visibility = View.GONE
             after.text = ""
         }
+        /* On live the bar is the stretch that can be gone back over, ending in the live edge: full when you are
+           at it, and emptied - hollow, hatched - by as much as you have gone back. (A programme is a hour and a
+           half; a minute behind it would not show on that. The programme's time is in the words.) */
+        val window = liveWindowMs()
+        if (back == null && !walking && window > 0) {
+            bar.visibility = View.VISIBLE
+            bar.progress = ((1.0 - (behindMs.toDouble() / window).coerceIn(0.0, 1.0)) * 100).toInt()
+            bar.secondaryProgress = 100
+        }
+    }
+
+    /** How long a stretch of a live stream can be gone back over (what the player keeps), or 0 when it does not say. */
+    private fun liveWindowMs(): Long {
+        val p = player ?: return 0L
+        val tl = p.currentTimeline
+        if (tl.isEmpty || !p.isCurrentMediaItemLive) return 0L
+        val w = androidx.media3.common.Timeline.Window()
+        tl.getWindow(p.currentMediaItemIndex, w)
+        return if (w.durationMs == C.TIME_UNSET) 0L else w.durationMs
     }
 
     /** The chip on the banner: "live" at the edge, how far behind it otherwise, or that this is a recording. */
@@ -964,7 +977,7 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<ImageView>(R.id.chLogo).visibility = View.GONE
         findViewById<TextView>(R.id.nowClock).text =
             android.text.format.DateFormat.getTimeFormat(this).format(java.util.Date())
-        val bar = findViewById<ProgressBar>(R.id.nowBar)
+        val bar = findViewById<SeekBarView>(R.id.nowBar)
         bar.visibility = if (dur > 0) View.VISIBLE else View.GONE
         if (dur > 0) bar.progress = ((pos * 100) / dur).toInt().coerceIn(0, 100)
         // times read left to right even on a right-to-left screen, where they would otherwise be reordered
@@ -1404,14 +1417,12 @@ class PlayerActivity : AppCompatActivity() {
         }
         // Left and Right are decided on release, so that holding them can mean something else; both the
         // press and the release are taken, or the player's own controls would come up on the release.
-        // Time runs one way for the eye and for the remote: Right is later, Left is earlier - in a film and on
-        // live TV alike, in Hebrew as anywhere else, and the bar fills from the left to match (applySkin).
+        // Time runs the way the layout does, for the eye and for the remote alike, in a film and on live TV: in
+        // Hebrew the bar fills from the right and forward is the Left key, in a left-to-right language the bar
+        // fills from the left and forward is the Right key (#125; #103 had made it one way for everyone).
         val arrow = code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT
         if (arrow && !findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible) {
-            // A timeline runs the way the picture does, not the way the writing does. Live used to be the
-            // other way about (the past on the right, as a Hebrew guide is written), which left a viewer
-            // not knowing which key to press: the guide, the seek and the bar now all run left to right (#103).
-            val back = code == KeyEvent.KEYCODE_DPAD_LEFT
+            val back = code == (if (skin.rtl) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT)
             val dir = if (back) -1 else 1
             if (down) {
                 if (event.repeatCount == 0) { seekLong = false; if (!live) scrubStart(dir) }
