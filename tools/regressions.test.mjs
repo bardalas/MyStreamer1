@@ -307,7 +307,7 @@ test('the colour picker can be finished with the remote: OK and Cancel are reach
   assert.match(settings, /data-done>/); assert.match(settings, /data-cancel>/);
   // Down from the plane's lower edge goes to the saturation, and from the saturation to OK
   assert.match(settings, /sat\.focus\(\); return; \}/);
-  assert.match(settings, /e\.key === 'ArrowDown'\)\{ e\.preventDefault\(\); sheet\.querySelector\('\[data-done\]'\)\.focus\(\)/);
+  assert.match(settings, /e\.key === 'ArrowDown' \|\| e\.key === 'Enter'\)\{[^}]*\[data-done\]'\)\.focus\(\)/);
 });
 
 
