@@ -279,3 +279,11 @@ test('Bubblegum colour scheme remains available in Settings', async () => {
   assert.match(tokens, /--tungsten:#ff4f9a/i);
   assert.match(i18n, /skin\.bubblegum\.name/);
 });
+
+
+test('M3U inline stream headers are stripped from URL and preserved as headers', async () => {
+  const live = await readFile(path.join(assets, 'js/providers/live.js'), 'utf8');
+  assert.match(live, /line\.split\('\|', 2\)/);
+  assert.match(live, /headers\.get\('User-Agent'\)/);
+  assert.match(live, /headers\.get\('Referer'\)/);
+});
