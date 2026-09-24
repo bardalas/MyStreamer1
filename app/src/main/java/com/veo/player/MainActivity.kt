@@ -566,11 +566,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun confirmExit() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("יציאה מ-VEO")
+            .setMessage("האם לצאת מהאפליקציה?")
+            .setNegativeButton("ביטול", null)
+            .setPositiveButton("יציאה") { _, _ -> finish() }
+            .show()
+    }
+
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        // The page walks its own ladder (one level up per press); at the top, Back leaves the app.
+        // The page walks its own ladder (one level up per press). At the top, confirm before leaving:
+        // an accidental Back press from Home should never throw the viewer out of VEO.
         web.evaluateJavascript("(window.boothBack && boothBack()) ? 'y' : 'n'") { handled ->
-            if (handled?.contains("y") != true) finish()
+            if (handled?.contains("y") != true) confirmExit()
         }
     }
 
