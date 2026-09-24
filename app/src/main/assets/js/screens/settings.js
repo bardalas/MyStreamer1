@@ -213,8 +213,10 @@ const PANES = {
         + line({fid: 'kidsAge', label: tr('kids.age.title'), value: tr('kids.age.' + settings.kidsAge), attrs: 'data-act="kidsAge"'})
         + line({fid: 'kidsPin', label: tr('kids.change'), attrs: 'data-act="kidsPin"'})))
     : section(tr('kids.title'), lines(pref('kidsAge') + line({fid: 'kidsOn', label: tr('kids.turnOn'), attrs: 'data-act="kidsOn"'}))),
-  about: () => section(tr('set.about.title'), lines(info('VEO', APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'))
-      + line({fid: 'upd', label: tr('set.about.check'), value: updKey ? tr(updKey) : '', attrs: 'data-act="upd"'})
+  about: () => section(tr('set.about.title'), lines(
+      line({fid: 'upd', label: 'VEO', note: tr('set.about.check'),
+        value: [APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'), updKey ? tr(updKey) : ''].filter(Boolean).join(' · '),
+        attrs: 'data-act="upd"'})
       + line({fid: 'report', label: tr('rep.title'), href: '#/report'})))
     + section(tr('set.sec.data'), lines(line({fid: 'hist', label: tr('set.hist.title'), value: tr('set.hist.btn'), danger: true, attrs: 'data-act="hist"'})
       + line({fid: 'reset', label: tr('set.reset.title'), value: tr('set.reset.btn'), danger: true, attrs: 'data-act="reset"'}))),
