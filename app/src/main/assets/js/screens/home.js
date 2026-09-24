@@ -97,8 +97,15 @@ const unfinished = type => {
   const latest = new Map();
   for(const [videoId, x] of Object.entries(progress)){
     if(x.done || (type && x.type !== type) || (kidsOn() && !kidsOwn(x.metaId))) continue;
-    const key = x.metaId || videoId, prev = latest.get(key);
-    if(!prev || (x.at || 0) > (prev.at || 0)) latest.set(key, {videoId, ...x});
+    // Older progress entries may have no title-level metaId (or may carry the episode id itself).
+    // Canonicalise a series episode id such as tt123:2:5 back to tt123 so legacy history cannot
+    // create one Continue Watching card per episode.
+    const rawMeta = x.metaId || '';
+    const parts = String(videoId).split(':');
+    const legacySeries = x.type === 'series' && (!rawMeta || rawMeta === videoId) && parts.length > 2
+      ? parts.slice(0, -2).join(':') : '';
+    const key = legacySeries || rawMeta || videoId, prev = latest.get(key);
+    if(!prev || (x.at || 0) > (prev.at || 0)) latest.set(key, {videoId, ...x, metaId: key});
   }
   return [...latest.values()].sort((x, y) => (y.at || 0) - (x.at || 0)).slice(0, 12);
 };
