@@ -1343,7 +1343,6 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
             // a film: the subtitles panel - which translation, and how far it is moved
             KeyEvent.KEYCODE_CAPTIONS -> if (!live) { openSubsPanel(); return true }
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (!live && !controls && audioChoices().size > 1) { openAudioPanel(); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }
@@ -1352,7 +1351,13 @@ class PlayerActivity : AppCompatActivity() {
                 if (sources.size > 1 && !controls) { zapBy(1); return true }
                 if (!live && !controls) { openSubsPanel(); return true }
             }
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (sources.size > 1 && !controls) { zapBy(-1); return true }
+            // down is the previous channel; on a film it opens the audio tracks, when there are several.
+            // One branch for the key: a second `when` branch for the same key is never reached, which is
+            // how Down stopped changing channels when the audio picker was added (#102).
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (sources.size > 1 && !controls) { zapBy(-1); return true }
+                if (!live && !controls && audioChoices().size > 1) { openAudioPanel(); return true }
+            }
         }
         return super.dispatchKeyEvent(event)
     }
