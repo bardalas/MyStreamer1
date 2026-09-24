@@ -299,7 +299,13 @@ function wire(pane){
     ACTS[b.dataset.act](b);
   });
   pane.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => toggleSvc(b.dataset.svc));
-  pane.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { setSetting('skin', b.dataset.skin); paintSettings(); });
+  pane.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => {
+    setSetting('skin', b.dataset.skin);
+    // Repaint while preserving the exact theme button as the TV focus target. In a kids profile
+    // Appearance is one of only two settings pages, so losing focus here made the colour choice
+    // appear to do nothing even though the setting had changed.
+    paintSettings('skin:' + b.dataset.skin);
+  });
   pane.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => {
     const h = new Set(settings.hiddenCats || []);
     h.has(b.dataset.cat) ? h.delete(b.dataset.cat) : h.add(b.dataset.cat);
