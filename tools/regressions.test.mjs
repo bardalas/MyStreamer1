@@ -428,3 +428,15 @@ test('a plot: Hebrew Wikipedia first, then the machine, marked and with the orig
   assert.equal(wiki.text, 'עלילה מוויקיפדיה'); assert.ok(!wiki.mt);  // what people wrote comes first
   assert.equal(calls.length, 1);                                    // and no request was spent on the machine
 });
+
+
+test('kids are set per profile: no Kids page in Settings for a grown-up, the code is changed beside the profiles (#109)', async () => {
+  const settings = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  const profiles = await readFile(path.join(assets, 'js/screens/profiles.js'), 'utf8');
+  const tabs = settings.match(/export const SETTINGS_TABS = \[([^\]]*)\]/)[1];
+  assert.doesNotMatch(tabs, /'kids'/);                                     // nothing duplicating the profile's own page
+  assert.match(settings, /KIDS_SETTINGS_TABS = \[[^\]]*'kids'[^\]]*\]/);   // a kids profile still has its way out
+  assert.match(settings, /tab === 'kids' && !kidsOn\(\)\) tab = 'profiles'/);   // an old address lands on Profiles
+  assert.doesNotMatch(settings, /kidsOn: async/);                          // the switch is the profile page's now
+  assert.match(profiles, /hasPin\(\) \? section\('', lines\(line\(\{fid: 'kidsPin'/);
+});

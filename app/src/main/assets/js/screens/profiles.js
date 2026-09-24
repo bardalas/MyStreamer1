@@ -82,6 +82,8 @@ export function profilesPane(){
   const open = list.some(isKids) && list.some(p => !isKids(p) && !p.lock);
   return section(tr('prof.title'), lines(rows + add))
     + (open ? section('', lines(line({fid: 'lockall', label: tr('prof.lockAll'), attrs: 'data-act="lockAll"'}))) : '')
+    // the household's parental code is one thing for every profile: it is changed here, beside them (#109)
+    + (hasPin() ? section('', lines(line({fid: 'kidsPin', label: tr('kids.change'), attrs: 'data-act="kidsPin"'}))) : '')
     + section('', lines(line({fid: 'switch', label: tr('prof.switch'), href: '#/who'})));
 }
 /** Lock every grown-up's profile that is not locked yet (the code is set first if there is none). */
