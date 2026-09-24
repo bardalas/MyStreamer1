@@ -353,8 +353,8 @@ class PlayerActivity : AppCompatActivity() {
         // a quantity is changed where it is written, by the arrows, without leaving the line
         list.setOnKeyListener { _, code, ev ->
             val step = when (code) {
-                KeyEvent.KEYCODE_DPAD_RIGHT -> if (skin.rtl) -1 else 1
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (skin.rtl) 1 else -1
+                KeyEvent.KEYCODE_DPAD_RIGHT -> 1              // the value reads "‹ +0.5s ›": › is more
+                KeyEvent.KEYCODE_DPAD_LEFT -> -1
                 else -> 0
             }
             val row = rows.getOrNull(list.selectedItemPosition) as? SubsRow.Step
@@ -724,6 +724,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun applySkin() {
         val dir = if (skin.rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         findViewById<View>(R.id.infobar).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xEB)) }
+        // how far in: a bar fills from the left, the way the arrows move (#103)
+        findViewById<ProgressBar>(R.id.nowBar).layoutDirection = View.LAYOUT_DIRECTION_LTR
         findViewById<View>(R.id.errbox).apply { layoutDirection = dir; setBackgroundColor(fade(skin.night, 0xF0)) }
         findViewById<View>(R.id.nextbox).apply {
             layoutDirection = dir
@@ -1355,14 +1357,14 @@ class PlayerActivity : AppCompatActivity() {
         }
         // Left and Right are decided on release, so that holding them can mean something else; both the
         // press and the release are taken, or the player's own controls would come up on the release.
-        // Live mirrors them with the layout (see below); a film does not.
+        // Time runs one way for the eye and for the remote: Right is later, Left is earlier - in a film and on
+        // live TV alike, in Hebrew as anywhere else, and the bar fills from the left to match (applySkin).
         val arrow = code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT
         if (arrow && !findViewById<PlayerView>(R.id.playerView).isControllerFullyVisible) {
-            // A film's timeline runs the way the picture does, not the way the writing does: the right
-            // arrow goes forward, in Hebrew as anywhere else. Live is deliberately the other way - there
-            // the right arrow steps back through what has already been broadcast.
-            val back = if (live) (code == KeyEvent.KEYCODE_DPAD_RIGHT) == skin.rtl
-                       else code == KeyEvent.KEYCODE_DPAD_LEFT
+            // A timeline runs the way the picture does, not the way the writing does. Live used to be the
+            // other way about (the past on the right, as a Hebrew guide is written), which left a viewer
+            // not knowing which key to press: the guide, the seek and the bar now all run left to right (#103).
+            val back = code == KeyEvent.KEYCODE_DPAD_LEFT
             val dir = if (back) -1 else 1
             if (down) {
                 if (event.repeatCount == 0) { seekLong = false; if (!live) scrubStart(dir) }
