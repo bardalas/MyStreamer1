@@ -6,7 +6,7 @@
    A profile may be locked: entering it then asks for the parent code (ui/pin.js), so that a child who can
    pick any profile on the picker cannot walk into a grown-up's. Entering another profile opens the page
    again in it - every module reads its own copy of what the profile keeps as the page opens. */
-import {profileId, store} from '../core/store.js';
+import {firstId, profileId, store} from '../core/store.js';
 import {settings} from '../core/settings.js';
 import {esc} from '../core/dom.js';
 import {tr} from '../i18n.js';
@@ -35,6 +35,9 @@ export const profiles = () => store.get(LIST, []);
 export const currentProfile = () => profiles().find(p => p.id === profileId) || profiles()[0] || {id: profileId, name: '', icon: 0};
 export const profileById = id => profiles().find(p => p.id === id);
 export const profileName = p => p?.name || tr('prof.me');
+/** The first profile created on the device is the owner/admin profile. */
+export const ownerId = () => profiles()[0]?.id || firstId;
+export const isOwner = (id = profileId) => id === ownerId();
 /** A profile's avatar, on its colour - the first of them is the initial of its name. */
 export function avatar(p, cls = ''){
   const [pic, own] = AVATARS[(p?.icon || 0) % AVATARS.length];

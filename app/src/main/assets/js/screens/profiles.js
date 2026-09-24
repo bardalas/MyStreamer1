@@ -11,7 +11,7 @@ import {AGE_LEVELS, setSetting, settings} from '../core/settings.js';
 import {profileId, store} from '../core/store.js';
 import {hasPin} from '../data/kids.js';
 import {AVATARS, MAX_PROFILES, addProfile, avatar, currentProfile, enterProfile, isKids, profileById, profileName, profiles,
-  removeProfile, setSettingsOf, settingsOf, updateProfile} from '../data/profiles.js';
+  removeProfile, setSettingsOf, settingsOf, updateProfile, isOwner} from '../data/profiles.js';
 import {tr} from '../i18n.js';
 import {askPin, choosePin, grownUp, pinFor} from '../ui/pin.js';
 import {pickFrom} from '../ui/sheets.js';
@@ -28,10 +28,10 @@ export function viewWho(){
   const tile = p => `<button class="whotile" data-pid="${esc(p.id)}" aria-label="${esc(profileName(p))}">${avatar(p, 'big')}
     <b dir="auto">${esc(profileName(p))}</b><small>${p.lock ? LOCK : ''}${isKids(p) ? esc(kindOf(p)) : ''}</small></button>`;
   // a child's profile offers no way to add or change profiles from here: that is a grown-up's, in theirs
-  const add = !kids && profiles().length < MAX_PROFILES ? `<button class="whotile add" data-add>${PLUS}<b>${tr('prof.add')}</b><small></small></button>` : '';
+  const add = !kids && isOwner() && profiles().length < MAX_PROFILES ? `<button class="whotile add" data-add>${PLUS}<b>${tr('prof.add')}</b><small></small></button>` : '';
   $('#app').innerHTML = `<div class="page whopage"><h1>${tr('prof.who')}</h1>
     <div class="whos" role="list">${profiles().map(tile).join('')}${add}</div>
-    ${kids ? '' : `<div class="whoacts"><button class="btn ghost" data-manage>${tr('prof.manage')}</button></div>`}</div>`;
+    ${kids || !isOwner() ? '' : `<div class="whoacts"><button class="btn ghost" data-manage>${tr('prof.manage')}</button></div>`}</div>`;
   $('#app').querySelectorAll('[data-pid]').forEach(b => b.onclick = () => choose(b.dataset.pid));
   // adding and managing happen inside the profile the page is in: it is chosen on the way (a locked one with its code)
   $('[data-add]')?.addEventListener('click', async () => {
@@ -73,6 +73,7 @@ export function paintRailProfile(){
 
 /* ---------- Settings → Profiles ---------- */
 export function profilesPane(){
+  if(!isOwner()) return section(tr('prof.title'), lines(line({fid: 'switch', label: tr('prof.switch'), href: '#/who'})));
   const list = profiles();
   const rows = list.map(p => line({fid: 'prof:' + p.id, label: `${avatar(p)}<span dir="auto">${esc(profileName(p))}</span>`,
     note: esc(kindOf(p) + (p.id === profileId ? ' · ' + tr('prof.current') : '')), value: p.lock ? tr('prof.locked') : '', href: '#/profile/' + p.id})).join('');
@@ -95,6 +96,7 @@ const KINDS = () => [['', tr('prof.adult')], ...Object.keys(AGE_LEVELS).map(k =>
 let draft = null;
 /** The page of profile [id] - 'new' for one being made: its name, its avatar, what kind it is, its lock. */
 export function viewProfile(id){
+  if(!isOwner()){ location.hash = '#/who'; return; }
   const p = id === 'new' ? null : profileById(id);
   if(id !== 'new' && !p){ location.hash = '#/settings/profiles'; return; }
   const s = p ? settingsOf(p) : {};
