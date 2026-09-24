@@ -367,7 +367,7 @@ addEventListener('keydown', e => {
   const dir = {ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'}[e.key];
   if(!dir || document.getElementById('ytp')) return;   // a video playing in the page takes the arrows (ui/ytplayer.js)
   const a = document.activeElement;
-  if(a && (a.tagName === 'INPUT' && !a.readOnly || a.tagName === 'SELECT')) return;   // typing / picking
+  if(a && (a.tagName === 'INPUT' && !a.readOnly || a.tagName === 'SELECT' || a.classList?.contains('spectrum'))) return;   // typing / picking / moving a point on the colour plane
   e.preventDefault();
   const now = performance.now();                     // a held key repeats fast: keep one move per ~55ms
   if(now - lastMoveAt < 55) return;

@@ -330,32 +330,68 @@ function openColorPicker(key, opener){
     <header><b>${esc(label)}</b><button data-back aria-label="${esc(tr('common.close'))}">✕</button></header>
     <div class="body">
       <div class="colorpreview" style="--preview:${current}"><span>${current.toUpperCase()}</span></div>
-      <div class="hsvrow"><label for="hue">${tr('set.skin.hue')}</label><input id="hue" type="range" min="0" max="359" step="1" value="${hsv.h}" data-hsv="h"><output>${hsv.h}°</output></div>
+      <div class="spectrum" tabindex="0" role="slider" aria-label="${esc(tr('set.skin.spectrum'))}" aria-valuetext="">
+        <i class="mark"></i></div>
+      <p class="spectrumhint"><span data-read="h"></span><span data-read="v"></span></p>
       <div class="hsvrow"><label for="sat">${tr('set.skin.saturation')}</label><input id="sat" type="range" min="0" max="100" step="1" value="${hsv.s}" data-hsv="s"><output>${hsv.s}%</output></div>
-      <div class="hsvrow"><label for="val">${tr('set.skin.brightness')}</label><input id="val" type="range" min="0" max="100" step="1" value="${hsv.v}" data-hsv="v"><output>${hsv.v}%</output></div>
-      <div class="coloractions"><button class="btn primary" data-done>${tr('common.ok')}</button></div>
+      <div class="coloractions"><button class="btn primary" data-done>${tr('common.ok')}</button><button class="btn ghost" data-cancel>${tr('common.cancel')}</button></div>
     </div></div>`;
   document.body.appendChild(sheet);
+  /* One point on a plane picks two of a colour's three numbers: along it the hue, up and down the
+     brightness - and a line under it the third, the saturation. The point is moved by the arrows (a
+     step a press, and more the longer a key is held) or by a finger; what is under it is the colour
+     the preview shows. From the plane's lower edge, Down goes on to the saturation, and from there to OK. */
   let draft = current;
-  const ranges = [...sheet.querySelectorAll('[data-hsv]')];
+  const spec = sheet.querySelector('.spectrum'), sat = sheet.querySelector('#sat');
+  const at = {h: hsv.h, v: hsv.v};
   const redraw = () => {
-    const vals = Object.fromEntries(ranges.map(i => [i.dataset.hsv, +i.value]));
-    draft = hsvToHex(vals.h, vals.s, vals.v);
+    draft = hsvToHex(at.h, +sat.value, at.v);
+    spec.style.setProperty('--sat', (100 - +sat.value) / 100);          // how much white lies over the plane
+    spec.firstElementChild.style.left = (at.h / 359 * 100) + '%';
+    spec.firstElementChild.style.top = (100 - at.v) + '%';
+    spec.setAttribute('aria-valuetext', `${at.h}° · ${at.v}% · ${sat.value}%`);
     sheet.querySelector('.colorpreview').style.setProperty('--preview', draft);
     sheet.querySelector('.colorpreview span').textContent = draft.toUpperCase();
-    ranges.forEach(i => i.nextElementSibling.textContent = i.dataset.hsv === 'h' ? i.value + '°' : i.value + '%');
+    sheet.querySelector('[data-read="h"]').textContent = `${tr('set.skin.hue')} ${at.h}°`;
+    sheet.querySelector('[data-read="v"]').textContent = `${tr('set.skin.brightness')} ${at.v}%`;
+    sat.nextElementSibling.textContent = sat.value + '%';
   };
-  ranges.forEach((input, i) => {
-    input.oninput = redraw;
-    input.addEventListener('keydown', e => {
-      if(e.key === 'ArrowUp' || e.key === 'ArrowDown'){
-        e.preventDefault();
-        ranges[clamp(i + (e.key === 'ArrowDown' ? 1 : -1), 0, ranges.length - 1)].focus();
-      }
-    });
+  let heldSince = 0, heldKey = '';
+  spec.addEventListener('keydown', e => {
+    const move = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1]}[e.key];
+    if(!move) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // a held key goes faster: 1, then 3, then 6 steps a press
+    const now = performance.now();
+    if(e.key !== heldKey || now - heldSince > 250) heldSince = now;
+    heldKey = e.key; const held = e.repeat ? now - heldSince : 0; heldSince = e.repeat ? heldSince : now;
+    const n = held > 1500 ? 6 : held > 600 ? 3 : 1;
+    if(move[1] < 0 && at.v === 0 && !e.repeat){ sat.focus(); return; }   // past the lower edge: on to the next line
+    at.h = ((at.h + move[0] * n * 3) % 360 + 360) % 360;
+    at.v = clamp(at.v + move[1] * n * 2, 0, 100);
+    redraw();
   });
+  const point = e => {
+    const r = spec.getBoundingClientRect();
+    at.h = Math.round(clamp((e.clientX - r.left) / r.width, 0, 1) * 359);
+    at.v = Math.round(100 - clamp((e.clientY - r.top) / r.height, 0, 1) * 100);
+    redraw();
+  };
+  spec.addEventListener('pointerdown', e => { spec.focus(); point(e); spec.setPointerCapture?.(e.pointerId); spec.onpointermove = point; });
+  spec.addEventListener('pointerup', () => { spec.onpointermove = null; });
+  sat.oninput = redraw;
+  sat.addEventListener('keydown', e => {
+    if(e.key === 'ArrowUp'){ e.preventDefault(); spec.focus(); }
+    else if(e.key === 'ArrowDown'){ e.preventDefault(); sheet.querySelector('[data-done]').focus(); }
+  });
+  // OK and Cancel: Up goes back to the saturation, and the two are one line to move along
+  sheet.querySelectorAll('.coloractions .btn').forEach(b => b.addEventListener('keydown', e => {
+    if(e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); sat.focus(); }
+  }));
   const close = () => { sheet.remove(); opener?.isConnected && opener.focus(); };
   sheet.querySelector('[data-back]').onclick = close;
+  sheet.querySelector('[data-cancel]').onclick = close;
   sheet.querySelector('[data-done]').onclick = () => {
     setSetting('customColors', {...(settings.customColors || {}), [key]: draft});
     setSetting('skin', 'custom');
@@ -363,7 +399,8 @@ function openColorPicker(key, opener){
     paintSettings('col:' + key);
   };
   sheet.onclick = e => { if(e.target === sheet) close(); };
-  ranges[0].focus();
+  redraw();
+  spec.focus();
 }
 
 function wire(pane){
