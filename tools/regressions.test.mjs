@@ -706,3 +706,10 @@ test('the secondary colour of the custom skin is visible: ratings and watched-pr
   assert.match(content, /\.rate\{color:var\(--second\)/);
   assert.match(settings, /'--second':custom\.secondary/);
 });
+
+test('sync keeps the SERVER time: no device stamps a row, and the cursor is the newest server time seen (#219)', async () => {
+  const sync = await readFile(path.join(assets, 'js/data/sync.js'), 'utf8');
+  assert.doesNotMatch(sync, /updated_at: now|new Date\(\)\.toISOString\(\)/);                 // no device clock in what is sent or kept
+  assert.match(sync, /m\?\.v === 2 \? m : \{pulled: EPOCH/);                                  // cursors kept by the old clock start again, once
+  assert.match(sync, /newest = Math\.max\(newest, Date\.parse\(r\.updated_at\)/);
+});
