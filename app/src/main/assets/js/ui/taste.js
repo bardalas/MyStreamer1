@@ -53,8 +53,7 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
       cmd('setPlaybackQuality', ['hd720']);         // 720p: sharp on a television (it had been held at 360p, and looked poor)
       // No subtitles: loading them brought the player's bar up over the picture, and a taste is to be
       // looked at, not read.
-      // while browsing it stays quiet: a row of trailers shouting at the viewer is not a taste, it is
-      // a takeover. The sound belongs to the title they chose to open.
+      // the taste has its sound on every screen; Settings (preview: quiet) can make every taste silent
       if(!quiet){ cmd('unMute'); cmd('setVolume', [60]); }
       /* YouTube's own player puts its controls over the picture - the round pause button, the film's
          name - for the first seconds of playing, and again when its sound is turned on; there is no
