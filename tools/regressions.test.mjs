@@ -747,3 +747,12 @@ test('nothing runs behind the sign-in screen: boot stops at the gate and the tas
   assert.ok(app.indexOf('if(!signedIn()){') < app.indexOf('const ready = loadAddons();'));
   assert.match(taste, /document\.getElementById\('acctgate'\)\) return;/);
 });
+
+test('a blank placeholder never replaces the account\'s profile, and the household\'s own things follow the account (#234)', async () => {
+  const sync = await readFile(path.join(assets, 'js/data/sync.js'), 'utf8');
+  assert.match(sync, /const blank = p => !p\.name && !p\.icon && !p\.photo && !p\.lock;/);
+  assert.match(sync, /if\(!blank\(p\)\) profs\.push\(/);                                   // a blank profile is never sent
+  assert.match(sync, /const kept = mine\.filter\(p => !blank\(p\)\);/);                    // a new device gives its blank ones up to the account's
+  assert.match(sync, /const ACCOUNT_KEYS = new Set\(\['addons', 'playlists', 'rtvKey', 'kidsPin'\]\)/);
+  assert.match(sync, /addEventListener\('visibilitychange', \(\) => \{ if\(document\.visibilityState === 'hidden'/);   // leaving the app sends what changed
+});
