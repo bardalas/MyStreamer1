@@ -603,3 +603,16 @@ test('search suggestions: known titles are ranked by how the words match, what w
   k.noteKnown({id: 'tt9', name: 'Seen On A Screen', type: 'movie'}); k.noteKnown({id: 'x:1', name: 'Not IMDb', type: 'movie'});
   assert.equal(JSON.stringify(k.known('seen on').map(x => x.id)), JSON.stringify(['tt9']));                         // a title that was on a screen is offered; a non-title is not
 });
+
+
+test('the load control fetches further ahead on a fast line, and a pause goes on filling - only for a film over the network (#142)', async () => {
+  const lc = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/AdaptiveLoadControl.kt'), 'utf8');
+  const pa = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  assert.match(lc, /if \(base\.shouldContinueLoading\(parameters\)\) return true/);   // the default's decision first, unchanged
+  assert.match(lc, /if \(lineBps < stream \* FAST\) return 0L/);                      // only when the line has room to spare
+  assert.match(lc, /CAP_BYTES \/ \(stream \/ 8\.0\)/);                                // and never more than fits in the memory allowed
+  assert.doesNotMatch(lc, /LoadControl by base/);                                     // delegation leaves newer methods throwing
+  assert.match(lc, /override fun onTracksSelected\(playerId: PlayerId/); assert.match(lc, /override fun onTracksSelected\(parameters: LoadControl\.Parameters/);
+  assert.match(pa, /val extend = !live && !intent\.getBooleanExtra\("torrent", false\)/);   // not a live stream, not a local torrent
+  assert.match(pa, /@Volatile private var streamBps/);                                // the player is not asked from its own thread
+});
