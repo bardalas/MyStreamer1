@@ -627,16 +627,18 @@ test('the menu is open or shut by ONE state, worked out in one place (#150 #151 
 });
 
 
-test('live TV: the arrows are time, and the bar, chip and sign are made from one number (#153)', async () => {
+test('live TV: a short press walks the guide, a held key scrubs, and the bar is the programme with an arrow and its time (#158)', async () => {
   const kt = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
-  assert.doesNotMatch(kt, /if \(canWalk\(\)\) walkGuide\(back\) else seekBy/);                 // a short press no longer walks the guide
-  assert.match(kt, /KEYCODE_MEDIA_NEXT -> if \(live && canWalk\(\)\) \{ walkGuide\(false\)/);   // the guide has keys of its own
+  const bar = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/SeekBarView.kt'), 'utf8');
+  assert.match(kt, /if \(!seekLong\) \{ if \(canWalk\(\)\) walkGuide\(back\) else seekBy\(dir, held = false\) \}/);   // a short press: the guide
+  assert.match(kt, /else if \(live\) \{ seekLong = true; seekBy\(dir, held = true\) \}/);                               // held: scrub
+  assert.match(kt, /KEYCODE_MEDIA_NEXT -> if \(live && canWalk\(\)\) \{ walkGuide\(false\)/);                          // the guide keeps its own keys too
   assert.match(kt, /private fun posEpochMs\(\)/); assert.match(kt, /private fun playAt\(atMs: Long\)/); assert.match(kt, /private fun goLive\(\)/);
-  assert.match(kt, /target >= nowMs - liveEdgeMs\(\) - 3_000/);                                  // forward into the present is the live edge
-  assert.match(kt, /nowMs - at - liveEdgeMs\(\)/);                                               // "live" is the edge the player keeps, not "behind"
-  assert.match(kt, /o in 1_000L\.\.30_000L\) liveEdge = o/);                                     // ... measured, not assumed
-  assert.match(kt, /timelineSpanMs\(behindMs\)/);                                               // the bar is a ruler ending in the present
-  assert.match(kt, /catchSeekMs = atMs - start \* 1000/);                                        // the archive opens a little before the minute asked for
+  assert.match(kt, /private fun paintBar\(/);                                            // the bar: the programme, filled to the present
+  assert.match(kt, /bar\.markLabel = hhmm\(at \/ 1000\)/);                               // the time beside the arrow
+  assert.doesNotMatch(kt, /מאחורי השידור החי|timelineSpanMs|הציר:/);                      // no "N seconds behind live" captions, no ruler
+  assert.match(bar, /var marker = -1/); assert.match(bar, /var markLabel/);
+  assert.match(kt, /catchSeekMs = atMs - start \* 1000/);                                 // the archive opens a little before the minute asked for
 });
 
 test('The taste asks for 720p and starts loading soon after the remote rests', async () => {

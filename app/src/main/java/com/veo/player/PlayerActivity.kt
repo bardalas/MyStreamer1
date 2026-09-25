@@ -815,55 +815,43 @@ class PlayerActivity : AppCompatActivity() {
             paintLiveChip(0L)
             if (at != null) {
                 title.text = "${hhmm(at.from)} · ${at.name}"
-                bar.visibility = View.VISIBLE; bar.progress = 0; bar.secondaryProgress = 0
+                paintBar(bar, at.from * 1000, at.to * 1000, 0L, nowMs, mark = false)
                 after.text = "OK · ${hhmm(at.from)}–${hhmm(at.to)}"
             }
             return
         }
-        val at = if (pendingAt > 0) pendingAt else posEpochMs()     // where you are on the line of time
+        val at = if (pendingAt > 0) pendingAt else posEpochMs()     // where you are on the line of time (or where a held key would land)
         val behindMs = (nowMs - at - liveEdgeMs()).coerceAtLeast(0L)      // behind the edge, not behind the very second
         val at_s = at / 1000
         val prog = progs?.firstOrNull { at_s in it.from until it.to } ?: progs?.firstOrNull { now in it.from until it.to }
         paintLiveChip(behindMs)
-        /* The bar is a ruler of time that ends in the present: the last few minutes, or the last few hours, whichever
-           the distance behind needs (timelineSpanMs). Filled from the far end to where you are; hollow from there to
-           the present - the part you have gone back over; the present is the end of it. A programme is an hour and a
-           half or three hours: on it a minute is a pixel, and nobody can tell where they are. So the programme is
-           in the words, and the bar is the distance behind the present. */
-        val span = timelineSpanMs(behindMs)
-        val axis = "${span / 60_000} דק׳"
-        val ruler = src.arch.isNotBlank()
-        if (ruler) {
-            bar.visibility = View.VISIBLE
-            bar.progress = ((1.0 - behindMs.toDouble() / span) * 100).toInt().coerceIn(0, 100)
-            bar.secondaryProgress = 100
-        }
+        /* The bar is the programme, from the guide: what has been broadcast fills it up to the present, and a small arrow
+           stands where you are, with its time beside it - the arrow and the time move as the held key runs back or forward. */
         if (prog != null) {
             title.text = "${hhmm(prog.from)} · ${prog.name}"
-            if (!ruler) bar.visibility = View.GONE
+            paintBar(bar, prog.from * 1000, prog.to * 1000, at, nowMs, mark = true)
             val left = ((prog.to - at_s) / 60).coerceAtLeast(0)
             val next = progs?.firstOrNull { it.from >= prog.to }
-            after.text = if (behindMs >= 5_000) "${hhmm(at_s)} · נותרו $left דק׳ בתוכנית · הציר: $axis אחרונות"
-                         else if (next != null) "עוד $left דק׳ · אחר כך ${hhmm(next.from)} ${next.name}"
-                         else "נותרו $left דק׳"
+            after.text = if (behindMs < 5_000 && next != null) "עוד $left דק׳ · אחר כך ${hhmm(next.from)} ${next.name}"
+                         else "${hhmm(prog.from)}–${hhmm(prog.to)}"
         } else {
-            title.text = if (progs == null && src.epg.isNotBlank()) "טוען לוח שידורים…" else if (behindMs >= 5_000) hhmm(at_s) else "שידור חי"
+            title.text = if (progs == null && src.epg.isNotBlank()) "טוען לוח שידורים…" else "שידור חי"
             after.text = ""
-            // no archive: the bar is what the player keeps, ending in the present
+            // no guide: the bar is what the player keeps, ending in the present
             val window = liveWindowMs()
-            if (ruler) { /* the ruler above stands */ }
-            else if (window > 0 && catchUp == null) {
-                bar.visibility = View.VISIBLE
-                bar.progress = ((1.0 - (behindMs.toDouble() / window).coerceIn(0.0, 1.0)) * 100).toInt()
-                bar.secondaryProgress = 100
-            } else bar.visibility = View.GONE
+            if (window > 0 && catchUp == null) paintBar(bar, nowMs - window, nowMs, at, nowMs, mark = true)
+            else bar.visibility = View.GONE
         }
     }
 
-    /** The ruler's length: the shortest of these that holds the distance behind with room to spare. */
-    private fun timelineSpanMs(behindMs: Long): Long {
-        val spans = longArrayOf(5, 15, 30, 60, 120, 180)
-        return (spans.firstOrNull { behindMs <= it * 60_000L * 0.85 } ?: spans.last()) * 60_000L
+    /** The bar for a stretch of time [from]..[to] (ms): filled up to the present, with the arrow at [at] when [mark]. */
+    private fun paintBar(bar: SeekBarView, from: Long, to: Long, at: Long, nowMs: Long, mark: Boolean) {
+        val span = (to - from).coerceAtLeast(1L)
+        bar.visibility = View.VISIBLE
+        bar.progress = (((minOf(nowMs, to) - from) * 100) / span).toInt().coerceIn(0, 100)
+        bar.secondaryProgress = 0
+        if (mark) { bar.marker = (((at - from) * 100) / span).toInt().coerceIn(0, 100); bar.markLabel = hhmm(at / 1000) }
+        else bar.marker = -1
     }
 
     /** How long a stretch of a live stream can be gone back over (what the player keeps), or 0 when it does not say. */
@@ -880,13 +868,10 @@ class PlayerActivity : AppCompatActivity() {
     private fun paintLiveChip(behindMs: Long) {
         val chip = findViewById<TextView>(R.id.liveChip)
         if (walking) { chip.visibility = View.GONE; return }
-        val (text, bg, ink) = when {
-            behindMs >= 5_000 -> Triple("‹ ${fmtBehind(behindMs)} מאחורי השידור החי", skin.accent, skin.onAccent)
-            else -> Triple("● שידור חי", 0xFFD32F2F.toInt(), 0xFFFFFFFF.toInt())
-        }
-        chip.text = text
-        chip.setTextColor(ink)
-        chip.background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = dp(14).toFloat(); setColor(bg) }
+        if (behindMs >= 5_000) { chip.visibility = View.GONE; return }       // behind: the arrow on the bar says where
+        chip.text = "● שידור חי"
+        chip.setTextColor(0xFFFFFFFF.toInt())
+        chip.background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = dp(14).toFloat(); setColor(0xFFD32F2F.toInt()) }
         chip.visibility = View.VISIBLE
     }
 
@@ -1540,7 +1525,7 @@ class PlayerActivity : AppCompatActivity() {
             } else if (!live) {
                 scrubEnd(dir)
             } else {
-                if (!seekLong) seekBy(dir, held = false)              // ten seconds; the programmes have their own keys
+                if (!seekLong) { if (canWalk()) walkGuide(back) else seekBy(dir, held = false) }   // a short press: a programme in the guide (OK plays it); a held key scrubs
                 seekLong = false
             }
             return true

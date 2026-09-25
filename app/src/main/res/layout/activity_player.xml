@@ -120,8 +120,8 @@
         <!-- how far in (and, on live, how far behind): fills from the side the layout starts from -->
         <com.veo.player.SeekBarView
             android:id="@+id/nowBar"
-            android:layout_width="match_parent" android:layout_height="14dp"
-            android:layout_marginTop="6dp" />
+            android:layout_width="match_parent" android:layout_height="38dp"
+            android:layout_marginTop="4dp" />
 
         <TextView
             android:id="@+id/nextTitle"
