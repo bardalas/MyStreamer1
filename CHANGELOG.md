@@ -1,5 +1,22 @@
 # VEO Android changelog
 
+## 0.45.16 — 2026-09-25
+- **One account across televisions and phones.** Settings has a new Account tab: the television shows a
+  QR code, you scan it with your phone, sign in there with an email code, and the television signs in by
+  itself - nothing typed on the screen. Profiles, history, favourites and settings are then the same on
+  every device (the newest change wins; watch history is merged title by title). (#173)
+- **Updates of the app's pages without a new APK.** Web-layer fixes can now reach installed apps over the
+  air, signed and checked, applied on the next launch, with automatic return to the built-in pages if a
+  bundle does not start. Changes to the Android part still come as an APK. (#156)
+- **A splash with the VEO mark** while the app settles, instead of a page arriving piece by piece. (#161)
+- **The trailer preview is sharper and starts sooner:** 720p instead of 360p, loading after 0.8 s of rest
+  instead of 2 s. (#160)
+- **A designed exit dialog** in the app's own colours, opening on "Stay". (#167)
+- **Fewer skins:** five basics remain (VEO, Midnight, Netflix, Daylight, Custom); a removed one falls back
+  to the default. (#169)
+- **Categories open on All,** not on a remembered source. (#165)
+- **The search field just says "Search".** (#162)
+
 ## 0.45.15 — 2026-09-25
 - **Live TV: one clear line of time.** The arrows always mean time - ten seconds a press, thirty held -
   and forward into the present is live. The bar is a ruler that ends in the present (five minutes, or
