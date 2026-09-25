@@ -34,6 +34,7 @@ import {viewWebShow} from './screens/web.js';
 import {endTaste} from './ui/taste.js';
 import {markNav, openRail} from './ui/rail.js';
 import {signedIn} from './data/account.js';
+import {askAtLaunch} from './screens/signin.js';
 import {sync} from './data/sync.js';
 import './ui/suggest.js';                           // the titles the words could be, listed under the search field as they are typed
 import {viewReport} from './ui/report.js';
@@ -215,6 +216,7 @@ export async function boot(){
   const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
   if(!picking || location.hash !== '#/who') route();   // render now, with whatever has answered (the picker is up already)
   requestAnimationFrame(() => requestAnimationFrame(() => { try{ window.BoothAndroid?.pageShown?.(); }catch{} }));   // drawn: the splash goes
+  askAtLaunch();                                        // no account: the sign-in screen (a QR on a television) is all there is
   if(first === 'slow'){
     await ready;                                       // and when the add-ons finally arrive,
     if(['', '#/', '#'].includes(location.hash)) route();   // fill the home screen they left empty
