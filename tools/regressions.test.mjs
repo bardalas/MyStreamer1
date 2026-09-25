@@ -578,3 +578,9 @@ test('a card opens by pushing its neighbours aside, not by a window reveal alone
   assert.match(reel, /c\.animate\(\[\{transform: `translateX\(\$\{dx\}px\)`\}, \{transform: 'none'\}\]/);   // on the compositor
   assert.doesNotMatch(css, /spotOpen\{from\{[^}]*scale/);                                 // no scale wobble of the picture itself
 });
+
+
+test('on a television the search field is one stop of the menu: the mark above it is not (#139)', async () => {
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  assert.match(nav, /!\(isTvLayout\(\) && el\.matches\('#sf \.ic'\)\)/);
+});
