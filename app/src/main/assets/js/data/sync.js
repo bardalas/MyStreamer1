@@ -6,9 +6,17 @@
 import {PROFILE_KEYS, store, profileId} from '../core/store.js';
 import {accessToken, accountId, call, signedIn} from './account.js';
 
-const META = 'syncMeta';                        // {pulled: iso time, dirty: {'<profile>/<key>': true}}
+const META = 'syncMeta';                        // {pulled: the newest SERVER time seen, dirty: {'<profile>/<key>': true}, v}
+const EPOCH = '1970-01-01T00:00:00Z';
 const LIST = 'profiles';
-const meta = () => store.get(META, {pulled: '1970-01-01T00:00:00Z', dirty: {}});
+/* The times are the server's (it stamps every row itself): a device's own clock says nothing about another's, and a device whose
+   clock ran behind pushed rows that looked old to the others - a profile on the television never reached the phone. Devices
+   that kept their cursor by their own clock (no v) start again from the beginning, once. */
+const meta = () => {
+  const m = store.get(META, null);
+  // ... and what this device holds of the profile list goes up too, so a profile that never reached the account is not lost
+  return m?.v === 2 ? m : {pulled: EPOCH, dirty: {...(m?.dirty || {}), ['/' + LIST]: true}, v: 2};
+};
 const saveMeta = m => store.set(META, m);
 let applying = false, busy = false;
 
@@ -41,13 +49,12 @@ async function push(){
   const m = meta(), uid = accountId();
   const names = Object.keys(m.dirty);
   if(!names.length || !uid) return 0;
-  const now = new Date().toISOString();
   const rows = [], profs = [];
   for(const n of names){
     const [pid, ...rest] = n.split('/'), key = rest.join('/');
     if(key === LIST){
-      for(const p of store.get(LIST, [])) profs.push({account_id: uid, id: p.id, data: p, deleted: false, updated_at: now});
-    }else rows.push({account_id: uid, profile_id: pid, key, value: store.getFor(pid, key, null), updated_at: now});
+      for(const p of store.get(LIST, [])) profs.push({account_id: uid, id: p.id, data: p, deleted: false});
+    }else rows.push({account_id: uid, profile_id: pid, key, value: store.getFor(pid, key, null)});
   }
   const up = {method: 'POST', extra: {Prefer: 'resolution=merge-duplicates,return=minimal'}};
   if(profs.length) await rest('profiles?on_conflict=account_id,id', {...up, body: profs});
@@ -61,7 +68,6 @@ async function push(){
 /** Take what changed elsewhere. Returns whether anything of the profile in use changed (the page then reads it again). */
 async function pull(){
   const m = meta(), since = encodeURIComponent(m.pulled);
-  const started = new Date().toISOString();
   const [profs, data] = await Promise.all([
     rest(`profiles?select=id,data,deleted,updated_at&updated_at=gt.${since}`),
     rest(`profile_data?select=profile_id,key,value,updated_at&updated_at=gt.${since}`)]);
@@ -92,7 +98,10 @@ async function pull(){
       if(r.profile_id === profileId) changedHere = true;
     }
   }finally{ applying = false; }
-  const after = meta(); after.pulled = started; saveMeta(after);
+  // the cursor is the newest time the SERVER gave, a few seconds back so a row committed just behind it is not missed (taking a row twice is harmless)
+  let newest = Date.parse(m.pulled) || 0;
+  for(const r of [...(profs || []), ...(data || [])]) newest = Math.max(newest, Date.parse(r.updated_at) || 0);
+  const after = meta(); after.pulled = new Date(Math.max(0, newest - 5000)).toISOString(); saveMeta(after);
   return changedHere;
 }
 
@@ -101,8 +110,9 @@ export async function sync(){
   if(!signedIn() || busy) return {changed: false};
   busy = true;
   try{
-    const changed = await pull();
-    await push();
+    let changed = await pull();
+    const sent = await push();
+    if(sent) changed = (await pull()) || changed;          // what was held back because it was being changed here comes now
     return {changed};
   }finally{ busy = false; }
 }
@@ -110,7 +120,7 @@ export async function sync(){
 /** The account has just been joined by this device: it sends everything it has, and takes what the account has. */
 export async function firstSync(){
   const m = meta();
-  m.pulled = '1970-01-01T00:00:00Z';
+  m.pulled = EPOCH;
   // whatever this device holds is the first thing to send - unless the account already has profiles, when the account is
   // the household and a device that was never used adopts it
   const remote = await rest('profiles?select=id&limit=1');
