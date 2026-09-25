@@ -60,10 +60,13 @@ export const store = {
     const key = keyOf(k);
     try{ localStorage.setItem(key, JSON.stringify(v)); }
     catch(e){ store.prune(); try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e2){} }
+    store.watch?.(profileId, k);
   },
   /** Another profile's own copy of [k] - the profiles' page reads and changes profiles it is not in. */
   getFor(pid, k, d){ const v = read(profileKey(pid, k)); return v === undefined ? d : v; },
-  setFor(pid, k, v){ write(profileKey(pid, k), v); },
+  setFor(pid, k, v){ write(profileKey(pid, k), v); store.watch?.(pid, k); },
+  /** Called with (profile, key) after a write: the account's sync (data/sync.js) notes what changed. */
+  watch: null,
   /** Everything a profile kept, gone with it. */
   dropProfile(pid){
     const pre = `booth:p/${pid}/`;
