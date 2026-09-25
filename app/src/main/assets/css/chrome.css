@@ -47,15 +47,15 @@ main{padding:0 28px 60px}
     padding:16px 12px 40px;overflow-y:auto;overflow-x:hidden;border-inline-end:1px solid var(--line);
     scrollbar-width:none;transition:width var(--settle) var(--ease),box-shadow var(--settle) var(--ease)}
   .rail::-webkit-scrollbar{display:none}
-  .rail:hover,.rail:focus-within{width:var(--rail,184px)}
+  body.railwide .rail{width:var(--rail,184px)}      /* open is one state - body.railwide (js/ui/rail.js) - not :hover / :focus-within, which a pointer or a stray focus can leave set */
   /* the words spread out of the marks rather than appearing beside them */
   .rail .lbl{opacity:0;white-space:nowrap;transform:translateX(calc(-10px * var(--flip)));
     transition:opacity var(--travel) var(--ease),transform var(--travel) var(--ease)}
-  .rail:hover .lbl,.rail:focus-within .lbl{opacity:1;transform:none}
-  .rail:hover .nav a:nth-child(n+3) .lbl,.rail:focus-within .nav a:nth-child(n+3) .lbl{transition-delay:.04s}
+  body.railwide .rail .lbl{opacity:1;transform:none}
+  body.railwide .rail .nav a:nth-child(n+3) .lbl{transition-delay:.04s}
   /* the field is there even while it is out of sight, so the remote can reach it and open the menu */
   .search input{width:130px;flex:0 0 130px;opacity:0;transition:opacity var(--travel) var(--ease)}
-  .rail:hover .search input,.rail:focus-within .search input{opacity:1}
+  body.railwide .rail .search input{opacity:1}
   /* the menu opening moves the page aside rather than standing on it */
   main{margin-inline-start:var(--rail-shut,60px);transition:margin var(--settle) var(--ease)}
   body.railwide main{margin-inline-start:var(--rail,184px)}
