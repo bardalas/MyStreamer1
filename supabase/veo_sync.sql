@@ -147,3 +147,13 @@ begin
 end $$;
 revoke all on function public.pair_offer() from public;
 grant execute on function public.pair_offer() to authenticated;
+
+-- ---------------------------------------------------------------- v4: the server keeps the time
+-- Devices used to stamp updated_at with their own clocks; a device whose clock was behind pushed rows that looked old to the others.
+
+create or replace function public.touch_updated_at() returns trigger language plpgsql as $$
+begin new.updated_at := now(); return new; end $$;
+drop trigger if exists profiles_touch on public.profiles;
+create trigger profiles_touch before insert or update on public.profiles for each row execute function public.touch_updated_at();
+drop trigger if exists profile_data_touch on public.profile_data;
+create trigger profile_data_touch before insert or update on public.profile_data for each row execute function public.touch_updated_at();
