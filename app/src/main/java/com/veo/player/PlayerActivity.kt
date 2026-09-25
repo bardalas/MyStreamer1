@@ -678,6 +678,8 @@ class PlayerActivity : AppCompatActivity() {
                     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = showPaused(!playWhenReady)
                     override fun onPlaybackStateChanged(state: Int) {
                         if (state == Player.STATE_ENDED && nextVid.isNotEmpty() && !live) showNext(ended = true)
+                        // a stretch of the archive ran out: on from where it ended (the live edge, if that is the present)
+                        if (state == Player.STATE_ENDED && live) catchUp?.let { c -> handler.post { playAt(c.to * 1000) } }
                         if (live && state == Player.STATE_BUFFERING && !liveReady) {
                             handler.removeCallbacks(liveStartTimeout)
                             handler.postDelayed(liveStartTimeout, 15_000)
@@ -689,6 +691,10 @@ class PlayerActivity : AppCompatActivity() {
                             !intent.getBooleanExtra("torrent", false)) {
                             handler.removeCallbacks(vodStallTimeout)
                             handler.postDelayed(vodStallTimeout, 25_000)
+                        }
+                        if (state == Player.STATE_READY && live && catchUp == null && pendingAt <= 0) {
+                            val o = player?.currentLiveOffset ?: C.TIME_UNSET
+                            if (o != C.TIME_UNSET && o in 1_000L..30_000L) liveEdge = o           // where "live" sits on this channel
                         }
                         if (state != Player.STATE_READY) return
                         liveReady = true
@@ -716,6 +722,7 @@ class PlayerActivity : AppCompatActivity() {
                 // the tick died with the player that was released; it lives again with this one
                 if (captions != null) { handler.removeCallbacks(tickCaptions); handler.post(tickCaptions) }
                 if (!live) it.seekTo(resumePosition)
+                else if (catchUp != null && catchSeekMs > 0) { it.seekTo(catchSeekMs); catchSeekMs = 0 }
                 it.prepare()
                 it.playWhenReady = true
             }
@@ -793,56 +800,70 @@ class PlayerActivity : AppCompatActivity() {
         if (src.epg.isNotBlank() && !guides.containsKey(src.epg)) loadGuide(src.epg)
     }
 
-    /** The "now / next" part, refreshed every minute while the banner is up. */
+    /** The "now / next" part, refreshed every second while the banner is up. */
     private fun paintNow() {
         findViewById<TextView>(R.id.nowTitle).textDirection = View.TEXT_DIRECTION_LOCALE
         val src = sources.getOrNull(index) ?: return
-        val now = System.currentTimeMillis() / 1000
+        val nowMs = System.currentTimeMillis()
+        val now = nowMs / 1000
         val progs = guides[src.epg]
-        // the banner is about the programme being pointed at, else the one playing (live or from the archive)
-        val onNow = progs?.firstOrNull { now in it.from until it.to }
-        val back = if (walking) walkAt else catchUp
-        val playing = back ?: onNow
-        val next = progs?.firstOrNull { it.from >= (playing?.to ?: now) }
         val title = findViewById<TextView>(R.id.nowTitle)
         val bar = findViewById<SeekBarView>(R.id.nowBar)
         val after = findViewById<TextView>(R.id.nextTitle)
-        // how far behind the live edge the picture is: nothing at the edge itself (or when the stream does not say)
-        val behindMs = if (back != null || walking) 0L
-                       else player?.currentLiveOffset?.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L) ?: 0L
+        if (walking) {                                              // pointing at a programme in the guide, not yet playing it
+            val at = walkAt ?: progs?.firstOrNull { now in it.from until it.to }
+            paintLiveChip(0L)
+            if (at != null) {
+                title.text = "${hhmm(at.from)} · ${at.name}"
+                bar.visibility = View.VISIBLE; bar.progress = 0; bar.secondaryProgress = 0
+                after.text = "OK · ${hhmm(at.from)}–${hhmm(at.to)}"
+            }
+            return
+        }
+        val at = if (pendingAt > 0) pendingAt else posEpochMs()     // where you are on the line of time
+        val behindMs = (nowMs - at - liveEdgeMs()).coerceAtLeast(0L)      // behind the edge, not behind the very second
+        val at_s = at / 1000
+        val prog = progs?.firstOrNull { at_s in it.from until it.to } ?: progs?.firstOrNull { now in it.from until it.to }
         paintLiveChip(behindMs)
-        if (playing != null) {
-            title.text = "${hhmm(playing.from)} · ${playing.name}"
+        /* The bar is a ruler of time that ends in the present: the last few minutes, or the last few hours, whichever
+           the distance behind needs (timelineSpanMs). Filled from the far end to where you are; hollow from there to
+           the present - the part you have gone back over; the present is the end of it. A programme is an hour and a
+           half or three hours: on it a minute is a pixel, and nobody can tell where they are. So the programme is
+           in the words, and the bar is the distance behind the present. */
+        val span = timelineSpanMs(behindMs)
+        val axis = "${span / 60_000} דק׳"
+        val ruler = src.arch.isNotBlank()
+        if (ruler) {
             bar.visibility = View.VISIBLE
-            val span = (playing.to - playing.from).coerceAtLeast(1)
-            // where you are: the live edge less how far behind it you are (a seek back moves the bar back)
-            val pos = if (walking) 0L
-                      else if (back != null) (player?.currentPosition ?: 0L) / 1000
-                      else (now - playing.from) - behindMs / 1000
-            bar.progress = ((pos * 100) / span).toInt().coerceIn(0, 100)
-            // ...and how far the broadcast has got - the gap between the two is the distance behind it
-            bar.secondaryProgress = if (back == null && !walking) (((now - playing.from) * 100) / span).toInt().coerceIn(0, 100) else 0
-            val left = (((playing.to - playing.from) - pos) / 60).coerceAtLeast(0)
-            after.text = if (walking) "OK · ${hhmm(playing.from)}–${hhmm(playing.to)}"
-                         else if (back != null) "צפייה אחורה · נותרו $left דק׳"
+            bar.progress = ((1.0 - behindMs.toDouble() / span) * 100).toInt().coerceIn(0, 100)
+            bar.secondaryProgress = 100
+        }
+        if (prog != null) {
+            title.text = "${hhmm(prog.from)} · ${prog.name}"
+            if (!ruler) bar.visibility = View.GONE
+            val left = ((prog.to - at_s) / 60).coerceAtLeast(0)
+            val next = progs?.firstOrNull { it.from >= prog.to }
+            after.text = if (behindMs >= 5_000) "${hhmm(at_s)} · נותרו $left דק׳ בתוכנית · הציר: $axis אחרונות"
                          else if (next != null) "עוד $left דק׳ · אחר כך ${hhmm(next.from)} ${next.name}"
                          else "נותרו $left דק׳"
         } else {
-            title.text = if (progs == null && src.epg.isNotBlank()) "טוען לוח שידורים…"
-                         else if (next != null) "הבא: ${hhmm(next.from)} · ${next.name}"
-                         else "שידור חי"
-            bar.visibility = View.GONE
+            title.text = if (progs == null && src.epg.isNotBlank()) "טוען לוח שידורים…" else if (behindMs >= 5_000) hhmm(at_s) else "שידור חי"
             after.text = ""
+            // no archive: the bar is what the player keeps, ending in the present
+            val window = liveWindowMs()
+            if (ruler) { /* the ruler above stands */ }
+            else if (window > 0 && catchUp == null) {
+                bar.visibility = View.VISIBLE
+                bar.progress = ((1.0 - (behindMs.toDouble() / window).coerceIn(0.0, 1.0)) * 100).toInt()
+                bar.secondaryProgress = 100
+            } else bar.visibility = View.GONE
         }
-        /* On live the bar is the stretch that can be gone back over, ending in the live edge: full when you are
-           at it, and emptied - hollow, hatched - by as much as you have gone back. (A programme is a hour and a
-           half; a minute behind it would not show on that. The programme's time is in the words.) */
-        val window = liveWindowMs()
-        if (back == null && !walking && window > 0) {
-            bar.visibility = View.VISIBLE
-            bar.progress = ((1.0 - (behindMs.toDouble() / window).coerceIn(0.0, 1.0)) * 100).toInt()
-            bar.secondaryProgress = 100
-        }
+    }
+
+    /** The ruler's length: the shortest of these that holds the distance behind with room to spare. */
+    private fun timelineSpanMs(behindMs: Long): Long {
+        val spans = longArrayOf(5, 15, 30, 60, 120, 180)
+        return (spans.firstOrNull { behindMs <= it * 60_000L * 0.85 } ?: spans.last()) * 60_000L
     }
 
     /** How long a stretch of a live stream can be gone back over (what the player keeps), or 0 when it does not say. */
@@ -860,7 +881,6 @@ class PlayerActivity : AppCompatActivity() {
         val chip = findViewById<TextView>(R.id.liveChip)
         if (walking) { chip.visibility = View.GONE; return }
         val (text, bg, ink) = when {
-            catchUp != null -> Triple("הקלטה", skin.line, skin.light)
             behindMs >= 5_000 -> Triple("‹ ${fmtBehind(behindMs)} מאחורי השידור החי", skin.accent, skin.onAccent)
             else -> Triple("● שידור חי", 0xFFD32F2F.toInt(), 0xFFFFFFFF.toInt())
         }
@@ -881,10 +901,12 @@ class PlayerActivity : AppCompatActivity() {
             seekTotal = 0
         }.start()
     }
-    private fun showSeekSign(byMs: Long) {
+    private fun showSeekSign(byMs: Long, atMs: Long = 0L) {
         seekTotal += byMs
         val sign = findViewById<TextView>(R.id.seekSign)
-        sign.text = (if (seekTotal < 0) "⏪  " else "⏩  ") + fmtBehind(kotlin.math.abs(seekTotal))
+        val behind = if (atMs > 0) (System.currentTimeMillis() - atMs - liveEdgeMs()).coerceAtLeast(0L) else 0L
+        val where = if (atMs <= 0) "" else if (behind < 5_000) "  ·  ● שידור חי" else "  ·  ${hhmm(atMs / 1000)}"
+        sign.text = (if (seekTotal < 0) "⏪  " else "⏩  ") + fmtBehind(kotlin.math.abs(seekTotal)) + where
         sign.animate().cancel()
         sign.alpha = 1f
         sign.visibility = View.VISIBLE
@@ -1236,15 +1258,85 @@ class PlayerActivity : AppCompatActivity() {
         showBanner()
     }
 
-    /** Step along the stream: a press steps a little, a held key leaps. A live stream keeps a window behind its edge. */
+    /* ---------- live TV: where you are in time ----------
+       One line of time runs from the past to the present. Where you are on it is [posEpochMs]: the present less how
+       far behind it the picture is (the player says, within the few seconds it keeps of a live stream) - or, in the
+       archive, the minute the stretch began plus how far into it. A press of the arrows moves along that line:
+       ten seconds, or thirty held. Inside what is already loaded it is a seek; beyond it the archive is asked for,
+       from that very minute, once the presses stop; forward into the present is the live edge. The sign, the chip
+       and the bar all say the same thing because they are all made from that one number. */
+    private var pendingAt = -1L
+    private var catchSeekMs = 0L                     // where in the archive stretch it opens: the minute asked for
+    private val PRE_MS = 40_000L                     // ... which starts this much before it, so that a few presses back are in hand
+    private val applyPending = Runnable { val t = pendingAt; pendingAt = -1; if (t > 0) playAt(t) }
+
+    /** Where the picture is on the line of time, as a clock reads it, in milliseconds. */
+    private fun posEpochMs(): Long {
+        val p = player ?: return System.currentTimeMillis()
+        val c = catchUp
+        return if (c != null) c.from * 1000 + p.currentPosition
+        else System.currentTimeMillis() - (p.currentLiveOffset.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L) ?: 0L)
+    }
+
+    /** How far behind the true present a live stream plays when it is "live": the player keeps some seconds in hand,
+        so the picture is never at the very edge - and that is live, not "behind". Seen, when the channel first
+        played (its own configuration says less than it does). */
+    @Volatile private var liveEdge = 10_000L
+    private fun liveEdgeMs(): Long = liveEdge
+
+    /** Back to the live edge of this channel. */
+    private fun goLive() {
+        handler.removeCallbacks(applyPending); pendingAt = -1
+        walking = false; walkAt = null; catchUp = null
+        archTry = 0; retries = 0
+        player?.release(); player = null
+        showBanner()
+        handler.removeCallbacks(rebuild); handler.postDelayed(rebuild, 150)
+    }
+
+    /** Play the archive from the minute [atMs] - to the present, or three hours on, whichever is nearer. */
+    private fun playAt(atMs: Long) {
+        val nowSec = System.currentTimeMillis() / 1000
+        val from = atMs / 1000
+        val start = (atMs - PRE_MS) / 1000
+        val dur = minOf(3 * 3600L, nowSec - start)
+        if (dur < 30) return goLive()
+        val prog = guides[sources[index].epg]?.firstOrNull { from in it.from until it.to }
+        catchUp = Prog(start, start + dur, prog?.name ?: "")
+        catchSeekMs = atMs - start * 1000
+        walking = false; walkAt = null; pendingAt = -1
+        archTry = 0; retries = 0
+        player?.release(); player = null
+        showBanner()
+        handler.removeCallbacks(rebuild); handler.postDelayed(rebuild, 150)
+    }
+
+    /** Step along the line of time: a press ten seconds, a held key thirty. */
     private fun seekBy(direction: Int, held: Boolean) {
         val p = player ?: return
         val step = if (held) 30_000L else 10_000L
-        p.seekTo((p.currentPosition + direction * step).coerceAtLeast(0))
-        showSeekSign(direction * step)
-        if (!walking) showBanner()                                 // where you are is what you are looking at
-        else if (bannerOpen) paintNow()
-        // where you are is on the banner now: the chip, the bar and the sign of the seek - no second note
+        val nowMs = System.currentTimeMillis()
+        val target = (if (pendingAt > 0) pendingAt else posEpochMs()) + direction * step
+        val c = catchUp
+        if (direction > 0 && target >= nowMs - liveEdgeMs() - 3_000) {       // forward into the present: the live edge
+            showSeekSign(direction * step, nowMs)
+            if (c != null || pendingAt > 0) goLive() else p.seekToDefaultPosition()
+            return
+        }
+        val window = liveWindowMs()
+        val loaded = if (c != null) {
+            val rel = target - c.from * 1000
+            val dur = p.duration
+            rel >= 0 && (dur == C.TIME_UNSET || rel < dur - 2_000)
+        } else sources[index].arch.isBlank() || (nowMs - target) <= window - 4_000      // no archive: what the player keeps is all there is
+        if (loaded && pendingAt <= 0) {
+            p.seekTo((if (c != null) target - c.from * 1000 else p.currentPosition + direction * step).coerceAtLeast(0))
+        } else {                                                              // beyond what is loaded: from that minute, after the last press
+            pendingAt = target
+            handler.removeCallbacks(applyPending); handler.postDelayed(applyPending, 450)
+        }
+        showSeekSign(direction * step, target)
+        if (!walking) showBanner() else if (bannerOpen) paintNow()
     }
 
     private fun fmtClock(ms: Long): String {
@@ -1448,7 +1540,7 @@ class PlayerActivity : AppCompatActivity() {
             } else if (!live) {
                 scrubEnd(dir)
             } else {
-                if (!seekLong) { if (canWalk()) walkGuide(back) else seekBy(dir, held = false) }
+                if (!seekLong) seekBy(dir, held = false)              // ten seconds; the programmes have their own keys
                 seekLong = false
             }
             return true
@@ -1485,6 +1577,9 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_BACK -> if (walking) { walking = false; walkAt = null; showBanner(); return true }
             KeyEvent.KEYCODE_MEDIA_REWIND -> if (!controls) { seekBy(-1, event.repeatCount > 0); return true }
             KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (!controls) { seekBy(1, event.repeatCount > 0); return true }
+            // the guide: one programme at a time (OK on the one pointed at plays it) - the arrows are for time
+            KeyEvent.KEYCODE_MEDIA_NEXT -> if (live && canWalk()) { walkGuide(false); return true }
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> if (live && canWalk()) { walkGuide(true); return true }
             // a film: the subtitles panel - which translation, and how far it is moved
             KeyEvent.KEYCODE_CAPTIONS -> if (!live) { openSubsPanel(); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
