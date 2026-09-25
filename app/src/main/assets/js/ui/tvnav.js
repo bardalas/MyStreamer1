@@ -71,7 +71,10 @@ export const itemsOf = row => {
   const kept = itemCache.get(row);
   if(kept && kept.gen === gen && kept.items.length && kept.items.every(el => el.isConnected)) return kept.items;
   // the buttons of the title in the middle of a wheel are a step below the row, not part of it
-  const items = [...row.querySelectorAll(FOCUSABLE)].filter(el => visible(el) && !el.closest('.spotact'));
+  /* The search mark is not a place of its own on a television: it stood above the field it belongs to, so that Up
+     from the field landed on it and OK on it did not open the field. The field is the one stop; the mark beside it
+     is only a picture of what it is for (#139). */
+  const items = [...row.querySelectorAll(FOCUSABLE)].filter(el => visible(el) && !el.closest('.spotact') && !(isTvLayout() && el.matches('#sf .ic')));
   itemCache.set(row, {gen, items});
   return items;
 };
