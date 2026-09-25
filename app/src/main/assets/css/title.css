@@ -47,6 +47,10 @@
    only mark of where the viewer is, and the accent on the name the only mark of what is lined up. */
 .epanel{margin-top:18px}
 .epwrap{display:flex;flex-direction:column;gap:10px;max-width:760px}
+/* on a wide screen the list is a column of its own - two fifths of the page, not the whole width */
+@media(min-width:900px){.epwrap{max-width:min(40vw,560px)}}
+.epnow{flex-basis:100%;color:var(--muted);font:500 15px var(--body)}
+.epnow b{color:var(--tungsten);font-weight:700}
 .seasonbar{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px}
 .seasonbar::-webkit-scrollbar{display:none}
 .seasonbar button{flex:none;background:none;border:2px solid transparent;border-radius:3px;padding:4px 10px;
