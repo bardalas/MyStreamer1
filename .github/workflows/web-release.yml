@@ -1,0 +1,38 @@
+name: Publish web update
+
+# Ships the web layer (booth.html, js, css) to installed apps without a new APK. Run by hand from the
+# Actions tab. The release is a PRE-release tagged web-v*, so it never becomes the "latest" release the
+# APK updater reads. An app takes only a bundle made for its own version; Kotlin changes need an APK.
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Tests
+        run: |
+          while IFS= read -r -d '' file; do
+            node --input-type=module --check < "$file"
+          done < <(find app/src/main/assets/js -name '*.js' -print0)
+          node --experimental-vm-modules --test tools/regressions.test.mjs
+      - name: Build and sign the bundle
+        env:
+          OTA_SIGNING_KEY: ${{ secrets.OTA_SIGNING_KEY }}
+        run: |
+          printf '%s\n' "$OTA_SIGNING_KEY" > "$RUNNER_TEMP/ota.pem"
+          python3 tools/build_web_bundle.py out --key "$RUNNER_TEMP/ota.pem" | tee out/manifest.line
+          rm -f "$RUNNER_TEMP/ota.pem"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(python3 -c "import json;print(json.load(open('out/web-bundle.json'))['version'])")
+          gh release create "web-v$v" out/web-bundle.zip out/web-bundle.json out/web-bundle.zip.sig \
+            --prerelease --title "Web update $v" --notes "Web layer only, for the app version in web-bundle.json."
