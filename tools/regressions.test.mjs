@@ -616,3 +616,12 @@ test('the load control fetches further ahead on a fast line, and a pause goes on
   assert.match(pa, /val extend = !live && !intent\.getBooleanExtra\("torrent", false\)/);   // not a live stream, not a local torrent
   assert.match(pa, /@Volatile private var streamBps/);                                // the player is not asked from its own thread
 });
+
+
+test('the menu is settled from what is true, and the press that unlocks the search field is not a search (#150 #151)', async () => {
+  const rail = await readFile(path.join(assets, 'js/ui/rail.js'), 'utf8');
+  assert.match(rail, /const settle = \(\) => requestAnimationFrame/);
+  assert.match(rail, /!rail\.contains\(document\.activeElement\) && !rail\.matches\(':hover'\)/);
+  assert.match(rail, /new MutationObserver\(settle\)\.observe\(rail/);           // something in the menu taken away: the focus went with it
+  assert.match(rail, /e\.key !== 'Enter' \|\| e\.defaultPrevented \|\| \$\('#q'\)\.readOnly/);
+});

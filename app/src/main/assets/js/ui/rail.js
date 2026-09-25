@@ -32,6 +32,19 @@ rail?.addEventListener('pointerenter', () => push(true));
 rail?.addEventListener('pointerleave', () => push(false));
 rail?.addEventListener('focusin', () => push(true));
 rail?.addEventListener('focusout', e => { if(!rail.contains(e.relatedTarget)) push(false); });
+/* The menu is open for as long as the viewer is in it - focus inside it, or the pointer over it. It is closed by the
+   focus leaving (focusout, above), but that event does not come when the focused thing is taken away (the list of
+   suggestions is cleared when a title is chosen) or when the page moves the focus itself: the menu stayed open over
+   the page it had just led to. So the state is also settled from what is true - checked a frame after the focus
+   moves anywhere outside it, after a change of screen, after something in the menu is removed, and after any key. */
+const settle = () => requestAnimationFrame(() => {
+  if(!RAIL_MQ.matches || !document.body.classList.contains('railwide')) return;
+  if(!rail.contains(document.activeElement) && !rail.matches(':hover')) push(false);
+});
+addEventListener('focusin', e => { if(!rail?.contains(e.target)) settle(); });
+addEventListener('hashchange', settle);
+addEventListener('keydown', settle, true);
+if(rail) new MutationObserver(settle).observe(rail, {childList: true, subtree: true});
 
 /* the mark beside the field: on a wide screen it opens the field, on a phone the whole menu */
 $('#sf .ic')?.addEventListener('click', () => RAIL_MQ.matches ? $('#q').focus() : openRail(true));
@@ -39,7 +52,8 @@ $('#sf .ic')?.addEventListener('click', () => RAIL_MQ.matches ? $('#q').focus() 
    WebView does, so the key is heard here instead. On the television the first OK only unlocks the
    field (js/ui/tvnav.js), and while it is locked this listener lets the key pass. */
 $('#q')?.addEventListener('keydown', e => {
-  if(e.key !== 'Enter' || $('#q').readOnly) return;
+  // the press that unlocked the field (js/ui/tvnav.js armInput says so by preventing the key's default) is not a search
+  if(e.key !== 'Enter' || e.defaultPrevented || $('#q').readOnly) return;
   e.preventDefault();
   $('#sf').requestSubmit ? $('#sf').requestSubmit() : $('#sf').dispatchEvent(new Event('submit'));
 });
