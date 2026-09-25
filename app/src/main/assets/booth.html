@@ -20,7 +20,7 @@ try{
   const s = JSON.parse(localStorage.getItem('booth:p/' + pid + '/settings') || localStorage.getItem('booth:settings') || '{}');
   r.lang = s.uiLang || 'he'; r.dir = dirOf(r.lang);
   const age = {young: 6, kids: 9, older: 12, teen14: 14, teen16: 16, adult18: 18}[s.kidsAge] || 9;
-  r.dataset.skin = s.skin || 'veo'; r.dataset.layout = 'tv'; r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
+  r.dataset.skin = ['veo','midnight','netflix','daylight','custom'].includes(s.skin) ? s.skin : 'veo'; r.dataset.layout = 'tv'; r.dataset.poster = s.poster || 'm'; r.dataset.nosrc = s.nosrc || 'grey';
   r.dataset.kids = s.kids !== 'on' ? 'off' : age >= 16 ? 'teen16' : age >= 14 ? 'teen' : 'child';
 }catch(e){}
 </script>
