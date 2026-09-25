@@ -13,10 +13,9 @@
    a width that is still growing is a width nothing can be measured against. */
 
 .strip .poster.spot,.strip.reel .poster.spot{flex:0 0 calc(var(--poster-w) * 3.47)}
-.poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e;animation:spotOpen .32s cubic-bezier(.22,.8,.24,1) both}
-/* the card opens like a window: what showed as a portrait cut from the middle of the picture is the middle of the
-   whole picture, which widens from there (a poster's frame is 0.375 of the wide one: 31% is left off each side) */
-@keyframes spotOpen{from{clip-path:inset(0 31% 0 31% round 6px)}to{clip-path:inset(0 0 0 0 round 6px)}}
+.poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e}
+/* the card is not opened like a window: it is pushed in from the side the row is turning from, together with the titles
+   beside it (js/ui/reel.js push), which is the movement the eye follows */
 .poster.spot:hover .art{transform:none}
 /* a portrait poster in the wide frame (js/ui/reel.js widen): the whole of it, in the middle of a blurred,
    darker copy of itself - never cut to a band across its middle. Both layers take the picture the card has
