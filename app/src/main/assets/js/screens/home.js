@@ -172,6 +172,10 @@ const TV_ROWS = 18;
 /** How long the remote rests on a tab before the page turns to it - passing over one loads nothing. */
 const TAB_SETTLE_MS = 450;
 const ALL = 'all', NONE = 'none';
+/* The tab is remembered while the viewer moves about (a title and back keeps it) but a category is always entered on All:
+   the choice is dropped at every launch and whenever the menu opens a category. */
+store.set(TAB_KEY, {});
+document.addEventListener('click', e => { if(e.target.closest?.('#rail .nav a')) store.set(TAB_KEY, {}); }, true);
 /** The sources of the type's home: all but the broadcasters, whose programmes are in Shows. */
 const homeOrigins = type => originsFor(type).filter(o => !o.shows);
 export function viewType(type){
