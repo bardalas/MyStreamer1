@@ -40,6 +40,13 @@ export function renderRows(rows, {cont = [], heading = '', top = '', contAt = 0}
   if(items.length) blocks.splice(contAt, 0, `<div class="row"><h2>${tr('row.continue')}</h2>${reel(items.map(x => {
     const ep = x.type === 'series' && Number.isFinite(x.season) && Number.isFinite(x.episode)
       ? `S${String(x.season).padStart(2, '0')} · E${String(x.episode).padStart(2, '0')}` : '';
+    // a programme watched in the page's own player: a card that plays it, from where it was left
+    if(x.type === 'show'){
+      const id = x.metaId.slice(3), pct = x.d ? Math.min(100, x.t / x.d * 100) : 0;
+      return `<button class="poster wide" data-id="${esc(x.metaId)}" data-yt="${esc(id)}" data-title="${esc(x.name)}">
+        <div class="art" data-bg="${esc(x.poster)}">${pct ? `<span class="track"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}</div>
+        <div class="t" dir="auto">${esc(x.name)}</div></button>`;
+    }
     return card({id:x.metaId,type:x.type,name:x.name,poster:x.poster}, {tag: ep});
   }).join(''))}</div>`);
   app.innerHTML = `

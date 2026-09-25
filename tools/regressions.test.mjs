@@ -547,3 +547,13 @@ test('the taste plays over the landscape picture, not under it (#137)', async ()
   const z = re => +css.match(re)[1];
   assert.ok(z(/\.poster\.spot \.art \.taste\{z-index:(\d+)\}/) > z(/\.poster\.spot \.art \.landpic\{[^}]*z-index:(\d+)/));
 });
+
+
+test('a programme watched in the Shows player is kept, resumed, and shown in continue watching (#135)', async () => {
+  const yt = await readFile(path.join(assets, 'js/ui/ytplayer.js'), 'utf8');
+  const rows = await readFile(path.join(assets, 'js/ui/rows.js'), 'utf8');
+  assert.match(yt, /progress\['yt:' \+ now\] = \{t, d, at: Date\.now\(\), metaId: 'yt:' \+ now, type: 'show'/);
+  assert.match(yt, /resumeAt \? e\.target\.seekTo|if\(resumeAt\) e\.target\.seekTo/);
+  assert.match(yt, /closeYt\(\)\{\s*keep\(true\)/);
+  assert.match(rows, /x\.type === 'show'/); assert.match(rows, /data-yt="\$\{esc\(id\)\}"/);
+});
