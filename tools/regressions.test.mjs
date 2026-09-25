@@ -684,7 +684,7 @@ test('an unsent local profile edit is not overwritten by the account, and the ac
 
 test('the taste plays on a television only, never on a phone (#213)', async () => {
   const taste = await readFile(path.join(assets, 'js/ui/taste.js'), 'utf8');
-  assert.match(taste, /settings\.preview === 'off' \|\| !IS_TV_DEVICE\) return;/);
+  assert.match(taste, /settings\.preview === 'off' \|\| !IS_TV_DEVICE/);
   assert.doesNotMatch(taste, /isTvLayout/);            // that one is always true: the layout is one
 });
 
@@ -738,6 +738,14 @@ test('a torrent stream keeps a window of pieces wanted ahead of the reader, and 
 test('a source that did not answer is shown only when nothing playable was found (#228)', async () => {
   const src = await readFile(path.join(assets, 'js/ui/sources.js'), 'utf8');
   assert.match(src, /const failure = errors\.length && !best \?/);
+});
+
+test('nothing runs behind the sign-in screen: boot stops at the gate and the taste refuses to start (#232)', async () => {
+  const app = await readFile(path.join(assets, 'js/app.js'), 'utf8');
+  const taste = await readFile(path.join(assets, 'js/ui/taste.js'), 'utf8');
+  assert.match(app, /if\(!signedIn\(\)\)\{\s*askAtLaunch\(\);/);                              // the gate ends boot ...
+  assert.ok(app.indexOf('if(!signedIn()){') < app.indexOf('const ready = loadAddons();'));
+  assert.match(taste, /document\.getElementById\('acctgate'\)\) return;/);
 });
 
 test('a blank placeholder never replaces the account\'s profile, and the household\'s own things follow the account (#234)', async () => {

@@ -43,7 +43,7 @@ function watchFrames(alive, bad){
 const CONTROLS_FADE_MS = 2500;
 export function startTaste(hostSel, yt, delay = 1500, quiet = false){
   endTaste();
-  if(!yt || settings.preview === 'off' || !IS_TV_DEVICE) return;     // a television only: a phone plays no trailers of its own accord
+  if(!yt || settings.preview === 'off' || !IS_TV_DEVICE || document.getElementById('acctgate')) return;   // never behind the sign-in screen     // a television only: a phone plays no trailers of its own accord
   if(settings.preview === 'quiet') quiet = true;     // the viewer asked for trailers without sound, everywhere
   tasteTimer = setTimeout(() => {
     const host = $(hostSel);
