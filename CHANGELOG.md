@@ -1,5 +1,11 @@
 # VEO Android changelog
 
+## 0.45.24 — 2026-09-25
+- **Every profile can change its own picture** - an avatar from the list, or a photo from the phone - not only
+  the account's owner. Only the owner adds or deletes profiles, or edits the others. (#209)
+- **No trailer preview on a phone.** It plays on a television only. (#213)
+- **The exit question is centred** and no longer has the extra sentence. (#211)
+
 ## 0.45.23 — 2026-09-25
 - **A profile edit is kept.** The account's older copy of a profile could overwrite a change you had just made and
   not yet sent - a new picture, a new name - so it seemed not to save. A change made here now wins and is sent;
