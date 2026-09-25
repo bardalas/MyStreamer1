@@ -34,6 +34,9 @@
 .poster.spot .art .landpic{position:absolute;inset:0;z-index:1;background:center/cover no-repeat;opacity:0;
   transition:opacity .45s ease;pointer-events:none}
 .poster.spot .art .landpic.in{opacity:1}
+/* the taste plays over the picture, not under it: the wide picture that fades in over the card (z 1) hid the trailer that
+   came after it, so the taste seemed to have stopped (#137) */
+.poster.spot .art .taste{z-index:2}
 /* the name stays where every other title's name is: under its picture */
 /* how far into it the viewer got stays visible over the taste and over the words */
 .poster.spot .track{z-index:3;height:6px}

@@ -540,3 +540,10 @@ test('seek keys and bars follow the layout direction, and live shows the emptied
   assert.match(bar, /the emptied part/);                                     // and draws what was gone back over hollow
   assert.match(yt, /rtl\(\) \? 'ArrowLeft' : 'ArrowRight'/);                   // the Shows player moves the same way
 });
+
+
+test('the taste plays over the landscape picture, not under it (#137)', async () => {
+  const css = await readFile(path.join(assets, 'css/reel.css'), 'utf8');
+  const z = re => +css.match(re)[1];
+  assert.ok(z(/\.poster\.spot \.art \.taste\{z-index:(\d+)\}/) > z(/\.poster\.spot \.art \.landpic\{[^}]*z-index:(\d+)/));
+});
