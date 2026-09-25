@@ -70,6 +70,8 @@ class PlayerActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     /** Automatic retries for the current channel (IPTV servers may still hold the previous session). */
     private var retries = 0
+    /** The video's own rate, in bits a second, as the tracks say it (0 until they do) - read by the load control on another thread. */
+    @Volatile private var streamBps = 0L
     /** Some IPTV connections stay open without producing media, so ExoPlayer never raises an error.
      * Treat initial BUFFERING that never reaches READY as a failed attempt instead of an endless spinner. */
     private var liveReady = false
@@ -602,7 +604,7 @@ class PlayerActivity : AppCompatActivity() {
          * black screen on every film and after every jump - on top of the fetching itself. A second is
          * enough to start smoothly, and the rest keeps filling behind the picture. Time is what a
          * viewer is waiting for, so the player is told to weigh it above the size of what it holds. */
-        val loadControl = DefaultLoadControl.Builder()
+        val baseControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 if (live) 8_000 else 15_000,
                 90_000,
@@ -611,6 +613,16 @@ class PlayerActivity : AppCompatActivity() {
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
+        /* On a fast line a film is fetched further ahead than the ninety seconds everybody gets, and a pause goes
+           on filling to that ceiling instead of stopping (AdaptiveLoadControl): the film is in hand when the viewer
+           comes back to it. Not for a torrent (it is local) or a live stream (it must stay near its edge). */
+        val bandwidth = androidx.media3.exoplayer.upstream.DefaultBandwidthMeter.getSingletonInstance(this)
+        streamBps = 0L
+        val extend = !live && !intent.getBooleanExtra("torrent", false)      // decided here: the control runs on the player's own thread
+        val loadControl = AdaptiveLoadControl(baseControl,
+            lineBps = { bandwidth.bitrateEstimate },
+            streamBps = { streamBps },
+            enabled = { extend })
 
         // The files that were found are drawn by the app (see [useCaptions]); only tracks inside the
         // video itself are left to the player, so there is never one of each on screen.
@@ -657,6 +669,12 @@ class PlayerActivity : AppCompatActivity() {
                 applyTextTracks(it)                   // one owner for what is shown, panel and player alike
                 it.addListener(object : Player.Listener {
                     override fun onPlayerError(error: PlaybackException) = onError(error)
+                    // the stream's own rate, for the load control (which may not ask the player: it is on another thread)
+                    override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                        streamBps = tracks.groups.filter { g -> g.type == C.TRACK_TYPE_VIDEO && g.isSelected }
+                            .flatMap { g -> (0 until g.length).filter { i -> g.isTrackSelected(i) }.map { i -> g.getTrackFormat(i).bitrate } }
+                            .maxOrNull()?.toLong()?.takeIf { it > 0 } ?: 0L
+                    }
                     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = showPaused(!playWhenReady)
                     override fun onPlaybackStateChanged(state: Int) {
                         if (state == Player.STATE_ENDED && nextVid.isNotEmpty() && !live) showNext(ended = true)
