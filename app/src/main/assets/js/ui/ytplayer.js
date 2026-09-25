@@ -6,6 +6,8 @@
    never takes the remote: the page keeps it, and tells the embedded player what to do. */
 import {esc} from '../core/dom.js';
 import {setSetting, settings} from '../core/settings.js';
+import {store} from '../core/store.js';
+import {indexProgress, progress} from '../data/watch.js';
 import {UI, tr} from '../i18n.js';
 
 const OSD_MS = 3500;                   // how long the bar stays after a key, while the video plays
@@ -24,6 +26,23 @@ const loadApi = () => api ||= new Promise(res => {
 
 let yt = null, now = '', cues = [], tick = 0, hideAt = 0, root = null;
 let bufferingSince = 0, recoveryAt = 0;
+let showTitle = '', savedAt = 0, resumeAt = 0;
+
+/* A programme is watched like any other title: how far the viewer got is kept under "yt:<id>", so that it shows in
+   "continue watching" (data/watch.js, ui/rows.js) and picks up where it was left. Kept as it plays, every ten
+   seconds, and once more as it is left; watched to the end it is done, and out of the row. */
+function keep(final){
+  if(!now || !yt?.getCurrentTime) return;
+  const t = yt.getCurrentTime() || 0, d = yt.getDuration?.() || 0;
+  if(!d || (t < 5 && !progress['yt:' + now])) return;                     // not begun: nothing to remember
+  const tick = performance.now();
+  if(!final && tick - savedAt < 10_000) return;
+  savedAt = tick;
+  progress['yt:' + now] = {t, d, at: Date.now(), metaId: 'yt:' + now, type: 'show', name: showTitle,
+    poster: `https://i.ytimg.com/vi/${now}/hqdefault.jpg`, done: t > d - 60};
+  store.lazy('progress', progress);
+  indexProgress();
+}
 const pending = {};                    // captions that came before their video: id -> cues
 
 /** Captions for [id], as the text of an .srt file (MainActivity, once they are translated). */
@@ -51,6 +70,10 @@ const clock = s => {
 export async function openYt(body, id, title, out){
   closeYt();
   now = id;
+  showTitle = title;
+  savedAt = 0;
+  const before = progress['yt:' + id];
+  resumeAt = before && !before.done && before.t > 30 ? before.t : 0;      // back to where it was left
   cues = pending[id] || [];
   delete pending[id];
   body.innerHTML = `<div class="ytp" id="ytp" tabindex="-1">
@@ -76,7 +99,7 @@ export async function openYt(body, id, title, out){
     playerVars: {autoplay: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1, rel: 0,
       playsinline: 1, cc_load_policy: 0, origin: location.origin},
     events: {
-      onReady: e => { e.target.getIframe().tabIndex = -1; e.target.playVideo(); root?.focus(); },
+      onReady: e => { e.target.getIframe().tabIndex = -1; if(resumeAt) e.target.seekTo(resumeAt, true); e.target.playVideo(); root?.focus(); },
       // YouTube's own captions come on by themselves for some videos: the app draws its own
       onStateChange: e => {
         if(e.data === 1){ bufferingSince = 0; noCaptions(e.target); }
@@ -116,6 +139,7 @@ function fail(out){
   if(out){ const b = document.getElementById('ytgo'); b.onclick = out; b.focus(); }
 }
 export function closeYt(){
+  keep(true);
   closePanel();
   clearInterval(tick);
   try{ yt?.destroy(); }catch(e){}
@@ -154,6 +178,7 @@ function paint(){
   const words = settings.subs === 'off' ? '' : (cue?.text || '');
   const shown = panel && !words ? tr('yt.sample') : words;
   if(line.textContent !== shown) line.textContent = shown;
+  if(playing) keep(false);
 }
 const show = () => { hideAt = performance.now() + OSD_MS; paint(); };
 
