@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.20 — 2026-09-25
+- **The side menu closes when you are not in it.** Whether it is open is now one state - the focus is in
+  it, or a mouse moved over it a moment ago - so a pointer left where it was (after a tap, or a click that
+  took you to a title) no longer keeps it open. (#193)
+
 ## 0.45.19 — 2026-09-25
 - **Joining by QR only.** No numbers to type: a signed-in television shows a QR (Settings > Account > Add a
   device); scanning it with the phone's camera opens VEO and joins the account. A phone with no account
