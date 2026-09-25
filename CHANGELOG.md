@@ -1,5 +1,17 @@
 # VEO Android changelog
 
+## 0.45.13 — 2026-09-25
+- **The taste is back.** The trailer preview was playing under the wide picture that fades in over a
+  focused card; it now plays over it. (#137)
+- **A card grows and pushes its neighbours aside.** The neighbours nearest the focused card slide
+  over as its picture opens, instead of a window-style reveal alone. (#134)
+- **Programmes are in "continue watching".** A programme watched in Shows is remembered as it
+  plays, shows in the row with how far you got, and opens where you left it. (#135)
+- **The series page says which episode.** The "play from the start" button at the top is gone: pressing
+  an episode you left in the middle asks, on that episode, whether to continue from where you stopped
+  or start over. A line beside the quality and sources names the episode they are for, and on a wide
+  screen the list of episodes is two fifths of the page instead of all of it. (#136)
+
 ## 0.45.12 — 2026-09-25
 - **Time runs the way the layout does.** In Hebrew the bar fills from the right, and forward is the Left
   key, rewind the Right key (the other way about in a left-to-right language) - in a film, on live TV,
