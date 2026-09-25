@@ -567,13 +567,11 @@ test('series page: the resume / start-over question is asked on the episode, its
 });
 
 
-test('a card grows and pushes its neighbours aside as it does - one movement, no window reveal (#134 #159)', async () => {
+test('the spot card is wide at once: no window, no growing, no sliding neighbours (#134 #159)', async () => {
   const reel = await readFile(path.join(assets, 'js/ui/reel.js'), 'utf8');
   const css = await readFile(path.join(assets, 'css/reel.css'), 'utf8');
-  assert.match(reel, /const was = new Map\(\[\[el, el\.offsetWidth\]\]\);[^\n]*\n\s*if\(spot\?\.isConnected\) was\.set\(spot, spot\.offsetWidth\);\s*clearSpot\(\);/);   // measured before anything changes
-  assert.match(reel, /grow\(strip, was\);/);
-  assert.match(reel, /c\.style\.transition = `flex-basis \$\{GROW_MS\}ms \$\{EASE\}`; c\.style\.flexBasis = '';/);   // from the old width to the new
-  assert.doesNotMatch(css, /spotOpen|clip-path:inset/);                                    // no window
+  assert.doesNotMatch(reel, /function grow\(|function push\(|c\.animate\(/);
+  assert.doesNotMatch(css, /spotOpen|clip-path:inset/);
 });
 
 

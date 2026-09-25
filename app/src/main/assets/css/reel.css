@@ -14,7 +14,7 @@
 
 .strip .poster.spot,.strip.reel .poster.spot{flex:0 0 calc(var(--poster-w) * 3.47)}
 .poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e}
-/* the card is not opened like a window: it grows, and the titles beside it are pushed aside as it does (js/ui/reel.js grow) */
+/* no window, no growing, no sliding of the neighbours: the card is wide at once (the row's own turn is the only movement) */
 .poster.spot:hover .art{transform:none}
 /* a portrait poster in the wide frame (js/ui/reel.js widen): the whole of it, in the middle of a blurred,
    darker copy of itself - never cut to a band across its middle. Both layers take the picture the card has
@@ -30,7 +30,7 @@
 .poster.spot .art.framed>*{z-index:1}
 /* the title's wide picture, fading in over the poster (js/ui/reel.js widen) */
 .poster.spot .art .landpic{position:absolute;inset:0;z-index:1;background:center/cover no-repeat;opacity:0;
-  transition:opacity .45s ease;pointer-events:none}
+  transition:opacity .2s ease;pointer-events:none}
 .poster.spot .art .landpic.in{opacity:1}
 /* the taste plays over the picture, not under it: the wide picture that fades in over the card (z 1) hid the trailer that
    came after it, so the taste seemed to have stopped (#137) */

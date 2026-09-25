@@ -53,37 +53,17 @@ export function clearSpot(){
   spot = null; act = null;
 }
 
-/* The card GROWS, and the titles beside it are pushed aside as it does: the width of the one that was in the middle
-   narrows while the width of the one that is coming to it widens - the same 320 ms, so the row is felt to make room
-   for the picture, one continuous movement, and nothing is uncovered like a window. The layout it ends in is final at
-   once (place() and turn() measure that), so the widths are then let run from what they were to what they are:
-   each card takes its old width as an inline basis, is given a frame to show it, and lets go. */
-const GROW_MS = 320;
+/* The card takes its wide size at once and the neighbours simply stand where the layout puts them: no window, no
+   growing, no sliding. The only movement is the row's own turn to bring the title to the middle (place / turn) - the
+   owner found anything more too animated (#159). */
 /** How long the remote rests on a title before its taste starts loading (it is shown only once playing). */
 const TASTE_AFTER_MS = 800;
-const EASE = 'cubic-bezier(.22,.8,.24,1)';
-function grow(strip, was){
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const moving = [];
-  for(const [c, w] of was){
-    if(!c.isConnected || Math.abs(c.offsetWidth - w) < 2) continue;
-    c.style.transition = 'none';
-    c.style.flexBasis = w + 'px';
-    moving.push(c);
-  }
-  if(!moving.length) return;
-  void strip.offsetWidth;                            // the old widths are laid out: this frame is what the eye starts from
-  for(const c of moving){ c.style.transition = `flex-basis ${GROW_MS}ms ${EASE}`; c.style.flexBasis = ''; }
-  setTimeout(() => moving.forEach(c => { c.style.transition = ''; }), GROW_MS + 40);
-}
 
 /** Bring [el] to the middle of its row. */
 export function spotlight(el){
   if(!el || el === spot || !el.isConnected || !reelable()) return;
   const strip = el.closest('.strip');
   if(!strip) return;
-  const was = new Map([[el, el.offsetWidth]]);       // what each card is about to grow or narrow from
-  if(spot?.isConnected) was.set(spot, spot.offsetWidth);
   clearSpot();
   spot = el;
   strip.querySelectorAll('[data-was-spot]').forEach(x => delete x.dataset.wasSpot);
@@ -105,7 +85,6 @@ export function spotlight(el){
   act.innerHTML = ``;
   strip.appendChild(act);
   place();
-  grow(strip, was);
   /* A viewer running along the row is not reading anything. The picture widens at once - that is what
      a press must answer - but the title's own story, which costs an answer from the add-ons, a page
      of writing and a trailer, waits until they have stopped on it. Otherwise every press pays for
