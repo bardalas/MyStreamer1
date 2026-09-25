@@ -33,7 +33,7 @@ const LATE_MS = 2500;
 /** The side panel follows the remote once it pauses on a title - passing over one loads nothing. */
 const PANE_SETTLE_MS = 180;
 /** How long the remote rests on a title before its trailer starts in the side panel. */
-const TASTE_AFTER_MS = 800;
+const TASTE_AFTER_MS = 1200;
 
 /** The pills of a library: its "service" is every source the type has - the broadcasters and the archive too. */
 const groupsFor = type => SORT_GROUPS.map(g => g.key !== 'svc' ? g
