@@ -1,5 +1,13 @@
 # VEO Android changelog
 
+## 0.45.17 — 2026-09-25
+- **VEO is one account.** The app opens on a sign-in screen; nothing is kept as a profile on a device by
+  itself. On a television it is a QR code: scan it with a phone. A phone that has the VEO app and is signed
+  in approves the television at once, with no email; otherwise the phone page asks for an email and a code.
+  Every television and phone has a login of its own, so signing one in never signs another out. You sign
+  in once on each device; what a device already held is kept in the account the first time. Signing out
+  clears the device. (#177)
+
 ## 0.45.16 — 2026-09-25
 - **One account across televisions and phones.** Settings has a new Account tab: the television shows a
   QR code, you scan it with your phone, sign in there with an email code, and the television signs in by
