@@ -1,5 +1,12 @@
 # VEO Android changelog
 
+## 0.45.21 — 2026-09-25
+- **Live TV, the way you asked.** A short press of Left or Right walks the guide one programme at a time and
+  OK plays the one you stopped on; a held key scrubs back or forward, with the picture following when you
+  let go. The bar is the programme, filled up to the present, with a small arrow and its time where you are
+  - it moves as you scrub. The "behind live" captions are gone. (#158)
+- **A title's picture is pushed in from the side** with its neighbours, not opened like a window. (#159)
+
 ## 0.45.20 — 2026-09-25
 - **The side menu closes when you are not in it.** Whether it is open is now one state - the focus is in
   it, or a mouse moved over it a moment ago - so a pointer left where it was (after a tap, or a click that
