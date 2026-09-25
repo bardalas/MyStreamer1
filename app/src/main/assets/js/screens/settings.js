@@ -12,7 +12,7 @@ import {forgetWatched} from '../data/taste.js';
 import {PROVIDERS, PROVIDERS_MAIN, PROVIDERS_MORE, resetServices, svcMark} from '../data/services.js';
 import {clearProgress} from '../data/watch.js';
 import {UI_LANGS, tr} from '../i18n.js';
-import {accountEmail, pairStart, pairWait, signOut, signedIn} from '../data/account.js';
+import {accountEmail, approvePairing, offerNumber, pairStart, pairWait, signOut, signedIn} from '../data/account.js';
 import {firstSync, sync} from '../data/sync.js';
 import {loadQr} from '../ui/report.js';
 import {parseM3U, playlistCache, playlists, setPlaylists} from '../providers/live.js';
@@ -201,7 +201,9 @@ const PANES = {
   account: () => signedIn()
     ? section(tr('acct.title'), lines(line({fid: 'acctWho', label: tr('acct.in'), value: esc(accountEmail() || '')})
         + line({fid: 'acctSync', label: tr('acct.sync'), note: tr('acct.syncNote'), value: acctSay, attrs: 'data-act="acctSync"'})
-        + line({fid: 'acctOut', label: tr('acct.out'), danger: true, attrs: 'data-act="acctOut"'})))
+        + line({fid: 'acctAdd', label: tr('acct.add'), attrs: 'data-act="acctAdd"'})
+        + line({fid: 'acctTv', label: tr('acct.tv'), attrs: 'data-act="acctTv"'})
+        + line({fid: 'acctOut', label: tr('acct.out'), danger: true, attrs: 'data-act="acctOut"'})) + '<div class="repqr" id="acctbox" style="background:none;padding:0"></div>')
     : section(tr('acct.title'), lines(line({fid: 'acctLink', label: tr('acct.link'), note: tr('acct.linkNote'), attrs: 'data-act="acctLink"'}))
         + '<div class="repqr" id="acctqr"></div><p class="snote" id="acctsay" aria-live="polite"></p>'),
   watch: () => section(tr('set.sec.play'), lines(pref('quality') + pref('cap') + pref('preview')))
@@ -276,6 +278,25 @@ function confirmed(b){
 
 let acctSay = '';
 const ACTS = {
+  // another device joins with a number this one shows
+  acctAdd: async () => {
+    const box = $('#acctbox');
+    try{
+      const n = await offerNumber();
+      box.innerHTML = `<div dir="ltr" style="font-size:44px;font-weight:700;letter-spacing:8px;margin:14px 0 4px">${esc(n)}</div><p class="snote">${esc(tr('acct.addNum'))}</p>`;
+    }catch(e){ box.innerHTML = `<p class="snote">${esc(tr('acct.fail'))}</p>`; }
+  },
+  // this device approves a television that shows its number
+  acctTv: () => {
+    const box = $('#acctbox');
+    box.innerHTML = `<form id="tvform"><input id="tvnum" dir="ltr" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="${esc(tr('acct.tvNum'))}" required style="font:inherit;font-size:22px;padding:12px;border-radius:12px;width:100%;text-align:center;margin-top:12px;background:rgba(255,255,255,.06);color:inherit;border:1px solid var(--line,#25304d)"><p class="snote" id="tvsay"></p></form>`;
+    const f = $('#tvform'); $('#tvnum').focus();
+    f.onsubmit = async e => {
+      e.preventDefault();
+      try{ (await approvePairing($('#tvnum').value)) ? ($('#tvsay').textContent = tr('acct.tvOk')) : ($('#tvsay').textContent = tr('gate.badNumber')); }
+      catch(err){ $('#tvsay').textContent = tr('gate.badNumber'); }
+    };
+  },
   acctLink: async () => {
     const box = $('#acctqr'), say = $('#acctsay');
     if(!box) return;

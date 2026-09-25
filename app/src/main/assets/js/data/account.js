@@ -91,6 +91,19 @@ export async function otpVerify(email, token){
   return keep(d, {email: String(email).trim()});
 }
 
+/** A number for another device to join this account with, good for ten minutes (this device must be signed in). */
+export async function offerNumber(){
+  const token = await accessToken();
+  if(!token) throw new Error('signed out');
+  return call('/rest/v1/rpc/pair_offer', {method: 'POST', body: {}, token});
+}
+/** Join the account with the number a signed-in device shows: this device gets a login of its own. */
+export async function joinWithNumber(code){
+  const r = await call('/functions/v1/pair-collect', {method: 'POST', body: {code: String(code).trim().toUpperCase()}});
+  if(!r?.refresh_token) throw new Error('unknown');
+  return exchange(r.refresh_token);
+}
+
 /** This device is signed in: approve another device's pairing code with the account (the other one gets a session of its own). */
 export async function approvePairing(code){
   const token = await accessToken();

@@ -3,10 +3,10 @@
    asks for an email and sends a code. A device that is signed in already needs none of it: it approves the television
    with the account it has (data/account.js approvePairing). */
 import {$, esc} from '../core/dom.js';
-import {isTvLayout} from '../core/settings.js';
+import {IS_TV_DEVICE} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {tr} from '../i18n.js';
-import {approvePairing, otpSend, otpVerify, pairStart, pairWait, signedIn} from '../data/account.js';
+import {approvePairing, joinWithNumber, otpSend, otpVerify, pairStart, pairWait, signedIn} from '../data/account.js';
 import {firstSync} from '../data/sync.js';
 import {loadQr} from '../ui/report.js';
 
@@ -18,7 +18,9 @@ const STYLE = `#acctgate{position:fixed;inset:0;z-index:9999;display:grid;place-
 #acctgate h1{margin:0 0 6px;font-size:26px}
 #acctgate p{margin:0 0 10px;color:var(--mute,#8e98b4);font-size:17px;line-height:1.5}
 #acctgate input{width:100%;font:inherit;font-size:20px;padding:14px;border-radius:14px;border:1px solid var(--line,#25304d);background:rgba(255,255,255,.06);color:inherit;margin-bottom:12px;text-align:center}
-#acctgate .btn{display:block;width:100%;margin:8px 0 0}
+#acctgate .btn{display:block;width:100%;margin:8px 0 18px;padding:14px;border:0;border-radius:14px;font:inherit;font-weight:600;font-size:18px;background:var(--accent,#3d8bff);color:var(--onaccent,#fff)}
+#acctgate .btn.ghost{background:transparent;color:inherit;border:1px solid var(--line,#25304d)}
+#acctgate .btn:disabled{opacity:.5}
 #acctgate .repqr{display:inline-block;background:#fff;border-radius:16px;padding:6px;margin:0 0 12px}
 #acctgate .repqr svg{display:block;width:180px;height:180px}
 #acctgate .say{min-height:1.5em;font-size:16px}`;
@@ -39,7 +41,7 @@ export async function showSignIn({approve = ''} = {}){
   }
   gate = document.createElement('div');
   gate.id = 'acctgate';
-  const tv = isTvLayout() && !approve;
+  const tv = IS_TV_DEVICE && !approve;              // the QR is for a television: a phone has nothing to scan it with
   gate.innerHTML = `<div class="box" role="dialog" aria-modal="true">
     <img src="veo-mark.png" alt="">
     <h1>${esc(tr(approve ? 'gate.titleTv' : 'gate.title'))}</h1>
@@ -47,7 +49,9 @@ export async function showSignIn({approve = ''} = {}){
     ${tv ? '<div class="repqr" id="gqr" hidden></div><p class="say" id="gsay" aria-live="polite"></p>'
       : `<form id="gform"><input id="gemail" type="email" inputmode="email" autocomplete="email" dir="ltr" placeholder="${esc(tr('gate.email'))}" required>
          <input id="gcode" inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="8" placeholder="${esc(tr('gate.code'))}" hidden>
-         <button class="btn" id="gsend" type="submit">${esc(tr('gate.send'))}</button></form><p class="say" id="gsay" aria-live="polite"></p>`}
+         <button class="btn" id="gsend" type="submit">${esc(tr('gate.send'))}</button></form><p class="say" id="gsay" aria-live="polite"></p>
+         <form id="gnum"><input id="gnumin" dir="ltr" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="${esc(tr('gate.number'))}" required>
+         <button class="btn ghost" type="submit">${esc(tr('gate.join'))}</button></form>`}
     ${tv ? `<button class="btn ghost" id="gnew" type="button">${esc(tr('gate.newCode'))}</button>` : ''}
   </div>`;
   document.body.appendChild(gate);
@@ -65,14 +69,19 @@ export async function showSignIn({approve = ''} = {}){
         const code = qr(0, 'M'); code.addData(pair.url); code.make();
         const box = $('#gqr'); box.innerHTML = code.createSvgTag({cellSize: 6, margin: 2}); box.hidden = false;
       }
-      say(pair.url.replace(/^https?:\/\//, ''));
+      say(pair.code);
       if(await pairWait(pair, stop)) return joined();
       if(gate) say(tr('acct.expired'));
     }catch(e){ if(gate) say(tr('acct.fail')); }
     alive = false;
     return;
   }
-  // a phone: an email, then the code that was sent to it
+  // a phone: an email, then the code that was sent to it - or the number a signed-in device shows
+  $('#gnum').onsubmit = async e => {
+    e.preventDefault();
+    try{ say(tr('acct.syncing')); await joinWithNumber($('#gnumin').value); return joined(); }
+    catch(err){ say(tr('gate.badNumber')); }
+  };
   const email = $('#gemail'), code = $('#gcode'), send = $('#gsend');
   email.focus();
   let sent = false;

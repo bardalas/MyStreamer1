@@ -120,3 +120,30 @@ begin
 end $$;
 revoke all on function public.pair_approve_account(text) from public;
 grant execute on function public.pair_approve_account(text) to authenticated;
+
+-- ---------------------------------------------------------------- v3: a signed-in device offers a number
+
+alter table public.pairings add column if not exists offered boolean not null default false;
+alter table public.pairings alter column secret_hash drop not null;
+
+-- a signed-in device offers a number for another device to join the account with (10 minutes)
+create or replace function public.pair_offer()
+returns text
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  alphabet constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  c text; i int;
+begin
+  if auth.uid() is null then raise exception 'sign in first'; end if;
+  delete from pairings where expires_at < now();
+  delete from pairings where approved_by = auth.uid() and offered;          -- one open offer per account
+  loop
+    c := '';
+    for i in 1..8 loop c := c || substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1); end loop;
+    exit when not exists (select 1 from pairings p where p.code = c);
+  end loop;
+  insert into pairings (code, secret_hash, approved_by, offered) values (c, null, auth.uid(), true);
+  return c;
+end $$;
+revoke all on function public.pair_offer() from public;
+grant execute on function public.pair_offer() to authenticated;
