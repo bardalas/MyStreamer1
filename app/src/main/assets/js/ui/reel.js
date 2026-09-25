@@ -53,25 +53,28 @@ export function clearSpot(){
   spot = null; act = null;
 }
 
-/* The card grows and pushes its neighbours aside: what stands next to the middle slides over as the picture opens
-   (each from where it was to where it now is), so that the row is felt to make room rather than a picture being
-   uncovered. The layout is final at once - it is measured twice, and only the neighbours nearest the middle are
-   moved, on the compositor (a transform), so a television box does not pay for a reflow a frame. */
-const PUSH_MS = 320, PUSH_REACH = 5;
+/* The card GROWS, and the titles beside it are pushed aside as it does: the width of the one that was in the middle
+   narrows while the width of the one that is coming to it widens - the same 320 ms, so the row is felt to make room
+   for the picture, one continuous movement, and nothing is uncovered like a window. The layout it ends in is final at
+   once (place() and turn() measure that), so the widths are then let run from what they were to what they are:
+   each card takes its old width as an inline basis, is given a frame to show it, and lets go. */
+const GROW_MS = 320;
 /** How long the remote rests on a title before its taste starts loading (it is shown only once playing). */
 const TASTE_AFTER_MS = 800;
-const nearby = (strip, el) => {
-  const list = [...strip.children].filter(c => c.classList.contains('poster'));
-  const i = list.indexOf(el);
-  return list.slice(Math.max(0, i - PUSH_REACH), i + PUSH_REACH + 1);
-};
-const lefts = list => new Map(list.map(c => [c, c.getBoundingClientRect().left]));
-function push(before){
+const EASE = 'cubic-bezier(.22,.8,.24,1)';
+function grow(strip, was){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  for(const [c, was] of before){
-    const dx = was - c.getBoundingClientRect().left;
-    if(Math.abs(dx) > 1) c.animate([{transform: `translateX(${dx}px)`}, {transform: 'none'}], {duration: PUSH_MS, easing: 'cubic-bezier(.22,.8,.24,1)'});
+  const moving = [];
+  for(const [c, w] of was){
+    if(!c.isConnected || Math.abs(c.offsetWidth - w) < 2) continue;
+    c.style.transition = 'none';
+    c.style.flexBasis = w + 'px';
+    moving.push(c);
   }
+  if(!moving.length) return;
+  void strip.offsetWidth;                            // the old widths are laid out: this frame is what the eye starts from
+  for(const c of moving){ c.style.transition = `flex-basis ${GROW_MS}ms ${EASE}`; c.style.flexBasis = ''; }
+  setTimeout(() => moving.forEach(c => { c.style.transition = ''; }), GROW_MS + 40);
 }
 
 /** Bring [el] to the middle of its row. */
@@ -79,13 +82,13 @@ export function spotlight(el){
   if(!el || el === spot || !el.isConnected || !reelable()) return;
   const strip = el.closest('.strip');
   if(!strip) return;
-  const before = lefts(nearby(strip, el));
+  const was = new Map([[el, el.offsetWidth]]);       // what each card is about to grow or narrow from
+  if(spot?.isConnected) was.set(spot, spot.offsetWidth);
   clearSpot();
   spot = el;
   strip.querySelectorAll('[data-was-spot]').forEach(x => delete x.dataset.wasSpot);
   el.classList.add('spot');
   delete el.dataset.wasSpot;
-  push(before);
   // a poster made wide shows whole, in its own blurred copy, until the title's wide picture comes (widen) -
   // asked for once the viewer has paused on it for a moment, not at every step of a run along the row
   const art = el.querySelector('.art');
@@ -102,6 +105,7 @@ export function spotlight(el){
   act.innerHTML = ``;
   strip.appendChild(act);
   place();
+  grow(strip, was);
   /* A viewer running along the row is not reading anything. The picture widens at once - that is what
      a press must answer - but the title's own story, which costs an answer from the add-ons, a page
      of writing and a trailer, waits until they have stopped on it. Otherwise every press pays for

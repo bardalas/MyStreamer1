@@ -35,7 +35,7 @@ export function card(m, opts = {}){
   const mark = opts.mark ?? (svc ? svcGlyph(svc) : '');
   const badge = mark ? `<span class="svcbadge">${mark}</span>` : '';
   /* One picture for both states of a card, and it is the wide one: resting, the card is a portrait cut from
-     the middle of it; brought to the middle of the row it is the whole picture, pushed in from the side (js/ui/reel.js push) -
+     the middle of it; brought to the middle of the row it grows to the whole picture, pushing its neighbours aside (js/ui/reel.js grow) -
      no second picture to fetch and swap in at that moment. Where a title has no wide picture (a broadcaster's
      programme, the Israeli catalogues) or it does not come, the poster stands as it always did. */
   const land = /^tt\d+$/.test(m.id) && (m.type === 'movie' || m.type === 'series');

@@ -14,8 +14,7 @@
 
 .strip .poster.spot,.strip.reel .poster.spot{flex:0 0 calc(var(--poster-w) * 3.47)}
 .poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e}
-/* the card is not opened like a window: it is pushed in from the side the row is turning from, together with the titles
-   beside it (js/ui/reel.js push), which is the movement the eye follows */
+/* the card is not opened like a window: it grows, and the titles beside it are pushed aside as it does (js/ui/reel.js grow) */
 .poster.spot:hover .art{transform:none}
 /* a portrait poster in the wide frame (js/ui/reel.js widen): the whole of it, in the middle of a blurred,
    darker copy of itself - never cut to a band across its middle. Both layers take the picture the card has

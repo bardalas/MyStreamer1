@@ -567,13 +567,13 @@ test('series page: the resume / start-over question is asked on the episode, its
 });
 
 
-test('a card opens by pushing its neighbours aside, not by a window reveal alone (#134)', async () => {
+test('a card grows and pushes its neighbours aside as it does - one movement, no window reveal (#134 #159)', async () => {
   const reel = await readFile(path.join(assets, 'js/ui/reel.js'), 'utf8');
   const css = await readFile(path.join(assets, 'css/reel.css'), 'utf8');
-  assert.match(reel, /const before = lefts\(nearby\(strip, el\)\);\s*clearSpot\(\);/);   // measured before anything changes
-  assert.match(reel, /push\(before\);/);
-  assert.match(reel, /c\.animate\(\[\{transform: `translateX\(\$\{dx\}px\)`\}, \{transform: 'none'\}\]/);   // on the compositor
-  assert.doesNotMatch(css, /spotOpen\{from\{[^}]*scale/);                                 // no scale wobble of the picture itself
+  assert.match(reel, /const was = new Map\(\[\[el, el\.offsetWidth\]\]\);[^\n]*\n\s*if\(spot\?\.isConnected\) was\.set\(spot, spot\.offsetWidth\);\s*clearSpot\(\);/);   // measured before anything changes
+  assert.match(reel, /grow\(strip, was\);/);
+  assert.match(reel, /c\.style\.transition = `flex-basis \$\{GROW_MS\}ms \$\{EASE\}`; c\.style\.flexBasis = '';/);   // from the old width to the new
+  assert.doesNotMatch(css, /spotOpen|clip-path:inset/);                                    // no window
 });
 
 
