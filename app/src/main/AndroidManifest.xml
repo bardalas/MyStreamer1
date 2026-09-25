@@ -36,6 +36,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="veo" android:host="link"/>
+                <data android:scheme="veo" android:host="join"/>
             </intent-filter>
         </activity>
     </application>
