@@ -681,3 +681,9 @@ test('an unsent local profile edit is not overwritten by the account, and the ac
   assert.match(sync, /const next = \{\.\.\.r\.data, id: r\.id\};/);
   assert.doesNotMatch(sync, /list\[i\] = \{\.\.\.list\[i\], \.\.\.r\.data\}/);
 });
+
+test('the taste plays on a television only, never on a phone (#213)', async () => {
+  const taste = await readFile(path.join(assets, 'js/ui/taste.js'), 'utf8');
+  assert.match(taste, /settings\.preview === 'off' \|\| !IS_TV_DEVICE\) return;/);
+  assert.doesNotMatch(taste, /isTvLayout/);            // that one is always true: the layout is one
+});

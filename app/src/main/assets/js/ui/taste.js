@@ -1,6 +1,6 @@
 /* The taste: a few seconds of a title's trailer, playing inside whatever picture it belongs to. */
 import {$} from '../core/dom.js';
-import {isTvLayout, settings} from '../core/settings.js';
+import {IS_TV_DEVICE, settings} from '../core/settings.js';
 
 /** A title's trailer on YouTube, if it came with one. */
 export const trailerId = m => {
@@ -23,7 +23,7 @@ const TASTE_MS = 30e3;
 const CONTROLS_FADE_MS = 2500;
 export function startTaste(hostSel, yt, delay = 1500, quiet = false){
   endTaste();
-  if(!yt || settings.preview === 'off' || !isTvLayout()) return;
+  if(!yt || settings.preview === 'off' || !IS_TV_DEVICE) return;     // a television only: a phone plays no trailers of its own accord
   if(settings.preview === 'quiet') quiet = true;     // the viewer asked for trailers without sound, everywhere
   tasteTimer = setTimeout(() => {
     const host = $(hostSel);
