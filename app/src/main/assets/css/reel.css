@@ -16,6 +16,9 @@
 
 .strip .poster.spot,.strip.reel .poster.spot{flex:0 0 calc(var(--poster-w) * 3.47)}
 .poster.spot .art{aspect-ratio:16/9;box-shadow:0 20px 44px -18px #000e}
+/* the wide card does not zoom (it is big already) and stands a little clear of its name, so the ring and the picture never lie over the words beneath */
+.poster.spot .art{margin-bottom:12px}
+[data-layout="tv"] .poster.spot:focus .art,[data-layout="tv"] .poster.spot:focus-visible .art{transform:none}
 /* the card is not opened like a window: it is pushed in from the side the row is turning from, together with the titles
    beside it (js/ui/reel.js push), which is the movement the eye follows */
 .poster.spot:hover .art{transform:none}
