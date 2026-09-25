@@ -557,3 +557,14 @@ test('a programme watched in the Shows player is kept, resumed, and shown in con
   assert.match(yt, /closeYt\(\)\{\s*keep\(true\)/);
   assert.match(rows, /x\.type === 'show'/); assert.match(rows, /data-yt="\$\{esc\(id\)\}"/);
 });
+
+
+test('series page: the resume / start-over question is asked on the episode, its name labels the sources, the list is narrow (#136)', async () => {
+  const d = await readFile(path.join(assets, 'js/screens/detail.js'), 'utf8');
+  const css = await readFile(path.join(assets, 'css/title.css'), 'utf8');
+  assert.doesNotMatch(d, /id="restart"/);                               // no button at the top that could mean any episode
+  assert.match(d, /id="epnow"/);                                        // what the quality and sources are for
+  assert.match(d, /pickFrom\(.*detail\.playEp/s); assert.match(d, /play\(how === 'start'\)/);
+  assert.match(d, /w\.t > 30 && w\.t < w\.d - 60/);                    // only an episode left in the middle is asked about
+  assert.match(css, /@media\(min-width:900px\)\{\.epwrap\{max-width:min\(40vw,560px\)\}\}/);
+});

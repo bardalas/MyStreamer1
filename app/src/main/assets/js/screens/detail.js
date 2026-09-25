@@ -17,6 +17,7 @@ import {card} from '../ui/cards.js';
 import {nextEpisode} from '../ui/reel.js';
 import {startTaste, trailerId} from '../ui/taste.js';
 import {openPlayer} from '../ui/player.js';
+import {pickFrom} from '../ui/sheets.js';
 import {loadStreams} from '../ui/sources.js';
 
 /* An episode's own name, or ours when it has none worth reading. Catalogues call half of all
@@ -133,7 +134,7 @@ export async function viewDetail(type, id){
       <div class="tacts">
         <button class="tact ic ${saved?'saved':''}" id="lib" aria-label="${esc(libLabel(saved))}" title="${esc(libLabel(saved))}">${IC.heart}</button>
         ${meta.trailers?.[0]?.source ? `<button class="tact ic" id="trailer" aria-label="${esc(tr('detail.trailer'))}" title="${esc(tr('detail.trailer'))}">${IC.trailer}</button>` : ''}
-        <button class="tact" id="restart" hidden>${tr('detail.fromStart')}</button>
+        <span class="epnow" id="epnow" hidden></span>
         <span id="streams" class="psrc"></span>
       </div>
       <div id="palt"></div>
@@ -197,16 +198,24 @@ export async function viewDetail(type, id){
         const label = `${meta.name} S${v.season}E${v.episode ?? v.number}`;
         chosen = {id: v.id, label};
         showProgress(v.id);
-        const w = progress[v.id];
-        const again = $('#restart');
-        if(again){
-          again.hidden = !(w && w.d && w.t < w.d - 60);
-          again.onclick = () => play(true);
-        }
+        // what the quality and the sources beside it are for: an episode has a name, and a list of them is far below
+        const now = $('#epnow');
+        now.hidden = false;
+        now.innerHTML = `<b>${esc(tr('detail.playEp', {s: v.season, e: v.episode ?? v.number ?? ''}))}</b>${b.querySelector('.t b') ? ' · ' + esc(b.querySelector('.t b').textContent) : ''}`;
         loadStreams(ctx, v.id, label, watch);
       };
-      // choosing an episode is asking to watch it; arriving on the page only lines the first one up
-      $('#eps').querySelectorAll('.epcard').forEach(b => b.onclick = () => pick(b, true));
+      /* Choosing an episode is asking to watch it - and where it was left in the middle, the question is asked
+         here, on the episode it is about, not by a button at the top that could mean any of them. */
+      $('#eps').querySelectorAll('.epcard').forEach(b => b.onclick = async () => {
+        const w = progress[b.dataset.id];
+        if(!(w && w.d && w.t > 30 && w.t < w.d - 60)) return pick(b, true);
+        const name = b.querySelector('.t b')?.textContent || '';
+        const how = await pickFrom(`${tr('detail.playEp', {s: videos.find(x => x.id === b.dataset.id)?.season, e: b.querySelector('.n')?.textContent.trim() || ''})} · ${name}`,
+          [['resume', tr('detail.resumeAt', {t: clock(w.t)})], ['start', tr('detail.fromStart')]], 'resume');
+        if(!how){ b.focus(); return; }
+        pick(b, false);                                  // lines it up (its name, its sources) ...
+        play(how === 'start');                           // ... and plays it, from where it was or from the beginning
+      });
       // open on the episode you are in the middle of, otherwise the first one you have not seen
       const started = eps.find(v => { const w = progress[v.id]; return w && w.d && w.t / w.d <= .92; });
       const next = eps.find(v => v.id === up?.id) || started || eps.find(v => !progress[v.id]) || eps[0];
