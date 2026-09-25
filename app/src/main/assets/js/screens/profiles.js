@@ -73,7 +73,12 @@ export function paintRailProfile(){
 
 /* ---------- Settings → Profiles ---------- */
 export function profilesPane(){
-  if(!isOwner()) return section(tr('prof.title'), lines(line({fid: 'switch', label: tr('prof.switch'), href: '#/who'})));
+  // any profile may change its own picture; only the account's owner sees the others, adds and deletes
+  if(!isOwner()){
+    const me = currentProfile();
+    return section(tr('prof.title'), lines(line({fid: 'prof:' + me.id, label: `${avatar(me)}<span dir="auto">${esc(profileName(me))}</span>`,
+      note: tr('prof.current'), href: '#/profile/' + me.id}) + line({fid: 'switch', label: tr('prof.switch'), href: '#/who'})));
+  }
   const list = profiles();
   const rows = list.map(p => line({fid: 'prof:' + p.id, label: `${avatar(p)}<span dir="auto">${esc(profileName(p))}</span>`,
     note: esc(kindOf(p) + (p.id === profileId ? ' · ' + tr('prof.current') : '')), value: p.lock ? tr('prof.locked') : '', href: '#/profile/' + p.id})).join('');
@@ -98,7 +103,7 @@ const KINDS = () => [['', tr('prof.adult')], ...Object.keys(AGE_LEVELS).map(k =>
 let draft = null;
 /** The page of profile [id] - 'new' for one being made: its name, its avatar, what kind it is, its lock. */
 export function viewProfile(id){
-  if(!isOwner()){ location.hash = '#/who'; return; }
+  if(!isOwner() && id !== profileId){ location.hash = '#/who'; return; }      // another profile's page, or a new one: the owner's
   const p = id === 'new' ? null : profileById(id);
   if(id !== 'new' && !p){ location.hash = '#/settings/profiles'; return; }
   const s = p ? settingsOf(p) : {};
@@ -109,13 +114,14 @@ export function viewProfile(id){
 }
 function paintProfile(p, keep){
   const d = draft;
-  const removable = p && p.id !== profileId && profiles().length > 1;
+  const owner = isOwner();
+  const removable = owner && p && p.id !== profileId && profiles().length > 1;
   $('#app').innerHTML = `<div class="page setpage profpage"><h1>${p ? tr('prof.edit') : tr('prof.new')}</h1>
     <div class="profhead"><button class="avbtn" data-fid="pic" data-do="pic" aria-label="${esc(tr('prof.icon'))}">${avatar({icon: d.icon, name: d.name, photo: d.photo}, 'big')}</button>
-      <input class="field" id="pname" data-fid="name" maxlength="20" dir="auto" value="${esc(d.name)}" placeholder="${esc(tr('prof.namePh'))}" aria-label="${esc(tr('prof.name'))}"></div>
+      <input class="field" id="pname" data-fid="name" maxlength="20" dir="auto" value="${esc(d.name)}" placeholder="${esc(tr('prof.namePh'))}" aria-label="${esc(tr('prof.name'))}"${owner ? '' : ' readonly'}></div>
     ${section('', lines((IS_TV_DEVICE ? '' : line({fid: 'photo', label: tr('prof.photo'), attrs: 'data-do="photo"'}) + (d.photo ? line({fid: 'photoRm', label: tr('prof.photoRm'), attrs: 'data-do="photoRm"'}) : ''))
-      + line({fid: 'kind', label: tr('prof.kind'), value: KINDS().find(([k]) => k === d.kind)[1], attrs: 'data-do="kind"'})
-      + line({fid: 'lock', label: tr('prof.lock'), sw: d.lock, attrs: 'data-do="lock"'})
+      + (owner ? line({fid: 'kind', label: tr('prof.kind'), value: KINDS().find(([k]) => k === d.kind)[1], attrs: 'data-do="kind"'})
+      + line({fid: 'lock', label: tr('prof.lock'), sw: d.lock, attrs: 'data-do="lock"'}) : '')
       + (removable ? line({fid: 'del', label: tr('prof.delete'), danger: true, attrs: 'data-do="del"'}) : '')))}
     <div class="profacts"><button class="btn primary" id="psave" data-fid="save">${tr('common.save')}</button>
       <a class="btn ghost" href="#/settings/profiles" data-fid="cancel">${tr('common.cancel')}</a></div></div>`;
@@ -142,11 +148,11 @@ function paintProfile(p, keep){
     input.click();
   });
   $('[data-do="photoRm"]')?.addEventListener('click', () => { d.photo = ''; paintProfile(p, 'photo'); });
-  $('[data-do="kind"]').onclick = async () => {
+  $('[data-do="kind"]') && ($('[data-do="kind"]').onclick = async () => {
     const v = await pickFrom(tr('prof.kind'), KINDS(), d.kind);
     if(v != null) d.kind = v;
     paintProfile(p, 'kind');
-  };
+  });
   $('[data-do="lock"]')?.addEventListener('click', () => { d.lock = !d.lock; paintProfile(p, 'lock'); });
   $('[data-do="del"]')?.addEventListener('click', e => remove(p, e.currentTarget));
   $('#psave').onclick = () => save(p);
@@ -188,7 +194,15 @@ function loosens(before){
   return !draft.kind || (AGE_LEVELS[draft.kind] ?? 9) > (AGE_LEVELS[before.kidsAge] ?? 9);
 }
 async function save(p){
-  const d = draft, before = p ? settingsOf(p) : {};
+  const d = draft;
+  if(!isOwner()){                                    // its own picture, and nothing else of the profile
+    if(p?.id === profileId) updateProfile(p.id, {icon: d.icon, photo: d.photo || undefined});
+    paintRailProfile();
+    draft = null;
+    location.hash = '#/settings/profiles';
+    return;
+  }
+  const before = p ? settingsOf(p) : {};
   // a kids profile needs the code that is the only way out of it; loosening one asks for it; so do locking and unlocking
   if(d.kind && !hasPin() && !await choosePin()) return paintProfile(p, 'save');
   if(p && loosens(before) && !await askPin(tr('kids.pin.enter'))) return paintProfile(p, 'save');
