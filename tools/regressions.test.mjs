@@ -615,12 +615,15 @@ test('the load control fetches further ahead on a fast line, and a pause goes on
 });
 
 
-test('the menu is settled from what is true, and the press that unlocks the search field is not a search (#150 #151)', async () => {
+test('the menu is open or shut by ONE state, worked out in one place (#150 #151 #193)', async () => {
   const rail = await readFile(path.join(assets, 'js/ui/rail.js'), 'utf8');
-  assert.match(rail, /const settle = \(\) => requestAnimationFrame/);
-  assert.match(rail, /!rail\.contains\(document\.activeElement\) && !rail\.matches\(':hover'\)/);
-  assert.match(rail, /new MutationObserver\(settle\)\.observe\(rail/);           // something in the menu taken away: the focus went with it
-  assert.match(rail, /e\.key !== 'Enter' \|\| e\.defaultPrevented \|\| \$\('#q'\)\.readOnly/);
+  const css = await readFile(path.join(assets, 'css/chrome.css'), 'utf8');
+  assert.match(rail, /const wanted = \(\) => !!rail\?\.contains\(document\.activeElement\) \|\| \(pointerOver && performance\.now\(\) - lastMove < POINTER_MS\)/);
+  assert.match(rail, /new MutationObserver\(recheck\)\.observe\(rail/);           // something in the menu taken away: the focus went with it
+  assert.doesNotMatch(rail, /const settle|closeRail|matches\(':hover'\)/);          // no second mechanism, no patches on top
+  assert.doesNotMatch(css, /\.rail:(hover|focus-within)/);                           // the stylesheet reads only body.railwide
+  assert.match(css, /body\.railwide \.rail\{width:/);
+  assert.match(rail, /e\.key !== 'Enter' \|\| e\.defaultPrevented \|\| \$\('#q'\)\.readOnly/);   // the OK that unlocks the search field is not a search
 });
 
 
