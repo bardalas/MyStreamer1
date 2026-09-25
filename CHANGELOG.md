@@ -1,5 +1,13 @@
 # VEO Android changelog
 
+## 0.45.19 — 2026-09-25
+- **Joining by QR only.** No numbers to type: a signed-in television shows a QR (Settings > Account > Add a
+  device); scanning it with the phone's camera opens VEO and joins the account. A phone with no account
+  asks for an email and a code. (#185)
+- **The trailer preview has its sound** on the main screens too (Settings can still make it silent). (#187)
+- **A profile picture from the phone:** a photo from the gallery or camera, kept in the profile and carried
+  to every device by the account. (#189)
+
 ## 0.45.18 — 2026-09-25
 - **Sign-in on a phone.** A phone no longer shows a QR code (that is for a television). With no account it
   asks for an email and a code, or for the number a signed-in device shows. In Settings > Account, "Add a
