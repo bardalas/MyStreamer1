@@ -90,7 +90,7 @@ export function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
   const custom = settings.skin === 'custom' ? settings.customColors || DEFAULTS.customColors : null;
-  for(const [name, value] of Object.entries(custom ? {'--night':custom.bg, '--tungsten':custom.accent, '--velvet':custom.secondary} : {'--night':'', '--tungsten':'', '--velvet':''})) {
+  for(const [name, value] of Object.entries(custom ? {'--night':custom.bg, '--tungsten':custom.accent, '--velvet':custom.secondary, '--second':custom.secondary} : {'--night':'', '--tungsten':'', '--velvet':'', '--second':''})) {
     value ? r.style.setProperty(name, value) : r.style.removeProperty(name);
   }
   r.dataset.kids = kidsTier();

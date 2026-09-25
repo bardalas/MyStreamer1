@@ -10,7 +10,7 @@
   --ease:cubic-bezier(.22,1,.36,1);  /* everything travels out quickly and lands slowly */
   --quick:.16s; --travel:.26s; --settle:.36s;
   --night:#14161f; --surface:#1d2130; --raise:#272c3f; --line:#323850;
-  --light:#efe6cf; --muted:#8e93a8; --tungsten:#f0b429; --velvet:#a3384b;
+  --light:#efe6cf; --muted:#8e93a8; --tungsten:#f0b429; --velvet:#a3384b; --second:var(--tungsten);
   --on-accent:#14161f; --text2:#d4cdb9; --err:#ff9d8a; --ghost:rgba(239,230,207,.1);
   --shade-55:rgba(20,22,31,.55); --shade-50:rgba(20,22,31,.5); --shade-20:rgba(20,22,31,.2);
   --glow:rgba(240,180,41,.45); --glow-soft:rgba(240,180,41,.35); --beam:rgba(240,180,41,.13);

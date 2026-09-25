@@ -696,3 +696,13 @@ test('a profile may change its own picture; only the owner adds, deletes or edit
   assert.match(ui, /if\(!isOwner\(\)\)\{[^}]*updateProfile\(p\.id, \{icon: d\.icon, photo: d\.photo \|\| undefined\}\)/s);   // its picture, nothing else
   assert.match(set, /base\.filter\(t => t !== 'live'\)/);                                       // the Profiles tab stays for every profile
 });
+
+test('the secondary colour of the custom skin is visible: ratings and watched-progress bars (#216)', async () => {
+  const content = await readFile(path.join(assets, 'css/content.css'), 'utf8');
+  const tokens = await readFile(path.join(assets, 'css/tokens.css'), 'utf8');
+  const settings = await readFile(path.join(assets, 'js/core/settings.js'), 'utf8');
+  assert.match(tokens, /--second:var\(--tungsten\)/);                    // other skins: the accent, so nothing else changes
+  assert.match(content, /\.poster \.track i\{[^}]*background:var\(--second\)/);
+  assert.match(content, /\.rate\{color:var\(--second\)/);
+  assert.match(settings, /'--second':custom\.secondary/);
+});
