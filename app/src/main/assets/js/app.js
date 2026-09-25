@@ -33,6 +33,7 @@ import {viewSettings} from './screens/settings.js';
 import {viewWebShow} from './screens/web.js';
 import {endTaste} from './ui/taste.js';
 import {markNav, openRail} from './ui/rail.js';
+import './ui/suggest.js';                           // the titles the words could be, listed under the search field as they are typed
 import {viewReport} from './ui/report.js';
 import {checkUpdate} from './ui/update.js';
 import './ui/tvnav.js';

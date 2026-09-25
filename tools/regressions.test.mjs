@@ -584,3 +584,22 @@ test('on a television the search field is one stop of the menu: the mark above i
   const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
   assert.match(nav, /!\(isTvLayout\(\) && el\.matches\('#sf \.ic'\)\)/);
 });
+
+
+test('search suggestions: known titles are ranked by how the words match, what was touched first (#138)', async () => {
+  const {store} = memStore();
+  const k = await mini('data/known.js', {'core/store.js': {store}, 'data/watch.js': {library: {}, progress: {}}, 'data/hebrew.js': {heCache: {}}}, {Object});
+  const pool = [
+    {id: 'tt1', type: 'movie', names: ['The Matrix'], boost: false},
+    {id: 'tt2', type: 'movie', names: ['Matrix Reloaded'], boost: false},
+    {id: 'tt3', type: 'series', names: ['Ghost in the Matrix'], boost: true},
+    {id: 'tt4', type: 'movie', names: ['Casablanca'], boost: true},
+  ];
+  assert.equal(JSON.stringify(k.rank('m', pool)), JSON.stringify([]));                                              // one letter is not a search
+  assert.equal(JSON.stringify(k.rank('matrix', pool).map(x => x.id)), JSON.stringify(['tt2', 'tt3', 'tt1']));       // starts it; then a word-start - the saved one before the passed-by
+  assert.equal(JSON.stringify(k.rank('MATRIX  re', pool).map(x => x.id)), JSON.stringify(['tt2']));                 // case and spacing do not matter
+  const boosted = k.rank('the', [{id: 'a', names: ['The Alpha'], boost: false}, {id: 'b', names: ['The Beta'], boost: true}]);
+  assert.equal(boosted[0].id, 'b');                                                     // what the viewer saved or watched first
+  k.noteKnown({id: 'tt9', name: 'Seen On A Screen', type: 'movie'}); k.noteKnown({id: 'x:1', name: 'Not IMDb', type: 'movie'});
+  assert.equal(JSON.stringify(k.known('seen on').map(x => x.id)), JSON.stringify(['tt9']));                         // a title that was on a screen is offered; a non-title is not
+});
