@@ -687,12 +687,10 @@ class MainActivity : AppCompatActivity() {
         }, android.widget.LinearLayout.LayoutParams(px(64), px(64)).apply { bottomMargin = px(16) })
         card.addView(android.widget.TextView(this).apply {
             text = "לצאת מהאפליקציה?"; setTextColor(skin.light); textSize = 22f; typeface = android.graphics.Typeface.DEFAULT_BOLD
-            gravity = android.view.Gravity.CENTER
-        })
-        card.addView(android.widget.TextView(this).apply {
-            text = "אפשר לחזור בכל רגע."; setTextColor(skin.muted); textSize = 15f; gravity = android.view.Gravity.CENTER
-        }, android.widget.LinearLayout.LayoutParams(-2, -2).apply { topMargin = px(6); bottomMargin = px(24) })
-        val row = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+            gravity = android.view.Gravity.CENTER; textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
+        }, android.widget.LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(24) })
+        // the buttons stand in the middle of the card, not from the side the layout starts on
+        val row = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_HORIZONTAL }
         fun button(label: String, primary: Boolean, action: () -> Unit) = android.widget.TextView(this).apply {
             text = label; textSize = 17f; gravity = android.view.Gravity.CENTER
             isFocusable = true; isFocusableInTouchMode = true; isClickable = true
