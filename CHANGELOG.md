@@ -1,5 +1,16 @@
 # VEO Android changelog
 
+## 0.45.27 — 2026-09-25
+- **A smoother torrent stream.** The swarm is now kept working on the next stretch of the film ahead of the
+  picture (about 64 MB, the nearest pieces first) instead of only after it stalled; slow sources are given up
+  on sooner; and after a stall the player waits for a real stretch before going on, so it no longer stops and
+  starts every few seconds. (#225)
+- **Navigation that keeps up.** The trailer preview shares the box with the remote: it now watches the page's
+  own frames, steps its picture down (720p, 480p, 360p) when they stall and keeps that for the device, and
+  waits a little longer before it starts. (#224)
+- **A source that did not answer is not shown** (for example "Kan 11: no response") when other sources were
+  found. (#228)
+
 ## 0.45.26 — 2026-09-25
 - **The same profiles on every device.** A device whose clock ran behind sent profiles that looked old to the
   others, so a phone could hold 4 and a television 6. The server now keeps the time, and each device reads the
