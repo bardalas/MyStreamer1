@@ -157,3 +157,16 @@ drop trigger if exists profiles_touch on public.profiles;
 create trigger profiles_touch before insert or update on public.profiles for each row execute function public.touch_updated_at();
 drop trigger if exists profile_data_touch on public.profile_data;
 create trigger profile_data_touch before insert or update on public.profile_data for each row execute function public.touch_updated_at();
+
+-- ---------------------------------------------------------------- v5: a blank profile never replaces a named one
+
+create or replace function public.keep_named_profile() returns trigger language plpgsql as $$
+begin
+  -- a blank placeholder (a device's default profile, before anything was chosen) never replaces a profile that has a name
+  if tg_op = 'UPDATE' and coalesce(new.data->>'name','') = '' and coalesce(old.data->>'name','') <> '' then
+    new.data := old.data;
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_keep_named on public.profiles;
+create trigger profiles_keep_named before update on public.profiles for each row execute function public.keep_named_profile();

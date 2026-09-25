@@ -1,6 +1,7 @@
 /* Keeping the household's profiles the same on every device that is signed in to the account (data/account.js).
    The pieces synced are the profile list and, for each profile, the keys it keeps (PROFILE_KEYS in core/store.js) -
-   one row each, in the profile_data table. Everything else (add-ons, caches, the parent code) belongs to the device.
+   one row each, in the profile_data table - and the household's own things (the add-ons, the live playlists, the parent code,
+   the RaspberryTV key: ACCOUNT_KEYS), kept as rows of a pseudo-profile. Caches belong to the device.
    The rule is the newest write wins, per piece; the watch history is the exception - it is merged title by title,
    so what was watched on the television and what was watched on the phone both stay. */
 import {PROFILE_KEYS, store, profileId} from '../core/store.js';
@@ -9,22 +10,31 @@ import {accessToken, accountId, call, signedIn} from './account.js';
 const META = 'syncMeta';                        // {pulled: the newest SERVER time seen, dirty: {'<profile>/<key>': true}, v}
 const EPOCH = '1970-01-01T00:00:00Z';
 const LIST = 'profiles';
+const ACCOUNT = '_account';
+/** What belongs to the household rather than to a profile or a device: it follows the account to every device. */
+const ACCOUNT_KEYS = new Set(['addons', 'playlists', 'rtvKey', 'kidsPin']);
+/** A profile nobody has chosen anything for: the placeholder a device makes for itself. It never goes up - it would replace
+ *  the account's real profile of the same id (a new device's blank p1 once replaced 'אבא'). */
+const blank = p => !p.name && !p.icon && !p.photo && !p.lock;
 /* The times are the server's (it stamps every row itself): a device's own clock says nothing about another's, and a device whose
    clock ran behind pushed rows that looked old to the others - a profile on the television never reached the phone. Devices
    that kept their cursor by their own clock (no v) start again from the beginning, once. */
 const meta = () => {
   const m = store.get(META, null);
-  // ... and what this device holds of the profile list goes up too, so a profile that never reached the account is not lost
-  return m?.v === 2 ? m : {pulled: EPOCH, dirty: {...(m?.dirty || {}), ['/' + LIST]: true}, v: 2};
+  // ... and what this device holds of the profile list goes up too, so a profile that never reached the account is not lost -
+  // unless all it holds is its blank placeholder
+  const named = store.get(LIST, []).some(p => !blank(p));
+  return m?.v === 2 ? m : {pulled: EPOCH, dirty: {...(m?.dirty || {}), ...(named ? {['/' + LIST]: true} : {})}, v: 2};
 };
 const saveMeta = m => store.set(META, m);
 let applying = false, busy = false;
 
 /** Every write of a synced piece is noted, to be sent at the next push. */
 store.watch = (pid, k) => {
-  if(applying || !signedIn() || !(PROFILE_KEYS.has(k) || k === LIST)) return;
+  const account = ACCOUNT_KEYS.has(k);
+  if(applying || !signedIn() || !(PROFILE_KEYS.has(k) || k === LIST || account)) return;
   const m = meta();
-  m.dirty[(k === LIST ? '' : pid) + '/' + k] = true;
+  m.dirty[(account ? ACCOUNT : k === LIST ? '' : pid) + '/' + k] = true;
   saveMeta(m);
   schedule();
 };
@@ -53,8 +63,9 @@ async function push(){
   for(const n of names){
     const [pid, ...rest] = n.split('/'), key = rest.join('/');
     if(key === LIST){
-      for(const p of store.get(LIST, [])) profs.push({account_id: uid, id: p.id, data: p, deleted: false});
-    }else rows.push({account_id: uid, profile_id: pid, key, value: store.getFor(pid, key, null)});
+      for(const p of store.get(LIST, [])) if(!blank(p)) profs.push({account_id: uid, id: p.id, data: p, deleted: false});
+    }else if(pid === ACCOUNT) rows.push({account_id: uid, profile_id: ACCOUNT, key, value: store.get(key, null)});
+    else rows.push({account_id: uid, profile_id: pid, key, value: store.getFor(pid, key, null)});
   }
   const up = {method: 'POST', extra: {Prefer: 'resolution=merge-duplicates,return=minimal'}};
   if(profs.length) await rest('profiles?on_conflict=account_id,id', {...up, body: profs});
@@ -89,6 +100,11 @@ async function pull(){
       changedHere = true;
     }
     for(const r of data || []){
+      if(r.profile_id === ACCOUNT){                                 // the household's own things
+        if(!ACCOUNT_KEYS.has(r.key) || meta().dirty[ACCOUNT + '/' + r.key]) continue;
+        if(JSON.stringify(store.get(r.key, null)) !== JSON.stringify(r.value)){ store.set(r.key, r.value); changedHere = true; }
+        continue;
+      }
       if(!PROFILE_KEYS.has(r.key)) continue;
       const mine = meta().dirty[r.profile_id + '/' + r.key];
       let v = r.value;
@@ -125,14 +141,25 @@ export async function firstSync(){
   // the household and a device that was never used adopts it
   const remote = await rest('profiles?select=id&limit=1');
   const mine = store.get(LIST, []);
-  const untouched = mine.length <= 1 && !mine[0]?.name && !Object.keys(store.getFor(mine[0]?.id, 'progress', {})).length
-    && !Object.keys(store.getFor(mine[0]?.id, 'library', {})).length;
-  if(remote?.length && untouched){ applying = true; try{ store.set(LIST, []); }finally{ applying = false; } m.dirty = {}; }
-  else{
+  // With the account holding profiles, this device's blank placeholders give way to them (the data a blank one already
+  // holds stays under its id and joins the account's profile of that id); a profile someone did choose things for stays.
+  const kept = mine.filter(p => !blank(p));
+  if(remote?.length){
+    applying = true; try{ store.set(LIST, kept); }finally{ applying = false; }
     m.dirty = {};
-    m.dirty['/' + LIST] = true;
+    if(kept.length) m.dirty['/' + LIST] = true;
+    for(const p of kept) for(const k of PROFILE_KEYS) if(store.getFor(p.id, k, undefined) !== undefined) m.dirty[p.id + '/' + k] = true;
+  }else{
+    m.dirty = {};
+    if(kept.length) m.dirty['/' + LIST] = true;
     for(const p of store.get(LIST, [])) for(const k of PROFILE_KEYS) if(store.getFor(p.id, k, undefined) !== undefined) m.dirty[p.id + '/' + k] = true;
   }
+  // the household's own things: what the account lacks and this device has goes up; what the account has is taken by the pull
+  const haveAcct = new Set(((await rest(`profile_data?select=key&profile_id=eq.${ACCOUNT}`)) || []).map(r => r.key));
+  for(const k of ACCOUNT_KEYS) if(!haveAcct.has(k) && store.get(k, null) != null) m.dirty[ACCOUNT + '/' + k] = true;
   saveMeta(m);
   return sync();
 }
+
+// leaving the app (or the screen going dark) is when a change made in the last few seconds would otherwise wait for the next launch
+addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden' && signedIn()) sync().catch(() => {}); });
