@@ -574,13 +574,60 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Leaving VEO: a card in the app's own colours, two large buttons the remote can reach. It opens on "Stay". */
     private fun confirmExit() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("יציאה מ-VEO")
-            .setMessage("האם לצאת מהאפליקציה?")
-            .setNegativeButton("ביטול", null)
-            .setPositiveButton("יציאה") { _, _ -> finish() }
-            .show()
+        val skin = Skin(getSharedPreferences("veo", MODE_PRIVATE))
+        val dp = resources.displayMetrics.density
+        fun px(v: Int) = (v * dp).toInt()
+        val dialog = android.app.Dialog(this)
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        val card = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+            layoutDirection = if (skin.rtl) android.view.View.LAYOUT_DIRECTION_RTL else android.view.View.LAYOUT_DIRECTION_LTR
+            minimumWidth = px(460); setPadding(px(36), px(30), px(36), px(28))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(skin.night); cornerRadius = px(22).toFloat(); setStroke(px(1), skin.line)
+            }
+        }
+        card.addView(android.widget.ImageView(this).apply {
+            setImageDrawable(packageManager.getApplicationIcon(applicationInfo))
+        }, android.widget.LinearLayout.LayoutParams(px(64), px(64)).apply { bottomMargin = px(16) })
+        card.addView(android.widget.TextView(this).apply {
+            text = "לצאת מהאפליקציה?"; setTextColor(skin.light); textSize = 22f; typeface = android.graphics.Typeface.DEFAULT_BOLD
+            gravity = android.view.Gravity.CENTER
+        })
+        card.addView(android.widget.TextView(this).apply {
+            text = "אפשר לחזור בכל רגע."; setTextColor(skin.muted); textSize = 15f; gravity = android.view.Gravity.CENTER
+        }, android.widget.LinearLayout.LayoutParams(-2, -2).apply { topMargin = px(6); bottomMargin = px(24) })
+        val row = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+        fun button(label: String, primary: Boolean, action: () -> Unit) = android.widget.TextView(this).apply {
+            text = label; textSize = 17f; gravity = android.view.Gravity.CENTER
+            isFocusable = true; isFocusableInTouchMode = true; isClickable = true
+            setPadding(px(26), px(13), px(26), px(13)); minWidth = px(120)
+            fun paint(on: Boolean) {
+                setTextColor(if (on) skin.onAccent else skin.light)
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = px(14).toFloat()
+                    if (on) setColor(skin.accent) else { setColor(fade(skin.light, 0x14)); setStroke(px(1), skin.line) }
+                }
+            }
+            paint(false)
+            setOnFocusChangeListener { _, on -> paint(on) }
+            setOnClickListener { action() }
+        }
+        val stay = button("להישאר", true) { dialog.dismiss() }
+        val leave = button("יציאה", false) { dialog.dismiss(); finish() }
+        row.addView(stay, android.widget.LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(14) })
+        row.addView(leave)
+        card.addView(row)
+        dialog.setContentView(card)
+        dialog.window?.apply {
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            setDimAmount(0.65f)
+        }
+        dialog.show()
+        stay.requestFocus()
     }
 
     @Deprecated("Deprecated in Java")
