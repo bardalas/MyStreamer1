@@ -723,3 +723,8 @@ test('sync keeps the SERVER time: no device stamps a row, and the cursor is the 
   assert.match(sync, /m\?\.v === 2 \? m : \{pulled: EPOCH/);                                  // cursors kept by the old clock start again, once
   assert.match(sync, /newest = Math\.max\(newest, Date\.parse\(r\.updated_at\)/);
 });
+
+test('a source that did not answer is shown only when nothing playable was found (#228)', async () => {
+  const src = await readFile(path.join(assets, 'js/ui/sources.js'), 'utf8');
+  assert.match(src, /const failure = errors\.length && !best \?/);
+});

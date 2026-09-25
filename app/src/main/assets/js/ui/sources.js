@@ -200,7 +200,9 @@ export function renderStreams(box, all, pending, label, ctx, errors = [], retry,
   // the list under the row follows the quality chosen: its sources first (each part still best first)
   const rest = (best ? list.filter(x => x !== best) : list).sort((a, b) => (b.q === best?.q) - (a.q === best?.q));
   const more = rest.length ? `<button class="altbtn" id="altToggle" aria-expanded="${wasOpen}">${tr(best ? 'src.more' : 'src.weakN', {n: rest.length})}</button>` : '';
-  const failure = errors.length ? `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>` : '';
+  // a source that did not answer (a broadcaster's page, an add-on) is worth saying only when nothing playable was found: with a
+  // row of sources in hand it is noise, and the viewer cannot do anything about it
+  const failure = errors.length && !best ? `<span class="srcstat err">${errors.map(esc).join(' · ')}</span><button class="qbtn" id="sretry">${tr('common.retry')}</button>` : '';
   if(!best){
     // Program links and failed/partial searches must not be labelled "no sources".
     const status = pending ? tr('src.searching') : !links && !errors.length ? tr('src.none') : '';
