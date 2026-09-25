@@ -28,6 +28,9 @@ class MainActivity : AppCompatActivity() {
     private val REQ_INSTALL = 2
     /** A film or an episode: it may come back asking for the episode after it. */
     private val REQ_PLAY = 3
+    /** A file chosen for the page (a profile's picture). */
+    private val REQ_FILE = 4
+    private var fileCb: android.webkit.ValueCallback<Array<android.net.Uri>>? = null
     @Volatile private var updateCancelled = false
     // True while a version is being downloaded: the one thing on the status card that must survive a
     // trip out of the app and back (see onResume, which otherwise clears whatever is left on it).
@@ -90,7 +93,16 @@ class MainActivity : AppCompatActivity() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
                 assetsAt.shouldInterceptRequest(request.url)
         }
-        web.webChromeClient = WebChromeClient()
+        web.webChromeClient = object : WebChromeClient() {
+            // the page's <input type=file>: the phone's gallery or camera (a television has none, and the page does not offer it)
+            override fun onShowFileChooser(w: WebView, cb: android.webkit.ValueCallback<Array<android.net.Uri>>, p: FileChooserParams): Boolean {
+                fileCb?.onReceiveValue(null)
+                fileCb = cb
+                val pick = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*"; addCategory(Intent.CATEGORY_OPENABLE) }
+                return try { startActivityForResult(Intent.createChooser(pick, null), REQ_FILE); true }
+                catch (e: Exception) { fileCb = null; cb.onReceiveValue(null); false }
+            }
+        }
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
         pendingLink = linkOf(intent)
         showSplash(night)
@@ -627,6 +639,11 @@ class MainActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_FILE) {
+            fileCb?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
+            fileCb = null
+            return
+        }
         if (requestCode == REQ_INSTALL) {
             if (resultCode == RESULT_OK) { pendingUpdate = null; showStatus("") }
             else if (resultCode == RESULT_CANCELED) { pendingUpdate = null; showStatus("") }

@@ -643,3 +643,12 @@ test('The taste asks for 720p and starts loading soon after the remote rests', a
   assert.doesNotMatch(taste, /\['medium'\]/);
   assert.match(reel, /TASTE_AFTER_MS = 800/);
 });
+
+test('A profile can carry its own picture (a small JPEG), offered on a phone only', async () => {
+  const prof = await readFile(path.join(assets, 'js/data/profiles.js'), 'utf8');
+  const ui = await readFile(path.join(assets, 'js/screens/profiles.js'), 'utf8');
+  assert.match(prof, /export const isPhoto/);
+  assert.match(prof, /class="avatar photo/);
+  assert.match(ui, /IS_TV_DEVICE \? '' : line\(\{fid: 'photo'/);
+  assert.match(ui, /toDataURL\('image\/jpeg'/);
+});

@@ -27,6 +27,8 @@ export const AVATARS = [
   ['🦄', 11], ['🐼', 5], ['🐙', 3], ['🧸', 6]];
 /** The most profiles a device keeps - a household, and the picker still one row on a television. */
 export const MAX_PROFILES = 6;
+/** A profile's own picture: a small JPEG kept in the profile itself (so the account carries it to every device). */
+export const isPhoto = v => typeof v === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) && v.length < 90000;
 const NAME_MAX = 20;
 
 const LIST = 'profiles', ACTIVE = 'profile', CHOSEN = 'veo:who';
@@ -44,6 +46,7 @@ export function avatar(p, cls = ''){
   const letter = (profileName(p).trim()[0] || '?').toUpperCase();
   const face = pic || esc(letter);
   const shade = pic ? own : letter.charCodeAt(0) % SHADES.length;   // an initial takes its colour from the name
+  if(isPhoto(p?.photo)) return `<span class="avatar photo${cls ? ' ' + cls : ''}" style="background-image:url('${p.photo}')" aria-hidden="true"></span>`;   // a picture of their own
   return `<span class="avatar${pic ? '' : ' initial'}${cls ? ' ' + cls : ''}" style="--av:linear-gradient(135deg,${SHADES[shade]})" aria-hidden="true">${face}</span>`;
 }
 /** A profile's own settings, read without entering it (the one the page is in: the live ones). */
@@ -57,17 +60,19 @@ export function updateProfile(id, changes){
   if(!p) return;
   Object.assign(p, changes);
   if('name' in changes) p.name = String(changes.name || '').trim().slice(0, NAME_MAX);
+  if(!isPhoto(p.photo)) delete p.photo;
   saveList(list);
 }
 /** Change another profile's settings (whether it is a kids profile, and to what age). */
 export const setSettingsOf = (id, changes) => store.setFor(id, 'settings', {...store.getFor(id, 'settings', {}), ...changes});
 /** A new profile: it starts in this one's language and look, with nothing watched yet. */
-export function addProfile({name, icon, kids, kidsAge}){
+export function addProfile({name, icon, kids, kidsAge, photo}){
   const list = profiles();
   if(list.length >= MAX_PROFILES) return null;
   let id;                                            // never one there is: two made in the same moment are two
   do id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); while(list.some(p => p.id === id));
   const p = {id, name: String(name || '').trim().slice(0, NAME_MAX), icon: icon || 0};
+  if(isPhoto(photo)) p.photo = photo;
   store.setFor(id, 'settings', {uiLang: settings.uiLang, lang: settings.lang, skin: settings.skin, subScale: settings.subScale,
     kids: kids ? 'on' : 'off', kidsAge: kidsAge || 'kids'});
   saveList([...list, p]);

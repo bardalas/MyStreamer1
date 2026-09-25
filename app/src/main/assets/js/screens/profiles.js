@@ -7,7 +7,7 @@
    Profiles. What makes a profile looser asks for the code; what makes it stricter does not. */
 import {START, tuneLastChannel} from '../app.js';
 import {$, esc} from '../core/dom.js';
-import {AGE_LEVELS, setSetting, settings} from '../core/settings.js';
+import {AGE_LEVELS, IS_TV_DEVICE, setSetting, settings} from '../core/settings.js';
 import {profileId, store} from '../core/store.js';
 import {hasPin} from '../data/kids.js';
 import {AVATARS, MAX_PROFILES, addProfile, avatar, currentProfile, enterProfile, isKids, profileById, profileName, profiles,
@@ -104,16 +104,17 @@ export function viewProfile(id){
   const s = p ? settingsOf(p) : {};
   // arriving from anywhere else starts from the profile as it is; drawing the same page again keeps what is being changed
   if(draft?.id !== id || !$('.profpage')) draft = {id, name: p?.name || '', icon: p ? p.icon || 0 : 0,
-    kind: s.kids === 'on' ? s.kidsAge || 'kids' : '', lock: !!p?.lock};
+    kind: s.kids === 'on' ? s.kidsAge || 'kids' : '', lock: !!p?.lock, photo: p?.photo || ''};
   paintProfile(p);
 }
 function paintProfile(p, keep){
   const d = draft;
   const removable = p && p.id !== profileId && profiles().length > 1;
   $('#app').innerHTML = `<div class="page setpage profpage"><h1>${p ? tr('prof.edit') : tr('prof.new')}</h1>
-    <div class="profhead"><button class="avbtn" data-fid="pic" data-do="pic" aria-label="${esc(tr('prof.icon'))}">${avatar({icon: d.icon, name: d.name}, 'big')}</button>
+    <div class="profhead"><button class="avbtn" data-fid="pic" data-do="pic" aria-label="${esc(tr('prof.icon'))}">${avatar({icon: d.icon, name: d.name, photo: d.photo}, 'big')}</button>
       <input class="field" id="pname" data-fid="name" maxlength="20" dir="auto" value="${esc(d.name)}" placeholder="${esc(tr('prof.namePh'))}" aria-label="${esc(tr('prof.name'))}"></div>
-    ${section('', lines(line({fid: 'kind', label: tr('prof.kind'), value: KINDS().find(([k]) => k === d.kind)[1], attrs: 'data-do="kind"'})
+    ${section('', lines((IS_TV_DEVICE ? '' : line({fid: 'photo', label: tr('prof.photo'), attrs: 'data-do="photo"'}) + (d.photo ? line({fid: 'photoRm', label: tr('prof.photoRm'), attrs: 'data-do="photoRm"'}) : ''))
+      + line({fid: 'kind', label: tr('prof.kind'), value: KINDS().find(([k]) => k === d.kind)[1], attrs: 'data-do="kind"'})
       + line({fid: 'lock', label: tr('prof.lock'), sw: d.lock, attrs: 'data-do="lock"'})
       + (removable ? line({fid: 'del', label: tr('prof.delete'), danger: true, attrs: 'data-do="del"'}) : '')))}
     <div class="profacts"><button class="btn primary" id="psave" data-fid="save">${tr('common.save')}</button>
@@ -121,13 +122,26 @@ function paintProfile(p, keep){
   const name = $('#pname');
   name.oninput = () => {
     d.name = name.value;
-    if(!AVATARS[d.icon][0]) $('.avbtn').innerHTML = avatar({icon: d.icon, name: d.name}, 'big');   // the initial follows the name
+    if(!AVATARS[d.icon][0] && !d.photo) $('.avbtn').innerHTML = avatar({icon: d.icon, name: d.name}, 'big');   // the initial follows the name
   };
   $('[data-do="pic"]').onclick = async () => {
     const v = await pickAvatar(d.icon, d.name);
-    if(v != null) d.icon = v;
+    if(v != null){ d.icon = v; d.photo = ''; }               // a picture from the list replaces their own
     paintProfile(p, 'pic');
   };
+  // a phone: a photo from the gallery or the camera, made a small square
+  $('[data-do="photo"]')?.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*';
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      if(!f) return;
+      try{ d.photo = await squarePhoto(f); }catch(e){}
+      paintProfile(p, 'photo');
+    };
+    input.click();
+  });
+  $('[data-do="photoRm"]')?.addEventListener('click', () => { d.photo = ''; paintProfile(p, 'photo'); });
   $('[data-do="kind"]').onclick = async () => {
     const v = await pickFrom(tr('prof.kind'), KINDS(), d.kind);
     if(v != null) d.kind = v;
@@ -139,6 +153,17 @@ function paintProfile(p, keep){
   // the page opens on the name: it is what is most often changed, and the rest is a step or two below it
   const at = keep && $(`[data-fid="${CSS.escape(keep)}"]`);
   (at || name).focus();
+}
+/** A picture file as a small square JPEG (192 px, the middle of it), as a data address. */
+async function squarePhoto(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
+    const side = Math.min(img.naturalWidth, img.naturalHeight), N = 192;
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, N, N);
+    return c.toDataURL('image/jpeg', 0.8);
+  }finally{ URL.revokeObjectURL(url); }
 }
 /** The pictures to choose from, in a card over the page: [cur] marked; the one chosen, or null. */
 function pickAvatar(cur, name){
@@ -171,10 +196,10 @@ async function save(p){
   if(!d.lock && p?.lock && !await askPin(tr('prof.unlockAsk'), {sum: false})) return paintProfile(p, 'save');
   const kids = d.kind ? {kids: 'on', kidsAge: d.kind} : {kids: 'off'};
   if(!p){
-    const made = addProfile({name: d.name, icon: d.icon, kids: !!d.kind, kidsAge: d.kind || 'kids'});
+    const made = addProfile({name: d.name, icon: d.icon, kids: !!d.kind, kidsAge: d.kind || 'kids', photo: d.photo});
     if(made && d.lock) updateProfile(made.id, {lock: true});
   }else{
-    updateProfile(p.id, {name: d.name, icon: d.icon, lock: d.lock});
+    updateProfile(p.id, {name: d.name, icon: d.icon, lock: d.lock, photo: d.photo || undefined});
     if(p.id === profileId){
       const changed = (settings.kids === 'on') !== !!d.kind || (d.kind && settings.kidsAge !== d.kind);
       for(const [k, v] of Object.entries(kids)) setSetting(k, v);
