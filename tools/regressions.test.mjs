@@ -270,14 +270,11 @@ test('successful in-app report remains usable for another independent issue', as
 });
 
 
-test('Bubblegum colour scheme remains available in Settings', async () => {
+test('Only a few basic skins are offered, and a removed one falls back to the default', async () => {
   const settings = await readFile(path.join(assets, 'js/core/settings.js'), 'utf8');
-  const tokens = await readFile(path.join(assets, 'css/tokens.css'), 'utf8');
-  const i18n = await readFile(path.join(assets, 'js/i18n.js'), 'utf8');
-  assert.match(settings, /id:\s*'bubblegum'/);
-  assert.match(tokens, /data-skin="bubblegum"/);
-  assert.match(tokens, /--tungsten:#ff4f9a/i);
-  assert.match(i18n, /skin\.bubblegum\.name/);
+  const ids = [...settings.matchAll(/^\s+\{id: '(\w+)', c:/gm)].map(m => m[1]);
+  assert.deepEqual(ids, ['veo', 'midnight', 'netflix', 'daylight', 'custom']);
+  assert.match(settings, /SKINS\.some\(k => k\.id === settings\.skin\)\) settings\.skin = DEFAULTS\.skin/);
 });
 
 

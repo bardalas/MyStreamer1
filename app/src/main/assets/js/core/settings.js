@@ -9,16 +9,9 @@ export const rowMax = () => isTvLayout() ? 24 : 40;
 
 export const SKINS = [
   {id: 'veo', c: ['#050a16', '#16203a', '#3d8bff', '#e9f0ff']},
-  {id: 'tungsten', c: ['#14161f', '#272c3f', '#f0b429', '#efe6cf']},
   {id: 'midnight', c: ['#000000', '#171b22', '#3dd6d0', '#e8eef5']},
-  {id: 'velvet', c: ['#1a0f14', '#331e27', '#e8b86b', '#f6e7dc']},
-  {id: 'forest', c: ['#0f1a15', '#1e3027', '#9be15d', '#e6efe4']},
   {id: 'netflix', c: ['#000000', '#1f1f1f', '#e50914', '#ffffff']},
   {id: 'daylight', c: ['#f4efe6', '#ebe3d5', '#c8412d', '#1d1a16']},
-  {id: 'bubblegum', c: ['#1b0a15', '#361a2b', '#ff4f9a', '#ffe7f2']},
-  {id: 'grape', c: ['#140f26', '#291f45', '#a77bff', '#ece8ff']},
-  {id: 'sunset', c: ['#1b1012', '#341f22', '#ff7a45', '#ffeae0']},
-  {id: 'ice', c: ['#0b1418', '#15242b', '#56d8f5', '#e4f4fa']},
   {id: 'custom', c: ['#14161f', '#272c3f', '#f0b429', '#efe6cf']},
 ];
 /* The app has one layout. It had four, and only one of them ever received the work: the wheel, the
@@ -48,6 +41,8 @@ const deviceOwn = () => store.get('device', {});
   if(missing.length) store.set('device', {...dev, ...Object.fromEntries(missing.map(k => [k, own[k]]))});
 }
 export let settings = pinned({...store.get('settings', {}), ...deviceOwn()});
+// a skin that is no longer offered (there were twelve; a few basics remain) falls back to the default
+if(!SKINS.some(k => k.id === settings.skin)) settings.skin = DEFAULTS.skin;
 
 /** The kids profile's levels: the oldest age a title may be rated for. Up to 12 the profile is a child's -
     family and animated titles only, and the broadcasters' programmes and live TV are kept out; from 14 it

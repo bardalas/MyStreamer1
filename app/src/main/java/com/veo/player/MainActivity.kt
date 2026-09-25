@@ -70,8 +70,11 @@ class MainActivity : AppCompatActivity() {
         // address, so anything it asks for arrives with no referrer and no origin - which is why YouTube
         // refused to play a trailer inside it ("error 153") and why some add-ons turned its requests
         // away. Served this way it is an ordinary https page, and both simply work.
+        // ...from a newer web bundle when one has been fetched and has proved itself (WebBundle), else from the APK
+        val appVersion = packageManager.getPackageInfo(packageName, 0).longVersionCode
+        WebBundle.start(this, appVersion)
         val assetsAt = WebViewAssetLoader.Builder()
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .addPathHandler("/assets/", WebBundle.handler(this))
             .build()
         web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW   // IPTV and LAN devices are http
         // The page is served from inside the app, so the WebView is allowed to keep it - and would go on
@@ -91,6 +94,10 @@ class MainActivity : AppCompatActivity() {
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
         showSplash(night)
         web.loadUrl(PAGE)
+        // a bundle whose page has not come up in half a minute is dropped, and the pages inside the APK are shown
+        if (WebBundle.active(this) != null) web.postDelayed({
+            if (WebBundle.rollback(this)) web.loadUrl(PAGE)
+        }, WebBundle.WATCHDOG_MS)
         web.requestFocus()   // remote D-pad works immediately (Android TV)
         TorrentEngine.warmUp(applicationContext)
     }
@@ -136,7 +143,21 @@ class MainActivity : AppCompatActivity() {
         web.requestFocus()
     }
 
+    /** A debug build can be pointed at a folder of bundle files instead of GitHub (intent extra "otaFeed"). */
+    private val otaFeed: String? by lazy {
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) intent.getStringExtra("otaFeed") else null
+    }
+
     inner class Bridge {
+        /** The page came up: the web bundle in use (if any) is good. Also the moment to look for a newer one. */
+        @JavascriptInterface fun webReady() {
+            WebBundle.ready(applicationContext)
+            val v = packageManager.getPackageInfo(packageName, 0).longVersionCode
+            Thread { android.util.Log.i("WebBundle", WebBundle.check(applicationContext, v, otaFeed, force = otaFeed != null)) }.start()
+        }
+
+        /** Which web version is running: a bundle's number, or "built-in". */
+        @JavascriptInterface fun webInfo(): String = WebBundle.info(applicationContext)
         /** The first screen is drawn: the splash can go. */
         @JavascriptInterface fun pageShown() { runOnUiThread { hideSplash() } }
 
