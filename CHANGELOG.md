@@ -1,5 +1,12 @@
 # VEO Android changelog
 
+## 0.45.26 — 2026-09-25
+- **The same profiles on every device.** A device whose clock ran behind sent profiles that looked old to the
+  others, so a phone could hold 4 and a television 6. The server now keeps the time, and each device reads the
+  account again from the start once, and sends its own profiles too, so none is lost. (#219)
+- **A text colour and an icon colour** in the custom skin (Settings > Look): the text colour sets the main text
+  and the dimmer texts follow; the icon colour sets the menu's and the settings tabs' icons. (#221)
+
 ## 0.45.25 — 2026-09-25
 - **The secondary colour of the custom skin shows:** ratings and the "how far you watched" bars take it (every
   other skin looks as before). (#216)
