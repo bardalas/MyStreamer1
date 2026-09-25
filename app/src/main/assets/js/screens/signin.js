@@ -50,8 +50,7 @@ export async function showSignIn({approve = ''} = {}){
       : `<form id="gform"><input id="gemail" type="email" inputmode="email" autocomplete="email" dir="ltr" placeholder="${esc(tr('gate.email'))}" required>
          <input id="gcode" inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="8" placeholder="${esc(tr('gate.code'))}" hidden>
          <button class="btn" id="gsend" type="submit">${esc(tr('gate.send'))}</button></form><p class="say" id="gsay" aria-live="polite"></p>
-         <form id="gnum"><input id="gnumin" dir="ltr" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="${esc(tr('gate.number'))}" required>
-         <button class="btn ghost" type="submit">${esc(tr('gate.join'))}</button></form>`}
+         <p class="say">${esc(tr('gate.scanHint'))}</p>`}
     ${tv ? `<button class="btn ghost" id="gnew" type="button">${esc(tr('gate.newCode'))}</button>` : ''}
   </div>`;
   document.body.appendChild(gate);
@@ -69,7 +68,7 @@ export async function showSignIn({approve = ''} = {}){
         const code = qr(0, 'M'); code.addData(pair.url); code.make();
         const box = $('#gqr'); box.innerHTML = code.createSvgTag({cellSize: 6, margin: 2}); box.hidden = false;
       }
-      say(pair.code);
+      say("");
       if(await pairWait(pair, stop)) return joined();
       if(gate) say(tr('acct.expired'));
     }catch(e){ if(gate) say(tr('acct.fail')); }
@@ -77,11 +76,6 @@ export async function showSignIn({approve = ''} = {}){
     return;
   }
   // a phone: an email, then the code that was sent to it - or the number a signed-in device shows
-  $('#gnum').onsubmit = async e => {
-    e.preventDefault();
-    try{ say(tr('acct.syncing')); await joinWithNumber($('#gnumin').value); return joined(); }
-    catch(err){ say(tr('gate.badNumber')); }
-  };
   const email = $('#gemail'), code = $('#gcode'), send = $('#gsend');
   email.focus();
   let sent = false;
@@ -100,6 +94,18 @@ export async function showSignIn({approve = ''} = {}){
     send.disabled = false;
   };
 }
+
+/** A signed-in television's QR opened this app (veo://join?c=CODE): this device joins the account, with a login of its own. */
+window.boothJoin = async code => {
+  code = String(code || '').toUpperCase();
+  if(signedIn() || !/^[A-Z2-9]{8}$/.test(code)) return;
+  const note = document.createElement('div');
+  note.style.cssText = 'position:fixed;left:50%;bottom:32px;transform:translateX(-50%);z-index:10000;padding:14px 22px;border-radius:14px;background:#0d1526;color:#e9f0ff;border:1px solid #25304d;font-size:18px';
+  note.textContent = tr('acct.syncing');
+  document.body.appendChild(note);
+  try{ await joinWithNumber(code); await joined(); }
+  catch(e){ note.textContent = tr('gate.badNumber'); setTimeout(() => note.remove(), 4000); }
+};
 
 /** A television's QR opened this app (veo://link?c=CODE): approve it with this account, or sign in first. */
 window.boothLink = async code => {

@@ -48,6 +48,7 @@ const URL_ = 'https://gnlrnsvkupifmsjyyual.supabase.co';
 const KEY = 'sb_publishable_cAmKGGFKQLCWw4Xw97J9ig_Yhq6v7JP';
 const $ = id => document.getElementById(id);
 const pair = (new URLSearchParams(location.search).get('c') || '').trim().toUpperCase();
+const joinCode = (new URLSearchParams(location.search).get('j') || '').trim().toUpperCase();
 const say = (t, err) => { $('say').textContent = t; $('say').className = 'say' + (err ? ' err' : ''); };
 async function api(path, body, token){
   const r = await fetch(URL_ + path, {method: 'POST', headers: {apikey: KEY, 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || KEY)}, body: JSON.stringify(body)});
@@ -55,13 +56,22 @@ async function api(path, body, token){
   if(!r.ok) throw new Error((d && (d.msg || d.message || d.error_description)) || ('HTTP ' + r.status));
   return d;
 }
+// A signed-in television's QR (?j=): the app joins the phone to the account. Without the app there is nothing to do here but get it.
+if(/^[A-Z2-9]{8}$/.test(joinCode)){
+  $('f1').hidden = true;
+  $('lead').hidden = false; $('lead').innerHTML = 'פתחו ב-VEO. אין אפליקציה? <a href="https://github.com/bardalas/VEO/releases/latest" style="color:#3d8bff">להורדה</a>';
+  if(/Android/i.test(navigator.userAgent) && !new URLSearchParams(location.search).has('web')){
+    const back = encodeURIComponent(location.href.split('#')[0] + '&web=1');
+    location.href = 'intent://join?c=' + joinCode + '#Intent;scheme=veo;package=com.veo.player;S.browser_fallback_url=' + back + ';end';
+  }
+}
 // On an Android phone the app comes first: if VEO is installed it opens and approves with the account it is signed in to
 // (no email at all); if not, the browser carries on to this page with ?web=1 and the email code below.
 if(/Android/i.test(navigator.userAgent) && /^[A-Z2-9]{8}$/.test(pair) && !new URLSearchParams(location.search).has('web')){
   const back = encodeURIComponent(location.href.split('#')[0] + '&web=1');
   location.href = 'intent://link?c=' + pair + '#Intent;scheme=veo;package=com.veo.player;S.browser_fallback_url=' + back + ';end';
 }
-if(!/^[A-Z2-9]{8}$/.test(pair)){
+if(!/^[A-Z2-9]{8}$/.test(pair) && !/^[A-Z2-9]{8}$/.test(joinCode)){
   $('f1').hidden = true; $('lead').hidden = false; $('lead').textContent = 'הקישור לא תקין';
 }
 $('f1').onsubmit = async e => {
