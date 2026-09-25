@@ -54,7 +54,7 @@ export let setTab = 'general';
 const KIDS_SETTINGS_TABS = ['general', 'watch', 'services', 'home', 'look', 'kids', 'about'];
 const tabsNow = () => {
   const base = kidsOn() ? KIDS_SETTINGS_TABS : SETTINGS_TABS;
-  return isOwner() ? base : base.filter(t => t !== 'profiles' && t !== 'live');
+  return isOwner() ? base : base.filter(t => t !== 'live');      // another profile keeps 'profiles': its own picture is its to change
 };
 
 export function viewSettings(tab){

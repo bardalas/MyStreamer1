@@ -687,3 +687,12 @@ test('the taste plays on a television only, never on a phone (#213)', async () =
   assert.match(taste, /settings\.preview === 'off' \|\| !IS_TV_DEVICE\) return;/);
   assert.doesNotMatch(taste, /isTvLayout/);            // that one is always true: the layout is one
 });
+
+test('a profile may change its own picture; only the owner adds, deletes or edits others (#209)', async () => {
+  const ui = await readFile(path.join(assets, 'js/screens/profiles.js'), 'utf8');
+  const set = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  assert.match(ui, /if\(!isOwner\(\) && id !== profileId\)\{ location\.hash = '#\/who'/);      // its own page only
+  assert.match(ui, /const removable = owner && p && p\.id !== profileId/);                     // only the owner deletes
+  assert.match(ui, /if\(!isOwner\(\)\)\{[^}]*updateProfile\(p\.id, \{icon: d\.icon, photo: d\.photo \|\| undefined\}\)/s);   // its picture, nothing else
+  assert.match(set, /base\.filter\(t => t !== 'live'\)/);                                       // the Profiles tab stays for every profile
+});
