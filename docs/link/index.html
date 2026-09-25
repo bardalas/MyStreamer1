@@ -55,6 +55,12 @@ async function api(path, body, token){
   if(!r.ok) throw new Error((d && (d.msg || d.message || d.error_description)) || ('HTTP ' + r.status));
   return d;
 }
+// On an Android phone the app comes first: if VEO is installed it opens and approves with the account it is signed in to
+// (no email at all); if not, the browser carries on to this page with ?web=1 and the email code below.
+if(/Android/i.test(navigator.userAgent) && /^[A-Z2-9]{8}$/.test(pair) && !new URLSearchParams(location.search).has('web')){
+  const back = encodeURIComponent(location.href.split('#')[0] + '&web=1');
+  location.href = 'intent://link?c=' + pair + '#Intent;scheme=veo;package=com.veo.player;S.browser_fallback_url=' + back + ';end';
+}
 if(!/^[A-Z2-9]{8}$/.test(pair)){
   $('f1').hidden = true; $('lead').textContent = 'הקישור לא תקין. סרקו שוב את הקוד מהטלוויזיה.';
 }
@@ -69,7 +75,7 @@ $('f2').onsubmit = async e => {
   e.preventDefault(); $('b2').disabled = true; say('מתחברים…');
   try{
     const s = await api('/auth/v1/verify', {type: 'email', email: $('email').value.trim(), token: $('otp').value.trim()});
-    const ok = await api('/rest/v1/rpc/pair_approve', {p_code: pair, p_refresh_token: s.refresh_token}, s.access_token);
+    const ok = await api('/rest/v1/rpc/pair_approve_account', {p_code: pair}, s.access_token);   // the TV gets a session of its own
     if(!ok) throw new Error('הקוד בטלוויזיה פג. בקשו קוד חדש בטלוויזיה.');
     $('f2').hidden = true; $('lead').hidden = true; $('done').hidden = false; say('');
   }catch(err){ say('לא הצלחנו: ' + err.message, true); $('b2').disabled = false; }

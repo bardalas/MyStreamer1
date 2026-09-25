@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         }
         web.webChromeClient = WebChromeClient()
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
+        pendingLink = linkOf(intent)
         showSplash(night)
         web.loadUrl(PAGE)
         // a bundle whose page has not come up in half a minute is dropped, and the pages inside the APK are shown
@@ -120,6 +121,27 @@ class MainActivity : AppCompatActivity() {
     private fun kidsProfile() = getSharedPreferences("veo", MODE_PRIVATE).getString("kids", "off") == "on"
 
     private var splash: android.view.View? = null
+    private var pageUp = false
+    private var pendingLink: String? = null
+
+    /** The pairing code of a television's QR (veo://link?c=CODE) this app was opened with, if it was. */
+    private fun linkOf(i: Intent?): String? =
+        i?.data?.takeIf { it.scheme == "veo" && it.host == "link" }?.getQueryParameter("c")
+
+    /** Hand the code to the page once it is up: it approves the television with the account it is signed in to. */
+    private fun deliverLink() {
+        val c = pendingLink ?: return
+        if (!pageUp) return
+        pendingLink = null
+        web.evaluateJavascript("window.boothLink && boothLink(${JSONObject.quote(c)})", null)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingLink = linkOf(intent)
+        deliverLink()
+    }
 
     /** The VEO mark on the night colour, over the page while it loads and settles: the first screen appears
         already drawn, instead of a page arriving piece by piece. It goes when the page says it is up (or after a while). */
@@ -159,7 +181,7 @@ class MainActivity : AppCompatActivity() {
         /** Which web version is running: a bundle's number, or "built-in". */
         @JavascriptInterface fun webInfo(): String = WebBundle.info(applicationContext)
         /** The first screen is drawn: the splash can go. */
-        @JavascriptInterface fun pageShown() { runOnUiThread { hideSplash() } }
+        @JavascriptInterface fun pageShown() { runOnUiThread { hideSplash(); pageUp = true; deliverLink() } }
 
         /** True on Android TV; the page then defaults to its TV (10-foot) layout. */
         @JavascriptInterface fun isTv(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)

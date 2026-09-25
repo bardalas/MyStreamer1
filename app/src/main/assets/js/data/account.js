@@ -32,13 +32,17 @@ export async function call(path, {method = 'GET', body, token, extra} = {}){
   return data;
 }
 
+/** A session kept from what the backend returned (a token response). */
+function keep(d, fallback = {}){
+  const acct = {refresh: d.refresh_token, access: d.access_token, exp: Date.now() + ((d.expires_in || 3600) - 60) * 1000,
+    uid: d.user?.id || fallback.uid || read()?.uid || '', email: d.user?.email || fallback.email || read()?.email || ''};
+  write(acct);
+  return acct;
+}
 /** A refresh token turned into a session, kept. */
 async function exchange(refresh){
   const d = await call('/auth/v1/token?grant_type=refresh_token', {method: 'POST', body: {refresh_token: refresh}});
-  const acct = {refresh: d.refresh_token, access: d.access_token, exp: Date.now() + (d.expires_in - 60) * 1000,
-    uid: d.user?.id || read()?.uid || '', email: d.user?.email || read()?.email || ''};
-  write(acct);
-  return acct;
+  return keep(d);
 }
 
 let renewing = null;
@@ -71,9 +75,25 @@ export async function pairWait(pair, cancelled = () => false){
   while(Date.now() < until && !cancelled()){
     await new Promise(r => setTimeout(r, 3000));
     if(cancelled()) return false;
-    let t = null;
-    try{ t = await call('/rest/v1/rpc/pair_poll', {method: 'POST', body: {p_code: pair.code, p_secret: pair.secret}}); }catch(e){ continue; }
-    if(t){ await exchange(t); return true; }
+    let r = null;
+    try{ r = await call('/functions/v1/pair-collect', {method: 'POST', body: {code: pair.code, secret: pair.secret}}); }catch(e){ if(e.status === 404) return false; continue; }
+    if(r?.refresh_token){ await exchange(r.refresh_token); return true; }   // a session of its own: no other device shares it
   }
   return false;
+}
+
+/* ---------- signing in on this device with an email code (a phone; a television has the QR) ---------- */
+/** Send a sign-in code to [email]. */
+export const otpSend = email => call('/auth/v1/otp', {method: 'POST', body: {email: String(email).trim(), create_user: true}});
+/** Check the code; on success this device is signed in. */
+export async function otpVerify(email, token){
+  const d = await call('/auth/v1/verify', {method: 'POST', body: {type: 'email', email: String(email).trim(), token: String(token).trim()}});
+  return keep(d, {email: String(email).trim()});
+}
+
+/** This device is signed in: approve another device's pairing code with the account (the other one gets a session of its own). */
+export async function approvePairing(code){
+  const token = await accessToken();
+  if(!token) throw new Error('signed out');
+  return call('/rest/v1/rpc/pair_approve_account', {method: 'POST', body: {p_code: code}, token});
 }

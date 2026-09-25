@@ -302,7 +302,14 @@ const ACTS = {
     if(r?.changed){ location.reload(); return; }
     paintSettings('acctSync');
   },
-  acctOut: () => { signOut(); acctSay = ''; paintSettings('acctLink'); },
+  // signing out leaves nothing of the account on the device: its profiles and history go with it, so the next account to sign in
+  // here starts from its own
+  acctOut: () => {
+    for(const p of store.get('profiles', [])) store.dropProfile(p.id);
+    signOut();
+    for(const k of ['profiles', 'profile', 'syncMeta']) try{ localStorage.removeItem('booth:' + k); }catch(e){}
+    location.reload();
+  },
   rtvSet: () => openRtvKey(() => paintSettings('rtv')),
   rtvClear: () => { store.set('rtvKey', ''); forgetRtv(); paintSettings('rtvSet'); },
   upd: async b => {

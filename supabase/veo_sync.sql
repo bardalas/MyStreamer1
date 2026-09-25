@@ -102,3 +102,21 @@ revoke all on function public.pair_poll(text, text)      from public;
 grant execute on function public.pair_start()             to anon, authenticated;
 grant execute on function public.pair_poll(text, text)    to anon, authenticated;
 grant execute on function public.pair_approve(text, text) to authenticated;
+
+-- ---------------------------------------------------------------- v2: approval by account
+-- A signed-in phone (the web page after its email code, or the app already signed in) approves a pairing by the
+-- account alone. The television then collects a session of its own from the pair-collect function
+-- (supabase/functions/pair-collect); no login is ever handed from one device to another.
+create or replace function public.pair_approve_account(p_code text)
+returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if auth.uid() is null then raise exception 'sign in first'; end if;
+  update pairings set approved_by = auth.uid()
+   where code = upper(trim(p_code)) and expires_at > now() and approved_by is null;
+  get diagnostics n = row_count;
+  return n = 1;
+end $$;
+revoke all on function public.pair_approve_account(text) from public;
+grant execute on function public.pair_approve_account(text) to authenticated;
