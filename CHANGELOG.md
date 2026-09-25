@@ -1,5 +1,18 @@
 # VEO Android changelog
 
+## 0.45.15 — 2026-09-25
+- **Live TV: one clear line of time.** The arrows always mean time - ten seconds a press, thirty held -
+  and forward into the present is live. The bar is a ruler that ends in the present (five minutes, or
+  fifteen, thirty, an hour... whichever holds how far behind you are): filled to where you are, hollow
+  from there to the present. A chip says how far behind live you are; the sign says where a press takes
+  you. Seeking back past what the player keeps opens the channel's archive from that minute, and an
+  archive that catches up with the present becomes live. "Live" is the true edge - it no longer reads
+  "9 seconds behind". Programmes in the guide are walked with the media next / previous keys, not with
+  the arrows. (#153)
+- **The menu closes when you have left it.** Choosing a search suggestion (or anything that takes the
+  focus out of the menu without a key press) no longer leaves the menu open over the page. (#150)
+- **OK on the search text edits it.** It used to search again every time. (#151)
+
 ## 0.45.14 — 2026-09-25
 - **Search suggests as you type.** Under the search field, in the menu, a short list follows the typing:
   at once from what the app knows (your library, what you watched, every title that has been on a
