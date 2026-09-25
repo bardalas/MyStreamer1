@@ -723,3 +723,14 @@ test('sync keeps the SERVER time: no device stamps a row, and the cursor is the 
   assert.match(sync, /m\?\.v === 2 \? m : \{pulled: EPOCH/);                                  // cursors kept by the old clock start again, once
   assert.match(sync, /newest = Math\.max\(newest, Date\.parse\(r\.updated_at\)/);
 });
+
+test('a torrent stream keeps a window of pieces wanted ahead of the reader, and the player waits for a real stretch after a stall (#225)', async () => {
+  const srv = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/StreamServer.kt'), 'utf8');
+  const eng = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/TorrentEngine.kt'), 'utf8');
+  const kt = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  assert.match(srv, /private fun keepAhead\(\)/);                                       // ahead of the reader, not after a stall
+  assert.match(srv, /handle\.setPieceDeadline\(p, 400 \+ rank \* 150\)/);
+  assert.match(srv, /positions\.values\.minOrNull\(\)/);                                // the connection being watched, not the index fetch at the end
+  assert.match(eng, /int_types\.request_timeout/); assert.match(eng, /int_types\.max_out_request_queue/);
+  assert.match(kt, /if \(live\) 2_000 else if \(torrent\) 15_000 else 6_000/);          // after a stall: a real stretch before going on
+});

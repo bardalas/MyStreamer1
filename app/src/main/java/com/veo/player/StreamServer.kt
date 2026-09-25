@@ -35,10 +35,21 @@ class StreamServer(
 
     private val socket = ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"))
     @Volatile private var closed = false
+    /** Where each open connection is reading (file-relative bytes): the player may hold several (the index at the end of
+     *  the file, the picture, the sound); the nearest to the start is the one being watched. */
+    private val positions = java.util.concurrent.ConcurrentHashMap<Long, Long>()
+    private val nextId = java.util.concurrent.atomic.AtomicLong()
 
     val url: String get() = "http://127.0.0.1:${socket.localPort}/${Uri.encode(media.file.name)}"
 
     fun start() {
+        // A second thread keeps the swarm working AHEAD of the reader, not after it has stalled (keepAhead).
+        Thread({
+            while (!closed) {
+                runCatching { keepAhead() }
+                try { Thread.sleep(AHEAD_EVERY_MS) } catch (_: InterruptedException) { break }
+            }
+        }, "stream-ahead").start()
         Thread({
             while (!closed) {
                 val client = try { socket.accept() } catch (e: IOException) { break }
@@ -54,6 +65,7 @@ class StreamServer(
 
     private fun serve(client: Socket) {
         var raf: RandomAccessFile? = null
+        val id = nextId.incrementAndGet()
         try {
             client.use { s ->
                 val reader = s.getInputStream().bufferedReader(Charsets.ISO_8859_1)
@@ -98,6 +110,7 @@ class StreamServer(
                 val buf = ByteArray(64 * 1024)
                 var pos = start
                 while (pos <= end) {
+                    positions[id] = pos
                     val piece = media.pieceAt(pos)
                     awaitPiece(piece)
                     val file = raf ?: RandomAccessFile(media.file, "r").also { raf = it }
@@ -119,7 +132,31 @@ class StreamServer(
             // that ends this connection, it must not take the app down with it.
         } catch (_: InterruptedException) {
         } finally {
+            positions.remove(id)
             runCatching { raf?.close() }
+        }
+    }
+
+    /**
+     * The window ahead of the reader, kept wanted: the pieces from the reader's place on, [WINDOW_BYTES] of them (never
+     * fewer than a few seconds' worth on a fast stream, nor more than the memory of a small box can be asked to track),
+     * each with a deadline a little later than the one before, renewed every pass - so the nearest is always the most
+     * urgent and the swarm's peers are pointed at the pieces the picture will need next, before the reader arrives at them
+     * and stops. (Before, only a reader that had already stalled asked for anything: the film played until the swarm ran
+     * out of what it had queued, then froze while the next pieces were found.)
+     */
+    private fun keepAhead() {
+        val at = positions.values.minOrNull() ?: return
+        val head = media.pieceAt(at)
+        val count = (WINDOW_BYTES / media.pieceLength).toInt().coerceIn(MIN_WINDOW_PIECES, MAX_WINDOW_PIECES)
+        var rank = 0
+        for (i in 0 until count) {
+            val p = head + i
+            if (p > media.lastPiece) break
+            if (handle.havePiece(p)) continue
+            handle.setPieceDeadline(p, 400 + rank * 150)
+            if (rank < 6) runCatching { handle.piecePriority(p, Priority.SEVEN) }
+            rank++
         }
     }
 
@@ -181,6 +218,10 @@ class StreamServer(
 
     private companion object {
         val RANGE = Regex("bytes=(\\d*)-(\\d*)")
-        const val READ_AHEAD_PIECES = 8
+        const val READ_AHEAD_PIECES = 12
+        const val WINDOW_BYTES = 64L * 1024 * 1024
+        const val MIN_WINDOW_PIECES = 16
+        const val MAX_WINDOW_PIECES = 96
+        const val AHEAD_EVERY_MS = 500L
     }
 }
