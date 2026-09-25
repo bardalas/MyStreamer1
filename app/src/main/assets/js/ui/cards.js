@@ -3,6 +3,7 @@ import {$, esc} from '../core/dom.js';
 import {yearOf} from '../data/addons.js';
 import {avail, isNoSrc} from '../data/availability.js';
 import {hasHebrew, heTitle} from '../data/hebrew.js';
+import {noteKnown} from '../data/known.js';
 import {svcGlyph, svcOf} from '../data/services.js';
 import {progressIdx} from '../data/watch.js';
 import {tr} from '../i18n.js';
@@ -22,6 +23,7 @@ export const posterAt = (url, size) => (url || '').replace(/\/poster\/(small|med
     and 100 KB - so the card, cut to a portrait, weighs a fifth of what it did. */
 export const landscapeOf = (id, size = 'small') => `https://images.metahub.space/background/${size}/${id}/img`;
 export function card(m, opts = {}){
+  noteKnown(m);                                          // a title on a screen is a title a search can offer (data/known.js)
   const p = progressIdx.get(m.id);
   // A film that was watched to the end carries a tick; one left in the middle carries how far it got.
   // A series' entry is whichever episode was last played, so it never means the whole series is watched.

@@ -55,8 +55,9 @@ try{
 
   <form class="search" id="sf">
     <button class="ic" type="submit" data-i18n-aria="search.aria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
-    <input id="q" data-i18n-ph="search.placeholder" data-i18n-aria="search.aria">
+    <input id="q" data-i18n-ph="search.placeholder" data-i18n-aria="search.aria" autocomplete="off">
   </form>
+  <div class="sug" id="sug" hidden></div>
 
   <nav class="nav">
     <a href="#/" data-r="home"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/></svg></span><span class="lbl" data-i18n="nav.main"></span></a>
