@@ -208,6 +208,7 @@ paintRailProfile();
 export async function boot(){
   if(picking) route();                                 // the picker needs no add-ons: it is up at once
   if(await migrateStore()) return;                     // what was kept before is being brought over
+  try { window.BoothAndroid?.webReady?.(); } catch {}   // the page is up: a web update in use is good, and the next is looked for
   const ready = loadAddons();
   const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
   if(!picking || location.hash !== '#/who') route();   // render now, with whatever has answered (the picker is up already)
