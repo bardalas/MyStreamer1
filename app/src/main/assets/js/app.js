@@ -212,6 +212,7 @@ export async function boot(){
   const ready = loadAddons();
   const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
   if(!picking || location.hash !== '#/who') route();   // render now, with whatever has answered (the picker is up already)
+  requestAnimationFrame(() => requestAnimationFrame(() => { try{ window.BoothAndroid?.pageShown?.(); }catch{} }));   // drawn: the splash goes
   if(first === 'slow'){
     await ready;                                       // and when the add-ons finally arrive,
     if(['', '#/', '#'].includes(location.hash)) route();   // fill the home screen they left empty

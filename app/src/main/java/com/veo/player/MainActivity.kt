@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         }
         web.webChromeClient = WebChromeClient()
         web.addJavascriptInterface(Bridge(), "BoothAndroid")
+        showSplash(night)
         web.loadUrl(PAGE)
         // a bundle whose page has not come up in half a minute is dropped, and the pages inside the APK are shown
         if (WebBundle.active(this) != null) web.postDelayed({
@@ -118,6 +119,30 @@ class MainActivity : AppCompatActivity() {
         app - YouTube, a web page, another app - stays shut then, whatever the page asks. */
     private fun kidsProfile() = getSharedPreferences("veo", MODE_PRIVATE).getString("kids", "off") == "on"
 
+    private var splash: android.view.View? = null
+
+    /** The VEO mark on the night colour, over the page while it loads and settles: the first screen appears
+        already drawn, instead of a page arriving piece by piece. It goes when the page says it is up (or after a while). */
+    private fun showSplash(night: Int) {
+        val v = android.widget.FrameLayout(this).apply {
+            setBackgroundColor(night)
+            isClickable = true
+            addView(android.widget.ImageView(context).apply {
+                setImageDrawable(packageManager.getApplicationIcon(applicationInfo))
+            }, android.widget.FrameLayout.LayoutParams((96 * resources.displayMetrics.density).toInt(), (96 * resources.displayMetrics.density).toInt(), android.view.Gravity.CENTER))
+        }
+        splash = v
+        (root as android.view.ViewGroup).addView(v, android.view.ViewGroup.LayoutParams(-1, -1))
+        v.postDelayed({ hideSplash() }, 10_000)
+    }
+
+    private fun hideSplash() {
+        val v = splash ?: return
+        splash = null
+        v.animate().alpha(0f).setDuration(280).withEndAction { (v.parent as? android.view.ViewGroup)?.removeView(v) }.start()
+        web.requestFocus()
+    }
+
     /** A debug build can be pointed at a folder of bundle files instead of GitHub (intent extra "otaFeed"). */
     private val otaFeed: String? by lazy {
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) intent.getStringExtra("otaFeed") else null
@@ -133,6 +158,8 @@ class MainActivity : AppCompatActivity() {
 
         /** Which web version is running: a bundle's number, or "built-in". */
         @JavascriptInterface fun webInfo(): String = WebBundle.info(applicationContext)
+        /** The first screen is drawn: the splash can go. */
+        @JavascriptInterface fun pageShown() { runOnUiThread { hideSplash() } }
 
         /** True on Android TV; the page then defaults to its TV (10-foot) layout. */
         @JavascriptInterface fun isTv(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
