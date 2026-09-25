@@ -209,14 +209,20 @@ else{
 }
 paintRailProfile();
 export async function boot(){
-  if(picking) route();                                 // the picker needs no add-ons: it is up at once
+  if(picking && signedIn()) route();                   // the picker needs no add-ons: it is up at once (with no account there is only the sign-in)
   if(await migrateStore()) return;                     // what was kept before is being brought over
+  // No account: the sign-in screen is all there is. Nothing behind it is loaded or played (a trailer with sound was heard
+  // behind the QR): boot ends here, and signing in reloads the page into a full start.
+  if(!signedIn()){
+    askAtLaunch();
+    try { window.BoothAndroid?.webReady?.(); window.BoothAndroid?.pageShown?.(); } catch {}
+    return;
+  }
   try { window.BoothAndroid?.webReady?.(); } catch {}   // the page is up: a web update in use is good, and the next is looked for
   const ready = loadAddons();
   const first = await Promise.race([ready, new Promise(r => setTimeout(() => r('slow'), 6000))]);
   if(!picking || location.hash !== '#/who') route();   // render now, with whatever has answered (the picker is up already)
   requestAnimationFrame(() => requestAnimationFrame(() => { try{ window.BoothAndroid?.pageShown?.(); }catch{} }));   // drawn: the splash goes
-  askAtLaunch();                                        // no account: the sign-in screen (a QR on a television) is all there is
   if(first === 'slow'){
     await ready;                                       // and when the add-ons finally arrive,
     if(['', '#/', '#'].includes(location.hash)) route();   // fill the home screen they left empty

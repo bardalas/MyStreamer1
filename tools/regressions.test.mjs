@@ -739,3 +739,11 @@ test('a source that did not answer is shown only when nothing playable was found
   const src = await readFile(path.join(assets, 'js/ui/sources.js'), 'utf8');
   assert.match(src, /const failure = errors\.length && !best \?/);
 });
+
+test('nothing runs behind the sign-in screen: boot stops at the gate and the taste refuses to start (#232)', async () => {
+  const app = await readFile(path.join(assets, 'js/app.js'), 'utf8');
+  const taste = await readFile(path.join(assets, 'js/ui/taste.js'), 'utf8');
+  assert.match(app, /if\(!signedIn\(\)\)\{\s*askAtLaunch\(\);[^}]*return;\s*\}/);          // before loadAddons
+  assert.ok(app.indexOf('if(!signedIn()){') < app.indexOf('const ready = loadAddons();'));
+  assert.match(taste, /document\.getElementById\('acctgate'\)\) return;/);
+});
