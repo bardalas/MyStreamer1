@@ -642,9 +642,9 @@ test('live TV: a short press walks the guide, a held key scrubs, and the bar is 
 test('The taste asks for 720p and starts loading soon after the remote rests', async () => {
   const taste = await readFile(path.join(assets, 'js/ui/taste.js'), 'utf8');
   const reel = await readFile(path.join(assets, 'js/ui/reel.js'), 'utf8');
-  assert.match(taste, /setPlaybackQuality', \['hd720'\]/);
-  assert.doesNotMatch(taste, /\['medium'\]/);
-  assert.match(reel, /TASTE_AFTER_MS = 800/);
+  assert.match(taste, /const TIERS = \['hd720', 'large', 'medium'\]/);        // 720p first, a step down when the frames stall (#224)
+  assert.match(taste, /watchFrames\(/);
+  assert.match(reel, /TASTE_AFTER_MS = 1200/);
 });
 
 test('A profile can carry its own picture (a small JPEG), offered on a phone only', async () => {
@@ -722,6 +722,17 @@ test('sync keeps the SERVER time: no device stamps a row, and the cursor is the 
   assert.doesNotMatch(sync, /updated_at: now|new Date\(\)\.toISOString\(\)/);                 // no device clock in what is sent or kept
   assert.match(sync, /m\?\.v === 2 \? m : \{pulled: EPOCH/);                                  // cursors kept by the old clock start again, once
   assert.match(sync, /newest = Math\.max\(newest, Date\.parse\(r\.updated_at\)/);
+});
+
+test('a torrent stream keeps a window of pieces wanted ahead of the reader, and the player waits for a real stretch after a stall (#225)', async () => {
+  const srv = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/StreamServer.kt'), 'utf8');
+  const eng = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/TorrentEngine.kt'), 'utf8');
+  const kt = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  assert.match(srv, /private fun keepAhead\(\)/);                                       // ahead of the reader, not after a stall
+  assert.match(srv, /handle\.setPieceDeadline\(p, 400 \+ rank \* 150\)/);
+  assert.match(srv, /positions\.values\.minOrNull\(\)/);                                // the connection being watched, not the index fetch at the end
+  assert.match(eng, /int_types\.request_timeout/); assert.match(eng, /int_types\.max_out_request_queue/);
+  assert.match(kt, /if \(live\) 2_000 else if \(torrent\) 15_000 else 6_000/);          // after a stall: a real stretch before going on
 });
 
 test('a source that did not answer is shown only when nothing playable was found (#228)', async () => {

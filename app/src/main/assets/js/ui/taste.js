@@ -1,6 +1,7 @@
 /* The taste: a few seconds of a title's trailer, playing inside whatever picture it belongs to. */
 import {$} from '../core/dom.js';
 import {IS_TV_DEVICE, settings} from '../core/settings.js';
+import {store} from '../core/store.js';
 
 /** A title's trailer on YouTube, if it came with one. */
 export const trailerId = m => {
@@ -19,6 +20,25 @@ export function endTaste(){ clearTimeout(tasteTimer); tasteStop?.(); tasteStop =
  */
 /** How long a taste plays, once it can be seen. */
 const TASTE_MS = 30e3;
+/* A trailer playing in the page competes with the remote for the same small processor: on the emulator, moving along a row with a
+   taste playing dropped frames (5 over 50 ms, 2 over 100 ms in 400) and with none it dropped none. So the taste asks for the best
+   picture the box can carry: it starts at 720p, and if the page's own frames stall while it plays, the next step down is taken - and
+   kept for this device (a device key), so the next taste starts there. */
+const TIERS = ['hd720', 'large', 'medium'];
+const tier = () => Math.min(Math.max(TIERS.indexOf(store.get('tasteQ', 'hd720')), 0), TIERS.length - 1);
+/** Watch the page's frames for a few seconds; [bad]() is called if it stalls (three frames over 60 ms). */
+function watchFrames(alive, bad){
+  let last = performance.now(), slow = 0;
+  const t0 = last;
+  const tick = t => {
+    if(t - last > 60) slow++;
+    last = t;
+    if(!alive()) return;
+    if(slow >= 3){ bad(); return; }
+    if(t - t0 < 4000) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 /** How long YouTube's own controls stay over the picture after it starts, or after its sound comes on. */
 const CONTROLS_FADE_MS = 2500;
 export function startTaste(hostSel, yt, delay = 1500, quiet = false){
@@ -50,7 +70,11 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
       if(started || !/"playerState":\s*1/.test(String(e.data))) return;
       started = true;
       clearTimeout(giveUp);
-      cmd('setPlaybackQuality', ['hd720']);         // 720p: sharp on a television (it had been held at 360p, and looked poor)
+      cmd('setPlaybackQuality', [TIERS[tier()]]);   // 720p unless this box has shown it cannot carry it (it had been held at 360p, and looked poor)
+      watchFrames(() => frame.isConnected && tasteStop, () => {
+        const next = Math.min(tier() + 1, TIERS.length - 1);
+        if(next !== tier()){ store.set('tasteQ', TIERS[next]); cmd('setPlaybackQuality', [TIERS[next]]); }
+      });
       // No subtitles: loading them brought the player's bar up over the picture, and a taste is to be
       // looked at, not read.
       // the taste has its sound on every screen; Settings (preview: quiet) can make every taste silent

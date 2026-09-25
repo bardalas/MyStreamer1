@@ -604,12 +604,16 @@ class PlayerActivity : AppCompatActivity() {
          * black screen on every film and after every jump - on top of the fetching itself. A second is
          * enough to start smoothly, and the rest keeps filling behind the picture. Time is what a
          * viewer is waiting for, so the player is told to weigh it above the size of what it holds. */
+        /* A torrent comes over a swarm whose speed comes and goes: it starts a little later and, after a stall, waits for
+           a real stretch before going on - the picture that starts and stops every second is worse than one pause that
+           lets it run on (it fills further behind the picture, since its pieces are the ones being fetched ahead). */
+        val torrent = intent.getBooleanExtra("torrent", false)
         val baseControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                if (live) 8_000 else 15_000,
-                90_000,
-                if (live) 1_000 else 900,
-                if (live) 2_000 else 6_000
+                if (live) 8_000 else if (torrent) 30_000 else 15_000,
+                if (torrent) 120_000 else 90_000,
+                if (live) 1_000 else if (torrent) 3_000 else 900,
+                if (live) 2_000 else if (torrent) 15_000 else 6_000
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()

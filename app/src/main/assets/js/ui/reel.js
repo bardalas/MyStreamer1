@@ -57,7 +57,7 @@ export function clearSpot(){
    growing, no sliding. The only movement is the row's own turn to bring the title to the middle (place / turn) - the
    owner found anything more too animated (#159). */
 /** How long the remote rests on a title before its taste starts loading (it is shown only once playing). */
-const TASTE_AFTER_MS = 800;
+const TASTE_AFTER_MS = 1200;
 
 /** Bring [el] to the middle of its row. */
 export function spotlight(el){

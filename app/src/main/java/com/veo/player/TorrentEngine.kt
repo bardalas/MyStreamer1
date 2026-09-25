@@ -73,6 +73,10 @@ object TorrentEngine {
                     .setInteger(settings_pack.int_types.connection_speed.swigValue(), 200)
                     .setInteger(settings_pack.int_types.torrent_connect_boost.swigValue(), 100)
                     .setInteger(settings_pack.int_types.connections_limit.swigValue(), 400)
+                    // a slow peer is given up on sooner and its request handed to another; a longer queue keeps a fast peer busy
+                    .setInteger(settings_pack.int_types.request_timeout.swigValue(), 10)
+                    .setInteger(settings_pack.int_types.piece_timeout.swigValue(), 8)
+                    .setInteger(settings_pack.int_types.max_out_request_queue.swigValue(), 1000)
             )
             started = true
         }
