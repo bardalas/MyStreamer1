@@ -20,7 +20,7 @@ export function endTaste(){ clearTimeout(tasteTimer); tasteStop?.(); tasteStop =
 /** How long a taste plays, once it can be seen. */
 const TASTE_MS = 30e3;
 /** How long YouTube's own controls stay over the picture after it starts, or after its sound comes on. */
-const CONTROLS_FADE_MS = 4500;
+const CONTROLS_FADE_MS = 2500;
 export function startTaste(hostSel, yt, delay = 1500, quiet = false){
   endTaste();
   if(!yt || settings.preview === 'off' || !isTvLayout()) return;
@@ -36,7 +36,7 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
        bar along its bottom, and a frame larger than what shows of it keeps both outside the picture
        whenever they appear. */
     const box = host.getBoundingClientRect();
-    const crop = 1.34;
+    const crop = 1.2;
     frame.style.width = Math.ceil(Math.max(box.width, box.height * 16 / 9) * crop) + 'px';
     frame.style.height = Math.ceil(Math.max(box.height, box.width * 9 / 16) * crop) + 'px';
     const say = msg => frame.contentWindow?.postMessage(JSON.stringify(msg), '*');
@@ -50,8 +50,7 @@ export function startTaste(hostSel, yt, delay = 1500, quiet = false){
       if(started || !/"playerState":\s*1/.test(String(e.data))) return;
       started = true;
       clearTimeout(giveUp);
-      cmd('setPlaybackQuality', ['small']);
-      cmd('setPlaybackQuality', ['medium']);        // a full-screen frame otherwise asks for HD, and stalls
+      cmd('setPlaybackQuality', ['hd720']);         // 720p: sharp on a television (it had been held at 360p, and looked poor)
       // No subtitles: loading them brought the player's bar up over the picture, and a taste is to be
       // looked at, not read.
       // while browsing it stays quiet: a row of trailers shouting at the viewer is not a taste, it is

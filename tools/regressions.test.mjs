@@ -638,3 +638,11 @@ test('live TV: the arrows are time, and the bar, chip and sign are made from one
   assert.match(kt, /timelineSpanMs\(behindMs\)/);                                               // the bar is a ruler ending in the present
   assert.match(kt, /catchSeekMs = atMs - start \* 1000/);                                        // the archive opens a little before the minute asked for
 });
+
+test('The taste asks for 720p and starts loading soon after the remote rests', async () => {
+  const taste = await readFile(path.join(assets, 'js/ui/taste.js'), 'utf8');
+  const reel = await readFile(path.join(assets, 'js/ui/reel.js'), 'utf8');
+  assert.match(taste, /setPlaybackQuality', \['hd720'\]/);
+  assert.doesNotMatch(taste, /\['medium'\]/);
+  assert.match(reel, /TASTE_AFTER_MS = 800/);
+});
