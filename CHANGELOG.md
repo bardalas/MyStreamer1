@@ -1,5 +1,15 @@
 # VEO Android changelog
 
+## 0.45.28 — 2026-09-25
+- **A new device sees your profiles.** A device that had just signed in could send its own blank profile over the
+  account's real one, so the owner's profile turned up empty everywhere. A blank placeholder is never sent now, a
+  new device gives its placeholders up to the account's profiles, and the server itself refuses to blank a named
+  profile. (#234)
+- **More of the app follows the account:** the add-ons, the live playlists, the parent code and the RaspberryTV
+  key, besides the progress in every episode, your place in each series, favourites, settings and pictures.
+  Changes are sent as soon as the app goes to the background. (#234)
+- **Nothing plays behind the sign-in screen** - no trailer sound behind the QR. (#232)
+
 ## 0.45.27 — 2026-09-25
 - **A smoother torrent stream.** The swarm is now kept working on the next stretch of the film ahead of the
   picture (about 64 MB, the nearest pieces first) instead of only after it stalled; slow sources are given up
