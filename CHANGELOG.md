@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.23 — 2026-09-25
+- **A profile edit is kept.** The account's older copy of a profile could overwrite a change you had just made and
+  not yet sent - a new picture, a new name - so it seemed not to save. A change made here now wins and is sent;
+  otherwise the account's copy is the profile (a removed picture stays removed on every device). (#206)
+
 ## 0.45.22 — 2026-09-25
 - **The wide picture on the wheel arrives at once** - no window opening, no growing, no sliding neighbours
   (that was too much). The row's own turn to the middle and the focus zoom are all that move; the picture's
