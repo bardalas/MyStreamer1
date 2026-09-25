@@ -1,5 +1,15 @@
 # VEO Android changelog
 
+## 0.45.14 — 2026-09-25
+- **Search suggests as you type.** Under the search field, in the menu, a short list follows the typing:
+  at once from what the app knows (your library, what you watched, every title that has been on a
+  screen), then what the catalogues find, then "search everything for ...". (#138)
+- **The search field is one stop.** On a television the mark above it is only a picture: Up from the
+  field no longer lands on a button that did not open it. (#139)
+- **Films load further ahead on a fast line,** and a pause keeps filling instead of stopping: up to five
+  minutes ahead when the line has room to spare, within a memory limit. Not for live TV or torrents. (#142)
+- **A phone's screen begins in one place** - one number for the gap under the status bar. (#6)
+
 ## 0.45.13 — 2026-09-25
 - **The taste is back.** The trailer preview was playing under the wide picture that fades in over a
   focused card; it now plays over it. (#137)
