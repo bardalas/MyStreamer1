@@ -24,8 +24,10 @@ export const LAYOUT = 'tv';
 export const POSTER_SIZE = 'm';
 /** Every choice and what it is until the viewer makes it - the one list of them (booth.html reads the
     few it paints before the page is up from the stored settings, falling back to the same values). */
+/** The custom skin's colours until the viewer chooses: background, primary and secondary accents, the text, the icons. */
+export const CUSTOM_DEFAULTS = {bg: '#14161f', accent: '#f0b429', secondary: '#a3384b', text: '#efe6cf', icon: '#8e93a8'};
 export const DEFAULTS = {skin: 'veo', lang: 'he', uiLang: UI, nosrc: 'hide', start: 'vod', kids: 'off',
-  preview: 'on', subs: 'auto', cap: 'all', kidsAge: 'kids', customColors: {bg:'#14161f', accent:'#f0b429', secondary:'#a3384b'}};
+  preview: 'on', subs: 'auto', cap: 'all', kidsAge: 'kids', customColors: CUSTOM_DEFAULTS};
 /* One door for every set of settings there will ever be. The two that the whole stylesheet depends
    on are pinned here rather than written by each caller: a reset that forgot them once put
    data-layout="undefined" on the page, and every rule written for the layout stopped matching. */
@@ -89,8 +91,12 @@ export function syncNativeTheme(){
 export function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
-  const custom = settings.skin === 'custom' ? settings.customColors || DEFAULTS.customColors : null;
-  for(const [name, value] of Object.entries(custom ? {'--night':custom.bg, '--tungsten':custom.accent, '--velvet':custom.secondary, '--second':custom.secondary} : {'--night':'', '--tungsten':'', '--velvet':'', '--second':''})) {
+  const custom = settings.skin === 'custom' ? {...CUSTOM_DEFAULTS, ...(settings.customColors || {})} : null;
+  // the text colour is the main text; the dimmer texts are that colour mixed toward the background, so one choice sets them all
+  const custom_vars = custom ? {'--night':custom.bg, '--tungsten':custom.accent, '--velvet':custom.secondary, '--second':custom.secondary,
+    '--light':custom.text, '--text2':`color-mix(in srgb, ${custom.text} 80%, ${custom.bg})`, '--muted':`color-mix(in srgb, ${custom.text} 55%, ${custom.bg})`, '--icon':custom.icon}
+    : {'--night':'', '--tungsten':'', '--velvet':'', '--second':'', '--light':'', '--text2':'', '--muted':'', '--icon':''};
+  for(const [name, value] of Object.entries(custom_vars)) {
     value ? r.style.setProperty(name, value) : r.style.removeProperty(name);
   }
   r.dataset.kids = kidsTier();

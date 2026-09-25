@@ -707,6 +707,16 @@ test('the secondary colour of the custom skin is visible: ratings and watched-pr
   assert.match(settings, /'--second':custom\.secondary/);
 });
 
+test('the custom skin has a text colour and an icon colour (#221)', async () => {
+  const core = await readFile(path.join(assets, 'js/core/settings.js'), 'utf8');
+  const ui = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  const chrome = await readFile(path.join(assets, 'css/chrome.css'), 'utf8');
+  assert.match(core, /CUSTOM_DEFAULTS = \{bg: '#14161f', accent: '#f0b429', secondary: '#a3384b', text: '#efe6cf', icon: '#8e93a8'\}/);
+  assert.match(core, /'--light':custom\.text/); assert.match(core, /'--icon':custom\.icon/);
+  assert.match(ui, /pick\('text', tr\('set\.skin\.text'\)\)\}\$\{pick\('icon', tr\('set\.skin\.icon'\)\)/);
+  assert.match(chrome, /\.rail a:not\(\.on\) \.ic\{color:var\(--icon,currentColor\)\}/);       // every other skin: unchanged
+});
+
 test('sync keeps the SERVER time: no device stamps a row, and the cursor is the newest server time seen (#219)', async () => {
   const sync = await readFile(path.join(assets, 'js/data/sync.js'), 'utf8');
   assert.doesNotMatch(sync, /updated_at: now|new Date\(\)\.toISOString\(\)/);                 // no device clock in what is sent or kept

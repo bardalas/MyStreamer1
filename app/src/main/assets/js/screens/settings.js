@@ -2,7 +2,7 @@
 import {route} from '../app.js';
 import {fetchText} from '../core/bridge.js';
 import {$, esc} from '../core/dom.js';
-import {SKINS, isTvLayout, resetSettings, setSetting, settings} from '../core/settings.js';
+import {CUSTOM_DEFAULTS, SKINS, isTvLayout, resetSettings, setSetting, settings} from '../core/settings.js';
 import {store} from '../core/store.js';
 import {addons, scProviders, setScProviders} from '../data/addons.js';
 import {CATEGORIES, catName} from '../data/catalogs.js';
@@ -214,11 +214,11 @@ const PANES = {
   home: () => section(tr('set.home.title'), `<div class="catorder">${categories()}</div>`)
     + section('', lines(pref('nosrc'))),
   look: () => {
-    const col = settings.customColors || {bg:'#14161f', accent:'#f0b429', secondary:'#a3384b'};
+    const col = {...CUSTOM_DEFAULTS, ...(settings.customColors || {})};
     const pick = (key, label) => `<button class="colorpick" data-fid="col:${key}" data-col="${key}" aria-label="${esc(label)}">
       <span>${esc(label)}</span><i style="--pick:${esc(col[key])}"></i><b>${esc(col[key].toUpperCase())}</b></button>`;
     return section(tr('set.skin.title'), `<div class="themes">${SKINS.map(themeCard).join('')}</div>`)
-      + section(tr('set.skin.custom'), `<div class="colorpickers">${pick('bg', tr('set.skin.bg'))}${pick('accent', tr('set.skin.accent'))}${pick('secondary', tr('set.skin.secondary'))}</div>`);
+      + section(tr('set.skin.custom'), `<div class="colorpickers">${pick('bg', tr('set.skin.bg'))}${pick('accent', tr('set.skin.accent'))}${pick('secondary', tr('set.skin.secondary'))}${pick('text', tr('set.skin.text'))}${pick('icon', tr('set.skin.icon'))}</div>`);
   },
   live: () => {
     const rtv = store.get('rtvKey', '');
@@ -372,11 +372,11 @@ function hsvToHex(h,s,v){
 }
 function openColorPicker(key, opener){
   document.querySelector('.sheet')?.remove();
-  const current = (settings.customColors || {})[key] || ({bg:'#14161f',accent:'#f0b429',secondary:'#a3384b'})[key];
+  const current = (settings.customColors || {})[key] || CUSTOM_DEFAULTS[key];
   const hsv = hexToHsv(current);
   const sheet = document.createElement('div');
   sheet.className = 'sheet colorsheet';
-  const label = key === 'bg' ? tr('set.skin.bg') : key === 'accent' ? tr('set.skin.accent') : tr('set.skin.secondary');
+  const label = tr({bg: 'set.skin.bg', accent: 'set.skin.accent', secondary: 'set.skin.secondary', text: 'set.skin.text', icon: 'set.skin.icon'}[key]);
   sheet.innerHTML = `<div role="dialog" aria-modal="true" aria-label="${esc(label)}">
     <header><b>${esc(label)}</b><button data-back aria-label="${esc(tr('common.close'))}">✕</button></header>
     <div class="body">
