@@ -706,3 +706,13 @@ test('the secondary colour of the custom skin is visible: ratings and watched-pr
   assert.match(content, /\.rate\{color:var\(--second\)/);
   assert.match(settings, /'--second':custom\.secondary/);
 });
+
+test('the custom skin has a text colour and an icon colour (#221)', async () => {
+  const core = await readFile(path.join(assets, 'js/core/settings.js'), 'utf8');
+  const ui = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  const chrome = await readFile(path.join(assets, 'css/chrome.css'), 'utf8');
+  assert.match(core, /CUSTOM_DEFAULTS = \{bg: '#14161f', accent: '#f0b429', secondary: '#a3384b', text: '#efe6cf', icon: '#8e93a8'\}/);
+  assert.match(core, /'--light':custom\.text/); assert.match(core, /'--icon':custom\.icon/);
+  assert.match(ui, /pick\('text', tr\('set\.skin\.text'\)\)\}\$\{pick\('icon', tr\('set\.skin\.icon'\)\)/);
+  assert.match(chrome, /\.rail a:not\(\.on\) \.ic\{color:var\(--icon,currentColor\)\}/);       // every other skin: unchanged
+});

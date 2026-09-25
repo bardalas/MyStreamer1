@@ -19,6 +19,7 @@
 .stabs button{display:flex;align-items:center;gap:12px;text-align:start;background:none;border:0;border-radius:12px;
   padding:10px 14px;color:var(--muted);font:inherit;font-size:16px;cursor:pointer}
 .stabs button svg{width:20px;height:20px;flex:none}
+.stabs button:not(.on) svg{color:var(--icon,currentColor)}
 .stabs button.on{background:var(--raise);color:var(--light);box-shadow:inset calc(-3px * var(--flip)) 0 var(--tungsten)}
 .stabs button.on svg{color:var(--tungsten)}
 .stabs button:hover{color:var(--light)}
