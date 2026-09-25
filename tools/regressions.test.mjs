@@ -568,3 +568,13 @@ test('series page: the resume / start-over question is asked on the episode, its
   assert.match(d, /w\.t > 30 && w\.t < w\.d - 60/);                    // only an episode left in the middle is asked about
   assert.match(css, /@media\(min-width:900px\)\{\.epwrap\{max-width:min\(40vw,560px\)\}\}/);
 });
+
+
+test('a card opens by pushing its neighbours aside, not by a window reveal alone (#134)', async () => {
+  const reel = await readFile(path.join(assets, 'js/ui/reel.js'), 'utf8');
+  const css = await readFile(path.join(assets, 'css/reel.css'), 'utf8');
+  assert.match(reel, /const before = lefts\(nearby\(strip, el\)\);\s*clearSpot\(\);/);   // measured before anything changes
+  assert.match(reel, /push\(before\);/);
+  assert.match(reel, /c\.animate\(\[\{transform: `translateX\(\$\{dx\}px\)`\}, \{transform: 'none'\}\]/);   // on the compositor
+  assert.doesNotMatch(css, /spotOpen\{from\{[^}]*scale/);                                 // no scale wobble of the picture itself
+});

@@ -53,16 +53,37 @@ export function clearSpot(){
   spot = null; act = null;
 }
 
+/* The card grows and pushes its neighbours aside: what stands next to the middle slides over as the picture opens
+   (each from where it was to where it now is), so that the row is felt to make room rather than a picture being
+   uncovered. The layout is final at once - it is measured twice, and only the neighbours nearest the middle are
+   moved, on the compositor (a transform), so a television box does not pay for a reflow a frame. */
+const PUSH_MS = 320, PUSH_REACH = 5;
+const nearby = (strip, el) => {
+  const list = [...strip.children].filter(c => c.classList.contains('poster'));
+  const i = list.indexOf(el);
+  return list.slice(Math.max(0, i - PUSH_REACH), i + PUSH_REACH + 1);
+};
+const lefts = list => new Map(list.map(c => [c, c.getBoundingClientRect().left]));
+function push(before){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for(const [c, was] of before){
+    const dx = was - c.getBoundingClientRect().left;
+    if(Math.abs(dx) > 1) c.animate([{transform: `translateX(${dx}px)`}, {transform: 'none'}], {duration: PUSH_MS, easing: 'cubic-bezier(.22,.8,.24,1)'});
+  }
+}
+
 /** Bring [el] to the middle of its row. */
 export function spotlight(el){
   if(!el || el === spot || !el.isConnected || !reelable()) return;
   const strip = el.closest('.strip');
   if(!strip) return;
+  const before = lefts(nearby(strip, el));
   clearSpot();
   spot = el;
   strip.querySelectorAll('[data-was-spot]').forEach(x => delete x.dataset.wasSpot);
   el.classList.add('spot');
   delete el.dataset.wasSpot;
+  push(before);
   // a poster made wide shows whole, in its own blurred copy, until the title's wide picture comes (widen) -
   // asked for once the viewer has paused on it for a moment, not at every step of a run along the row
   const art = el.querySelector('.art');
