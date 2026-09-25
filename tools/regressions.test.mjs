@@ -669,3 +669,8 @@ test('the spot card is pushed in from the side, not opened like a window (#159)'
   const css = await readFile(path.join(assets, 'css/reel.css'), 'utf8');
   assert.doesNotMatch(css, /spotOpen|clip-path:inset/);
 });
+
+test('the row wrapper leaves room on every side for the focused card ring (#203)', async () => {
+  const css = await readFile(path.join(assets, 'css/reel.css'), 'utf8');
+  assert.match(css, /\.reelwrap\{overflow:hidden;margin:-24px -28px;padding:24px 28px\}/);
+});

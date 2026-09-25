@@ -4,7 +4,9 @@
    taste playing in it - while its name stays under it, where every other title's name is, with one
    line beneath saying what it is. The row keeps its height either way, so nothing below it moves. */
 
-.reelwrap{overflow:hidden;margin-inline:-10px;padding-inline:10px}
+/* the wrapper clips the row's turning, and must leave room on every side for the focused card's ring and its zoom (3px + 3px offset,
+   7% of the card), or the ring is cut at its corners; the negative margin gives the room back to the layout */
+.reelwrap{overflow:hidden;margin:-24px -28px;padding:24px 28px}
 /* the room under the row is the same whether a title stands in it or not, so nothing below it moves */
 .strip.reel{position:relative;overflow:visible;scroll-snap-type:none;padding-bottom:76px;
   transition:transform var(--settle) var(--ease)}
@@ -71,7 +73,7 @@
 
 /* ---------- a phone: the row still scrolls, but the title still opens in place ---------- */
 @media(max-width:899px){
-  .reelwrap{overflow:visible;margin-inline:0;padding-inline:0}
+  .reelwrap{overflow:visible;margin:0;padding:0}
   .strip.reel{overflow-x:auto}
   .strip.reel .poster{flex-basis:var(--poster-w)}
   .strip .poster.spot,.strip.reel .poster.spot{flex-basis:min(76vw,calc(var(--poster-w) * 2.4))}
