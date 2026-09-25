@@ -625,3 +625,16 @@ test('the menu is settled from what is true, and the press that unlocks the sear
   assert.match(rail, /new MutationObserver\(settle\)\.observe\(rail/);           // something in the menu taken away: the focus went with it
   assert.match(rail, /e\.key !== 'Enter' \|\| e\.defaultPrevented \|\| \$\('#q'\)\.readOnly/);
 });
+
+
+test('live TV: the arrows are time, and the bar, chip and sign are made from one number (#153)', async () => {
+  const kt = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  assert.doesNotMatch(kt, /if \(canWalk\(\)\) walkGuide\(back\) else seekBy/);                 // a short press no longer walks the guide
+  assert.match(kt, /KEYCODE_MEDIA_NEXT -> if \(live && canWalk\(\)\) \{ walkGuide\(false\)/);   // the guide has keys of its own
+  assert.match(kt, /private fun posEpochMs\(\)/); assert.match(kt, /private fun playAt\(atMs: Long\)/); assert.match(kt, /private fun goLive\(\)/);
+  assert.match(kt, /target >= nowMs - liveEdgeMs\(\) - 3_000/);                                  // forward into the present is the live edge
+  assert.match(kt, /nowMs - at - liveEdgeMs\(\)/);                                               // "live" is the edge the player keeps, not "behind"
+  assert.match(kt, /o in 1_000L\.\.30_000L\) liveEdge = o/);                                     // ... measured, not assumed
+  assert.match(kt, /timelineSpanMs\(behindMs\)/);                                               // the bar is a ruler ending in the present
+  assert.match(kt, /catchSeekMs = atMs - start \* 1000/);                                        // the archive opens a little before the minute asked for
+});
