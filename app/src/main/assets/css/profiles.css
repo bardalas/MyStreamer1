@@ -3,6 +3,7 @@
 .avatar{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;border-radius:9px;
   background:var(--av,var(--raise));font-size:18px;line-height:1;overflow:hidden;box-shadow:inset 0 0 0 1px #ffffff14}
 /* the initial: a letter in the app's own type, white on the colour */
+.avatar.photo{background-size:cover;background-position:center;background-repeat:no-repeat}
 .avatar.initial{color:#fff;font:800 17px/1 var(--display);letter-spacing:-.02em}
 .avatar.big.initial{font-size:64px}
 .profhead .avatar.big.initial{font-size:46px}
