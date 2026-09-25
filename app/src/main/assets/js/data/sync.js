@@ -68,12 +68,15 @@ async function pull(){
   let changedHere = false;
   applying = true;
   try{
-    if(profs?.length){
+    // the profile list changed here and not yet sent (a name, a picture): it wins, and goes up with the next push - the account's
+    // older copy must not overwrite what was just done
+    if(profs?.length && !meta().dirty['/' + LIST]){
       const list = store.get(LIST, []);
       for(const r of profs){
         const i = list.findIndex(p => p.id === r.id);
         if(r.deleted){ if(i >= 0) list.splice(i, 1); continue; }
-        if(i >= 0) list[i] = {...list[i], ...r.data}; else list.push(r.data);
+        const next = {...r.data, id: r.id};              // the account's copy IS the profile (a removed picture stays removed)
+        if(i >= 0) list[i] = next; else list.push(next);
       }
       // a device that was never used holds one empty profile of its own: the account's profiles replace it
       store.set(LIST, list);

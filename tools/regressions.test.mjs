@@ -674,3 +674,10 @@ test('the row wrapper leaves room on every side for the focused card ring (#203)
   assert.match(css, /\.poster\.spot \.art\{margin-bottom:12px\}/);                       // the ring never lies over the name beneath
   assert.match(css, /\.poster\.spot:focus \.art[^{]*\{transform:none\}/);
 });
+
+test('an unsent local profile edit is not overwritten by the account, and the account copy replaces the profile (#206)', async () => {
+  const sync = await readFile(path.join(assets, 'js/data/sync.js'), 'utf8');
+  assert.match(sync, /if\(profs\?\.length && !meta\(\)\.dirty\['\/' \+ LIST\]\)/);
+  assert.match(sync, /const next = \{\.\.\.r\.data, id: r\.id\};/);
+  assert.doesNotMatch(sync, /list\[i\] = \{\.\.\.list\[i\], \.\.\.r\.data\}/);
+});
