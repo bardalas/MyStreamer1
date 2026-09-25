@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.18 — 2026-09-25
+- **Sign-in on a phone.** A phone no longer shows a QR code (that is for a television). With no account it
+  asks for an email and a code, or for the number a signed-in device shows. In Settings > Account, "Add a
+  device" shows a number for ten minutes, and "Connect a TV" takes the number a television shows. (#182)
+
 ## 0.45.17 — 2026-09-25
 - **VEO is one account.** The app opens on a sign-in screen; nothing is kept as a profile on a device by
   itself. On a television it is a QR code: scan it with a phone. A phone that has the VEO app and is signed
