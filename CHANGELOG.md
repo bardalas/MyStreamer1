@@ -1,5 +1,9 @@
 # VEO Android changelog
 
+## 0.45.25 — 2026-09-25
+- **The secondary colour of the custom skin shows:** ratings and the "how far you watched" bars take it (every
+  other skin looks as before). (#216)
+
 ## 0.45.24 — 2026-09-25
 - **Every profile can change its own picture** - an avatar from the list, or a photo from the phone - not only
   the account's owner. Only the owner adds or deletes profiles, or edits the others. (#209)
