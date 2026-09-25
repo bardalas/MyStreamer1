@@ -17,14 +17,19 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   let code = '', secret = ''
   try { ({ code, secret } = await req.json()) } catch { return reply({ error: 'bad request' }, 400) }
-  if (!/^[A-Za-z0-9]{6,12}$/.test(code || '') || !/^[0-9a-f]{32,128}$/.test(secret || '')) return reply({ error: 'bad request' }, 400)
+  if (!/^[A-Za-z0-9]{6,12}$/.test(code || '') || (secret && !/^[0-9a-f]{32,128}$/.test(secret))) return reply({ error: 'bad request' }, 400)
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { persistSession: false, autoRefreshToken: false } })
 
-  const { data: row } = await admin.from('pairings').select('code, approved_by')
-    .eq('code', code.toUpperCase()).eq('secret_hash', await sha256(secret)).gt('expires_at', new Date().toISOString()).maybeSingle()
-  if (!row) return reply({ error: 'unknown or expired' }, 404)
+  // a television waiting for approval holds the secret it was given with its code; a number OFFERED by a signed-in device
+  // (pair_offer) is the credential itself - short-lived, and one open offer per account
+  const { data: row } = await admin.from('pairings').select('code, approved_by, offered, secret_hash')
+    .eq('code', code.toUpperCase()).gt('expires_at', new Date().toISOString()).maybeSingle()
+  if (!row || (!row.offered && (!secret || row.secret_hash !== await sha256(secret)))) {
+    await new Promise(r => setTimeout(r, 400))                   // guessing is slow
+    return reply({ error: 'unknown or expired' }, 404)
+  }
   if (!row.approved_by) return reply({ pending: true })
 
   const { data: u, error: ue } = await admin.auth.admin.getUserById(row.approved_by)
