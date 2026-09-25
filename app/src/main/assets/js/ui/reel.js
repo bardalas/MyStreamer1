@@ -58,6 +58,8 @@ export function clearSpot(){
    uncovered. The layout is final at once - it is measured twice, and only the neighbours nearest the middle are
    moved, on the compositor (a transform), so a television box does not pay for a reflow a frame. */
 const PUSH_MS = 320, PUSH_REACH = 5;
+/** How long the remote rests on a title before its taste starts loading (it is shown only once playing). */
+const TASTE_AFTER_MS = 800;
 const nearby = (strip, el) => {
   const list = [...strip.children].filter(c => c.classList.contains('poster'));
   const i = list.indexOf(el);
@@ -222,7 +224,7 @@ async function paint(el, full){
     // Two seconds from the moment the viewer came to rest - counted from then, not from whenever the
     // add-ons happened to answer, so it is the same wait every time. Quietly: browsing is not watching.
     const waited = performance.now() - restingSince;
-    startTaste('.poster.spot .art', trailerId(meta), Math.max(200, 2000 - waited), true);
+    startTaste('.poster.spot .art', trailerId(meta), Math.max(200, TASTE_AFTER_MS - waited), true);
   }
   if(hebrewOn() && /^tt\d+$/.test(id)){
     const plot = await plotFor(id, meta?.description).catch(() => null);
