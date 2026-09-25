@@ -734,3 +734,8 @@ test('a torrent stream keeps a window of pieces wanted ahead of the reader, and 
   assert.match(eng, /int_types\.request_timeout/); assert.match(eng, /int_types\.max_out_request_queue/);
   assert.match(kt, /if \(live\) 2_000 else if \(torrent\) 15_000 else 6_000/);          // after a stall: a real stretch before going on
 });
+
+test('a source that did not answer is shown only when nothing playable was found (#228)', async () => {
+  const src = await readFile(path.join(assets, 'js/ui/sources.js'), 'utf8');
+  assert.match(src, /const failure = errors\.length && !best \?/);
+});
