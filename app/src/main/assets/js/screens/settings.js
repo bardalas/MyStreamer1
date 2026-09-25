@@ -310,7 +310,7 @@ const ACTS = {
   acctSync: async b => {
     acctSay = tr('acct.syncing'); b.querySelector('.sv span') && (b.querySelector('.sv span').textContent = acctSay);
     let r = null;
-    try{ r = await sync(); acctSay = tr('acct.done'); }catch(e){ acctSay = tr('acct.fail'); }
+    try{ r = await sync(); acctSay = tr('acct.done') + ' · ' + store.get('profiles', []).length + ' ' + tr('acct.profiles'); }catch(e){ acctSay = tr('acct.fail'); }
     if(r?.changed){ location.reload(); return; }
     paintSettings('acctSync');
   },

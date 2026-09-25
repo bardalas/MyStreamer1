@@ -38,6 +38,15 @@ store.watch = (pid, k) => {
   saveMeta(m);
   schedule();
 };
+/** A profile was taken away on this device: the account is told, so it does not come back from the account. */
+store.removed = id => {
+  if(!signedIn()) return;
+  const m = meta();
+  m.removed = [...new Set([...(m.removed || []), id])];
+  m.dirty['/' + LIST] = true;
+  saveMeta(m);
+  schedule();
+};
 let timer = 0;
 const schedule = () => { clearTimeout(timer); timer = setTimeout(() => sync().catch(() => {}), 8000); };
 
@@ -64,6 +73,7 @@ async function push(){
     const [pid, ...rest] = n.split('/'), key = rest.join('/');
     if(key === LIST){
       for(const p of store.get(LIST, [])) if(!blank(p)) profs.push({account_id: uid, id: p.id, data: p, deleted: false});
+      for(const id of m.removed || []) profs.push({account_id: uid, id, data: {}, deleted: true});     // taken away here: taken away everywhere
     }else if(pid === ACCOUNT) rows.push({account_id: uid, profile_id: ACCOUNT, key, value: store.get(key, null)});
     else rows.push({account_id: uid, profile_id: pid, key, value: store.getFor(pid, key, null)});
   }
@@ -72,6 +82,7 @@ async function push(){
   if(rows.length) await rest('profile_data?on_conflict=account_id,profile_id,key', {...up, body: rows});
   const after = meta();
   for(const n of names) delete after.dirty[n];
+  if(names.includes('/' + LIST)) after.removed = [];
   saveMeta(after);
   return rows.length + profs.length;
 }
@@ -79,25 +90,32 @@ async function push(){
 /** Take what changed elsewhere. Returns whether anything of the profile in use changed (the page then reads it again). */
 async function pull(){
   const m = meta(), since = encodeURIComponent(m.pulled);
+  // The profile list is read WHOLE every time - a handful of rows, and no cursor to go wrong (a cursor once hid four profiles from
+  // a television for good); only the data pieces, which are many, are read from the cursor on.
   const [profs, data] = await Promise.all([
-    rest(`profiles?select=id,data,deleted,updated_at&updated_at=gt.${since}`),
+    rest('profiles?select=id,data,deleted'),
     rest(`profile_data?select=profile_id,key,value,updated_at&updated_at=gt.${since}`)]);
   let changedHere = false;
   applying = true;
   try{
     // the profile list changed here and not yet sent (a name, a picture): it wins, and goes up with the next push - the account's
     // older copy must not overwrite what was just done
-    if(profs?.length && !meta().dirty['/' + LIST]){
+    if(profs && !meta().dirty['/' + LIST]){
+      const before = JSON.stringify(store.get(LIST, []));
       const list = store.get(LIST, []);
+      const onServer = new Set();
       for(const r of profs){
+        onServer.add(r.id);
         const i = list.findIndex(p => p.id === r.id);
-        if(r.deleted){ if(i >= 0) list.splice(i, 1); continue; }
+        if(r.deleted){ if(i >= 0){ list.splice(i, 1); store.dropProfile(r.id); } continue; }     // removed on another device
         const next = {...r.data, id: r.id};              // the account's copy IS the profile (a removed picture stays removed)
         if(i >= 0) list[i] = next; else list.push(next);
       }
-      // a device that was never used holds one empty profile of its own: the account's profiles replace it
-      store.set(LIST, list);
-      changedHere = true;
+      // a profile this device holds that the account does not: it goes up (unless it is only a blank placeholder)
+      const strays = list.filter(p => !onServer.has(p.id) && !blank(p));
+      if(strays.length){ const m2 = meta(); m2.dirty['/' + LIST] = true; saveMeta(m2); }
+      const kept = list.filter(p => onServer.has(p.id) || !blank(p));      // a blank placeholder that the account has no row for goes away
+      if(JSON.stringify(kept) !== before){ store.set(LIST, kept); changedHere = true; }
     }
     for(const r of data || []){
       if(r.profile_id === ACCOUNT){                                 // the household's own things

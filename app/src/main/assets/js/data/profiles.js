@@ -84,6 +84,7 @@ export function removeProfile(id){
   if(id === profileId || list.length < 2 || !list.some(p => p.id === id)) return false;
   store.dropProfile(id);
   saveList(list.filter(p => p.id !== id));
+  store.removed?.(id);                               // the account hears of it (data/sync.js)
   return true;
 }
 
