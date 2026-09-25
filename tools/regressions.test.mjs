@@ -643,3 +643,10 @@ test('The taste asks for 720p and starts loading soon after the remote rests', a
   assert.doesNotMatch(taste, /\['medium'\]/);
   assert.match(reel, /TASTE_AFTER_MS = 800/);
 });
+
+test('The taste on the main screens is not muted by the caller', async () => {
+  const reel = await readFile(path.join(assets, 'js/ui/reel.js'), 'utf8');
+  const catalog = await readFile(path.join(assets, 'js/screens/catalog.js'), 'utf8');
+  assert.doesNotMatch(reel, /startTaste\([^\n]*, true\)/);
+  assert.doesNotMatch(catalog, /startTaste\([^\n]*, true\)/);
+});

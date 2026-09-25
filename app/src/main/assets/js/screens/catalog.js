@@ -228,7 +228,7 @@ async function showPane(p, taste){
     ...(meta.genres || meta.genre || []).slice(0, 2).map(g => `<span>${esc(genreName(g))}</span>`),
     svcOf(id).length && `<span><bdi>${esc(svcOf(id).join(' · '))}</bdi></span>`].filter(Boolean).join('');
   plot.textContent = meta.description || '';
-  if(taste) startTaste('#libpane .media', trailerId(meta), Math.max(200, TASTE_AFTER_MS - (performance.now() - restAt)), true);
+  if(taste) startTaste('#libpane .media', trailerId(meta), Math.max(200, TASTE_AFTER_MS - (performance.now() - restAt)));
   if(hebrewOn() && /^tt\d+$/.test(id)){
     const he = await plotFor(id, meta.description).catch(() => null);
     if(he && paneFor === p && plot.isConnected){ plot.dir = 'rtl'; plot.textContent = he.text; if(he.mt) plot.title = he.original; }
