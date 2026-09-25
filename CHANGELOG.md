@@ -1,5 +1,12 @@
 # VEO Android changelog
 
+## 0.45.22 — 2026-09-25
+- **The wide picture on the wheel arrives at once** - no window opening, no growing, no sliding neighbours
+  (that was too much). The row's own turn to the middle and the focus zoom are all that move; the picture's
+  fade-in is shorter. (#159)
+- **The white focus frame is whole:** it was cut at its corners by the row's edge. The wide card also stands
+  clear of its name, so the picture and the frame no longer lie over the words beneath. (#203)
+
 ## 0.45.21 — 2026-09-25
 - **Live TV, the way you asked.** A short press of Left or Right walks the guide one programme at a time and
   OK plays the one you stopped on; a held key scrubs back or forward, with the picture following when you
