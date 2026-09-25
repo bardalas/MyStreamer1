@@ -651,4 +651,10 @@ test('A profile can carry its own picture (a small JPEG), offered on a phone onl
   assert.match(prof, /class="avatar photo/);
   assert.match(ui, /IS_TV_DEVICE \? '' : line\(\{fid: 'photo'/);
   assert.match(ui, /toDataURL\('image\/jpeg'/);
+
+test('The taste on the main screens is not muted by the caller', async () => {
+  const reel = await readFile(path.join(assets, 'js/ui/reel.js'), 'utf8');
+  const catalog = await readFile(path.join(assets, 'js/screens/catalog.js'), 'utf8');
+  assert.doesNotMatch(reel, /startTaste\([^\n]*, true\)/);
+  assert.doesNotMatch(catalog, /startTaste\([^\n]*, true\)/);
 });

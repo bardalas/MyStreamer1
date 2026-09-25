@@ -224,7 +224,7 @@ async function paint(el, full){
     // Two seconds from the moment the viewer came to rest - counted from then, not from whenever the
     // add-ons happened to answer, so it is the same wait every time. Quietly: browsing is not watching.
     const waited = performance.now() - restingSince;
-    startTaste('.poster.spot .art', trailerId(meta), Math.max(200, TASTE_AFTER_MS - waited), true);
+    startTaste('.poster.spot .art', trailerId(meta), Math.max(200, TASTE_AFTER_MS - waited));
   }
   if(hebrewOn() && /^tt\d+$/.test(id)){
     const plot = await plotFor(id, meta?.description).catch(() => null);

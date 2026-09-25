@@ -135,17 +135,21 @@ class MainActivity : AppCompatActivity() {
     private var splash: android.view.View? = null
     private var pageUp = false
     private var pendingLink: String? = null
+    private var pendingKind = "Link"
 
     /** The pairing code of a television's QR (veo://link?c=CODE) this app was opened with, if it was. */
-    private fun linkOf(i: Intent?): String? =
-        i?.data?.takeIf { it.scheme == "veo" && it.host == "link" }?.getQueryParameter("c")
+    private fun linkOf(i: Intent?): String? {
+        val d = i?.data?.takeIf { it.scheme == "veo" && (it.host == "link" || it.host == "join") } ?: return null
+        pendingKind = if (d.host == "join") "Join" else "Link"       // approve a television, or join the account from a signed-in one
+        return d.getQueryParameter("c")
+    }
 
     /** Hand the code to the page once it is up: it approves the television with the account it is signed in to. */
     private fun deliverLink() {
         val c = pendingLink ?: return
         if (!pageUp) return
         pendingLink = null
-        web.evaluateJavascript("window.boothLink && boothLink(${JSONObject.quote(c)})", null)
+        web.evaluateJavascript("window.booth$pendingKind && booth$pendingKind(${JSONObject.quote(c)})", null)
     }
 
     override fun onNewIntent(intent: Intent) {
