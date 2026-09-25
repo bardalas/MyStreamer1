@@ -12,6 +12,9 @@ import {forgetWatched} from '../data/taste.js';
 import {PROVIDERS, PROVIDERS_MAIN, PROVIDERS_MORE, resetServices, svcMark} from '../data/services.js';
 import {clearProgress} from '../data/watch.js';
 import {UI_LANGS, tr} from '../i18n.js';
+import {accountEmail, pairStart, pairWait, signOut, signedIn} from '../data/account.js';
+import {firstSync, sync} from '../data/sync.js';
+import {loadQr} from '../ui/report.js';
 import {parseM3U, playlistCache, playlists, setPlaylists} from '../providers/live.js';
 import {forgetRtv} from '../providers/rtv.js';
 import {askPin, choosePin} from '../ui/pin.js';
@@ -28,11 +31,12 @@ import {APP_VERSION, checkUpdate} from '../ui/update.js';
 /* A kids profile is a property of the profile, so it is set where profiles are: Profiles -> the profile ->
    "type of profile" (screens/profiles.js), not on a page of its own. The one page about kids that is left
    belongs to a profile that already is one - it is how a grown-up gets out of it, behind the code (#109). */
-export const SETTINGS_TABS = ['general', 'profiles', 'watch', 'services', 'home', 'look', 'live', 'about'];
+export const SETTINGS_TABS = ['general', 'profiles', 'account', 'watch', 'services', 'home', 'look', 'live', 'about'];
 /** Addresses written before the pages were regrouped. */
 const RENAMED = {start: 'general', addons: 'watch'};
 const icon = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 const ICONS = {
+  account: icon('<circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/>'),
   profiles: icon('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.8" cy="9.5" r="2.5"/><path d="M15.2 14.6c.5-.1 1-.1 1.6-.1 2.2 0 3.9 1.5 4.4 4.3"/>'),
   general: icon('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.5 5.2 3.5 8.5s-1.1 6.2-3.5 8.5c-2.4-2.3-3.5-5.2-3.5-8.5s1.1-6.2 3.5-8.5z"/>'),
   watch: icon('<rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="M10 9.2v5.6l4.7-2.8z"/>'),
@@ -194,6 +198,12 @@ const UPD_SAYS = {found: 'set.about.found', offline: 'set.about.offline', unsupp
 const PANES = {
   general: () => section('', lines(pref('uiLang') + pref('lang') + (kidsOn() ? '' : pref('start')))),
   profiles: () => profilesPane(),
+  account: () => signedIn()
+    ? section(tr('acct.title'), lines(line({fid: 'acctWho', label: tr('acct.in'), value: esc(accountEmail() || '')})
+        + line({fid: 'acctSync', label: tr('acct.sync'), note: tr('acct.syncNote'), value: acctSay, attrs: 'data-act="acctSync"'})
+        + line({fid: 'acctOut', label: tr('acct.out'), danger: true, attrs: 'data-act="acctOut"'})))
+    : section(tr('acct.title'), lines(line({fid: 'acctLink', label: tr('acct.link'), note: tr('acct.linkNote'), attrs: 'data-act="acctLink"'}))
+        + '<div class="repqr" id="acctqr"></div><p class="snote" id="acctsay" aria-live="polite"></p>'),
   watch: () => section(tr('set.sec.play'), lines(pref('quality') + pref('cap') + pref('preview')))
     + section(tr('set.sec.subs'), lines(pref('subs') + (window.BoothAndroid?.setSubScale ? pref('subsize') : '')))
     + section(tr('set.sec.sources'), lines(line({fid: 'addons', href: '#/addons', label: tr('set.addons.title'),
@@ -264,7 +274,35 @@ function confirmed(b){
   return false;
 }
 
+let acctSay = '';
 const ACTS = {
+  acctLink: async () => {
+    const box = $('#acctqr'), say = $('#acctsay');
+    if(!box) return;
+    say.textContent = tr('acct.wait');
+    let pair;
+    try{ pair = await pairStart(); }catch(e){ say.textContent = tr('acct.fail'); return; }
+    const qr = await loadQr();
+    if(qr && box.isConnected){
+      const code = qr(0, 'M'); code.addData(pair.url); code.make();
+      box.innerHTML = `${code.createSvgTag({cellSize: 6, margin: 4})}`;
+    }
+    say.innerHTML = `${esc(tr('acct.scan'))}<br><b dir="ltr">${esc(pair.url.replace(/^https?:\/\//, ''))}</b>`;
+    const ok = await pairWait(pair, () => !box.isConnected);
+    if(!box.isConnected) return;
+    if(!ok){ say.textContent = tr('acct.expired'); return; }
+    say.textContent = tr('acct.syncing');
+    try{ await firstSync(); }catch(e){}
+    location.reload();                                   // the page reads what the account held
+  },
+  acctSync: async b => {
+    acctSay = tr('acct.syncing'); b.querySelector('.sv span') && (b.querySelector('.sv span').textContent = acctSay);
+    let r = null;
+    try{ r = await sync(); acctSay = tr('acct.done'); }catch(e){ acctSay = tr('acct.fail'); }
+    if(r?.changed){ location.reload(); return; }
+    paintSettings('acctSync');
+  },
+  acctOut: () => { signOut(); acctSay = ''; paintSettings('acctLink'); },
   rtvSet: () => openRtvKey(() => paintSettings('rtv')),
   rtvClear: () => { store.set('rtvKey', ''); forgetRtv(); paintSettings('rtvSet'); },
   upd: async b => {

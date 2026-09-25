@@ -99,7 +99,7 @@ async function elsewhere(title, body){
   box.innerHTML = `<p class="snote">${tr('rep.scan')}</p>${code.createSvgTag({cellSize: 6, margin: 4})}`;
 }
 let qrLib = null;
-const loadQr = () => qrLib ||= new Promise(res => {
+export const loadQr = () => qrLib ||= new Promise(res => {
   if(window.qrcode) return res(window.qrcode);
   const s = document.createElement('script');
   s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';

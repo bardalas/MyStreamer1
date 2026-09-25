@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VEO – חיבור מכשיר</title>
+<style>
+  :root{color-scheme:dark;--bg:#050a16;--card:#0d1526;--line:#25304d;--ink:#e9f0ff;--mute:#8e98b4;--accent:#3d8bff}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:17px/1.5 system-ui,sans-serif;padding:16px}
+  main{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 24px}
+  h1{font-size:22px;margin:0 0 6px}
+  p{color:var(--mute);margin:0 0 18px}
+  label{display:block;margin:0 0 6px;font-size:15px;color:var(--mute)}
+  input{width:100%;font:inherit;color:var(--ink);background:#080f1d;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  input:focus{outline:2px solid var(--accent);border-color:transparent}
+  button{width:100%;font:inherit;font-weight:600;color:#fff;background:var(--accent);border:0;border-radius:14px;padding:14px;cursor:pointer}
+  button:disabled{opacity:.5}
+  .code{letter-spacing:.35em;text-align:center;font-size:24px}
+  .say{min-height:1.4em;margin:12px 0 0;font-size:15px;color:var(--mute)}
+  .err{color:#ff8a8a}
+  .ok{font-size:44px;text-align:center;margin:0 0 6px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1>חיבור מכשיר ל-VEO</h1>
+  <p id="lead">התחברו כאן, והטלוויזיה תתחבר לבד לאותו חשבון.</p>
+
+  <form id="f1">
+    <label for="email">האימייל שלכם</label>
+    <input id="email" type="email" inputmode="email" autocomplete="email" dir="ltr" required>
+    <button id="b1">שלחו לי קוד</button>
+  </form>
+
+  <form id="f2" hidden>
+    <label for="otp">הקוד שנשלח לאימייל</label>
+    <input id="otp" class="code" inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="8" required>
+    <button id="b2">אישור וחיבור</button>
+  </form>
+
+  <div id="done" hidden><div class="ok">✓</div><p style="text-align:center">המכשיר מחובר. אפשר לחזור לטלוויזיה.</p></div>
+  <p class="say" id="say" aria-live="polite"></p>
+</main>
+<script>
+const URL_ = 'https://gnlrnsvkupifmsjyyual.supabase.co';
+const KEY = 'sb_publishable_cAmKGGFKQLCWw4Xw97J9ig_Yhq6v7JP';
+const $ = id => document.getElementById(id);
+const pair = (new URLSearchParams(location.search).get('c') || '').trim().toUpperCase();
+const say = (t, err) => { $('say').textContent = t; $('say').className = 'say' + (err ? ' err' : ''); };
+async function api(path, body, token){
+  const r = await fetch(URL_ + path, {method: 'POST', headers: {apikey: KEY, 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || KEY)}, body: JSON.stringify(body)});
+  const t = await r.text(); let d = null; try{ d = t ? JSON.parse(t) : null; }catch(e){ d = t; }
+  if(!r.ok) throw new Error((d && (d.msg || d.message || d.error_description)) || ('HTTP ' + r.status));
+  return d;
+}
+if(!/^[A-Z2-9]{8}$/.test(pair)){
+  $('f1').hidden = true; $('lead').textContent = 'הקישור לא תקין. סרקו שוב את הקוד מהטלוויזיה.';
+}
+$('f1').onsubmit = async e => {
+  e.preventDefault(); $('b1').disabled = true; say('שולחים קוד…');
+  try{
+    await api('/auth/v1/otp', {email: $('email').value.trim(), create_user: true});
+    $('f1').hidden = true; $('f2').hidden = false; $('otp').focus(); say('');
+  }catch(err){ say('לא הצלחנו לשלוח קוד: ' + err.message, true); $('b1').disabled = false; }
+};
+$('f2').onsubmit = async e => {
+  e.preventDefault(); $('b2').disabled = true; say('מתחברים…');
+  try{
+    const s = await api('/auth/v1/verify', {type: 'email', email: $('email').value.trim(), token: $('otp').value.trim()});
+    const ok = await api('/rest/v1/rpc/pair_approve', {p_code: pair, p_refresh_token: s.refresh_token}, s.access_token);
+    if(!ok) throw new Error('הקוד בטלוויזיה פג. בקשו קוד חדש בטלוויזיה.');
+    $('f2').hidden = true; $('lead').hidden = true; $('done').hidden = false; say('');
+  }catch(err){ say('לא הצלחנו: ' + err.message, true); $('b2').disabled = false; }
+};
+</script>
+</body>
+</html>
