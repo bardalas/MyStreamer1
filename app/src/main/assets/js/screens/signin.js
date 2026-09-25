@@ -43,7 +43,7 @@ export async function showSignIn({approve = ''} = {}){
   gate.innerHTML = `<div class="box" role="dialog" aria-modal="true">
     <img src="veo-mark.png" alt="">
     <h1>${esc(tr(approve ? 'gate.titleTv' : 'gate.title'))}</h1>
-    <p>${esc(tr(tv ? 'gate.tvText' : 'gate.phoneText'))}</p>
+    ${tr(tv ? 'gate.tvText' : 'gate.phoneText') ? `<p>${esc(tr(tv ? 'gate.tvText' : 'gate.phoneText'))}</p>` : ''}
     ${tv ? '<div class="repqr" id="gqr" hidden></div><p class="say" id="gsay" aria-live="polite"></p>'
       : `<form id="gform"><input id="gemail" type="email" inputmode="email" autocomplete="email" dir="ltr" placeholder="${esc(tr('gate.email'))}" required>
          <input id="gcode" inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="8" placeholder="${esc(tr('gate.code'))}" hidden>

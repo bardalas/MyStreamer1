@@ -26,7 +26,7 @@
 <body>
 <main>
   <h1>חיבור מכשיר ל-VEO</h1>
-  <p id="lead">התחברו כאן, והטלוויזיה תתחבר לבד לאותו חשבון.</p>
+  <p id="lead" hidden></p>
 
   <form id="f1">
     <label for="email">האימייל שלכם</label>
@@ -40,7 +40,7 @@
     <button id="b2">אישור וחיבור</button>
   </form>
 
-  <div id="done" hidden><div class="ok">✓</div><p style="text-align:center">המכשיר מחובר. אפשר לחזור לטלוויזיה.</p></div>
+  <div id="done" hidden><div class="ok">✓</div><p style="text-align:center">המכשיר מחובר</p></div>
   <p class="say" id="say" aria-live="polite"></p>
 </main>
 <script>
@@ -62,7 +62,7 @@ if(/Android/i.test(navigator.userAgent) && /^[A-Z2-9]{8}$/.test(pair) && !new UR
   location.href = 'intent://link?c=' + pair + '#Intent;scheme=veo;package=com.veo.player;S.browser_fallback_url=' + back + ';end';
 }
 if(!/^[A-Z2-9]{8}$/.test(pair)){
-  $('f1').hidden = true; $('lead').textContent = 'הקישור לא תקין. סרקו שוב את הקוד מהטלוויזיה.';
+  $('f1').hidden = true; $('lead').hidden = false; $('lead').textContent = 'הקישור לא תקין';
 }
 $('f1').onsubmit = async e => {
   e.preventDefault(); $('b1').disabled = true; say('שולחים קוד…');
@@ -76,7 +76,7 @@ $('f2').onsubmit = async e => {
   try{
     const s = await api('/auth/v1/verify', {type: 'email', email: $('email').value.trim(), token: $('otp').value.trim()});
     const ok = await api('/rest/v1/rpc/pair_approve_account', {p_code: pair}, s.access_token);   // the TV gets a session of its own
-    if(!ok) throw new Error('הקוד בטלוויזיה פג. בקשו קוד חדש בטלוויזיה.');
+    if(!ok) throw new Error('הקוד פג');
     $('f2').hidden = true; $('lead').hidden = true; $('done').hidden = false; say('');
   }catch(err){ say('לא הצלחנו: ' + err.message, true); $('b2').disabled = false; }
 };
