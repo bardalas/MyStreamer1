@@ -681,3 +681,12 @@ test('an unsent local profile edit is not overwritten by the account, and the ac
   assert.match(sync, /const next = \{\.\.\.r\.data, id: r\.id\};/);
   assert.doesNotMatch(sync, /list\[i\] = \{\.\.\.list\[i\], \.\.\.r\.data\}/);
 });
+
+test('a profile may change its own picture; only the owner adds, deletes or edits others (#209)', async () => {
+  const ui = await readFile(path.join(assets, 'js/screens/profiles.js'), 'utf8');
+  const set = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  assert.match(ui, /if\(!isOwner\(\) && id !== profileId\)\{ location\.hash = '#\/who'/);      // its own page only
+  assert.match(ui, /const removable = owner && p && p\.id !== profileId/);                     // only the owner deletes
+  assert.match(ui, /if\(!isOwner\(\)\)\{[^}]*updateProfile\(p\.id, \{icon: d\.icon, photo: d\.photo \|\| undefined\}\)/s);   // its picture, nothing else
+  assert.match(set, /base\.filter\(t => t !== 'live'\)/);                                       // the Profiles tab stays for every profile
+});
