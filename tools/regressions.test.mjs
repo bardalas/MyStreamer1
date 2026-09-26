@@ -832,3 +832,12 @@ test('on a television the live channels are a list, one to a row with room betwe
   assert.match(css, /html\[data-device="tv"\] \.chmain\{display:grid;/);
   assert.match(css, /grid-template-areas:"top name foot" "top now bar"/);          // the times and the small progress bar of what is on now, at the far end
 });
+
+test('the sound can be moved against the picture: a delay processor in the audio sink and a sync row on the player panel (#257)', async () => {
+  const k = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  const proc = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/AudioDelayProcessor.kt'), 'utf8');
+  assert.match(proc, /class AudioDelayProcessor : BaseAudioProcessor\(\)/);
+  assert.match(k, /setAudioProcessors\(arrayOf<androidx\.media3\.common\.audio\.AudioProcessor>\(audioDelay\)\)/);
+  assert.match(k, /SubsRow\.Step\("הזזת השמע"/);
+  assert.match(k, /KeyEvent\.KEYCODE_MENU, KeyEvent\.KEYCODE_PROG_YELLOW/);
+});

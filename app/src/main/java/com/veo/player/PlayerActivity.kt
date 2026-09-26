@@ -134,6 +134,7 @@ class PlayerActivity : AppCompatActivity() {
     private var captions: Captions? = null
     /** How large they are drawn, as a multiple of the player's own size; kept between films. */
     private var subScale = 1.0f
+    private val audioDelay = AudioDelayProcessor()
     /** Whether the translation found is put on by itself (Settings → Playback), or waits to be picked. */
     private var subsAuto = true
     /** The app's skin and direction, so the banner and the channel list look like the rest of VEO. */
@@ -292,6 +293,11 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     /** How large the subtitles are drawn: it takes effect as it is pressed, and is remembered. */
+    private fun shiftAudio(byMs: Int) {
+        audioDelay.delayMs = (audioDelay.delayMs + byMs).coerceIn(-500, 500)
+        getSharedPreferences("veo", MODE_PRIVATE).edit().putInt("audioDelayMs", audioDelay.delayMs).apply()
+    }
+
     @OptIn(UnstableApi::class)
     private fun setSubScale(v: Float) {
         subScale = v.coerceIn(0.8f, 2.4f)
@@ -316,6 +322,12 @@ class PlayerActivity : AppCompatActivity() {
         class Step(val text: String, val value: () -> String, val by: (Int) -> Unit) : SubsRow()
     }
 
+    /** The sound moved later (+) or earlier (-) than the picture, in steps of 50 ms: the arrows change it where it is written. */
+    private fun audioSyncRows(): List<SubsRow> = listOf(
+        SubsRow.Head("סנכרון שמע"),
+        SubsRow.Step("הזזת השמע", { "%+d ms".format(audioDelay.delayMs) }, { step -> shiftAudio(step * 50) }),
+        SubsRow.Pick("אפס את סנכרון השמע", { audioDelay.delayMs == 0 }, { shiftAudio(-audioDelay.delayMs) }))
+
     private fun subsRows(): List<SubsRow> {
         val out = ArrayList<SubsRow>()
         out.add(SubsRow.Head("כתוביות"))
@@ -327,6 +339,7 @@ class PlayerActivity : AppCompatActivity() {
         out.add(SubsRow.Step("הזזת כתוביות", { "%+.1fs".format(subShift / 1000.0) },
             { step -> shiftCaptions(step * 100L) }))
         out.add(SubsRow.Pick("אפס את הסנכרון", { subShift == 0L }, { shiftCaptions(-subShift) }))
+        out.addAll(audioSyncRows())
         out.add(SubsRow.Head("גודל"))
         out.add(SubsRow.Step("גודל הכתוביות", { "%d%%".format((subScale * 100).toInt()) },
             { step -> setSubScale(subScale + step * 0.1f) }))
@@ -337,10 +350,16 @@ class PlayerActivity : AppCompatActivity() {
         if (subs.orEmpty().isEmpty()) {
             // still looking is not the same as nothing to find, and a viewer can wait for one of them
             if (subsPending) showMessage("מחפש כתוביות…", 0)
-            else showMessage("לא נמצאו כתוביות לסרט הזה", 2_500)
+            else openSyncPanel()                       // no subtitles: the sound's sync is still there to tune
             return
         }
-        val rows = subsRows()
+        showRowsPanel(subsRows())
+    }
+
+    /** Live TV (and a film with no subtitles): the panel is only the sound's sync. */
+    private fun openSyncPanel() { hideChannelBar(); showRowsPanel(audioSyncRows()) }
+
+    private fun showRowsPanel(rows: List<SubsRow>) {
         val adapter = SubsAdapter(rows)
         val list = findViewById<ListView>(R.id.chList)
         dressPanel(list)
@@ -369,7 +388,7 @@ class PlayerActivity : AppCompatActivity() {
         list.requestFocus()
         // on the chosen translation if there is one, else past the first heading
         val on = rows.indexOfFirst { it is SubsRow.Pick && it.on() }
-        if (list.selectedItemPosition < 0) list.setSelection(if (on > 0) on else 1)
+        if (list.selectedItemPosition < 0) list.setSelection(if (rows.size <= 3) 1 else if (on > 0) on else 1)
     }
 
     /* The panel is dressed like the rest of the TV: a large row, the line the remote is on drawn as a
@@ -649,7 +668,16 @@ class PlayerActivity : AppCompatActivity() {
         // The same holds for a decoder that starts and then fails halfway ("Decoder failed:
         // c2.goldfish.hevc.decoder"): the fallback above only covers one that will not start, so a
         // decoder that failed is left out of the next attempt and the film goes on with the one after it.
-        val renderers = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+        audioDelay.delayMs = getSharedPreferences("veo", MODE_PRIVATE).getInt("audioDelayMs", 0)
+        val renderers = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+            // the sound goes through a delay of the viewer's choosing (Menu -> sync), for a stream whose sound and picture drift apart
+            override fun buildAudioSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean) =
+                androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(arrayOf<androidx.media3.common.audio.AudioProcessor>(audioDelay))
+                    .build()
+        }
             .setEnableDecoderFallback(true)
             .setMediaCodecSelector(MediaCodecSelector { mime, secure, tunneling ->
                 val all = MediaCodecUtil.getDecoderInfos(mime, secure, tunneling)
@@ -1584,7 +1612,8 @@ class PlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_MEDIA_NEXT -> if (live && canWalk()) { walkGuide(false); return true }
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> if (live && canWalk()) { walkGuide(true); return true }
             // a film: the subtitles panel - which translation, and how far it is moved
-            KeyEvent.KEYCODE_CAPTIONS -> if (!live) { openSubsPanel(); return true }
+            KeyEvent.KEYCODE_CAPTIONS -> { if (live) openSyncPanel() else openSubsPanel(); return true }
+            KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_PROG_YELLOW -> { if (live) openSyncPanel() else openSubsPanel(); return true }
             // the dedicated channel keys switch straight away (up = the next number, as on a television)
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> if (sources.size > 1) { hideChannelBar(); zapBy(1); return true }
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> if (sources.size > 1) { hideChannelBar(); zapBy(-1); return true }
