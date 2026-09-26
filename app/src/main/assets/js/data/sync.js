@@ -10,6 +10,8 @@ import {accessToken, accountId, call, signedIn} from './account.js';
 const META = 'syncMeta';                        // {pulled: the newest SERVER time seen, dirty: {'<profile>/<key>': true}, v}
 const EPOCH = '1970-01-01T00:00:00Z';
 const LIST = 'profiles';
+/** Set while a pull brings something that only a fresh start shows (the profile list, the settings): the rest is drawn again in place. */
+let needsReload = false;
 const ACCOUNT = '_account';
 /** What belongs to the household rather than to a profile or a device: it follows the account to every device. */
 const ACCOUNT_KEYS = new Set(['addons', 'playlists', 'rtvKey', 'kidsPin']);
@@ -115,12 +117,12 @@ async function pull(){
       const strays = list.filter(p => !onServer.has(p.id) && !blank(p));
       if(strays.length){ const m2 = meta(); m2.dirty['/' + LIST] = true; saveMeta(m2); }
       const kept = list.filter(p => onServer.has(p.id) || !blank(p));      // a blank placeholder that the account has no row for goes away
-      if(JSON.stringify(kept) !== before){ store.set(LIST, kept); changedHere = true; }
+      if(JSON.stringify(kept) !== before){ store.set(LIST, kept); changedHere = true; needsReload = true; }
     }
     for(const r of data || []){
       if(r.profile_id === ACCOUNT){                                 // the household's own things
         if(!ACCOUNT_KEYS.has(r.key) || meta().dirty[ACCOUNT + '/' + r.key]) continue;
-        if(JSON.stringify(store.get(r.key, null)) !== JSON.stringify(r.value)){ store.set(r.key, r.value); changedHere = true; }
+        if(JSON.stringify(store.get(r.key, null)) !== JSON.stringify(r.value)){ store.set(r.key, r.value); changedHere = true; needsReload = true; }
         continue;
       }
       if(!PROFILE_KEYS.has(r.key)) continue;
@@ -128,8 +130,10 @@ async function pull(){
       let v = r.value;
       if(r.key === 'progress') v = mergeProgress(store.getFor(r.profile_id, 'progress', {}), v || {});
       else if(mine) continue;                                     // changed here since: it is sent, and wins
+      const differs = JSON.stringify(store.getFor(r.profile_id, r.key, null)) !== JSON.stringify(v);   // the look-back re-reads rows already held: only a real change counts
+      if(!differs) continue;
       store.setFor(r.profile_id, r.key, v);
-      if(r.profile_id === profileId) changedHere = true;
+      if(r.profile_id === profileId){ changedHere = true; if(r.key === 'settings') needsReload = true; }
     }
   }finally{ applying = false; }
   // the cursor is the newest time the SERVER gave, a few seconds back so a row committed just behind it is not missed (taking a row twice is harmless)
@@ -144,10 +148,11 @@ export async function sync(){
   if(!signedIn() || busy) return {changed: false};
   busy = true;
   try{
+    needsReload = false;
     let changed = await pull();
     const sent = await push();
     if(sent) changed = (await pull()) || changed;          // what was held back because it was being changed here comes now
-    return {changed};
+    return {changed, reload: needsReload};
   }finally{ busy = false; }
 }
 

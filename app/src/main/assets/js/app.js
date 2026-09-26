@@ -231,7 +231,7 @@ export async function boot(){
   setTimeout(loadServices, 3000);
   // signed in to the household account: take what the other devices did, and send what this one did. A change to this
   // profile is read again at once - but only once, and never while a title plays.
-  setTimeout(() => signedIn() && sync().then(r => { if(r.changed && !sessionStorage.getItem('veo:synced')){ sessionStorage.setItem('veo:synced', '1'); location.reload(); } }).catch(() => {}), 4000);
+  setTimeout(() => signedIn() && sync().then(r => { if(!r.changed) return; if(r.reload && !sessionStorage.getItem('veo:synced')){ sessionStorage.setItem('veo:synced', '1'); location.reload(); } else if(['', '#/', '#'].includes(location.hash)) route(); }).catch(() => {}), 4000);
   setTimeout(learnFromHistory, 12000);                 // a profile from before the app learnt tastes: from its history
   if(kidsOn()) return;                                 // no offers to install, no reminders of grown-up titles
   // nothing is offered over the picker: not an update, and not a reminder of a profile not yet chosen

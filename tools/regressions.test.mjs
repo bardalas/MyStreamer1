@@ -802,3 +802,11 @@ test('a focused row is scrolled to its own top, not to the foot of the row above
   assert.match(nav, /let want = Math\.max\(0, Math\.round\(top - 14\)\);/);
   assert.doesNotMatch(nav, /const floor = above/);
 });
+
+test('the first sync after launch does not reload the app unless the profile list or the settings really changed (#248)', async () => {
+  const sync = await readFile(path.join(assets, 'js/data/sync.js'), 'utf8');
+  const app = await readFile(path.join(assets, 'js/app.js'), 'utf8');
+  assert.match(sync, /const differs = JSON\.stringify\(store\.getFor\(r\.profile_id, r\.key, null\)\) !== JSON\.stringify\(v\);/);
+  assert.match(sync, /return \{changed, reload: needsReload\};/);
+  assert.match(app, /if\(r\.reload && !sessionStorage\.getItem\('veo:synced'\)\)/);
+});
