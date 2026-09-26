@@ -102,7 +102,7 @@
 .setme .avatar.big{width:56px;height:56px;border-radius:16px;font-size:30px}
 .setme span:not(.avatar){display:flex;flex-direction:column;min-width:0;flex:1}
 .setme b{font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.setme small{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:start}
+.setme small{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:match-parent}
 .setlist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
 .setrow{display:flex;align-items:center;gap:14px;min-height:60px;padding:10px 14px;color:var(--light);text-decoration:none;font-size:17px;font-weight:500}
 .setrow+.setrow{border-top:1px solid var(--line)}
@@ -173,4 +173,8 @@
 .hsvrow input[type=range]{width:100%;accent-color:var(--tungsten)}
 .hsvrow input[type=range]:focus{outline:3px solid var(--light);outline-offset:6px;border-radius:999px}
 .coloractions{display:flex;justify-content:flex-end;gap:12px}
-@media(max-width:760px){.colorpickers{grid-template-columns:1fr}.hsvrow{grid-template-columns:1fr;gap:7px}.hsvrow output{text-align:start}}
+@media(max-width:760px){.colorpickers{grid-template-columns:1fr}
+  .colorpick{display:flex;align-items:center;gap:14px;min-height:64px}       /* one line: the colour, its name, its value */
+  .colorpick>i{order:-1;flex:none;width:38px;height:38px;border-radius:11px}
+  .colorpick>span{flex:1;min-width:0;font-size:17px}
+  .colorpick>b{flex:none;font-size:14px}.hsvrow{grid-template-columns:1fr;gap:7px}.hsvrow output{text-align:start}}
