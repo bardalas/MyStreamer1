@@ -810,3 +810,11 @@ test('the first sync after launch does not reload the app unless the profile lis
   assert.match(sync, /return \{changed, reload: needsReload\};/);
   assert.match(app, /if\(r\.reload && !sessionStorage\.getItem\('veo:synced'\)\)/);
 });
+
+test('an update is installed through a PackageInstaller session, so the app is not left for another one (#250)', async () => {
+  const main = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/MainActivity.kt'), 'utf8');
+  const man = await readFile(path.join(repo, 'app/src/main/AndroidManifest.xml'), 'utf8');
+  assert.match(main, /if \(runCatching \{ installInSession\(file\) \}\.isSuccess\) return/);
+  assert.match(main, /installer\.createSession\(params\)/);
+  assert.match(man, /<receiver android:name="\.InstallResultReceiver" android:exported="false"\/>/);
+});

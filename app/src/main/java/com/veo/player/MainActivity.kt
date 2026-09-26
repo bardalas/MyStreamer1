@@ -550,6 +550,9 @@ class MainActivity : AppCompatActivity() {
             say("צריך לאשר התקנה ממקורות לא ידועים בהגדרות המכשיר", true)
             return
         }
+        // The update goes to the installer as a session of this app's own: the confirmation is a dialog over the page, and the
+        // app is not left for another one. (The old hand-over below is the way out if a device refuses a session.)
+        if (runCatching { installInSession(file) }.isSuccess) return
         val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", file)
         val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
         // The old install intent is the one that reports back what happened; ACTION_VIEW opens the
@@ -565,6 +568,24 @@ class MainActivity : AppCompatActivity() {
         if (runCatching { startActivity(plain) }.isSuccess) { pendingUpdate = null; return }
         pendingUpdate = file
         say("לא נמצאה דרך להתקין את העדכון במכשיר הזה", true)
+    }
+
+    private fun installInSession(file: java.io.File) {
+        val installer = packageManager.packageInstaller
+        val params = android.content.pm.PackageInstaller.SessionParams(android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+        if (android.os.Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(android.content.pm.PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+        val id = installer.createSession(params)
+        installer.openSession(id).use { session ->
+            file.inputStream().use { input ->
+                session.openWrite("veo.apk", 0, file.length()).use { out -> input.copyTo(out); session.fsync(out) }
+            }
+            InstallResultReceiver.onDone = { failed ->
+                runOnUiThread { pendingUpdate = null; showStatus(failed ?: "", failed != null) }
+            }
+            val done = android.app.PendingIntent.getBroadcast(this, id, Intent(this, InstallResultReceiver::class.java).setPackage(packageName),
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or (if (android.os.Build.VERSION.SDK_INT >= 31) android.app.PendingIntent.FLAG_MUTABLE else 0))
+            session.commit(done.intentSender)
+        }
     }
 
     // Back: let the page close an open panel/keyboard first, then go back, then leave the app.

@@ -11,6 +11,7 @@
         <!-- Back belongs to the app: the page walks its own ladder (MainActivity.onBackPressed -> boothBack)
              and the player reads the Back key itself. Android 16 stops calling either for an app that
              targets it unless this says so - and Back then left the app from anywhere. -->
+        <receiver android:name=".InstallResultReceiver" android:exported="false"/>
         <provider android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"
             android:exported="false" android:grantUriPermissions="true">
