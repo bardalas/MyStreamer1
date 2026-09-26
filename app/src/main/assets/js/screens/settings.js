@@ -31,9 +31,9 @@ import {APP_VERSION, checkUpdate} from '../ui/update.js';
 /* A kids profile is a property of the profile, so it is set where profiles are: Profiles -> the profile ->
    "type of profile" (screens/profiles.js), not on a page of its own. The one page about kids that is left
    belongs to a profile that already is one - it is how a grown-up gets out of it, behind the code (#109). */
-export const SETTINGS_TABS = ['general', 'profiles', 'account', 'watch', 'services', 'home', 'look', 'live', 'about'];
+export const SETTINGS_TABS = ['general', 'profiles', 'account', 'watch', 'services', 'home', 'look', 'live'];
 /** Addresses written before the pages were regrouped. */
-const RENAMED = {start: 'general', addons: 'watch'};
+const RENAMED = {start: 'general', addons: 'services', about: 'general'};      // the old addresses land where the setting is now
 const icon = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 const ICONS = {
   account: icon('<circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/>'),
@@ -45,13 +45,12 @@ const ICONS = {
   look: icon('<path d="M12 3.5s6 6.2 6 10.5a6 6 0 0 1-12 0c0-4.3 6-10.5 6-10.5z"/>'),
   live: icon('<circle cx="12" cy="12" r="2.2"/><path d="M8.3 8.3a5.3 5.3 0 0 0 0 7.4M15.7 15.7a5.3 5.3 0 0 0 0-7.4M5.4 5.4a9.3 9.3 0 0 0 0 13.2M18.6 18.6a9.3 9.3 0 0 0 0-13.2"/>'),
   kids: icon('<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14a4.2 4.2 0 0 0 7 0M9.2 9.6h.01M14.8 9.6h.01"/>'),
-  about: icon('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6h.01"/>'),
 };
 export let setTab = 'general';
 /** Kids may use the harmless viewing/customisation settings too. Parent/admin surfaces stay out:
     profiles can edit other people and Live can add unrestricted playlists. Content remains filtered
     centrally by catalogFetch/kids.js regardless of which service or Home category the child enables. */
-const KIDS_SETTINGS_TABS = ['general', 'watch', 'services', 'home', 'look', 'kids', 'about'];
+const KIDS_SETTINGS_TABS = ['general', 'watch', 'services', 'home', 'look', 'kids'];
 const tabsNow = () => {
   const base = kidsOn() ? KIDS_SETTINGS_TABS : SETTINGS_TABS;
   return isOwner() ? base : base.filter(t => t !== 'live');      // another profile keeps 'profiles': its own picture is its to change
@@ -217,7 +216,15 @@ let updKey = '';
 const UPD_SAYS = {found: 'set.about.found', offline: 'set.about.offline', unsupported: 'set.about.unsupported', busy: ''};
 
 const PANES = {
-  general: () => section('', lines(pref('uiLang') + pref('lang') + (kidsOn() ? '' : pref('start')))),
+  // the language and where the app opens, then what the app is (its version, the report) and its data (history, reset)
+  general: () => section('', lines(pref('uiLang') + pref('lang') + (kidsOn() ? '' : pref('start'))))
+    + section(tr('set.about.title'), lines(
+      line({fid: 'upd', label: 'VEO', note: tr('set.about.check'),
+        value: [APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'), updKey ? tr(updKey) : ''].filter(Boolean).join(' · '),
+        attrs: 'data-act="upd"'})
+      + line({fid: 'report', label: tr('rep.title'), href: '#/report'})))
+    + section(tr('set.sec.data'), lines(line({fid: 'hist', label: tr('set.hist.title'), value: tr('set.hist.btn'), danger: true, attrs: 'data-act="hist"'})
+      + line({fid: 'reset', label: tr('set.reset.title'), value: tr('set.reset.btn'), danger: true, attrs: 'data-act="reset"'}))),
   profiles: () => profilesPane(),
   account: () => signedIn()
     ? section(tr('acct.title'), lines(line({fid: 'acctWho', label: tr('acct.in'), value: esc(accountEmail() || '')})
@@ -226,14 +233,14 @@ const PANES = {
         + line({fid: 'acctOut', label: tr('acct.out'), danger: true, attrs: 'data-act="acctOut"'})) + '<div class="repqr" id="acctbox" style="background:none;padding:0"></div>')
     : section(tr('acct.title'), lines(line({fid: 'acctLink', label: tr('acct.link'), note: tr('acct.linkNote'), attrs: 'data-act="acctLink"'}))
         + '<div class="repqr" id="acctqr"></div><p class="snote" id="acctsay" aria-live="polite"></p>'),
-  watch: () => section(tr('set.sec.play'), lines(pref('quality') + pref('cap') + pref('preview')))
-    + section(tr('set.sec.subs'), lines(pref('subs') + (window.BoothAndroid?.setSubScale ? pref('subsize') : '')))
+  watch: () => section(tr('set.sec.play'), lines(pref('quality') + pref('cap')))
+    + section(tr('set.sec.subs'), lines(pref('subs') + (window.BoothAndroid?.setSubScale ? pref('subsize') : ''))),
+  services: () => section(tr('set.svc.main'), svcGrid(PROVIDERS_MAIN) + '<p class="snote" id="svcsay" aria-live="polite"></p>')
+    + section(tr('set.svc.more'), svcGrid(PROVIDERS_MORE))
     + section(tr('set.sec.sources'), lines(line({fid: 'addons', href: '#/addons', label: tr('set.addons.title'),
       value: tr('set.addons.count', {n: addons.length})}))),
-  services: () => section(tr('set.svc.main'), svcGrid(PROVIDERS_MAIN) + '<p class="snote" id="svcsay" aria-live="polite"></p>')
-    + section(tr('set.svc.more'), svcGrid(PROVIDERS_MORE)),
   home: () => section(tr('set.home.title'), `<div class="catorder">${categories()}</div>`)
-    + section('', lines(pref('nosrc'))),
+    + section('', lines(pref('preview') + pref('nosrc'))),
   look: () => {
     const col = {...CUSTOM_DEFAULTS, ...(settings.customColors || {})};
     const pick = (key, label) => `<button class="colorpick" data-fid="col:${key}" data-col="${key}" aria-label="${esc(label)}">
@@ -257,13 +264,6 @@ const PANES = {
         // the age, like leaving, is the parents' to change: behind the code
         + line({fid: 'kidsAge', label: tr('kids.age.title'), value: tr('kids.age.' + settings.kidsAge), attrs: 'data-act="kidsAge"'})
         + line({fid: 'kidsPin', label: tr('kids.change'), attrs: 'data-act="kidsPin"'}))),
-  about: () => section(tr('set.about.title'), lines(
-      line({fid: 'upd', label: 'VEO', note: tr('set.about.check'),
-        value: [APP_VERSION ? tr('set.about.ver', {v: APP_VERSION}) : tr('set.about.browser'), updKey ? tr(updKey) : ''].filter(Boolean).join(' · '),
-        attrs: 'data-act="upd"'})
-      + line({fid: 'report', label: tr('rep.title'), href: '#/report'})))
-    + section(tr('set.sec.data'), lines(line({fid: 'hist', label: tr('set.hist.title'), value: tr('set.hist.btn'), danger: true, attrs: 'data-act="hist"'})
-      + line({fid: 'reset', label: tr('set.reset.title'), value: tr('set.reset.btn'), danger: true, attrs: 'data-act="reset"'}))),
 };
 
 /**

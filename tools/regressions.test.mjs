@@ -841,3 +841,13 @@ test('the sound can be moved against the picture: a delay processor in the audio
   assert.match(k, /SubsRow\.Step\("הזזת השמע"/);
   assert.match(k, /KeyEvent\.KEYCODE_MENU, KeyEvent\.KEYCODE_PROG_YELLOW/);
 });
+
+test('settings: Info & reset is part of General; add-ons sit with the services, the trailer choice with the home screen (#262)', async () => {
+  const ui = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  assert.doesNotMatch(ui, /export const SETTINGS_TABS = \[[^\]]*'about'/);
+  assert.match(ui, /RENAMED = \{start: 'general', addons: 'services', about: 'general'\}/);
+  assert.match(ui, /general: \(\) => section\(''[^\n]*\n\s+\+ section\(tr\('set\.about\.title'\)/);
+  assert.match(ui, /lines\(pref\('quality'\) \+ pref\('cap'\)\)\)/);
+  assert.match(ui, /section\(tr\('set\.sec\.sources'\), lines\(line\(\{fid: 'addons'/);
+  assert.match(ui, /lines\(pref\('preview'\) \+ pref\('nosrc'\)\)/);
+});
