@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.32 — 2026-09-26
+- **Settings on a phone open in place.** A section no longer takes you to another screen: it opens under its name and
+  pushes the sections below it down; one is open at a time, and pressing it again closes it. A television keeps
+  its tabs unchanged. (#246)
+
 ## 0.45.31 — 2026-09-26
 - **A phone moves more softly.** Screens fade in with hardly any travel, sheets rise from the edge, the menu drawer
   takes its time, presses give less. A tapped control no longer keeps the remote's ring, the film description has
