@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.33 — 2026-09-26
+- **Updates install inside the app.** The new version is handed to Android's installer as a session of the app's own, so
+  the only thing asked - "install this update?" - is a small dialog over the page, not another app taking the screen.
+  (The one-time permission to install updates is still asked in the device's settings, the first time.) (#250)
+
 ## 0.45.32 — 2026-09-26
 - **Settings on a phone open in place.** A section no longer takes you to another screen: it opens under its name and
   pushes the sections below it down; one is open at a time, and pressing it again closes it. A television keeps
