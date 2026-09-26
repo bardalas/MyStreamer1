@@ -841,3 +841,10 @@ test('the sound can be moved against the picture: a delay processor in the audio
   assert.match(k, /SubsRow\.Step\("הזזת השמע"/);
   assert.match(k, /KeyEvent\.KEYCODE_MENU, KeyEvent\.KEYCODE_PROG_YELLOW/);
 });
+
+test('the audio delay reads the sound out before it replaces its output buffer, and refuses no format (#260)', async () => {
+  const proc = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/AudioDelayProcessor.kt'), 'utf8');
+  assert.match(proc, /inputBuffer\.get\(sound\)\s+val out = replaceOutputBuffer\(n \+ silence\)/);
+  assert.match(proc, /return AudioFormat\.NOT_SET/);
+  assert.doesNotMatch(proc, /throw UnhandledAudioFormatException/);
+});
