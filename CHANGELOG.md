@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.34 — 2026-09-26
+- **Live channels as a list on a television.** One channel to a row, six to a screen, with room between them: the logo and
+  number, the name and what is on now, and at the far end the programme's times over a small bar of how far it has got.
+  Phones are unchanged. (#254)
+
 ## 0.45.33 — 2026-09-26
 - **Updates install inside the app.** The new version is handed to Android's installer as a session of the app's own, so
   the only thing asked - "install this update?" - is a small dialog over the page, not another app taking the screen.
