@@ -479,7 +479,15 @@ export function tvFocus(tries = 0){
   const first = title || (!coming && (document.querySelector('#app .srctab.on') || document.querySelector('#app a[href], #app button')));
   // a screen that has not answered yet is asked again: landing in the menu instead would open it
   // over the very titles the viewer is waiting for
-  if(first) first.focus();
+  // a phone is touched, not steered: nothing wears the remote's marker until a key is pressed (#244)
+  if(first) first.focus({preventScroll: false}), IS_TV_DEVICE || first.blur();
   else if(tries < 8) setTimeout(() => tvFocus(tries + 1), 700);
 }
 setTimeout(tvFocus, 2500);
+/* On a phone a tapped control does not keep the remote's ring: it is let go a moment after the finger lifts (a key brings it back). */
+if(!IS_TV_DEVICE){
+  document.addEventListener('pointerup', e => {
+    if(e.pointerType !== 'touch') return;
+    setTimeout(() => { const a = document.activeElement; if(a && a !== document.body && !a.matches('input, textarea, select')) a.blur(); }, 400);
+  }, true);
+}

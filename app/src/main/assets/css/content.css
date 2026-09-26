@@ -119,6 +119,8 @@
   .pagehead .sortbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%}
   .pagehead .sortbar::-webkit-scrollbar{height:0}
   .sortpill{flex:none}
+  /* the row runs on past the edge: it fades there, so it is seen to go on (#244) */
+  html[data-device="phone"] .pagehead .sortbar{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 22px,#000 calc(100% - 22px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 22px,#000 calc(100% - 22px),transparent 100%)}
 }
 .field{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
 .more{margin:28px auto 0;display:block}

@@ -42,6 +42,27 @@
 .btn:active,.qbtn:active,.sortpill:active,.sopt:active,.chip:active,.playbtn:active{transform:scale(.97)}
 .poster .art{transition:transform var(--travel) var(--ease),box-shadow var(--travel) var(--ease),filter var(--quick) linear}
 
+/* ---------- a phone: softer, slower, smaller (#244) ----------
+   A finger sees every frame of a screen change from a hand's distance, so what a television does at a glance is here a jolt.
+   The screen fades in with hardly any travel, its parts a little further apart; a sheet rises from the edge it came from and
+   the menu drawer takes its time; a press gives less. A television keeps everything above as it is. */
+@media (max-width:760px){
+  html[data-device="phone"]{--soft:cubic-bezier(.33,.9,.4,1)}
+  html[data-device="phone"] #app.fresh > *{animation:softIn .5s var(--soft) both}
+  html[data-device="phone"] #app.fresh > *:nth-child(2){animation-delay:.06s}
+  html[data-device="phone"] #app.fresh > *:nth-child(3){animation-delay:.11s}
+  html[data-device="phone"] #app.fresh > *:nth-child(n+4){animation-delay:.16s}
+  html[data-device="phone"] .sheet{animation:fadeIn .3s ease both}
+  html[data-device="phone"] .sheet>div{animation:softSheet .45s var(--soft) both}
+  html[data-device="phone"] .backdrop{animation:zoomSettle 1.6s var(--soft) both}
+  html[data-device="phone"] .rail{transition:transform .46s var(--soft),box-shadow .46s var(--soft)}
+  html[data-device="phone"] .btn:active,html[data-device="phone"] .qbtn:active,html[data-device="phone"] .chip:active,
+  html[data-device="phone"] .playbtn:active{transform:scale(.985)}
+  html[data-device="phone"] .setrow,html[data-device="phone"] .setme{transition:background-color .25s ease}
+}
+@keyframes softIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes softSheet{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+
 [data-layout="tv"]{scrollbar-width:none}
 [data-layout="tv"] ::-webkit-scrollbar{width:0;height:0}
 [data-layout="tv"] .art{contain:paint}                      /* keep a focus move from repainting the row */

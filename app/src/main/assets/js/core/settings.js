@@ -91,6 +91,7 @@ export function syncNativeTheme(){
 export function applySettings(){
   const r = document.documentElement;
   r.dataset.skin = settings.skin; r.dataset.layout = settings.layout; r.dataset.poster = settings.poster; r.dataset.nosrc = settings.nosrc;
+  r.dataset.device = IS_TV_DEVICE ? 'tv' : 'phone';       // a phone moves more softly than a television (css/motion.css)
   const custom = settings.skin === 'custom' ? {...CUSTOM_DEFAULTS, ...(settings.customColors || {})} : null;
   // the text colour is the main text; the dimmer texts are that colour mixed toward the background, so one choice sets them all
   const custom_vars = custom ? {'--night':custom.bg, '--tungsten':custom.accent, '--velvet':custom.secondary, '--second':custom.secondary,

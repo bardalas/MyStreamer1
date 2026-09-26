@@ -778,6 +778,25 @@ test('on a phone the settings are a list of sections and a page per section with
   assert.match(css, /\.setpage\.phone\{padding-top:0;margin-top:calc\(0px - var\(--topgap,64px\)\)/);
 });
 
+test('a phone moves more softly than a television: its own motion block, keyed on data-device (#244)', async () => {
+  const css = await readFile(path.join(assets, 'css/motion.css'), 'utf8');
+  const st = await readFile(path.join(assets, 'js/core/settings.js'), 'utf8');
+  assert.match(st, /r\.dataset\.device = IS_TV_DEVICE \? 'tv' : 'phone';/);
+  assert.match(css, /html\[data-device="phone"\] #app\.fresh > \*\{animation:softIn \.5s/);
+  assert.match(css, /html\[data-device="phone"\] \.sheet>div\{animation:softSheet/);
+  assert.doesNotMatch(css.split('@media (max-width:760px)')[0], /data-device/);
+});
+
+test('on a phone: no remote ring after a tap or on arrival, the read-more is shown, the filter row fades at its edges (#244)', async () => {
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  const title = await readFile(path.join(assets, 'css/title.css'), 'utf8');
+  const content = await readFile(path.join(assets, 'css/content.css'), 'utf8');
+  assert.match(nav, /IS_TV_DEVICE \|\| first\.blur\(\)/);
+  assert.match(nav, /e\.pointerType !== 'touch'/);
+  assert.match(title, /html\[data-device="phone"\] \.desc \.readmore\{display:inline\}/);
+  assert.match(content, /html\[data-device="phone"\] \.pagehead \.sortbar\{-webkit-mask-image/);
+});
+
 test('a focused row is scrolled to its own top, not to the foot of the row above, so its heading is never cut (#242)', async () => {
   const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
   assert.match(nav, /let want = Math\.max\(0, Math\.round\(top - 14\)\);/);

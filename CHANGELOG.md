@@ -1,5 +1,11 @@
 # VEO Android changelog
 
+## 0.45.31 — 2026-09-26
+- **A phone moves more softly.** Screens fade in with hardly any travel, sheets rise from the edge, the menu drawer
+  takes its time, presses give less. A tapped control no longer keeps the remote's ring, the film description has
+  a "read more", and the filter row fades at its edges. A television is unchanged. (#244)
+- **Row titles are no longer cut** at the top of the screen on a television. (#242)
+
 ## 0.45.30 — 2026-09-26
 - **Settings on a phone, redesigned.** A list of sections - your profile and account on top, then a row for each
   section - and each section on its own page with a back button. The header stays at the top while the page
