@@ -786,3 +786,13 @@ test('a phone moves more softly than a television: its own motion block, keyed o
   assert.match(css, /html\[data-device="phone"\] \.sheet>div\{animation:softSheet/);
   assert.doesNotMatch(css.split('@media (max-width:760px)')[0], /data-device/);
 });
+
+test('on a phone: no remote ring after a tap or on arrival, the read-more is shown, the filter row fades at its edges (#244)', async () => {
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  const title = await readFile(path.join(assets, 'css/title.css'), 'utf8');
+  const content = await readFile(path.join(assets, 'css/content.css'), 'utf8');
+  assert.match(nav, /IS_TV_DEVICE \|\| first\.blur\(\)/);
+  assert.match(nav, /e\.pointerType !== 'touch'/);
+  assert.match(title, /html\[data-device="phone"\] \.desc \.readmore\{display:inline\}/);
+  assert.match(content, /html\[data-device="phone"\] \.pagehead \.sortbar\{-webkit-mask-image/);
+});
