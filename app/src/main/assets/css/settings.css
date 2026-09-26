@@ -90,6 +90,30 @@
   /* the strip runs to the screen's edge, not the page's: a tab cut at the gutter read as a stray letter */
   .stabs{margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px}}
 @media(max-width:760px){.themes{grid-template-columns:1fr}}
+/* ---------- a phone: the list of sections, and a section on its own page ---------- */
+.setpage.phone{padding-top:0;margin-top:calc(0px - var(--topgap,64px));padding-bottom:40px}      /* the page begins at the very top: its header is its first thing, and can stick there */
+/* The header does not scroll away: a bar at the very top, beside the menu button (which is fixed at the start edge), on an opaque ground;
+   the page itself is lifted into the room that button keeps, so the bar is the first thing in it and sticks there. */
+.setpage.phone > h1,.sphead{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;min-height:var(--topgap,64px);
+  margin:0 -14px 12px;padding:0 14px;padding-inline-start:64px;background:var(--night);box-shadow:0 1px 0 var(--line)}
+.setpage.phone > h1{font-size:24px}
+.setpage.phone .sphead h1{margin:0;font-size:22px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setme{display:flex;align-items:center;gap:14px;padding:14px;margin-bottom:16px;background:var(--surface);border:1px solid var(--line);border-radius:18px;color:inherit;text-decoration:none}
+.setme .avatar.big{width:56px;height:56px;border-radius:16px;font-size:30px}
+.setme span:not(.avatar){display:flex;flex-direction:column;min-width:0;flex:1}
+.setme b{font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setme small{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:match-parent}
+.setlist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.setrow{display:flex;align-items:center;gap:14px;min-height:60px;padding:10px 14px;color:var(--light);text-decoration:none;font-size:17px;font-weight:500}
+.setrow+.setrow{border-top:1px solid var(--line)}
+.setrow:active,.setme:active{background:var(--raise)}
+.setrow .ic{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--raise);color:var(--tungsten)}
+.setrow .ic svg{width:21px;height:21px}
+.setrow .lbl{flex:1;min-width:0}
+.chev{flex:none;width:20px;height:20px;color:var(--muted);transform:scaleX(calc(-1 * var(--flip)))}
+.sback{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--light)}
+.sback .chev{color:inherit;transform:scaleX(var(--flip))}       /* pointing back: the other way from the rows' */
+.setpage.phone .spane{max-width:none}
 @media(max-width:430px){.stabs{margin-inline:-14px;padding-inline:14px;scroll-padding-inline:14px}}
 @media(min-width:761px) and (max-width:899px) and (max-height:500px){.stabs{margin-inline:-28px;padding-inline:28px;scroll-padding-inline:28px}}
 
@@ -149,4 +173,8 @@
 .hsvrow input[type=range]{width:100%;accent-color:var(--tungsten)}
 .hsvrow input[type=range]:focus{outline:3px solid var(--light);outline-offset:6px;border-radius:999px}
 .coloractions{display:flex;justify-content:flex-end;gap:12px}
-@media(max-width:760px){.colorpickers{grid-template-columns:1fr}.hsvrow{grid-template-columns:1fr;gap:7px}.hsvrow output{text-align:start}}
+@media(max-width:760px){.colorpickers{grid-template-columns:1fr}
+  .colorpick{display:flex;align-items:center;gap:14px;min-height:64px}       /* one line: the colour, its name, its value */
+  .colorpick>i{order:-1;flex:none;width:38px;height:38px;border-radius:11px}
+  .colorpick>span{flex:1;min-width:0;font-size:17px}
+  .colorpick>b{flex:none;font-size:14px}.hsvrow{grid-template-columns:1fr;gap:7px}.hsvrow output{text-align:start}}
