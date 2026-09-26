@@ -858,3 +858,9 @@ test('settings: Info & reset is part of General; add-ons sit with the services, 
   assert.match(ui, /section\(tr\('set\.sec\.sources'\), lines\(line\(\{fid: 'addons'/);
   assert.match(ui, /lines\(pref\('preview'\) \+ pref\('nosrc'\)\)/);
 });
+
+test('on live TV, OK with the info banner up opens the sound sync - one channel or many (#264)', async () => {
+  const k = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  assert.match(k, /if \(live && bannerOpen\) openSyncPanel\(\) else showBanner\(\)/);
+  assert.match(k, /if \(ok && live && !walking && bannerOpen\) \{\s+if \(!down\) openSyncPanel\(\)/);
+});
