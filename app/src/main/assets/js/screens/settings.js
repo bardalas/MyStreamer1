@@ -57,30 +57,31 @@ const tabsNow = () => {
   return isOwner() ? base : base.filter(t => t !== 'live');      // another profile keeps 'profiles': its own picture is its to change
 };
 
-/* On a phone the settings are two screens, the way a phone's own are: a list of the sections, and a section on its own page with a
-   way back. (A television keeps the tabs beside the page.) */
+/* On a phone the settings are one list of sections, the way a phone's own are: a section opens where it stands, under its name, and the
+   ones below it are pushed down; one is open at a time, and pressing it again closes it. (A television keeps the tabs beside the page.) */
 const phone = () => !IS_TV_DEVICE && matchMedia('(max-width:760px)').matches;
 const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
-function phoneList(tabs){
-  const me = currentProfile();
-  const who = signedIn() ? `<a class="setme" href="#/settings/account">${avatar(me, 'big')}<span><b dir="auto">${esc(profileName(me))}</b><small dir="ltr">${esc(accountEmail())}</small></span>${CHEV}</a>` : '';
+function phoneList(tabs, open){
+  const me = currentProfile(), acct = signedIn();
+  const body = id => open === id ? '<div class="spane accbody" id="spane"></div>' : '';
+  const who = acct ? `<div class="setacc${open === 'account' ? ' open' : ''}"><button class="setme" data-acc="account" aria-expanded="${open === 'account'}">${avatar(me, 'big')}<span><b dir="auto">${esc(profileName(me))}</b><small dir="ltr">${esc(accountEmail())}</small></span>${CHEV}</button>${body('account')}</div>` : '';
   $('#app').innerHTML = `<div class="page setpage phone"><h1>${tr('set.title')}</h1>${who}
-    <nav class="setlist" aria-label="${esc(tr('set.tabsAria'))}">${tabs.filter(id => id !== 'account' || !signedIn()).map(id =>
-      `<a class="setrow" href="#/settings/${id}"><span class="ic">${ICONS[id]}</span><span class="lbl">${tr('set.tab.' + id)}</span>${CHEV}</a>`).join('')}</nav></div>`;
-}
-function phonePage(tab){
-  setTab = tab;
-  $('#app').innerHTML = `<div class="page setpage phone"><div class="sphead"><button class="sback" id="sback" aria-label="${esc(tr('set.title'))}">${CHEV}</button><h1>${tr('set.tab.' + tab)}</h1></div>
-    <div class="spane" id="spane"></div></div>`;
-  $('#sback').onclick = () => { location.hash = '#/settings'; };
-  paintSettings();
+    <nav class="setlist" aria-label="${esc(tr('set.tabsAria'))}">${tabs.filter(id => id !== 'account' || !acct).map(id =>
+      `<div class="setacc${open === id ? ' open' : ''}"><button class="setrow" data-acc="${id}" aria-expanded="${open === id}"><span class="ic">${ICONS[id]}</span><span class="lbl">${tr('set.tab.' + id)}</span>${CHEV}</button>${body(id)}</div>`).join('')}</nav></div>`;
+  $('#app').querySelectorAll('[data-acc]').forEach(b => b.onclick = () => {
+    const id = b.dataset.acc, next = open === id ? null : id;
+    history.replaceState(null, '', '#/settings' + (next ? '/' + next : ''));
+    phoneList(tabs, next);
+    if(next){ setTab = next; paintSettings(); $('#app').querySelector('.setacc.open')?.scrollIntoView({block: 'nearest', behavior: 'smooth'}); }
+  });
+  if(open){ setTab = open; paintSettings(); }
 }
 
 export function viewSettings(tab){
   tab = RENAMED[tab] || tab;
   if(tab === 'kids' && !kidsOn()) tab = 'profiles';         // kids are set per profile now: an old address lands where they are
   const tabs = tabsNow();
-  if(phone()) return tabs.includes(tab) ? phonePage(tab) : phoneList(tabs);
+  if(phone()) return phoneList(tabs, tabs.includes(tab) ? tab : null);
   setTab = tabs.includes(tab) ? tab : tabs.includes(setTab) ? setTab : tabs[0];
   $('#app').innerHTML = `<div class="page setpage"><h1>${tr('set.title')}</h1>
     <div class="sgrid">
