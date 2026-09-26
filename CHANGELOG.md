@@ -1,5 +1,9 @@
 # VEO Android changelog
 
+## 0.45.37 — 2026-09-26
+- **The sound's sync is reachable from any remote.** On live TV, OK with the info banner up opens "הזזת השמע" (one channel
+  or many); on a film, Up opens the subtitles panel, which holds it. No Menu, Captions or Yellow key is needed. (#264)
+
 ## 0.45.36 — 2026-09-26
 - **Playback starts again.** 0.45.35 stopped every stream: the new sound-sync step failed on the sound's buffer
   ("the source buffer is this buffer"). Fixed, and it no longer refuses any kind of sound. (#260)
