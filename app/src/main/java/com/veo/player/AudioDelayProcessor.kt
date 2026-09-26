@@ -2,7 +2,6 @@ package com.veo.player
 
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor.AudioFormat
-import androidx.media3.common.audio.AudioProcessor.UnhandledAudioFormatException
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
@@ -21,7 +20,8 @@ class AudioDelayProcessor : BaseAudioProcessor() {
     private var drop = 0
 
     override fun onConfigure(inputAudioFormat: AudioFormat): AudioFormat {
-        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) throw UnhandledAudioFormatException(inputAudioFormat)
+        // any other sound (24-bit, float, ...) goes by untouched: refusing it would fail the whole audio sink, and with it the playback
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT || inputAudioFormat.bytesPerFrame <= 0) return AudioFormat.NOT_SET
         return inputAudioFormat
     }
 
@@ -39,9 +39,13 @@ class AudioDelayProcessor : BaseAudioProcessor() {
             inputBuffer.position(inputBuffer.position() + d)
             drop -= d; n -= d
         }
+        // read the sound out FIRST: replacing the output buffer may hand back the very buffer the sound is in ("the source buffer is
+        // this buffer"), which stopped every playback in 0.45.35
+        val sound = ByteArray(n)
+        inputBuffer.get(sound)
         val out = replaceOutputBuffer(n + silence)
         if (silence > 0) { out.put(ByteArray(silence)); silence = 0 }
-        out.put(inputBuffer)
+        out.put(sound)
         out.flip()
     }
 }
