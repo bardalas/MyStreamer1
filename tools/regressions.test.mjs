@@ -777,3 +777,9 @@ test('on a phone the settings are a list of sections and a page per section with
   assert.match(css, /\.setpage\.phone > h1,\.sphead\{position:sticky;top:0;/);        // the header does not scroll away
   assert.match(css, /\.setpage\.phone\{padding-top:0;margin-top:calc\(0px - var\(--topgap,64px\)\)/);
 });
+
+test('a focused row is scrolled to its own top, not to the foot of the row above, so its heading is never cut (#242)', async () => {
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  assert.match(nav, /let want = Math\.max\(0, Math\.round\(top - 14\)\);/);
+  assert.doesNotMatch(nav, /const floor = above/);
+});
