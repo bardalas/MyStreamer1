@@ -777,3 +777,12 @@ test('on a phone the settings are a list of sections and a page per section with
   assert.match(css, /\.setpage\.phone > h1,\.sphead\{position:sticky;top:0;/);        // the header does not scroll away
   assert.match(css, /\.setpage\.phone\{padding-top:0;margin-top:calc\(0px - var\(--topgap,64px\)\)/);
 });
+
+test('a phone moves more softly than a television: its own motion block, keyed on data-device (#244)', async () => {
+  const css = await readFile(path.join(assets, 'css/motion.css'), 'utf8');
+  const st = await readFile(path.join(assets, 'js/core/settings.js'), 'utf8');
+  assert.match(st, /r\.dataset\.device = IS_TV_DEVICE \? 'tv' : 'phone';/);
+  assert.match(css, /html\[data-device="phone"\] #app\.fresh > \*\{animation:softIn \.5s/);
+  assert.match(css, /html\[data-device="phone"\] \.sheet>div\{animation:softSheet/);
+  assert.doesNotMatch(css.split('@media (max-width:760px)')[0], /data-device/);
+});
