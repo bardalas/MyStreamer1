@@ -1,5 +1,11 @@
 # VEO Android changelog
 
+## 0.45.29 — 2026-09-26
+- **Every profile of the account on every device.** The list of profiles is now read whole on every sync instead of
+  "what changed since my last check", so a device can no longer be left without a profile the account has. A
+  profile only this device holds is sent up, and a profile taken away on one device is taken away on all. Settings >
+  Account > Sync now says how many profiles the device holds. (#236)
+
 ## 0.45.28 — 2026-09-25
 - **A new device sees your profiles.** A device that had just signed in could send its own blank profile over the
   account's real one, so the owner's profile turned up empty everywhere. A blank placeholder is never sent now, a
