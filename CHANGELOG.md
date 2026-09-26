@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.30 — 2026-09-26
+- **Settings on a phone, redesigned.** A list of sections - your profile and account on top, then a row for each
+  section - and each section on its own page with a back button. The header stays at the top while the page
+  scrolls, and the colour settings sit one to a line. A television keeps its tabs unchanged. (#239)
+
 ## 0.45.29 — 2026-09-26
 - **Every profile of the account on every device.** The list of profiles is now read whole on every sync instead of
   "what changed since my last check", so a device can no longer be left without a profile the account has. A
