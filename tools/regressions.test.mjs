@@ -817,3 +817,11 @@ test('the live-TV arrow holds the place aimed at until the picture has got there
   assert.match(k, /val at = if \(pendingAt > 0\) pendingAt else if \(aimActive\(\)\) aimAt else posEpochMs\(\)/);
   assert.match(k, /aimAt = target; aimUntil = /);
 });
+
+test('an update is installed through a PackageInstaller session, so the app is not left for another one (#250)', async () => {
+  const main = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/MainActivity.kt'), 'utf8');
+  const man = await readFile(path.join(repo, 'app/src/main/AndroidManifest.xml'), 'utf8');
+  assert.match(main, /if \(runCatching \{ installInSession\(file\) \}\.isSuccess\) return/);
+  assert.match(main, /installer\.createSession\(params\)/);
+  assert.match(man, /<receiver android:name="\.InstallResultReceiver" android:exported="false"\/>/);
+});
