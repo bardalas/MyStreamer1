@@ -1,5 +1,10 @@
 # VEO Android changelog
 
+## 0.45.35 — 2026-09-26
+- **Sound and picture can be brought together.** A stream whose sound runs slightly early or late (RaspberryTV's) can be tuned:
+  Menu, Captions or Yellow opens "הזזת השמע" - half a second either way, in steps of 50 ms, remembered. On a film it is a
+  part of the subtitles panel. (#257)
+
 ## 0.45.34 — 2026-09-26
 - **Live channels as a list on a television.** One channel to a row, six to a screen, with room between them: the logo and
   number, the name and what is on now, and at the far end the programme's times over a small bar of how far it has got.
