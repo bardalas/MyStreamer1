@@ -825,3 +825,9 @@ test('an update is installed through a PackageInstaller session, so the app is n
   assert.match(main, /installer\.createSession\(params\)/);
   assert.match(man, /<receiver android:name="\.InstallResultReceiver" android:exported="false"\/>/);
 });
+
+test('on a television the live channels are a list, one to a row with room between (#254)', async () => {
+  const css = await readFile(path.join(assets, 'css/live.css'), 'utf8');
+  assert.match(css, /html\[data-device="tv"\] \.chlist\{grid-template-columns:minmax\(0,1fr\);gap:18px\}/);
+  assert.match(css, /html\[data-device="tv"\] \.chmain\{display:grid;/);
+});
