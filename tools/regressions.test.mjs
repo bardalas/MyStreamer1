@@ -796,3 +796,9 @@ test('on a phone: no remote ring after a tap or on arrival, the read-more is sho
   assert.match(title, /html\[data-device="phone"\] \.desc \.readmore\{display:inline\}/);
   assert.match(content, /html\[data-device="phone"\] \.pagehead \.sortbar\{-webkit-mask-image/);
 });
+
+test('a focused row is scrolled to its own top, not to the foot of the row above, so its heading is never cut (#242)', async () => {
+  const nav = await readFile(path.join(assets, 'js/ui/tvnav.js'), 'utf8');
+  assert.match(nav, /let want = Math\.max\(0, Math\.round\(top - 14\)\);/);
+  assert.doesNotMatch(nav, /const floor = above/);
+});

@@ -184,15 +184,15 @@ export function focusItem(el){
   if(strip && strip.scrollWidth > strip.clientWidth + 4) el.scrollIntoView({block: 'nearest', inline: 'center', behavior: how});
   const row = el.closest('.row');
   if(row){
-    // a little room above the row for its heading - but never a sliver of whatever stands above it (the
-    // source tabs over the first row, the foot of the row before): that goes off the screen whole
-    const prev = row.previousElementSibling, above = prev?.getBoundingClientRect();
-    const floor = above && above.height ? above.bottom + scrollY : 0;
+    // a little room above the row for its heading
+    const prev = row.previousElementSibling;
     // The first row of a page is shown with as much of the page's head over it as leaves the whole of the
     // row on the screen - the title the remote is on and, on a wheel, what is said about it (.spotact): the
     // head's name and tabs say what the row is, and a description cut in half says nothing.
     const top = row.getBoundingClientRect().top + scrollY;
-    let want = Math.max(0, Math.round(Math.max(floor, top - 14)));
+    // (the row's own top, not the foot of the one above: a wheel's wrapper reaches 24px into its neighbours, so that foot can stand
+    // below the heading and cut it - #242)
+    let want = Math.max(0, Math.round(top - 14));
     if(prev && !prev.classList.contains('row')){
       const bottom = Math.max(el.getBoundingClientRect().bottom, row.querySelector('.spotact')?.getBoundingClientRect().bottom || 0) + scrollY;
       want = Math.max(0, Math.round(Math.min(top - 14, bottom - innerHeight + 12)));
