@@ -765,3 +765,13 @@ test('the profile list is read whole on every sync, and removals are synced as d
   assert.match(sync, /store\.removed = id =>/);
   assert.match(prof, /store\.removed\?\.\(id\)/);
 });
+
+test('on a phone the settings are a list of sections and a page per section with a way back; a television keeps its tabs (#239)', async () => {
+  const ui = await readFile(path.join(assets, 'js/screens/settings.js'), 'utf8');
+  const css = await readFile(path.join(assets, 'css/settings.css'), 'utf8');
+  assert.match(ui, /const phone = \(\) => !IS_TV_DEVICE && matchMedia\('\(max-width:760px\)'\)\.matches;/);
+  assert.match(ui, /if\(phone\(\)\) return tabs\.includes\(tab\) \? phonePage\(tab\) : phoneList\(tabs\);/);
+  assert.match(ui, /\$\('#sback'\)\.onclick = \(\) => \{ location\.hash = '#\/settings'; \};/);
+  assert.match(css, /\.setrow\{[^}]*min-height:60px/);
+  assert.match(css, /\.sback\{[^}]*width:44px;height:44px/);
+});
