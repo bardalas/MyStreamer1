@@ -1551,9 +1551,15 @@ class PlayerActivity : AppCompatActivity() {
                 if (event.repeatCount == 0) okLong = false
                 else if (!okLong) { okLong = true; openPanel() }             // held down
             } else {
-                if (!okLong) { if (!tuneWalk()) showBanner() }
+                // OK on a banner that is already up is the way to the sound's sync (a remote without Menu has no other)
+                if (!okLong) { if (!tuneWalk()) { if (live && bannerOpen) openSyncPanel() else showBanner() } }
                 okLong = false
             }
+            return true
+        }
+        // one channel, live: OK with the banner up opens the sound's sync, the same as on many channels (above)
+        if (ok && live && !walking && bannerOpen) {
+            if (!down) openSyncPanel()
             return true
         }
         // Left and Right are decided on release, so that holding them can mean something else; both the
