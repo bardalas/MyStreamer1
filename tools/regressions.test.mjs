@@ -774,4 +774,6 @@ test('on a phone the settings are a list of sections and a page per section with
   assert.match(ui, /\$\('#sback'\)\.onclick = \(\) => \{ location\.hash = '#\/settings'; \};/);
   assert.match(css, /\.setrow\{[^}]*min-height:60px/);
   assert.match(css, /\.sback\{[^}]*width:44px;height:44px/);
+  assert.match(css, /\.setpage\.phone > h1,\.sphead\{position:sticky;top:0;/);        // the header does not scroll away
+  assert.match(css, /\.setpage\.phone\{padding-top:0;margin-top:calc\(0px - var\(--topgap,64px\)\)/);
 });
