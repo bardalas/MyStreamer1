@@ -4,6 +4,9 @@
 - **Settings on a phone open in place.** A section no longer takes you to another screen: it opens under its name and
   pushes the sections below it down; one is open at a time, and pressing it again closes it. A television keeps
   its tabs unchanged. (#246)
+- **No dark flash after launch.** A few seconds after the app opened, the screen went dark and came back: the first sync counted
+  rows it already held as changes and reloaded the page. Only real changes count now, and the page is reloaded only
+  when the profile list or the settings changed. (#248)
 
 ## 0.45.31 — 2026-09-26
 - **A phone moves more softly.** Screens fade in with hardly any travel, sheets rise from the edge, the menu drawer
