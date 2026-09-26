@@ -3,6 +3,8 @@
 ## 0.45.36 — 2026-09-26
 - **Playback starts again.** 0.45.35 stopped every stream: the new sound-sync step failed on the sound's buffer
   ("the source buffer is this buffer"). Fixed, and it no longer refuses any kind of sound. (#260)
+- **Settings, sorted.** Info & reset is part of General (one tab fewer); the add-ons are with the streaming services; the
+  trailer sound choice is with the home screen. (#262)
 
 ## 0.45.35 — 2026-09-26
 - **Sound and picture can be brought together.** A stream whose sound runs slightly early or late (RaspberryTV's) can be tuned:

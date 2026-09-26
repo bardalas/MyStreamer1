@@ -447,7 +447,7 @@ export function parentHash(){
   if(['r13', 'kan', 'mako', 'web'].includes(r)) return listHash;   // a programme goes back to the list it was opened from
   if(r === 'who') return chosen() ? '#/' : null;                    // the picker the app starts on: Back leaves the app
   if(r === 'profile') return '#/settings/profiles';
-  if(r === 'report') return '#/settings/about';
+  if(r === 'report') return '#/settings/general';
   if(r === 'addons') return '#/settings';
   if(r === 'detail') return listHash;
   if(r === 'all') return location.hash.split('/')[2] === 'series' ? '#/cat/series' : '#/cat/movies';   // a library, to its page
