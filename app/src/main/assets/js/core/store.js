@@ -67,6 +67,8 @@ export const store = {
   setFor(pid, k, v){ write(profileKey(pid, k), v); store.watch?.(pid, k); },
   /** Called with (profile, key) after a write: the account's sync (data/sync.js) notes what changed. */
   watch: null,
+  /** Called with a profile's id when it is taken away. */
+  removed: null,
   /** Everything a profile kept, gone with it. */
   dropProfile(pid){
     const pre = `booth:p/${pid}/`;

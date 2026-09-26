@@ -677,7 +677,7 @@ test('the row wrapper leaves room on every side for the focused card ring (#203)
 
 test('an unsent local profile edit is not overwritten by the account, and the account copy replaces the profile (#206)', async () => {
   const sync = await readFile(path.join(assets, 'js/data/sync.js'), 'utf8');
-  assert.match(sync, /if\(profs\?\.length && !meta\(\)\.dirty\['\/' \+ LIST\]\)/);
+  assert.match(sync, /if\(profs && !meta\(\)\.dirty\['\/' \+ LIST\]\)/);                   // an unsent edit wins; the list is read whole
   assert.match(sync, /const next = \{\.\.\.r\.data, id: r\.id\};/);
   assert.doesNotMatch(sync, /list\[i\] = \{\.\.\.list\[i\], \.\.\.r\.data\}/);
 });
@@ -755,4 +755,13 @@ test('a blank placeholder never replaces the account\'s profile, and the househo
   assert.match(sync, /const kept = mine\.filter\(p => !blank\(p\)\);/);                    // a new device gives its blank ones up to the account's
   assert.match(sync, /const ACCOUNT_KEYS = new Set\(\['addons', 'playlists', 'rtvKey', 'kidsPin'\]\)/);
   assert.match(sync, /addEventListener\('visibilitychange', \(\) => \{ if\(document\.visibilityState === 'hidden'/);   // leaving the app sends what changed
+});
+
+test('the profile list is read whole on every sync, and removals are synced as deleted rows (#236)', async () => {
+  const sync = await readFile(path.join(assets, 'js/data/sync.js'), 'utf8');
+  const prof = await readFile(path.join(assets, 'js/data/profiles.js'), 'utf8');
+  assert.match(sync, /rest\('profiles\?select=id,data,deleted'\)/);                       // no cursor for the list
+  assert.match(sync, /profs\.push\(\{account_id: uid, id, data: \{\}, deleted: true\}\)/);
+  assert.match(sync, /store\.removed = id =>/);
+  assert.match(prof, /store\.removed\?\.\(id\)/);
 });
