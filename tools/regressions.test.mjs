@@ -810,3 +810,10 @@ test('the first sync after launch does not reload the app unless the profile lis
   assert.match(sync, /return \{changed, reload: needsReload\};/);
   assert.match(app, /if\(r\.reload && !sessionStorage\.getItem\('veo:synced'\)\)/);
 });
+
+test('the live-TV arrow holds the place aimed at until the picture has got there, instead of jumping back (#252)', async () => {
+  const k = await readFile(path.join(repo, 'app/src/main/java/com/veo/player/PlayerActivity.kt'), 'utf8');
+  assert.match(k, /private fun aimActive\(\): Boolean/);
+  assert.match(k, /val at = if \(pendingAt > 0\) pendingAt else if \(aimActive\(\)\) aimAt else posEpochMs\(\)/);
+  assert.match(k, /aimAt = target; aimUntil = /);
+});

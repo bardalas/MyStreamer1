@@ -824,7 +824,7 @@ class PlayerActivity : AppCompatActivity() {
             }
             return
         }
-        val at = if (pendingAt > 0) pendingAt else posEpochMs()     // where you are on the line of time (or where a held key would land)
+        val at = if (pendingAt > 0) pendingAt else if (aimActive()) aimAt else posEpochMs()     // where you are on the line of time (or where a held key would land)
         val behindMs = (nowMs - at - liveEdgeMs()).coerceAtLeast(0L)      // behind the edge, not behind the very second
         val at_s = at / 1000
         val prog = progs?.firstOrNull { at_s in it.from until it.to } ?: progs?.firstOrNull { now in it.from until it.to }
@@ -1257,6 +1257,17 @@ class PlayerActivity : AppCompatActivity() {
     private var pendingAt = -1L
     private var catchSeekMs = 0L                     // where in the archive stretch it opens: the minute asked for
     private val PRE_MS = 40_000L                     // ... which starts this much before it, so that a few presses back are in hand
+    /** Where the last press aimed, until the picture has got there: a seek takes a moment (and an archive stretch a new player),
+        and until then the player still says where it WAS - the arrow was jumping back to it and then forward again. */
+    private var aimAt = -1L
+    private var aimUntil = 0L
+    private fun aimActive(): Boolean {
+        if (aimAt <= 0) return false
+        val p = player
+        if (System.currentTimeMillis() < aimUntil && (p == null || kotlin.math.abs(posEpochMs() - aimAt) > 3_000L)) return true
+        aimAt = -1L
+        return false
+    }
     private val applyPending = Runnable { val t = pendingAt; pendingAt = -1; if (t > 0) playAt(t) }
 
     /** Where the picture is on the line of time, as a clock reads it, in milliseconds. */
@@ -1275,7 +1286,7 @@ class PlayerActivity : AppCompatActivity() {
 
     /** Back to the live edge of this channel. */
     private fun goLive() {
-        handler.removeCallbacks(applyPending); pendingAt = -1
+        handler.removeCallbacks(applyPending); pendingAt = -1; aimAt = -1L
         walking = false; walkAt = null; catchUp = null
         archTry = 0; retries = 0
         player?.release(); player = null
@@ -1305,10 +1316,11 @@ class PlayerActivity : AppCompatActivity() {
         val p = player ?: return
         val step = if (held) 30_000L else 10_000L
         val nowMs = System.currentTimeMillis()
-        val target = (if (pendingAt > 0) pendingAt else posEpochMs()) + direction * step
+        val target = (if (pendingAt > 0) pendingAt else if (aimActive()) aimAt else posEpochMs()) + direction * step
         val c = catchUp
         if (direction > 0 && target >= nowMs - liveEdgeMs() - 3_000) {       // forward into the present: the live edge
             showSeekSign(direction * step, nowMs)
+            aimAt = -1L
             if (c != null || pendingAt > 0) goLive() else p.seekToDefaultPosition()
             return
         }
@@ -1324,6 +1336,7 @@ class PlayerActivity : AppCompatActivity() {
             pendingAt = target
             handler.removeCallbacks(applyPending); handler.postDelayed(applyPending, 450)
         }
+        aimAt = target; aimUntil = System.currentTimeMillis() + 8_000L
         showSeekSign(direction * step, target)
         if (!walking) showBanner() else if (bannerOpen) paintNow()
     }
@@ -1337,6 +1350,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun zapBy(step: Int) {
         if (sources.size < 2) return
         catchUp = null                                           // another channel starts at its live edge
+        aimAt = -1L
         walking = false
         walkAt = null
         index = (index + step + sources.size) % sources.size
